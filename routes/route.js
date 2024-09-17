@@ -63,7 +63,7 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   router.get('/links', isAuthenticated, (req, res) => {
     const links = Array.from(sharedLinks.entries()).map(([token, data]) => {
-      return  { link: `${req.protocol}://${req.get('host')}/public/${token}`, fileName: data.fileName };
+      return  { link: `${req.protocol}://${req.get('host')}/share/${token}`, fileName: data.fileName };
     })
 
     res.render('public-links', { links })
