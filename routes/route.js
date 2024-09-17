@@ -7,6 +7,7 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   const router = express.Router()
   const publicLinks = new Map();
+  const sharedLinks = new Map();
 
   // Set up multer to save files with original names
   const storage = multer.diskStorage({
@@ -45,6 +46,41 @@ module.exports = function (uploadsDir, isAuthenticated) {
     });
   });
 
+  router.get('/share/:token', (req, res) => {
+    const token = req.params.token;
+    const filePath = sharedLinks.get(token);
+  
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).send('File not found');
+    }
+  
+    res.download(filePath, (err) => {
+      if (err) {
+        return res.status(500).send('Error downloading file');
+      }
+    });
+  });
+
+  router.get('/links', isAuthenticated, (req, res) => {
+
+  })
+
+  //This is similar to generate links, but keeps filename
+  router.post('/share', isAuthenticated, (req, res) => {
+    const filename = req.body.fileName
+    const filePath = path.join(uploadsDir, filename)
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send('File not found');
+    }
+
+    sharedLinks.set(filename, filePath)
+    res.render('linkgen', {
+      link: `${req.protocol}://${req.get('host')}/share/${filename}`,
+      fileName: filename
+    })
+  })
+
   router.post('/generate-link', isAuthenticated, (req, res) => {
     const fileName = req.body.fileName;
     const filePath = path.join(uploadsDir, fileName);
@@ -56,7 +92,6 @@ module.exports = function (uploadsDir, isAuthenticated) {
     // Generate a unique token for the link
     const token = crypto.randomBytes(20).toString('hex');
     publicLinks.set(token, filePath);
-  
     // Send the public link to the user
     //res.json({ link: `${req.protocol}://${req.get('host')}/public/${token}` });
     res.render('linkgen', {
