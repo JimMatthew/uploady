@@ -1,8 +1,8 @@
 const express = require('express');
 const fs = require('fs');
 const multer = require('multer');
-
-module.exports = function (uploadsDir) {
+var path = require('path');
+module.exports = function (uploadsDir, isAuthenticated) {
   const router = express.Router();
 
   // Set up multer to save files with original names
@@ -18,35 +18,31 @@ module.exports = function (uploadsDir) {
   const upload = multer({ storage: storage });
 
   // Route to display the file list and upload form
-  router.get('/', (req, res) => {
+  router.get('/', isAuthenticated, (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
       if (err) {
         return res.status(500).send('Unable to scan directory');
       }
-
       res.render('index', { files });
     });
   });
 
-  // Route to handle file uploads
-  router.post('/upload', upload.single('file'), (req, res) => {
+  router.post('/upload', isAuthenticated, upload.single('file'), (req, res) => {
     if (!req.file) {
       return res.status(400).send('No file uploaded');
     }
-
     res.redirect('/');
   });
 
-  // Download a specific file
-  router.get('/download/:filename', (req, res) => {
-    const filePath = `${uploadsDir}/${req.params.filename}`;
-
+  router.get('/download/:filename', isAuthenticated, (req, res) => {
+    const filePath = path.join(uploadsDir, req.params.filename);
     res.download(filePath, (err) => {
       if (err) {
         return res.status(500).send('File not found');
       }
     });
   });
+
 
   return router;
 };

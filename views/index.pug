@@ -1,15 +1,20 @@
 doctype html
 html
   head
-    title File List and Upload
+    title File Manager
   body
-    h1 Files
+    h1 File Manager
+    if user
+      p Logged in as #{user.username} | a(href='/logout') Logout
+    else
+      p 
+      a(href=`/login`) Login
+
+    form(action="/upload" method="POST" enctype="multipart/form-data")
+      input(type="file" name="file" required)
+      button(type="submit") Upload
+
     ul
       each file in files
         li
           a(href=`/download/${file}`) #{file}
-    
-    h2 Upload a new file
-    form(action="/upload" method="POST" enctype="multipart/form-data")
-      input(type="file" name="file")
-      button(type="submit") Upload
