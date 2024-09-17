@@ -5,7 +5,8 @@ html
   body
     h1 File Manager
     if user
-      p Logged in as #{user.username} | a(href='/logout') Logout
+      p Logged in as #{user.username} 
+      a(href='/logout') Logout
     else
       p 
       a(href=`/login`) Login

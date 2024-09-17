@@ -23,7 +23,7 @@ module.exports = function (uploadsDir, isAuthenticated) {
       if (err) {
         return res.status(500).send('Unable to scan directory');
       }
-      res.render('index', { files });
+      res.render('index', { files, user: req.user });
     });
   });
 
