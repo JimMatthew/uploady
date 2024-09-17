@@ -7,8 +7,6 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
@@ -66,6 +64,7 @@ function isAuthenticated(req, res, next) {
 }
 
 const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated);
+
 app.use('/', routes);
 app.get('/login', (req, res) => {
   res.render('login', { message: req.session.messages || '' });

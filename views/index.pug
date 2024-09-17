@@ -2,6 +2,7 @@ doctype html
 html
   head
     title File Manager
+    link(rel="stylesheet" href="/style.css")
   body
     h1 File Manager
     if user
@@ -15,7 +16,8 @@ html
         label(for="fileName") File Name:
         input(type="text" name="fileName" required)
         button(type="submit") Generate Link
-
+      p 
+        a(href="/links") All Shared Links
       ul
         each file in files
           li

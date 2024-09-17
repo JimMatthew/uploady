@@ -2,10 +2,13 @@ doctype html
 html
   head
     title Public Link Generated
+    link(rel="stylesheet" href="/style.css")
   body
     h1 Public Link Generated
-    p Your file "#{fileName}" has been successfully shared.
+    p Your file "#{fileName}" has been successfully generated.
     p You can download it using the following link:
-    a(href=link) #{link}
+    p
+        a(href=link) #{link}
     p You can share this link with anyone to allow them to download the file.
-    a(href="/") Back to File Manager
+    p
+        a(href="/") Back to File Manager

@@ -1,0 +1,17 @@
+doctype html
+html
+  head
+    title Public Links
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 All Public Links
+    if links.length
+      ul
+        each link in links
+          li
+            | File: #{link.fileName} - 
+            a(href=link.link) #{link.link}
+    else
+      p No public links available.
+    p 
+        a(href="/") Back to File Manager
