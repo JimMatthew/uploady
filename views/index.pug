@@ -1,0 +1,15 @@
+doctype html
+html
+  head
+    title File List and Upload
+  body
+    h1 Files
+    ul
+      each file in files
+        li
+          a(href=`/download/${file}`) #{file}
+    
+    h2 Upload a new file
+    form(action="/upload" method="POST" enctype="multipart/form-data")
+      input(type="file" name="file")
+      button(type="submit") Upload
