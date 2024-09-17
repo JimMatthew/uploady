@@ -11,7 +11,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 const users = [
-  { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('password123', 10) } 
+  { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
 
 var app = express();

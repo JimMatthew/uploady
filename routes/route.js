@@ -2,47 +2,93 @@ const express = require('express');
 const fs = require('fs');
 const multer = require('multer');
 var path = require('path');
+const crypto = require('crypto');
 module.exports = function (uploadsDir, isAuthenticated) {
-  const router = express.Router();
+
+  const router = express.Router()
+  const publicLinks = new Map();
 
   // Set up multer to save files with original names
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, uploadsDir);  // Use the provided uploads directory
+      cb(null, uploadsDir)  // Use the provided uploads directory
     },
     filename: function (req, file, cb) {
-      cb(null, file.originalname);  // Preserve the original file name
+      cb(null, file.originalname)  // Preserve the original file name
     }
-  });
+  })
 
-  const upload = multer({ storage: storage });
+  const upload = multer({ storage: storage })
 
   // Route to display the file list and upload form
   router.get('/', isAuthenticated, (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
       if (err) {
-        return res.status(500).send('Unable to scan directory');
+        return res.status(500).send('Unable to scan directory')
       }
-      res.render('index', { files, user: req.user });
+      res.render('index', { files, user: req.user })
+    })
+  })
+
+  router.get('/public/:token', (req, res) => {
+    const token = req.params.token;
+    const filePath = publicLinks.get(token);
+  
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).send('File not found');
+    }
+  
+    res.download(filePath, (err) => {
+      if (err) {
+        return res.status(500).send('Error downloading file');
+      }
     });
   });
+
+  router.post('/generate-link', isAuthenticated, (req, res) => {
+    const fileName = req.body.fileName;
+    const filePath = path.join(uploadsDir, fileName);
+  
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send('File not found');
+    }
+  
+    // Generate a unique token for the link
+    const token = crypto.randomBytes(20).toString('hex');
+    publicLinks.set(token, filePath);
+  
+    // Send the public link to the user
+    //res.json({ link: `${req.protocol}://${req.get('host')}/public/${token}` });
+    res.render('linkgen', {
+      link: `${req.protocol}://${req.get('host')}/public/${token}`,
+      fileName: fileName
+    })
+  });
+
+  router.post('/delete/:filename', isAuthenticated, (req, res) => {
+    const filePath = path.join(uploadsDir, req.params.filename)
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        return res.status(500).send('unable to delete file')
+      }
+      res.redirect('/')
+    })
+  })
 
   router.post('/upload', isAuthenticated, upload.single('file'), (req, res) => {
     if (!req.file) {
-      return res.status(400).send('No file uploaded');
+      return res.status(400).send('No file uploaded')
     }
-    res.redirect('/');
-  });
+    res.redirect('/')
+  })
 
   router.get('/download/:filename', isAuthenticated, (req, res) => {
-    const filePath = path.join(uploadsDir, req.params.filename);
+    const filePath = path.join(uploadsDir, req.params.filename)
     res.download(filePath, (err) => {
       if (err) {
-        return res.status(500).send('File not found');
+        return res.status(500).send('File not found')
       }
-    });
-  });
-
-
-  return router;
-};
+    })
+  })
+  return router
+}
