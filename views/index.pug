@@ -11,11 +11,6 @@ html
       form(action="/upload" method="POST" enctype="multipart/form-data")
         input(type="file" name="files" multiple)
         button(type="submit") Upload File
-
-      form(action="/share" method="POST")
-        label(for="fileName") Enter File Name:
-        input(type="text" name="fileName" required)
-        button(type="submit") Generate Public Link
       p 
         a(href='/links') Show All Shared Files
 
