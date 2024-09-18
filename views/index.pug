@@ -58,7 +58,7 @@ html
             body: formData
           }).then(response => {
             if (response.ok) {
-              alert('File uploaded successfully!');
+              window.location.href = '/'
             } else {
               alert('File upload failed.');
             }
