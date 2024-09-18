@@ -11,6 +11,9 @@ html
           li
             | File: #{link.fileName} - 
             a(href=link.link) #{link.link}
+            form#remshare(action="/stop-sharing", method="POST", style="display:inline")
+              input(type="hidden", name="fileName", value=link.fileName)
+              button(type="submit") Stop Sharing
     else
       p No public links available.
     p 

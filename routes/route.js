@@ -71,7 +71,7 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   router.get('/links', isAuthenticated, (req, res) => {
     const links = Array.from(sharedLinks.entries()).map(([token, data]) => {
-      return  { link: `${req.protocol}://${req.get('host')}/share/${token}`, fileName: data.fileName }
+      return  { link: `${req.protocol}://${req.get('host')}/share/${token}`, fileName: token }
     })
     res.render('public-links', { links })
   })
@@ -107,6 +107,14 @@ module.exports = function (uploadsDir, isAuthenticated) {
       fileName: fileName
     })
   }
+
+  router.post('/stop-sharing', isAuthenticated, (req, res) => {
+    const fileName = req.body.fileName
+    if (sharedLinks.has(fileName)) {
+      sharedLinks.delete(fileName)
+    }
+    res.redirect('/links')
+  })
 
   router.post('/delete/:filename', isAuthenticated, (req, res) => {
     const filePath = path.join(uploadsDir, req.params.filename)
