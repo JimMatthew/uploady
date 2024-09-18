@@ -78,33 +78,32 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   //Shares the file to a public link and keep the file namename
   router.post('/share', isAuthenticated, (req, res) => {
-    const filename = req.body.fileName
-    const filePath = path.join(uploadsDir, filename)
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).send('File not found')
-    }
-    sharedLinks.set(filename, filePath)
-    res.render('linkgen', {
-      link: `${req.protocol}://${req.get('host')}/share/${filename}`,
-      fileName: filename
-    })
+    createLink(req, res, false)
   })
 
   //Shares the file publicly but generates a random 20 char url
   router.post('/generate-link', isAuthenticated, (req, res) => {
+    createLink(req, res, true)
+  })
+
+  const createLink = (req, res, isRandom) => {
     const fileName = req.body.fileName
     const filePath = path.join(uploadsDir, fileName)
+    const p = isRandom ? 'public' : 'share'
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('File not found')
     }
-    // Generate a unique token for the link
-    const token = crypto.randomBytes(20).toString('hex')
-    publicLinks.set(token, filePath)
+    const token = isRandom ? crypto.randomBytes(20).toString('hex') : fileName
+    if (isRandom) {
+      publicLinks.set(token, filePath)
+    } else {
+      sharedLinks.set(fileName, filePath)
+    }
     res.render('linkgen', {
-      link: `${req.protocol}://${req.get('host')}/public/${token}`,
+      link: `${req.protocol}://${req.get('host')}/${p}/${token}`,
       fileName: fileName
     })
-  })
+  }
 
   router.post('/delete/:filename', isAuthenticated, (req, res) => {
     const filePath = path.join(uploadsDir, req.params.filename)
