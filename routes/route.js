@@ -117,10 +117,14 @@ module.exports = function (uploadsDir, isAuthenticated) {
   })
 
   router.post('/delete/:filename', isAuthenticated, (req, res) => {
-    const filePath = path.join(uploadsDir, req.params.filename)
+    const fileName = req.params.filename
+    const filePath = path.join(uploadsDir, fileName)
     fs.unlink(filePath, (err) => {
       if (err) {
         return res.status(500).send('unable to delete file')
+      }
+      if (sharedLinks.has(fileName)) {
+        sharedLinks.delete(fileName)
       }
       res.redirect('/')
     })
