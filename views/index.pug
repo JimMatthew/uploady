@@ -19,7 +19,7 @@ html
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
 
-        // Prevent default behavior for drag and drop
+        // Prevent default behavior for drag and drops
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
           dropZone.addEventListener(event, e => e.preventDefault());
         });
