@@ -11,6 +11,61 @@ html
       form(action="/upload" method="POST" enctype="multipart/form-data")
         input(type="file" name="files" multiple)
         button(type="submit") Upload File
+      #drop-zone
+        p Drag and drop your files here, or click to select files.
+        input#file-input(type='file', hidden)
+      
+      script.
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        // Prevent default behavior for drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+          dropZone.addEventListener(event, e => e.preventDefault());
+        });
+
+        // Highlight drop zone when dragging files
+        ['dragenter', 'dragover'].forEach(event => {
+          dropZone.addEventListener(event, () => dropZone.classList.add('highlight'));
+        });
+
+        ['dragleave', 'drop'].forEach(event => {
+          dropZone.addEventListener(event, () => dropZone.classList.remove('highlight'));
+        });
+
+        // Handle drop event
+        dropZone.addEventListener('drop', event => {
+          const files = event.dataTransfer.files;
+          uploadFile(files[0]);
+        });
+
+        // Handle click to open file selector
+        dropZone.addEventListener('click', () => {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+          uploadFile(fileInput.files[0]);
+        });
+
+        // Upload the file via AJAX
+        function uploadFile(file) {
+          const formData = new FormData();
+          formData.append('files', file);
+
+          fetch('/upload', {
+            method: 'POST',
+            body: formData
+          }).then(response => {
+            if (response.ok) {
+              alert('File uploaded successfully!');
+            } else {
+              alert('File upload failed.');
+            }
+          }).catch(error => {
+            alert('Error uploading file.');
+          });
+        }
       p 
         a(href='/links') Show All Shared Files
 
