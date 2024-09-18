@@ -6,21 +6,43 @@ html
   body
     h1 File Manager
     if user
-      p Logged in as #{user.username} |
+      p Logged in as #{user.username} | 
         a(href="/logout") Logout
       form(action="/upload" method="POST" enctype="multipart/form-data")
-        input(type="file" name="files" multiple)
-        button(type="submit") Upload
+        input(type="file" name="file" required)
+        button(type="submit") Upload File
 
       form(action="/share" method="POST")
-        label(for="fileName") File Name:
+        label(for="fileName") Enter File Name:
         input(type="text" name="fileName" required)
-        button(type="submit") Generate Link
+        button(type="submit") Generate Public Link
       p 
-        a(href="/links") All Shared Links
-      ul
-        each file in files
-          li
-            a(href=`/download/${file}`) #{file}
+        a(href='/links') Show All Shared Files
+
+      if files.length
+        table
+          thead
+            tr
+              th File Name
+              th Size (KB)
+              th Date Modified
+              th Actions
+          tbody
+            each file in files
+              tr
+                td
+                  a(href=`/download/${file.name}`) #{file.name}
+                td #{file.size} KB
+                td #{file.date}
+                td
+                  form(action="/delete-file" method="POST" style="display:inline")
+                    input(type="hidden" name="fileName" value=file.name)
+                    button(type="submit") Delete
+      else
+        p No files uploaded yet.
+
     else
       p You are not logged in. a(href="/login") Login
+
+    footer
+      p File Manager App by James Lindstrom

@@ -10,6 +10,15 @@ module.exports = function (uploadsDir, isAuthenticated) {
   const publicLinks = new Map()
   const sharedLinks = new Map()
 
+  // Function to get file information (size, date)
+  const getFileDetails = (filePath) => {
+    const stats = fs.statSync(filePath);
+    return {
+      size: (stats.size / 1024).toFixed(2),  // Convert bytes to KB, rounded to 2 decimal places
+      date: stats.mtime.toLocaleDateString(),  // Last modification date
+    };
+  };
+
   // Set up multer to save files with original names
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -24,13 +33,22 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   // Route to display the file list and upload form
   router.get('/', isAuthenticated, (req, res) => {
-    fs.readdir(uploadsDir, (err, files) => {
-      if (err) {
-        return res.status(500).send('Unable to scan directory')
-      }
-      res.render('index', { files, user: req.user })
-    })
-  })
+    const filesDir = path.join(uploadsDir, 'uploads');
+    const files = fs.readdirSync(uploadsDir).map(file => {
+    const filePath = path.join(uploadsDir, file);
+    const details = getFileDetails(filePath);
+    return {
+      name: file,
+      size: details.size,
+      date: details.date,
+    };
+  });
+
+    res.render('index', {
+    user: req.user,
+    files: files,  // Send files with size and date to the template
+  });
+});
 
   router.get('/public/:token', (req, res) => {
     const token = req.params.token
