@@ -76,31 +76,34 @@ module.exports = function (uploadsDir, isAuthenticated) {
     res.render('public-links', { links })
   })
 
-  //Shares the file to a public link and keep the file namename
   router.post('/share', isAuthenticated, (req, res) => {
-    createLink(req, res, false)
-  })
-
-  //Shares the file publicly but generates a random 20 char url
+    handleLinkGeneration(req, res, { isRandom: false })
+  });
+  
   router.post('/generate-link', isAuthenticated, (req, res) => {
-    createLink(req, res, true)
-  })
+    handleLinkGeneration(req, res, { isRandom: true })
+  });
 
-  const createLink = (req, res, isRandom) => {
+  const handleLinkGeneration = (req, res, options) => {
+    const { isRandom } = options
     const fileName = req.body.fileName
     const filePath = path.join(uploadsDir, fileName)
-    const p = isRandom ? 'public' : 'share'
+    
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('File not found')
     }
+  
+    // Generate the token based on the option
     const token = isRandom ? crypto.randomBytes(20).toString('hex') : fileName
-    if (isRandom) {
-      publicLinks.set(token, filePath)
-    } else {
-      sharedLinks.set(fileName, filePath)
-    }
+    const linkType = isRandom ? 'public' : 'share'
+  
+    // Store the link in the appropriate collection
+    const storage = isRandom ? publicLinks : sharedLinks
+    storage.set(token, filePath)
+  
+    // Render the public/shared link
     res.render('linkgen', {
-      link: `${req.protocol}://${req.get('host')}/${p}/${token}`,
+      link: `${req.protocol}://${req.get('host')}/${linkType}/${token}`,
       fileName: fileName
     })
   }
