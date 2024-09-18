@@ -12,12 +12,12 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   // Function to get file information (size, date)
   const getFileDetails = (filePath) => {
-    const stats = fs.statSync(filePath);
+    const stats = fs.statSync(filePath)
     return {
       size: (stats.size / 1024).toFixed(2),  // Convert bytes to KB, rounded to 2 decimal places
       date: stats.mtime.toLocaleDateString(),  // Last modification date
-    };
-  };
+    }
+  }
 
   // Set up multer to save files with original names
   const storage = multer.diskStorage({
@@ -33,41 +33,24 @@ module.exports = function (uploadsDir, isAuthenticated) {
 
   // Route to display the file list and upload form
   router.get('/', isAuthenticated, (req, res) => {
-    const filesDir = path.join(uploadsDir, 'uploads');
+    const filesDir = path.join(uploadsDir, 'uploads')
     const files = fs.readdirSync(uploadsDir).map(file => {
-    const filePath = path.join(uploadsDir, file);
-    const details = getFileDetails(filePath);
-    return {
-      name: file,
-      size: details.size,
-      date: details.date,
-    };
-  });
-
-    res.render('index', {
-    user: req.user,
-    files: files,  // Send files with size and date to the template
-  });
-});
-
-  router.get('/public/:token', (req, res) => {
-    const token = req.params.token
-    const filePath = publicLinks.get(token)
-  
-    if (!filePath || !fs.existsSync(filePath)) {
-      return res.status(404).send('File not found')
-    }
-    res.download(filePath, (err) => {
-      if (err) {
-        return res.status(500).send('Error downloading file')
+      const filePath = path.join(uploadsDir, file)
+      const details = getFileDetails(filePath)
+      return {
+        name: file,
+        size: details.size,
+        date: details.date,
       }
+    })
+    res.render('index', {
+      user: req.user,
+      files: files,  // Send files with size and date to the template
     })
   })
 
-  router.get('/share/:token', (req, res) => {
-    const token = req.params.token
-    const filePath = sharedLinks.get(token)
-  
+  const downloadFile = (fileName, isRandom, req, res) => {
+    const filePath = isRandom ? publicLinks.get(fileName) : sharedLinks.get(fileName)
     if (!filePath || !fs.existsSync(filePath)) {
       return res.status(404).send('File not found')
     }
@@ -76,6 +59,14 @@ module.exports = function (uploadsDir, isAuthenticated) {
         return res.status(500).send('Error downloading file')
       }
     })
+  }
+
+  router.get('/public/:token', (req, res) => {
+    downloadFile(req.params.token, true, req, res)
+  })
+
+  router.get('/share/:token', (req, res) => {
+    downloadFile(req.params.token, false, req, res)
   })
 
   router.get('/links', isAuthenticated, (req, res) => {
