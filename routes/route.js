@@ -107,8 +107,8 @@ module.exports = function (uploadsDir, isAuthenticated) {
     })
   })
 
-  router.post('/upload', isAuthenticated, upload.single('file'), (req, res) => {
-    if (!req.file) {
+  router.post('/upload', isAuthenticated, upload.array('files', 10), (req, res) => {
+    if (!req.files) {
       return res.status(400).send('No file uploaded')
     }
     res.redirect('/')
