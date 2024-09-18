@@ -1,0 +1,58 @@
+doctype html
+html
+  head
+    title SFTP Browser
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 SFTP Browser
+
+    if message
+      p= message
+
+    // SFTP Connection Form
+    form(action="/sftp/connect", method="POST")
+      div
+        label(for="host") Host:
+        input(type="text" name="host" value=host )
+      div
+        label(for="username") Username:
+        input(type="text" name="username" value=username )
+      div
+        label(for="password") Password:
+        input(type="password" name="password" value=password )
+      div
+        label(for="directory") Current Directory:
+        input(type="text" name="directory" value=currentDirectory required)
+      button(type="submit") Browse
+
+    if files
+      h2 Files in #{currentDirectory}:
+      table
+        thead
+          tr
+            th File Name
+            th File Type
+            th Actions
+        tbody
+          each file in files
+            tr
+              td 
+                if file.type === 'd'
+                  a(href="#", onclick="changeDirectory('#{file.name}')") #{file.name}
+                else
+                  | #{file.name}
+              td #{file.type === 'd' ? 'Directory' : 'File'}
+              td
+                if file.type !== 'd'
+                  form(action="/sftp/download", method="POST", style="display:inline")
+                    input(type="hidden", name="remoteFilePath", value=currentDirectory + '/' + file.name)
+                    input(type="hidden", name="host", value=host)
+                    input(type="hidden", name="username", value=username)
+                    input(type="hidden", name="password", value=password)
+                    button(type="submit") Download
+                form(action="/sftp/delete", method="POST", style="display:inline")
+                  input(type="hidden", name="remoteFilePath", value=currentDirectory + '/' + file.name)
+                  input(type="hidden", name="host", value=host)
+                  input(type="hidden", name="username", value=username)
+                  input(type="hidden", name="password", value=password)
+                  button(type="submit") Delete
