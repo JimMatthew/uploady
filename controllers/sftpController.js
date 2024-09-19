@@ -40,13 +40,13 @@ exports.sft_connect_post = async (req, res) => {
 }
 
 exports.sftp_download_post = async (req, res) => {
-    const { host, username, password, remoteFilePath, localFilePath } = req.body;
+    const { host, username, password, remoteFilePath, remoteFileName } = req.body;
     const sftp = new SftpClient();
-    
+    const remoteFile = path.join(remoteFilePath, remoteFileName)
     try {
       await sftp.connect({ host, username, password });
-      await sftp.fastGet(remoteFilePath, __dirname+'/temp/temp'); // Download remote file to local path
-      const filePath = path.join(__dirname, 'temp/temp')
+      await sftp.fastGet(remoteFile, __dirname+'/temp/'+remoteFileName); // Download remote file to local path
+      const filePath = path.join(__dirname, 'temp/'+remoteFileName)
       
       res.download(filePath, (err) => {
       if (err) {

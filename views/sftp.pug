@@ -42,8 +42,8 @@ html
               td
                 if file.type !== 'd'
                   form(action="/sftp/download", method="POST", style="display:inline")
-                    input(type="hidden", name="remoteFilePath", value=currentDirectory + '/' + file.name)
-                    input(type="hidden", name="host", value=host)
+                    input(type="hidden", name="remoteFilePath", value=currentDirectory)
+                    input(type="hidden", name="remoteFileName", value=file.name)
                     input(type="hidden", name="username", value=username)
                     input(type="hidden", name="password", value=password)
                     button(type="submit") Download
