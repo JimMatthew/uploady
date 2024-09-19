@@ -30,19 +30,19 @@ exports.upload_file_post = (req, res) => {
 exports.listFiles = (req, res) => {
   fs.readdir(uploadsDir, (err, files) => {
     if (err) {
-      return res.status(500).send('Unable to scan directory');
+      return res.status(500).send('Unable to scan directory')
     }
     const fileList = files.map(file => {
-      const stats = fs.statSync(path.join(uploadsDir, file));
+      const stats = fs.statSync(path.join(uploadsDir, file))
       return {
         name: file,
         size: stats.size,
         date: stats.mtime,
-      };
-    });
-    res.render('index', { files: fileList , user: req.user});
-  });
-};
+      }
+    })
+    res.render('index', { files: fileList , user: req.user })
+  })
+}
 
 exports.file_download_get = (req, res) => {
   const filePath =  sharedLinks.get(req.params.token)
@@ -56,10 +56,6 @@ exports.file_download_get = (req, res) => {
     })
 }
 
-exports.downloadFile = (req, res) => {
-  const { fileName } = req.body
-}
-
 exports.file_links_get = (req, res) => {
   const links = Array.from(sharedLinks.entries()).map(([token, data]) => {
     return  { link: `${req.protocol}://${req.get('host')}/share/${token}`, fileName: token }
@@ -71,9 +67,9 @@ exports.listPublicLinks = (req, res) => {
   const links = Array.from(publicLinks.entries()).map(([token, filePath]) => ({
     fileName: path.basename(filePath),
     link: `${req.protocol}://${req.get('host')}/public/${token}`,
-  }));
-  res.render('publicLinks', { links });
-};
+  }))
+  res.render('publicLinks', { links })
+}
 
 exports.share_file_post = (req, res) => {
   const fileName = req.body.fileName
