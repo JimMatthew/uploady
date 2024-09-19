@@ -7,18 +7,25 @@ module.exports = function (uploadsDir, isAuthenticated) {
   const router = express.Router()
   //list all files in the managed directory
   router.get('/', isAuthenticated, filemanagerController.listFiles)
+
   //download file from public link - not authenticated
   router.get('/share/:token', filemanagerController.download_shared_file_get)
+
   //display list of all shared links
   router.get('/links', isAuthenticated, filemanagerController.file_links_get)
+
   //create a public link for a file
   router.post('/share', isAuthenticated, filemanagerController.share_file_post)
+
   //stop sharing a public file
   router.post('/stop-sharing', isAuthenticated, filemanagerController.stop_sharing_post)
+
   //delete file from managed directory
   router.post('/delete/:filename', isAuthenticated, filemanagerController.delete_file_post)
+
   //download file from managed directory - is authenticated
   router.get('/download/:filename', isAuthenticated, filemanagerController.download_file_get)
+  
   //upload file/s to managed directory
   router.post('/upload', isAuthenticated, filemanagerController.uploadMiddleware, 
     filemanagerController.upload_file_post)
