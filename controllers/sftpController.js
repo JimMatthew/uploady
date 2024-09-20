@@ -39,26 +39,30 @@ exports.sft_connect_post = async (req, res) => {
     }
 }
 
+/*
+Download a file from sftp server. 
+We transfer the file from SFTP server to a temp file on this server, 
+and then download to client. We then remove the temp file
+*/
 exports.sftp_download_post = async (req, res) => {
     const { host, username, password, remoteFilePath, remoteFileName } = req.body;
     const sftp = new SftpClient();
     const remoteFile = path.join(remoteFilePath, remoteFileName)
+    const localFilePath = path.join(path.join(__dirname, 'temp'), remoteFileName)
     try {
       await sftp.connect({ host, username, password });
-      await sftp.fastGet(remoteFile, __dirname+'/temp/'+remoteFileName); // Download remote file to local path
-      const filePath = path.join(__dirname, 'temp/'+remoteFileName)
+      await sftp.fastGet(remoteFile, localFilePath); // Download remote file to local path
       
-      res.download(filePath, (err) => {
+      res.download(localFilePath, (err) => {
       if (err) {
         return res.status(500).send('File not found')
       }
-      fs.unlink(filePath, (err) => {
+      fs.unlink(localFilePath, (err) => {
         if (err) {
           return res.status(500).send('unable to delete file')
         }
       })
     })
-      //res.render('sftp', { files: null, message: 'File downloaded successfully' });
       await sftp.end();
     } catch (err) {
       console.error(err);

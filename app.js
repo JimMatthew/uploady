@@ -66,11 +66,10 @@ function isAuthenticated(req, res, next) {
 const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated)
 
 app.use('/', routes)
+
 app.get('/login', (req, res) => {
   res.render('login', { message: req.session.messages || '' })
 })
-
-//app.use('/sftp', sfptRouter)
 
 app.post('/login',
   passport.authenticate('local', {
