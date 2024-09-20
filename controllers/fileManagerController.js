@@ -37,7 +37,7 @@ exports.listFiles = (req, res) => {
       return {
         name: file,
         size: stats.size,
-        date: stats.mtime,
+        date: stats.mtime.toLocaleDateString(),
       }
     })
     res.render('index', { files: fileList , user: req.user })
