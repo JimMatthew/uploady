@@ -49,18 +49,6 @@ module.exports = (configStoreType) => {
     })
   }
 
-  const file_download_get = (req, res) => {
-    const filePath =  sharedLinks.get(req.params.token)
-      if (!filePath || !fs.existsSync(filePath)) {
-        return res.status(404).send('File not found')
-      }
-      res.download(filePath, (err) => {
-        if (err) {
-          return res.status(500).send('Error downloading file')
-        }
-      })
-  }
-
   const getLinksFromLocal = (req) => {
     return Array.from(sharedLinks.entries()).map(([token, data]) => ({
       link: `${req.protocol}://${req.get('host')}/share/${token}`,
@@ -161,10 +149,8 @@ module.exports = (configStoreType) => {
   }
 
   const download_shared_file_get = async (req, res) => {
-
     try {
       const fileName = req.params.token
-
       const filePath = await getFilePathFromStorage(fileName)
 
       if (!checkFileExists(filePath)) {
@@ -182,18 +168,25 @@ module.exports = (configStoreType) => {
     }
   }
 
-  const delete_file_post = (req, res) => {
+  const delete_file_post = async (req, res) => {
     const fileName = req.params.filename
     const filePath = path.join(uploadsDir, fileName)
     fs.unlink(filePath, (err) => {
       if (err) {
         return res.status(500).send('unable to delete file')
       }
-      if (sharedLinks.has(fileName)) {
-        sharedLinks.delete(fileName)
-      }
-      res.redirect('/')
     })
+    switch (configStoreType) {
+      case ConfigStoreType.LOCAL:
+        if (sharedLinks.has(fileName)) {
+          sharedLinks.delete(fileName)
+        }
+        break
+
+      case ConfigStoreType.DATABASE:
+        await SharedFile.findOneAndDelete({ fileName }) 
+    }
+    res.redirect('/')
   }
 
   const download_file_get = (req, res) => {
@@ -209,7 +202,6 @@ module.exports = (configStoreType) => {
     uploadMiddleware, 
     upload_file_post,
     listFiles,
-    file_download_get,
     file_links_get,
     listPublicLinks,
     share_file_post,
