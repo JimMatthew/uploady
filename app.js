@@ -7,12 +7,23 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const mongoose = require("mongoose");
+//const connectDB = require('./controllers/db')
 
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
 
+//connectDB()
+
 const app = express()
+
+mongoose.set("strictPopulate", false);
+const mongoDB = "mongodb://192.168.1.237:27017/myapp";
+main().catch((err) => console.log(err));
+async function main() {
+  await mongoose.connect(mongoDB);
+}
 
 app.use(session({
   secret: 'secret_key',

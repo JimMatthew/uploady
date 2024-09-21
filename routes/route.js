@@ -1,6 +1,7 @@
 const express = require('express');
 const sftpController = require('../controllers/sftpController')
-const filemanagerController = require('../controllers/fileManagerController')
+const StoreType = require('../ConfigStorageType')
+const filemanagerController = require('../controllers/fileManagerController')(StoreType.DATABASE)
 
 module.exports = function (uploadsDir, isAuthenticated) {
 
