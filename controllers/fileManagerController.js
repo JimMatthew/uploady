@@ -15,7 +15,18 @@ module.exports = (configStoreType) => {
 
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, uploadsDir)  // Use the provided uploads directory
+      //const p = req.params.relativePath || ''
+      cb(null, path.join(uploadsDir))  // Use the provided uploads directory
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname)  // Preserve the original file name
+    }
+  })
+
+  const storages = (relativePath) => multer.diskStorage({
+    destination: function (req, file, cb) {
+      //const p = req.params.relativePath || ''
+      cb(null, path.join(uploadsDir))  // Use the provided uploads directory
     },
     filename: function (req, file, cb) {
       cb(null, file.originalname)  // Preserve the original file name
@@ -31,6 +42,28 @@ module.exports = (configStoreType) => {
       return res.status(400).send('No file uploaded')
     }
     res.redirect('/')
+  }
+
+  const upload_files_post = (req, res) => {
+    const folderPath = req.body.folderPath || '' // Default to root if no folder is provided
+    const targetFolder = path.join(uploadsDir, folderPath)
+    console.log('fpaf: '+folderPath)
+    if (!fs.existsSync(targetFolder)) {
+      return res.status(400).send('Folder does not exist')
+    }
+
+    const files = req.files
+    if (!files) {
+      return res.status(400).send('No file uploaded')
+    }
+
+    files.forEach(file => {
+      const targetPath = path.join(targetFolder, file.originalname)
+      fs.rename(file.path, targetPath)
+    })
+    
+    // Move the file to the correct folder
+    res.redirect(`/`) 
   }
 
   const getBreadcrumbs = (currentPath) => {
@@ -344,6 +377,7 @@ module.exports = (configStoreType) => {
     create_folder_post,
     list_directory_get,
     directory_list_get,
+    upload_files_post,
   }
 }
   

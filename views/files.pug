@@ -19,10 +19,11 @@ html
     // Form to create a new folder
     form(action="/create-folder", method="POST")
       input(type="text", name="folderName", placeholder="New folder name")
-      input(type="hidden", name="currentPath", value=relativePath)
+      input#rpath(type="hidden",  name="currentPath", value=relativePath)
       button(type="submit") Create Folder
     
-    form(action="/upload" method="POST" enctype="multipart/form-data")
+    form(action=`/upload` method="POST" enctype="multipart/form-data")
+      input(type="hidden",  name="currentPath", value=relativePath)
     #drop-zone
       p Drag and drop your files here, or click to select files.
       input#file-input(type='file', hidden)
@@ -30,6 +31,8 @@ html
     script.
       const dropZone = document.getElementById('drop-zone');
       const fileInput = document.getElementById('file-input');
+      //console.log('rpath: '+document.getElementById('rpath').value)
+      //const relpath = document.querySelector('#rpath') || ''
 
       // Prevent default behavior for drag and drops
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
@@ -48,7 +51,7 @@ html
         // Handle drop event
       dropZone.addEventListener('drop', event => {
         const files = event.dataTransfer.files;
-        uploadFile(files[0]);
+        uploadFile(files[0], 'test');
       });
 
         // Handle click to open file selector
@@ -57,20 +60,22 @@ html
       });
 
       fileInput.addEventListener('change', () => {
-        uploadFile(fileInput.files[0]);
+        uploadFile(fileInput.files[0], 'test');
       });
 
         // Upload the file via AJAX
-      function uploadFile(file) {
+      function uploadFile(file, relativePath) {
         const formData = new FormData();
         formData.append('files', file);
-
+        formData.append('folderPath', relativePath)
+        //formData.append('relativePath', relativePath)
+        console.log('rp - '+relativePath)
         fetch('/upload', {
           method: 'POST',
           body: formData
         }).then(response => {
           if (response.ok) {
-            window.location.href = '/files'
+            window.location.href = '/'
           } else {
             alert('File upload failed.');
           }

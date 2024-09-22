@@ -34,7 +34,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   
   //upload file/s to managed directory
   router.post('/upload', isAuthenticated, filemanagerController.uploadMiddleware, 
-    filemanagerController.upload_file_post)
+    filemanagerController.upload_files_post)
 
   router.post('/create-folder', isAuthenticated, filemanagerController.create_folder_post)
   
