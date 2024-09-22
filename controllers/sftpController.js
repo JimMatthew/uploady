@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const sftp = new SftpClient();
 
 exports.sftp_get = (req, res) => {
     res.render('sftp', { files: null, message: null });
@@ -11,7 +12,7 @@ exports.sftp_get = (req, res) => {
 
 exports.sft_connect_post = async (req, res) => {
     const { host, username, password, directory } = req.body;
-    const sftp = new SftpClient();
+    
     const currentDirectory = directory || '/'; // Default to root if not provided
   
     try {
@@ -37,6 +38,17 @@ exports.sft_connect_post = async (req, res) => {
         password 
       });
     }
+}
+
+exports.sft_list_directory_get = async (req, res) => {
+  const directory = req.body.directory
+  const currentDirectory = directory || '/'; // Default to root if not provided
+  const fileList = await sftp.list(currentDirectory);
+  res.render('sftplist', { 
+    files: fileList, 
+    message: `Connected to SFTP server at ${currentDirectory}`, 
+    currentDirectory, 
+  });
 }
 
 /*

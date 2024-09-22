@@ -12,14 +12,11 @@ html
     // SFTP Connection Form
     form(action="/sftp/connect", method="POST")
       div
-        label(for="host") Host:
-        input(type="text" name="host" value=host )
+        input(type="hidden" name="host" value=host )
       div
-        label(for="username") Username:
-        input(type="text" name="username" value=username )
+        input(type="hidden" name="username" value=username )
       div
-        label(for="password") Password:
-        input(type="password" name="password" value=password )
+        input(type="hidden" name="password" value=password )
       div
         label(for="directory") Current Directory:
         input(type="text" name="directory" value=currentDirectory required)

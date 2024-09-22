@@ -1,9 +1,10 @@
 const express = require('express');
 const sftpController = require('../controllers/sftpController')
 const StoreType = require('../ConfigStorageType')
-const filemanagerController = require('../controllers/fileManagerController')(StoreType.DATABASE)
 
-module.exports = function (uploadsDir, isAuthenticated) {
+module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
+
+  const filemanagerController = require('../controllers/fileManagerController')(configStoreType)
 
   const router = express.Router()
   //list all files in the managed directory
@@ -36,6 +37,6 @@ module.exports = function (uploadsDir, isAuthenticated) {
   router.post('/sftp/connect', sftpController.sft_connect_post)
   router.post('/sftp/download', sftpController.sftp_download_post)
   router.post('/sftp/upload', sftpController.sftp_upload_post)
-
+  router.get('/sftp/dir', sftpController.sft_list_directory_get)
   return router
 }

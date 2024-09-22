@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require("mongoose");
 //const connectDB = require('./controllers/db')
+const ConfigStorageType = require('./ConfigStorageType')
 
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
@@ -74,8 +75,8 @@ function isAuthenticated(req, res, next) {
   res.redirect('/login')
 }
 
-const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated)
-
+const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.DATABASE)
+//const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
 app.use('/', routes)
 
 app.get('/login', (req, res) => {

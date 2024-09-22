@@ -72,20 +72,6 @@ module.exports = (configStoreType) => {
       res.render('public-links', { links })
   }
 
-  const listPublicLinks = async (req, res) => {
-    switch (configStoreType) {
-      case StoreType.DATABASE:
-        const Sharedlinks = await SharedFile.find()
-        break;
-      case StoreType.LOCAL:  
-    }
-    const links = Array.from(publicLinks.entries()).map(([token, filePath]) => ({
-      fileName: path.basename(filePath),
-      link: `${req.protocol}://${req.get('host')}/public/${token}`,
-    }))
-    res.render('publicLinks', { links })
-  }
-
   const share_file_post = async (req, res) => {
     const fileName = req.body.fileName
     const filePath = path.join(uploadsDir, fileName)
@@ -104,7 +90,7 @@ module.exports = (configStoreType) => {
     switch (configStoreType) {
       case StoreType.DATABASE:
         const f = await SharedFile.findOne({ fileName })
-        if (f) {
+        if (f) {  //don't add link again if already present
           return
         }
         const sharedFile = new SharedFile({
@@ -207,7 +193,6 @@ module.exports = (configStoreType) => {
     upload_file_post,
     listFiles,
     file_links_get,
-    listPublicLinks,
     share_file_post,
     stop_sharing_post,
     download_shared_file_get,
