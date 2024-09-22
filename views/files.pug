@@ -1,0 +1,44 @@
+doctype html
+html
+  head
+    title File Manager
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 File Manager
+
+    // Breadcrumb for easy navigation
+    if breadcrumb.length
+      nav
+        each crumb, i in breadcrumb
+          a(href=`/file-manager?path=${crumb.path}`) #{crumb.name}
+          if i < breadcrumb.length - 1
+            |  / 
+
+    h2 Current Directory: #{currentPath}
+
+    // Form to create a new folder
+    form(action="/create-folder", method="POST")
+      input(type="text", name="folderName", placeholder="New folder name")
+      input(type="hidden", name="currentPath", value=currentPath)
+      button(type="submit") Create Folder
+
+    h3 Folders
+    if folders.length
+      ul
+        each folder in folders
+          li
+            a(href=`/file-manager?path=${currentPath}/${folder}`) #{folder}
+    else
+      p No folders.
+
+    h3 Files
+    if files.length
+      ul
+        each file in files
+          li
+            a(href=`/download/${file}`) #{file}
+    else
+      p No files.
+
+    p
+      a(href="/") Back to Root

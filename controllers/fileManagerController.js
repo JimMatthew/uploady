@@ -32,6 +32,21 @@ module.exports = (configStoreType) => {
     res.redirect('/')
   }
 
+  const getBreadcrumbs = (currentPath) => {
+    const parts = currentPath.split(path.sep);
+    let fullPath = '';
+    return parts.map((part) => {
+      fullPath = path.join(fullPath, part);
+      return { name: part || 'Home', path: fullPath };
+    });
+  };
+
+  const list_directory_get = (req, res) => {
+    const { files, folders } = getDirectoryContents(uploadsDir)
+    const breadcrumb = getBreadcrumbs(uploadsDir)
+    res.render('files', { files: files, folders: folders, breadcrumb: breadcrumb, currentDirectory: uploadsDir })
+  }
+
   const listFiles = (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
       if (err) {
@@ -188,6 +203,45 @@ module.exports = (configStoreType) => {
     })
   }
 
+  const getDirectoryContents = (dirPath) => {
+    const contents = fs.readdirSync(dirPath);
+    const files = [];
+    const folders = [];
+  
+    contents.forEach((item) => {
+      const itemPath = path.join(dirPath, item);
+      if (fs.lstatSync(itemPath).isDirectory()) {
+        folders.push(item);
+      } else {
+        files.push(item);
+      }
+    });
+  
+    return { files, folders };
+  };
+  
+  // Helper function to create a new folder
+  const createFolder = (dirPath, folderName) => {
+    const newFolderPath = path.join(dirPath, folderName);
+    if (!fs.existsSync(newFolderPath)) {
+      fs.mkdirSync(newFolderPath);
+    } else {
+      throw new Error('Folder already exists');
+    }
+  };
+
+  const create_folder_post = (req, res) => {
+    const { folderName, currentPath } = req.body;
+
+    try {
+      const fullPath = path.join(uploadsDir, currentPath || '', folderName);
+      createFolder(fullPath, folderName);
+      res.redirect(`/file-manager?path=${currentPath}`);  // Redirect to the current directory
+    } catch (err) {
+      res.status(400).send('Error creating folder');
+    }
+  }
+
   return {
     uploadMiddleware, 
     upload_file_post,
@@ -198,6 +252,8 @@ module.exports = (configStoreType) => {
     download_shared_file_get,
     delete_file_post,
     download_file_get,
+    create_folder_post,
+    list_directory_get,
   }
 }
   
