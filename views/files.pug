@@ -10,7 +10,7 @@ html
     if breadcrumb.length
       nav
         each crumb, i in breadcrumb
-          a(href=`/file-manager?path=${crumb.path}`) #{crumb.name}
+          a(href=`/files/${crumb.path}`) #{crumb.name}
           if i < breadcrumb.length - 1
             |  / 
 
@@ -27,7 +27,7 @@ html
       ul
         each folder in folders
           li
-            a(href=`/file-manager?path=${currentPath}/${folder}`) #{folder}
+            a(href=`/files/${currentPath}/${folder}`) #{folder}
     else
       p No folders.
 
@@ -41,4 +41,4 @@ html
       p No files.
 
     p
-      a(href="/") Back to Root
+      a(href="/files") Back to Root

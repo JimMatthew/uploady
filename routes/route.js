@@ -10,6 +10,10 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   //list all files in the managed directory
   router.get('/', isAuthenticated, filemanagerController.listFiles)
 
+  router.get('/files', isAuthenticated, filemanagerController.list_directory_get)
+
+  router.get('/files/:directory', isAuthenticated, filemanagerController.list_directory_get)
+
   //download file from public link - not authenticated
   router.get('/share/:token', filemanagerController.download_shared_file_get)
 

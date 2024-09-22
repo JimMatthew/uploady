@@ -42,9 +42,15 @@ module.exports = (configStoreType) => {
   };
 
   const list_directory_get = (req, res) => {
-    const { files, folders } = getDirectoryContents(uploadsDir)
-    const breadcrumb = getBreadcrumbs(uploadsDir)
-    res.render('files', { files: files, folders: folders, breadcrumb: breadcrumb, currentDirectory: uploadsDir })
+    const currentPath = req.params.directory || ''
+    let npath = uploadsDir
+    if (currentPath != ''){
+      npath = path.join(uploadsDir, currentPath)
+    }
+    const { files, folders } = getDirectoryContents(npath)
+    console.log(currentPath)
+    const breadcrumb = getBreadcrumbs(currentPath)
+    res.render('files', { files: files, folders: folders, breadcrumb: breadcrumb, currentPath: currentPath,user: req.user })
   }
 
   const listFiles = (req, res) => {
@@ -62,6 +68,35 @@ module.exports = (configStoreType) => {
       })
       res.render('index', { files: fileList , user: req.user })
     })
+  }
+
+  const getFolderContents = async (relativePath) => {
+    const folderPath = path.join(uploadDir, relativePath);
+    const files = await fs.readdir(folderPath, { withFileTypes: true });
+  
+    const folderList = files.filter(f => f.isDirectory()).map(folder => ({
+      name: folder.name,
+      path: path.join(relativePath, folder.name)
+    }));
+  
+    const fileList = files.filter(f => f.isFile()).map(file => ({
+      name: file.name,
+      size: (fs.statSync(path.join(folderPath, file.name)).size / 1024).toFixed(2), // size in KB
+      date: fs.statSync(path.join(folderPath, file.name)).mtime.toLocaleDateString(),
+      path: path.join(relativePath, file.name)
+    }));
+  
+    return { folders: folderList, files: fileList };
+  };
+
+  const directory_list_get = async (req, res) => {
+    const relativePath = req.params.subdir || ''; // Capture the subdir or default to root
+    try {
+      const { folders, files } = await getFolderContents(relativePath);
+      res.render('file-manager', { folders, files, currentPath: `/files/${relativePath}` });
+    } catch (err) {
+      res.status(404).send('Directory not found');
+    }
   }
 
   const getLinksFromLocal = (req) => {
@@ -226,7 +261,7 @@ module.exports = (configStoreType) => {
     if (!fs.existsSync(newFolderPath)) {
       fs.mkdirSync(newFolderPath);
     } else {
-      throw new Error('Folder already exists');
+      //throw new Error('Folder already exists');
     }
   };
 
@@ -234,9 +269,10 @@ module.exports = (configStoreType) => {
     const { folderName, currentPath } = req.body;
 
     try {
-      const fullPath = path.join(uploadsDir, currentPath || '', folderName);
+      const fullPath = path.join(uploadsDir, currentPath || '');
+      console.log(fullPath)
       createFolder(fullPath, folderName);
-      res.redirect(`/file-manager?path=${currentPath}`);  // Redirect to the current directory
+      res.redirect(`/files`);  // Redirect to the current directory
     } catch (err) {
       res.status(400).send('Error creating folder');
     }
@@ -254,6 +290,7 @@ module.exports = (configStoreType) => {
     download_file_get,
     create_folder_post,
     list_directory_get,
+    directory_list_get,
   }
 }
   
