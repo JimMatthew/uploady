@@ -103,6 +103,10 @@ module.exports = (configStoreType) => {
   const storeLinkInfo = async (fileName, filePath, link) => {
     switch (configStoreType) {
       case StoreType.DATABASE:
+        const f = await SharedFile.findOne({ fileName })
+        if (f) {
+          return
+        }
         const sharedFile = new SharedFile({
           fileName,
           filePath,
