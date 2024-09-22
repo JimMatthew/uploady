@@ -1,0 +1,59 @@
+doctype html
+html
+  head
+    title File Manager
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 File Manager
+
+    // Show current path
+    p Current Path: #{currentPath}
+
+    // Folder Listing
+    if folders
+      h2 Folders
+      table
+        thead
+          tr
+            th Folder Name
+            th Actions
+        tbody
+          each folder in folders
+            tr
+              td
+                a(href=`/files/${folder.path}`) #{folder.name} // Link to folder
+              td
+                form(action=`/delete-folder/${folder.path}` method="POST" style="display:inline")
+                  input(type="hidden" name="folderName" value=folder.name)
+                  button(type="submit") Delete
+
+    // File Listing
+    if files
+      h2 Files
+      table
+        thead
+          tr
+            th File Name
+            th Size (KB)
+            th Date Modified
+            th Actions
+        tbody
+          each file in files
+            tr
+              td
+                a(href=`/download/${file.path}`) #{file.name} // Link to file download
+              td #{file.size} KB
+              td #{file.date}
+              td
+                form(action=`/delete/${file.path}` method="POST" style="display:inline")
+                  input(type="hidden" name="fileName" value=file.name)
+                  button(type="submit") Delete
+                form(action=`/share` method="POST" style="display:inline")
+                  input(type="hidden" name="fileName" value=file.name)
+                  button(type="submit") Share
+
+    else
+      p No files uploaded yet.
+
+    footer
+      p File Manager App by James Lindstrom

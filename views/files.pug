@@ -10,33 +10,108 @@ html
     if breadcrumb.length
       nav
         each crumb, i in breadcrumb
-          a(href=`/files/${crumb.path}`) #{crumb.name}
+          a(href=`${crumb.path}`) #{crumb.name}
           if i < breadcrumb.length - 1
             |  / 
 
-    h2 Current Directory: #{currentPath}
+    h2 Current Directory: #{relativePath}
 
     // Form to create a new folder
     form(action="/create-folder", method="POST")
       input(type="text", name="folderName", placeholder="New folder name")
-      input(type="hidden", name="currentPath", value=currentPath)
+      input(type="hidden", name="currentPath", value=relativePath)
       button(type="submit") Create Folder
+    
+    form(action="/upload" method="POST" enctype="multipart/form-data")
+    #drop-zone
+      p Drag and drop your files here, or click to select files.
+      input#file-input(type='file', hidden)
 
+    script.
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+
+      // Prevent default behavior for drag and drops
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+        dropZone.addEventListener(event, e => e.preventDefault());
+      });
+
+        // Highlight drop zone when dragging files
+      ['dragenter', 'dragover'].forEach(event => {
+        dropZone.addEventListener(event, () => dropZone.classList.add('highlight'));
+      });
+
+      ['dragleave', 'drop'].forEach(event => {
+        dropZone.addEventListener(event, () => dropZone.classList.remove('highlight'));
+      });
+
+        // Handle drop event
+      dropZone.addEventListener('drop', event => {
+        const files = event.dataTransfer.files;
+        uploadFile(files[0]);
+      });
+
+        // Handle click to open file selector
+      dropZone.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', () => {
+        uploadFile(fileInput.files[0]);
+      });
+
+        // Upload the file via AJAX
+      function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('files', file);
+
+        fetch('/upload', {
+          method: 'POST',
+          body: formData
+        }).then(response => {
+          if (response.ok) {
+            window.location.href = '/files'
+          } else {
+            alert('File upload failed.');
+          }
+        }).catch(error => {
+          alert('Error uploading file.');
+        });
+      }  
+    p 
+      a(href='/links') Show All Shared files
     h3 Folders
     if folders.length
       ul
         each folder in folders
           li
-            a(href=`/files/${currentPath}/${folder}`) #{folder}
+            a(href=`${currentPath}/${folder}`) #{folder}
     else
       p No folders.
 
     h3 Files
     if files.length
-      ul
-        each file in files
-          li
-            a(href=`/download/${file}`) #{file}
+     table
+          thead
+            tr
+              th File Name
+              th Size (KB)
+              th Date Modified
+              th Actions
+          tbody
+            each file in files
+              tr
+                td
+                  a(href=`/download/${file}`) #{file}
+                td #{file.size} KB
+                td #{file.date}
+                td
+                  form(action=`/delete/${file.name}` method="POST" style="display:inline")
+                    input(type="hidden" name="fileName" value=file)
+                    button(type="submit") Delete
+                  form(action=`/share` method="POST" style="display:inline")
+                    input(type="hidden" name="fileName" value=file)
+                    button(type="submit") Share
     else
       p No files.
 

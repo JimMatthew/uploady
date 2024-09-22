@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsp = require('fs').promises
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
@@ -41,16 +42,43 @@ module.exports = (configStoreType) => {
     });
   };
 
+  const generateBreadcrumbs = (relativePath) => {
+    const breadcrumbs = []
+    let currentPath = '' // Start from the root (/files)
+  
+    // Split the path by / and generate breadcrumbs
+    const pathParts = relativePath.split('/').filter(Boolean) // filter(Boolean) removes empty parts
+  
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      })
+    })
+  
+    // Add root breadcrumb
+    breadcrumbs.unshift({ name: 'Home', path: '/files' })
+  
+    return breadcrumbs
+  };
+
   const list_directory_get = (req, res) => {
-    const currentPath = req.params.directory || ''
-    let npath = uploadsDir
-    if (currentPath != ''){
-      npath = path.join(uploadsDir, currentPath)
-    }
+    const relativePath = req.params[0] || ''
+    let npath = path.join(uploadsDir, relativePath);
+    const currentPath = relativePath ? `/files/${relativePath}` : '/files';
     const { files, folders } = getDirectoryContents(npath)
     console.log(currentPath)
-    const breadcrumb = getBreadcrumbs(currentPath)
-    res.render('files', { files: files, folders: folders, breadcrumb: breadcrumb, currentPath: currentPath,user: req.user })
+    const breadcrumb = generateBreadcrumbs(currentPath)
+    res.render('files', { 
+      files: files, 
+      folders: folders, 
+      breadcrumb: breadcrumb, 
+      currentPath: currentPath,
+      relativePath: relativePath,
+      user: req.user 
+    })
+
   }
 
   const listFiles = (req, res) => {
@@ -71,33 +99,57 @@ module.exports = (configStoreType) => {
   }
 
   const getFolderContents = async (relativePath) => {
-    const folderPath = path.join(uploadDir, relativePath);
-    const files = await fs.readdir(folderPath, { withFileTypes: true });
+    const folderPath = path.join(uploadsDir, relativePath);
+    console.log('Folder path: ' + folderPath);
   
-    const folderList = files.filter(f => f.isDirectory()).map(folder => ({
-      name: folder.name,
-      path: path.join(relativePath, folder.name)
-    }));
-  
-    const fileList = files.filter(f => f.isFile()).map(file => ({
-      name: file.name,
-      size: (fs.statSync(path.join(folderPath, file.name)).size / 1024).toFixed(2), // size in KB
-      date: fs.statSync(path.join(folderPath, file.name)).mtime.toLocaleDateString(),
-      path: path.join(relativePath, file.name)
-    }));
-  
-    return { folders: folderList, files: fileList };
-  };
-
-  const directory_list_get = async (req, res) => {
-    const relativePath = req.params.subdir || ''; // Capture the subdir or default to root
     try {
-      const { folders, files } = await getFolderContents(relativePath);
-      res.render('file-manager', { folders, files, currentPath: `/files/${relativePath}` });
+      // Read the directory and get Dirent objects
+      const files = await fsp.readdir(folderPath, { withFileTypes: true });
+  
+      // Filter for directories
+      const folderList = files
+        .filter(file => file.isDirectory())
+        .map(folder => ({
+          name: folder.name,
+          path: path.join(relativePath, folder.name)
+        }));
+  
+      // Filter for files and retrieve their stats asynchronously
+      const fileList = await Promise.all(
+        files.filter(file => file.isFile()).map(async (file) => {
+          const filePath = path.join(folderPath, file.name);
+          const stats = await fsp.stat(filePath);
+          return {
+            name: file.name,
+            size: (stats.size / 1024).toFixed(2), // size in KB
+            date: stats.mtime.toLocaleDateString(),
+            path: path.join(relativePath, file.name)
+          };
+        })
+      );
+  
+      return { folders: folderList, files: fileList };
     } catch (err) {
-      res.status(404).send('Directory not found');
+      console.error('Error reading folder contents: ', err);
+      throw err;
     }
-  }
+  };
+  
+  
+  const directory_list_get =  (req, res) => {
+    const relativePath = req.params.subdir || ''; // Capture the subdir or default to root
+    console.log("Relative path: " + relativePath);
+  
+    try {
+      const { folders, files } =  getFolderContents(relativePath);
+      console.log(folders)
+      const currentPath = relativePath ? `/files/${relativePath}` : '/files';
+      
+      res.render('dirlist', { folders: folders, files: files, currentPath: currentPath });
+    } catch (err) {
+      res.status(404).send(err);
+    }
+  };
 
   const getLinksFromLocal = (req) => {
     return Array.from(sharedLinks.entries()).map(([token, data]) => ({
@@ -257,6 +309,7 @@ module.exports = (configStoreType) => {
   
   // Helper function to create a new folder
   const createFolder = (dirPath, folderName) => {
+    console.log('fopa: '+dirPath)
     const newFolderPath = path.join(dirPath, folderName);
     if (!fs.existsSync(newFolderPath)) {
       fs.mkdirSync(newFolderPath);
