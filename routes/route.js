@@ -30,7 +30,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post('/delete/:filename', isAuthenticated, filemanagerController.delete_file_post)
 
   //download file from managed directory - is authenticated
-  router.get('/download/:filename', isAuthenticated, filemanagerController.download_file_get)
+  router.get('/download/*', isAuthenticated, filemanagerController.download_file_get)
   
   //upload file/s to managed directory
   router.post('/upload', isAuthenticated, filemanagerController.uploadMiddleware, 

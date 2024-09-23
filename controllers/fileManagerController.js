@@ -23,16 +23,6 @@ module.exports = (configStoreType) => {
     }
   })
 
-  const storages = (relativePath) => multer.diskStorage({
-    destination: function (req, file, cb) {
-      //const p = req.params.relativePath || ''
-      cb(null, path.join(uploadsDir))  // Use the provided uploads directory
-    },
-    filename: function (req, file, cb) {
-      cb(null, file.originalname)  // Preserve the original file name
-    }
-  })
-
   const upload = multer({ storage: storage })
 
   const uploadMiddleware = upload.array('files', 10)
@@ -57,9 +47,6 @@ module.exports = (configStoreType) => {
       return res.status(400).send('No file uploaded')
     }
 
-    //const targetPath = path.join(targetFolder, files.originalname)
-    //console.log('tget: '+targetPath)
-     // fs.rename(files.path, targetPath)
     files.forEach(file => {
       const targetPath = path.join(targetFolder, file.originalname)
       const currPath = path.join(uploadsDir, file.originalname)
@@ -121,7 +108,6 @@ module.exports = (configStoreType) => {
       relativePath: relativePath,
       user: req.user 
     })
-
   }
 
   const listFiles = (req, res) => {
@@ -325,7 +311,11 @@ module.exports = (configStoreType) => {
   }
 
   const download_file_get = (req, res) => {
-    const filePath = path.join(uploadsDir, req.params.filename)
+    
+    const relativeFilePath = req.params[0] // This captures everything after /download/
+    const filePath = path.join(uploadsDir, relativeFilePath)
+
+    console.log('dfp: '+filePath)
     res.download(filePath, (err) => {
       if (err) {
         return res.status(500).send('File not found')

@@ -25,8 +25,7 @@ html
       input#rpath(type="hidden",  name="currentPath", value=relativePath)
       button(type="submit") Create Folder
     
-    form(action=`/upload` method="POST" enctype="multipart/form-data")
-      input(type="hidden",  name="currentPath", value=relativePath)
+    
     #drop-zone
       p Drag and drop your files here, or click to select files.
       input#file-input(type='file', hidden)
@@ -34,9 +33,6 @@ html
     script.
       const dropZone = document.getElementById('drop-zone');
       const fileInput = document.getElementById('file-input');
-      
-      //console.log('rpath: '+document.getElementById('rpath').value)
-      //const relpath = document.querySelector('#rpath') || ''
 
       // Prevent default behavior for drag and drops
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
@@ -111,7 +107,7 @@ html
             each file in files
               tr
                 td
-                  a(href=`/download/${file}`) #{file}
+                  a(href=`/download/${relativePath}/${file}`) #{file}
                 td #{file.size} KB
                 td #{file.date}
                 td
