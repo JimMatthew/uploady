@@ -3,6 +3,9 @@ html
   head
     title File Manager
     link(rel="stylesheet" href="/style.css")
+    script.
+      // Pass the server-side variable into the client-side JavaScript
+      const relativePath = !{JSON.stringify(relativePath)}
   body
     h1 File Manager
 
@@ -31,6 +34,7 @@ html
     script.
       const dropZone = document.getElementById('drop-zone');
       const fileInput = document.getElementById('file-input');
+      
       //console.log('rpath: '+document.getElementById('rpath').value)
       //const relpath = document.querySelector('#rpath') || ''
 
@@ -51,7 +55,7 @@ html
         // Handle drop event
       dropZone.addEventListener('drop', event => {
         const files = event.dataTransfer.files;
-        uploadFile(files[0], 'test');
+        uploadFile(files[0], relativePath);
       });
 
         // Handle click to open file selector
@@ -60,7 +64,7 @@ html
       });
 
       fileInput.addEventListener('change', () => {
-        uploadFile(fileInput.files[0], 'test');
+        uploadFile(fileInput.files[0], relativePath);
       });
 
         // Upload the file via AJAX
@@ -75,7 +79,7 @@ html
           body: formData
         }).then(response => {
           if (response.ok) {
-            window.location.href = '/'
+            window.location.href = `/files/${relativePath}`
           } else {
             alert('File upload failed.');
           }

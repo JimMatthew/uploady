@@ -47,7 +47,7 @@ module.exports = (configStoreType) => {
   const upload_files_post = (req, res) => {
     const folderPath = req.body.folderPath || '' // Default to root if no folder is provided
     const targetFolder = path.join(uploadsDir, folderPath)
-    console.log('fpaf: '+folderPath)
+    console.log('fpaf: '+targetFolder)
     if (!fs.existsSync(targetFolder)) {
       return res.status(400).send('Folder does not exist')
     }
@@ -57,13 +57,23 @@ module.exports = (configStoreType) => {
       return res.status(400).send('No file uploaded')
     }
 
+    //const targetPath = path.join(targetFolder, files.originalname)
+    //console.log('tget: '+targetPath)
+     // fs.rename(files.path, targetPath)
     files.forEach(file => {
       const targetPath = path.join(targetFolder, file.originalname)
-      fs.rename(file.path, targetPath)
+      const currPath = path.join(uploadsDir, file.originalname)
+      console.log('tp: '+targetPath)
+      console.log('cp: '+currPath)
+      fs.rename(currPath, targetPath ,(err) =>{
+        if (err) {
+          throw err
+        }
+      })
     })
     
     // Move the file to the correct folder
-    res.redirect(`/`) 
+    res.redirect(`/files`) 
   }
 
   const getBreadcrumbs = (currentPath) => {
