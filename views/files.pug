@@ -111,7 +111,7 @@ html
                 td #{file.size} KB
                 td #{file.date}
                 td
-                  form(action=`/delete/${file.name}` method="POST" style="display:inline")
+                  form(action=`/delete/${relativePath}/${file}` method="POST" style="display:inline")
                     input(type="hidden" name="fileName" value=file)
                     button(type="submit") Delete
                   form(action=`/share` method="POST" style="display:inline")

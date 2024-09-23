@@ -27,7 +27,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post('/stop-sharing', isAuthenticated, filemanagerController.stop_sharing_post)
 
   //delete file from managed directory
-  router.post('/delete/:filename', isAuthenticated, filemanagerController.delete_file_post)
+  router.post('/delete/*', isAuthenticated, filemanagerController.delete_file_post)
 
   //download file from managed directory - is authenticated
   router.get('/download/*', isAuthenticated, filemanagerController.download_file_get)

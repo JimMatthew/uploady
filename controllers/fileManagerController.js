@@ -63,15 +63,6 @@ module.exports = (configStoreType) => {
     res.redirect(`/files`) 
   }
 
-  const getBreadcrumbs = (currentPath) => {
-    const parts = currentPath.split(path.sep);
-    let fullPath = '';
-    return parts.map((part) => {
-      fullPath = path.join(fullPath, part);
-      return { name: part || 'Home', path: fullPath };
-    });
-  };
-
   const generateBreadcrumbs = (relativePath) => {
     const breadcrumbs = []
     let currentPath = '' // Start from the root (/files)
@@ -290,8 +281,9 @@ module.exports = (configStoreType) => {
   }
 
   const delete_file_post = async (req, res) => {
-    const fileName = req.params.filename
-    const filePath = path.join(uploadsDir, fileName)
+    const relativeFilePath = req.params[0] 
+    const filePath = path.join(uploadsDir, relativeFilePath)
+    const fileName = path.basename(filePath)
     fs.unlink(filePath, (err) => {
       if (err) {
         return res.status(500).send('unable to delete file')
