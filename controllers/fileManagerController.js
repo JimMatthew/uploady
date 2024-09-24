@@ -9,12 +9,11 @@ module.exports = (configStoreType) => {
 
   const sharedLinks = new Map()
   const uploadsDir = path.join(__dirname, '../uploads')
+  const tempdir = path.join(__dirname, '../temp')
 
   /*
     upload files to directory
-    We upload to root and rename to desired directory
-    TODO: We should probably upload to a temp location first in case
-    there is a duplicate named file already in root
+    We upload to temp folder and rename to desired directory
   */
   const upload_files_post = (req, res, next) => {
     const folderPath = req.body.folderPath || '' // Default to root if no folder is provided
@@ -35,7 +34,7 @@ module.exports = (configStoreType) => {
 
     files.forEach(file => {
       const targetPath = path.join(targetFolder, file.originalname)
-      const currPath = path.join(uploadsDir, file.originalname)
+      const currPath = path.join(tempdir, file.originalname)
       
       fs.rename(currPath, targetPath, (err) => {
         if (err) {
