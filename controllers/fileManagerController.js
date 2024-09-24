@@ -10,9 +10,7 @@ const ConfigStoreType = require('../ConfigStorageType');
 
 module.exports = (configStoreType) => {
 
-  const publicLinks = new Map()
   const sharedLinks = new Map()
-  const sharedFiles = new Map() 
   const uploadsDir = path.join(__dirname, '../uploads')
 
   const storage = multer.diskStorage({

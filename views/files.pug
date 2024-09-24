@@ -12,7 +12,7 @@ html
     h2 Current Directory: #{relativePath}
 
     // Form to create a new folder
-    form(action="/create-folder", method="POST")
+    form(action="/create-folder", method="POST" style="display:inline")
       input(type="text", name="folderName", placeholder="New folder name")
       input#rpath(type="hidden",  name="currentPath", value=relativePath)
       button(type="submit") Create Folder
@@ -126,3 +126,5 @@ html
 
     p
       a(href="/files") Back to Root
+    footer
+      p File Manager App by James Lindstrom
