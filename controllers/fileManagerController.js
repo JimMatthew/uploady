@@ -24,13 +24,6 @@ module.exports = (configStoreType) => {
 
   const uploadMiddleware = upload.array('files', 10)
 
-  const upload_file_post = (req, res) => {
-    if (!req.files) {
-      return res.status(400).send('No file uploaded')
-    }
-    res.redirect('/')
-  }
-
   /*
     upload files to directory
     We upload to root and rename to desired directory
@@ -40,12 +33,12 @@ module.exports = (configStoreType) => {
   const upload_files_post = (req, res) => {
     const folderPath = req.body.folderPath || '' // Default to root if no folder is provided
     const targetFolder = path.join(uploadsDir, folderPath)
-    console.log('fpaf: ' + targetFolder)
+    const files = req.files
+
     if (!fs.existsSync(targetFolder)) {
       return res.status(400).send('Folder does not exist')
     }
 
-    const files = req.files
     if (!files) {
       return res.status(400).send('No file uploaded')
     }
@@ -53,15 +46,14 @@ module.exports = (configStoreType) => {
     files.forEach(file => {
       const targetPath = path.join(targetFolder, file.originalname)
       const currPath = path.join(uploadsDir, file.originalname)
-      console.log('tp: ' + targetPath)
-      console.log('cp: ' + currPath)
+      
       fs.rename(currPath, targetPath, (err) => {
         if (err) {
           throw err
         }
       })
     })
-    res.redirect(`/files`)
+    res.redirect(`/files/${folderPath}`)
   }
 
   /*
@@ -74,8 +66,7 @@ module.exports = (configStoreType) => {
     const relativeFilePath = req.body.filePath || ''// Pass full relative path from client
     const fileName = req.body.fileName
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName)
-    console.log('re ' + relativeFilePath)
-    console.log('relf: ' + absoluteFilePath)
+
     if (!fs.existsSync(absoluteFilePath)) {
       return res.status(404).send('File not found')
     }
@@ -354,7 +345,6 @@ module.exports = (configStoreType) => {
 
   return {
     uploadMiddleware,
-    upload_file_post,
     listFiles,
     file_links_get,
     stop_sharing_post,
