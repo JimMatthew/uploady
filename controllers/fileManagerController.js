@@ -30,17 +30,21 @@ module.exports = (configStoreType) => {
     TODO: We should probably upload to a temp location first in case
     there is a duplicate named file already in root
   */
-  const upload_files_post = (req, res) => {
+  const upload_files_post = (req, res, next) => {
     const folderPath = req.body.folderPath || '' // Default to root if no folder is provided
     const targetFolder = path.join(uploadsDir, folderPath)
     const files = req.files
 
     if (!fs.existsSync(targetFolder)) {
-      return res.status(400).send('Folder does not exist')
+      const err = new Error("Folder does not exist");
+      err.status = 404;
+      return next(err)
     }
 
     if (!files) {
-      return res.status(400).send('No file uploaded')
+      const err = new Error("No File Uploaded");
+      err.status = 404;
+      return next(err)
     }
 
     files.forEach(file => {
@@ -62,18 +66,25 @@ module.exports = (configStoreType) => {
     This is mostly done to allow duplicate filenames to be shared without
     exposing the users directory structure
   */
-  const generateShareLink = (req, res) => {
+  const generateShareLink = async (req, res, next) => {
     const relativeFilePath = req.body.filePath || ''// Pass full relative path from client
     const fileName = req.body.fileName
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName)
 
     if (!fs.existsSync(absoluteFilePath)) {
-      return res.status(404).send('File not found')
+      const err = new Error("File not found");
+      err.status = 404;
+      return next(err)
     }
 
     const token = crypto.randomBytes(5).toString('hex') // Generate random token
     const shareLink = `${req.protocol}://${req.get('host')}/share/${token}/${fileName}`
-    storeLinkInfo(fileName, absoluteFilePath, shareLink, token)
+
+    if(!await storeLinkInfo(fileName, absoluteFilePath, shareLink, token)) {
+      const err = new Error("This File is already shared");
+      err.status = 404;
+      return next(err)
+    }
 
     res.render('linkgen', {
       link: shareLink,
@@ -125,7 +136,7 @@ module.exports = (configStoreType) => {
   /*
     delete folder from specified location
   */
-  const deleteFolder = (req, res) => {
+  const deleteFolder = (req, res, next) => {
     const relativePath = req.body.folderPath || '' // Path relative to the uploads directory
     const folderName = req.body.folderName || ''
     const folderPath = path.join(uploadsDir, relativePath, folderName)
@@ -133,7 +144,9 @@ module.exports = (configStoreType) => {
 
     fs.rmdir(folderPath, (err) => {
       if (err) {
-        console.log(err)
+        const err = new Error("Error deleting folder");
+        err.status = 404;
+        return next(err)
       }
     })
     res.redirect(`/files/${relativePath}`)
@@ -257,10 +270,11 @@ module.exports = (configStoreType) => {
   const storeLinkInfo = async (fileName, filePath, link, token) => {
     switch (configStoreType) {
       case StoreType.DATABASE:
-        const f = await SharedFile.findOne({ fileName })
-        if (f) {  //don't add link again if already present
-          return
+        const ff = await SharedFile.findOne({ fileName, filePath })
+        if (ff) {
+          return false
         }
+      
         const sharedFile = new SharedFile({
           fileName,
           filePath,
@@ -273,6 +287,7 @@ module.exports = (configStoreType) => {
         sharedLinks.set(fileName, filePath)
         break;
     }
+    return true
   }
 
   const stop_sharing_post = async (req, res) => {
@@ -295,7 +310,9 @@ module.exports = (configStoreType) => {
     const fileName = path.basename(filePath)
     fs.unlink(filePath, (err) => {
       if (err) {
-        return res.status(500).send('unable to delete file')
+        const err = new Error("Unable to delete file");
+        err.status = 404;
+        return next(err)
       }
     })
     switch (configStoreType) {
@@ -306,9 +323,10 @@ module.exports = (configStoreType) => {
         break
 
       case ConfigStoreType.DATABASE:
-        await SharedFile.findOneAndDelete({ fileName })
+        const fullPath = path.join(filePath, fileName)
+        await SharedFile.findOneAndDelete({ filePath, fileName })
     }
-    res.redirect('/')
+    res.redirect('/files')
   }
 
   const download_file_get = (req, res) => {

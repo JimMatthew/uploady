@@ -1,8 +1,10 @@
-extends layout
-
-block content
-  h1= message
-  h2= error.status
-  pre #{error.stack}
-footer
-  p File Manager App by James Lindstrom
+doctype html
+html
+  head
+    title Error
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 An error occurred
+    p #{errorMessage}
+    p 
+      a(href="/files") Back to Home

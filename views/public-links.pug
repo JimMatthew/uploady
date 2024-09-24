@@ -10,12 +10,14 @@ html
         thead
           tr
             th File Name
+            th Path
             th Link
             th Actions
         tbody
           each link in links
             tr
               td #{link.fileName}
+              td #{link.filePath}
               td 
                 a(href=link.link) #{link.link}
               td
