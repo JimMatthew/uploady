@@ -36,14 +36,14 @@ module.exports = (configStoreType) => {
     const files = req.files
 
     if (!fs.existsSync(targetFolder)) {
-      const err = new Error("Folder does not exist");
-      err.status = 404;
+      const err = new Error("Folder does not exist")
+      err.status = 404
       return next(err)
     }
 
     if (!files) {
-      const err = new Error("No File Uploaded");
-      err.status = 404;
+      const err = new Error("No File Uploaded")
+      err.status = 404
       return next(err)
     }
 
@@ -72,8 +72,8 @@ module.exports = (configStoreType) => {
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName)
 
     if (!fs.existsSync(absoluteFilePath)) {
-      const err = new Error("File not found");
-      err.status = 404;
+      const err = new Error("File not found")
+      err.status = 404
       return next(err)
     }
 
@@ -81,8 +81,8 @@ module.exports = (configStoreType) => {
     const shareLink = `${req.protocol}://${req.get('host')}/share/${token}/${fileName}`
 
     if(!await storeLinkInfo(fileName, absoluteFilePath, shareLink, token)) {
-      const err = new Error("This File is already shared");
-      err.status = 404;
+      const err = new Error("This File is already shared")
+      err.status = 404
       return next(err)
     }
 
@@ -144,8 +144,8 @@ module.exports = (configStoreType) => {
 
     fs.rmdir(folderPath, (err) => {
       if (err) {
-        const err = new Error("Error deleting folder");
-        err.status = 404;
+        const err = new Error("Error deleting folder")
+        err.status = 404
         return next(err)
       }
     })
@@ -281,11 +281,11 @@ module.exports = (configStoreType) => {
           link,
           token,
         })
-        await sharedFile.save();
-        break;
+        await sharedFile.save()
+        break
       case StoreType.LOCAL:
         sharedLinks.set(fileName, filePath)
-        break;
+        break
     }
     return true
   }
@@ -304,14 +304,14 @@ module.exports = (configStoreType) => {
     res.redirect('/links')
   }
 
-  const delete_file_post = async (req, res) => {
+  const delete_file_post = async (req, res, next) => {
     const relativeFilePath = req.params[0]
     const filePath = path.join(uploadsDir, relativeFilePath)
     const fileName = path.basename(filePath)
     fs.unlink(filePath, (err) => {
       if (err) {
-        const err = new Error("Unable to delete file");
-        err.status = 404;
+        const err = new Error("Unable to delete file")
+        err.status = 404
         return next(err)
       }
     })
@@ -329,13 +329,13 @@ module.exports = (configStoreType) => {
     res.redirect('/files')
   }
 
-  const download_file_get = (req, res) => {
+  const download_file_get = (req, res, next) => {
     const relativeFilePath = req.params[0] // This captures everything after /download/
     const filePath = path.join(uploadsDir, relativeFilePath)
 
     res.download(filePath, (err) => {
       if (err) {
-        return res.status(500).send('File not found')
+        return next(err)
       }
     })
   }

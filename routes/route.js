@@ -10,8 +10,10 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   //list all files in the managed directory
   router.get('/', isAuthenticated, filemanagerController.listFiles)
 
-  //router.get('/files', isAuthenticated, filemanagerController.list_directory_get)
-  router.get('/files', isAuthenticated, filemanagerController.list_directory_get);  
+  //list all files in the managed directory
+  router.get('/files', isAuthenticated, filemanagerController.list_directory_get); 
+
+  //list all files in path
   router.get('/files/*', isAuthenticated, filemanagerController.list_directory_get)
 
   //download file from public link - not authenticated
@@ -39,11 +41,13 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post('/create-folder', isAuthenticated, filemanagerController.create_folder_post)
   
   router.post('/delete-folder', isAuthenticated, filemanagerController.deleteFolder)
+
   //Routes for the SFTP controller 
   router.get('/sftp', sftpController.sftp_get)
   router.post('/sftp/connect', sftpController.sft_connect_post)
   router.post('/sftp/download', sftpController.sftp_download_post)
   router.post('/sftp/upload', sftpController.sftp_upload_post)
   router.get('/sftp/dir', sftpController.sft_list_directory_get)
+  
   return router
 }
