@@ -319,7 +319,7 @@ module.exports = (configStoreType) => {
     try {
       const fullPath = path.join(uploadsDir, currentPath || '');
       createFolder(fullPath, folderName);
-      res.redirect(`/files`);  // Redirect to the current directory
+      res.redirect(`/files/${currentPath}`);  // Redirect to the current directory
     } catch (err) {
       res.status(400).send('Error creating folder');
     }
