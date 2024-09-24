@@ -155,8 +155,6 @@ module.exports = (configStoreType) => {
   const generateBreadcrumbs = (relativePath) => {
     const breadcrumbs = []
     let currentPath = '' // Start from the root (/files)
-
-    // Split the path by / and generate breadcrumbs
     const pathParts = relativePath.split('/').filter(Boolean)
 
     pathParts.forEach((part, index) => {
@@ -166,8 +164,6 @@ module.exports = (configStoreType) => {
         path: currentPath,
       })
     })
-
-    // Add root breadcrumb
     breadcrumbs.unshift({ name: 'Home', path: '/files' })
 
     return breadcrumbs
@@ -190,23 +186,6 @@ module.exports = (configStoreType) => {
       currentPath: currentPath,
       relativePath: relativePath,
       user: req.user
-    })
-  }
-
-  const listFiles = (req, res) => {
-    fs.readdir(uploadsDir, (err, files) => {
-      if (err) {
-        return res.status(500).send('Unable to scan directory')
-      }
-      const fileList = files.map(file => {
-        const stats = fs.statSync(path.join(uploadsDir, file))
-        return {
-          name: file,
-          size: stats.size,
-          date: stats.mtime.toLocaleDateString(),
-        }
-      })
-      res.render('index', { files: fileList, user: req.user })
     })
   }
 
@@ -363,7 +342,6 @@ module.exports = (configStoreType) => {
 
   return {
     uploadMiddleware,
-    listFiles,
     file_links_get,
     stop_sharing_post,
     delete_file_post,

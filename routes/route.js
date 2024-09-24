@@ -1,14 +1,11 @@
 const express = require('express');
 const sftpController = require('../controllers/sftpController')
-const StoreType = require('../ConfigStorageType')
 
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
 
   const filemanagerController = require('../controllers/fileManagerController')(configStoreType)
 
   const router = express.Router()
-  //list all files in the managed directory
-  router.get('/', isAuthenticated, filemanagerController.listFiles)
 
   //list all files in the managed directory
   router.get('/files', isAuthenticated, filemanagerController.list_directory_get); 
