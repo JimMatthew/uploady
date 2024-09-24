@@ -78,10 +78,11 @@ module.exports = (configStoreType) => {
     console.log('name: '+fileName)
   
     const token = crypto.randomBytes(5).toString('hex') // Generate random token
-    sharedFiles.set(token, absoluteFilePath) // Map token to full file path
-  
-    // Generate the public URL to share
     const shareLink = `${req.protocol}://${req.get('host')}/share/${token}/${fileName}`
+    //sharedFiles.set(token, absoluteFilePath) // Map token to full file path
+    storeLinkInfo(fileName, absoluteFilePath, shareLink, token)
+    // Generate the public URL to share
+    
   
     res.render('linkgen', {
       link: shareLink,
@@ -89,11 +90,12 @@ module.exports = (configStoreType) => {
     })
   }
 
-  const serveSharedFile = (req, res) => {
+  const serveSharedFile = async (req, res) => {
     const { token, filename } = req.params // Extract token and file name from the URL
     console.log('ss: '+token)
     console.log('ssfn: '+filename)
-    const filePath = sharedFiles.get(token) // Retrieve the file path using the token
+    const filePath = await getFilePathFromStorageToken(token)
+    //const filePath = sharedFiles.get(token) // Retrieve the file path using the token
   
     if (!filePath) {
       return res.status(404).send('Shared link not found')
@@ -112,6 +114,34 @@ module.exports = (configStoreType) => {
         return res.status(500).send('Error downloading file')
       }
     })
+  }
+
+  const getFilePathFromStorageToken = async (token) => {
+    switch (configStoreType) {
+      case ConfigStoreType.DATABASE:
+        const sharedFile = await SharedFile.findOne({ token });
+        return sharedFile ? sharedFile.filePath : null
+  
+      case ConfigStoreType.LOCAL:
+        return sharedLinks.get(token)
+  
+      default:
+        throw new Error('Invalid storage type')
+    }
+  }
+
+  const deleteFolder = (req, res) => {
+    const relativePath = req.body.folderPath ||'' // Path relative to the uploads directory
+    const folderName = req.body.folderName || ''
+    const folderPath = path.join(uploadsDir, relativePath, folderName)
+    console.log('del fo: '+folderPath)
+    
+    fs.rmdir(folderPath, (err) =>{
+      if(err){
+        console.log(err)
+      }
+    })
+    res.redirect(`/files/${relativePath}`)
   }
 
   const generateBreadcrumbs = (relativePath) => {
@@ -302,7 +332,7 @@ module.exports = (configStoreType) => {
     })
   }
 
-  const storeLinkInfo = async (fileName, filePath, link) => {
+  const storeLinkInfo = async (fileName, filePath, link, token) => {
     switch (configStoreType) {
       case StoreType.DATABASE:
         const f = await SharedFile.findOne({ fileName })
@@ -312,7 +342,8 @@ module.exports = (configStoreType) => {
         const sharedFile = new SharedFile({
           fileName,
           filePath,
-          link
+          link,
+          token,
         })
         await sharedFile.save();
         break;
@@ -451,6 +482,7 @@ module.exports = (configStoreType) => {
     upload_files_post,
     generateShareLink,
     serveSharedFile,
+    deleteFolder,
   }
 }
   

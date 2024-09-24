@@ -8,15 +8,7 @@ html
       const relativePath = !{JSON.stringify(relativePath)}
   body
     h1 File Manager
-
-    // Breadcrumb for easy navigation
-    if breadcrumb.length
-      nav
-        each crumb, i in breadcrumb
-          a(href=`${crumb.path}`) #{crumb.name}
-          if i < breadcrumb.length - 1
-            |  / 
-
+    
     h2 Current Directory: #{relativePath}
 
     // Form to create a new folder
@@ -84,12 +76,24 @@ html
       }  
     p 
       a(href='/links') Show All Shared files
+    p 
+       // Breadcrumb for easy navigation
+    if breadcrumb.length
+      nav
+        each crumb, i in breadcrumb
+          a(href=`${crumb.path}`) #{crumb.name}
+          if i < breadcrumb.length - 1
+            |  / 
     h3 Folders
     if folders.length
       ul
         each folder in folders
           li
             a(href=`${currentPath}/${folder.name}`) #{folder.name}
+            form#delfol(action="/delete-folder", method="POST", style="display:inline")
+              input(type="hidden", name="folderPath", value=relativePath)
+              input(type="hidden", name="folderName", value=folder.name)
+              button(type="submit") Delete Folder
     else
       p No folders.
 
