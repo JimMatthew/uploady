@@ -7,10 +7,12 @@ const SharedFile = require('../models/SharedFile')
 const StoreType = require('../ConfigStorageType');
 const ConfigStoreType = require('../ConfigStorageType');
 
+
 module.exports = (configStoreType) => {
 
   const publicLinks = new Map()
   const sharedLinks = new Map()
+  const sharedFiles = new Map() 
   const uploadsDir = path.join(__dirname, '../uploads')
 
   const storage = multer.diskStorage({
@@ -63,6 +65,55 @@ module.exports = (configStoreType) => {
     res.redirect(`/files`) 
   }
 
+  const generateShareLink = (req, res) => {
+    const relativeFilePath = req.body.filePath || ''// Pass full relative path from client
+    const fileName = req.body.fileName
+    const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName)
+    console.log('re '+relativeFilePath)
+    console.log('relf: '+absoluteFilePath)
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).send('File not found')
+    }
+    
+    console.log('name: '+fileName)
+  
+    const token = crypto.randomBytes(5).toString('hex') // Generate random token
+    sharedFiles.set(token, absoluteFilePath) // Map token to full file path
+  
+    // Generate the public URL to share
+    const shareLink = `${req.protocol}://${req.get('host')}/share/${token}/${fileName}`
+  
+    res.render('linkgen', {
+      link: shareLink,
+      fileName: fileName
+    })
+  }
+
+  const serveSharedFile = (req, res) => {
+    const { token, filename } = req.params // Extract token and file name from the URL
+    console.log('ss: '+token)
+    console.log('ssfn: '+filename)
+    const filePath = sharedFiles.get(token) // Retrieve the file path using the token
+  
+    if (!filePath) {
+      return res.status(404).send('Shared link not found')
+    }
+  
+    const absoluteFilePath = path.join(path.dirname(filePath), filename) // Rebuild the full file path
+  
+    // Check if the file exists
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).send('File not found')
+    }
+  
+    // Serve the file for download
+    res.download(absoluteFilePath, filename, (err) => {
+      if (err) {
+        return res.status(500).send('Error downloading file')
+      }
+    })
+  }
+
   const generateBreadcrumbs = (relativePath) => {
     const breadcrumbs = []
     let currentPath = '' // Start from the root (/files)
@@ -88,7 +139,9 @@ module.exports = (configStoreType) => {
     const relativePath = req.params[0] || ''
     let npath = path.join(uploadsDir, relativePath);
     const currentPath = relativePath ? `/files/${relativePath}` : '/files';
-    const { files, folders } = getDirectoryContents(npath)
+    const { files, folders } = getDirectoryContents_get(npath)
+    //const { files, folders } = getFolderContents(npath)
+    //const { files, folders } = directoryContents_get(npath)
     console.log(currentPath)
     const breadcrumb = generateBreadcrumbs(currentPath)
     res.render('files', { 
@@ -119,7 +172,7 @@ module.exports = (configStoreType) => {
   }
 
   const getFolderContents = async (relativePath) => {
-    const folderPath = path.join(uploadsDir, relativePath);
+    const folderPath = relativePath
     console.log('Folder path: ' + folderPath);
   
     try {
@@ -153,6 +206,47 @@ module.exports = (configStoreType) => {
       console.error('Error reading folder contents: ', err);
       throw err;
     }
+  };
+
+  const getDirectoryContents_get = (dirPath) => {
+    const contents = fs.readdirSync(dirPath)
+    const files = []
+    const folders = []
+  
+    contents.forEach((item) => {
+      const itemPath = path.join(dirPath, item)
+      const stats = fs.lstatSync(itemPath)
+  
+      if (stats.isDirectory()) {
+        folders.push({ name: item }) // Only push the name for folders
+      } else if (stats.isFile()) {
+        files.push({
+          name: item,                               // File name
+          size: (stats.size / 1024).toFixed(2),     // Size in KB
+          date: stats.mtime.toLocaleDateString()    // Last modified date
+        })
+      }
+    })
+  
+    return { files, folders }
+  }
+
+  const getDirectoryContents = (dirPath) => {
+    const contents = fs.readdirSync(dirPath);
+    const files = [];
+    const folders = [];
+  
+    contents.forEach((item) => {
+      const itemPath = path.join(dirPath, item);
+      if (fs.lstatSync(itemPath).isDirectory()) {
+        folders.push(item);
+      } else {
+        files.push(item);
+      }
+    });
+    
+  
+    return { files, folders };
   };
   
   
@@ -315,22 +409,7 @@ module.exports = (configStoreType) => {
     })
   }
 
-  const getDirectoryContents = (dirPath) => {
-    const contents = fs.readdirSync(dirPath);
-    const files = [];
-    const folders = [];
-  
-    contents.forEach((item) => {
-      const itemPath = path.join(dirPath, item);
-      if (fs.lstatSync(itemPath).isDirectory()) {
-        folders.push(item);
-      } else {
-        files.push(item);
-      }
-    });
-  
-    return { files, folders };
-  };
+ 
   
   // Helper function to create a new folder
   const createFolder = (dirPath, folderName) => {
@@ -370,6 +449,8 @@ module.exports = (configStoreType) => {
     list_directory_get,
     directory_list_get,
     upload_files_post,
+    generateShareLink,
+    serveSharedFile,
   }
 }
   

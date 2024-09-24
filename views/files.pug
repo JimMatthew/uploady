@@ -69,7 +69,6 @@ html
         formData.append('files', file);
         formData.append('folderPath', relativePath)
         //formData.append('relativePath', relativePath)
-        console.log('rp - '+relativePath)
         fetch('/upload', {
           method: 'POST',
           body: formData
@@ -90,7 +89,7 @@ html
       ul
         each folder in folders
           li
-            a(href=`${currentPath}/${folder}`) #{folder}
+            a(href=`${currentPath}/${folder.name}`) #{folder.name}
     else
       p No folders.
 
@@ -107,15 +106,16 @@ html
             each file in files
               tr
                 td
-                  a(href=`/download/${relativePath}/${file}`) #{file}
+                  a(href=`/download/${relativePath}/${file.name}`) #{file.name}
                 td #{file.size} KB
                 td #{file.date}
                 td
-                  form(action=`/delete/${relativePath}/${file}` method="POST" style="display:inline")
+                  form(action=`/delete/${relativePath}/${file.name}` method="POST" style="display:inline")
                     input(type="hidden" name="fileName" value=file)
                     button(type="submit") Delete
                   form(action=`/share` method="POST" style="display:inline")
-                    input(type="hidden" name="fileName" value=file)
+                    input(type="hidden" name="filePath" value=relativePath)
+                    input(type="hidden" name="fileName" value=file.name)
                     button(type="submit") Share
     else
       p No files.

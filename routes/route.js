@@ -15,13 +15,13 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.get('/files/*', isAuthenticated, filemanagerController.list_directory_get)
 
   //download file from public link - not authenticated
-  router.get('/share/:token', filemanagerController.download_shared_file_get)
+  router.get('/share/:token/:filename', filemanagerController.serveSharedFile)
 
   //display list of all shared links
   router.get('/links', isAuthenticated, filemanagerController.file_links_get)
 
   //create a public link for a file
-  router.post('/share', isAuthenticated, filemanagerController.share_file_post)
+  router.post('/share', isAuthenticated, filemanagerController.generateShareLink)
 
   //stop sharing a public file
   router.post('/stop-sharing', isAuthenticated, filemanagerController.stop_sharing_post)
