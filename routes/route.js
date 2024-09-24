@@ -1,5 +1,6 @@
 const express = require('express');
 const sftpController = require('../controllers/sftpController')
+const storageController = require('../controllers/storageController')
 
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
 
@@ -32,7 +33,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.get('/download/*', isAuthenticated, filemanagerController.download_file_get)
   
   //upload file/s to managed directory
-  router.post('/upload', isAuthenticated, filemanagerController.uploadMiddleware, 
+  router.post('/upload', isAuthenticated, storageController.uploadMiddleware, 
     filemanagerController.upload_files_post)
 
   router.post('/create-folder', isAuthenticated, filemanagerController.create_folder_post)
