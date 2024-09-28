@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 const sftp = new SftpClient();
-
+const SftpServer = require('../models/SftpServer')
 module.exports = () => {
 
   let susername = ''
@@ -15,6 +15,10 @@ module.exports = () => {
     res.render('sftp', { files: null, message: null });
   }
 
+  const sftp_home_get = (req, res) => {
+    res.render('sftp-main', { files: null, message: null });
+  }
+
   const sft_connect_post = async (req, res) => {
       const { host, username, password, directory } = req.body;
       susername = username
@@ -22,11 +26,8 @@ module.exports = () => {
       shost = host
       const currentDirectory = directory || '/'; // Default to root if not provided
     
-      
-
       try {
         await sftp.connect({ host, username, password });
-        //const fileList = await sftp.list(currentDirectory);
         const contents = await sftp.list(currentDirectory);
         const files = [];
         const folders = [];
@@ -114,8 +115,6 @@ module.exports = () => {
   }
 
   const getSFTPFolderContents = async (remotePath) => {
-    //const { host, username, password, directory } = req.body;
-    console.log("sh: "+shost)
     try {
       await sftp.connect({
         host: shost,
@@ -157,7 +156,6 @@ module.exports = () => {
       await sftp.end();
     }
     res.redirect(`/sftp/files/${currentPath}`)
-    
   }
 
   /*
@@ -200,24 +198,12 @@ module.exports = () => {
     const sftp = new SftpClient();
     try {
       await sftp.connect({ host:shost, username:susername, password: spassword });
-      //await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
       
-     
-      //const stream = await sftp.get(remotePath);
-      
-      // Set appropriate headers
-      sftp.stat(remotePath, (err, stats) => {
-        if (err) {
-            res.status(404).send("The file does not exist");
-            return;
-        }
-        console.log('stat: '+stats.size)
-        res.header("Content-Disposition", `attachment; filename="${fileName}"`);
-        res.header("Content-Length", stats.size);
+      res.header("Content-Disposition", `attachment; filename="${fileName}"`);
+      res.header("Content-Length", stats.size);
 
-        const readStream = sftp.createReadStream(remotePath);
-        readStream.pipe(res);
-    });
+      const readStream = sftp.createReadStream(remotePath);
+      readStream.pipe(res);
   
     } catch (err) {
       console.error('Error:', err);
@@ -271,7 +257,6 @@ module.exports = () => {
 
   const upload = multer({ storage: storage })
   
-
   const sftp_upload_post = async (req, res) => {
       const { currentDirectory } = req.body;
       const sftp = new SftpClient();
@@ -297,6 +282,84 @@ module.exports = () => {
       }
   }
 
+  const sftp_servers_get = async (req, res) => {
+    try {
+      const servers = await SftpServer.find()
+      res.render('sftp-main', { servers })
+    } catch (error) {
+      res.status(500).send('error loading servers')
+    }
+  }
+
+  const sftp_save_server_post = async (req, res) => {
+    const { host, username, password } = req.body
+    console.log('host: '+host)
+    const newServer = new SftpServer({
+      host,
+      username,
+      password
+    })
+
+    try {
+      await newServer.save()
+      res.redirect('/sftps/')
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('error saving server')
+    }
+  }
+
+  const sftp_id_list_files_get = async (req, res) => {
+    console.log('entered')
+    const { serverId } = req.params
+    const currentDirectory = req.params[0] || '/'
+    console.log('si: '+serverId)
+    console.log('cd: '+currentDirectory)
+    try{
+      const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
+      }
+
+      const { host, username, password } = server
+
+      const sftp = new SftpClient()
+
+      await sftp.connect({
+        host,
+        username,
+        password
+      })
+
+      const contents = await sftp.list(currentDirectory);
+      const files = [];
+      const folders = [];
+      
+      contents.forEach(item => {
+        if (item.type === 'd') {
+          folders.push({ name: item.name })
+        } else {
+          files.push({ name: item.name, size: (item.size / 1024).toFixed(2), date: item.modifyTime })
+        }
+      })
+      const breadcrumb = generateBreadcrumbs(currentDirectory)
+      await sftp.end()
+
+      res.render('sftplist', {
+        files,
+        folders,
+        currentDirectory,
+        breadcrumb,
+        serverId
+      })
+
+
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('error connecting to sftp server')
+    }
+  }
+
   return {
     sftp_get,
     sft_list_directory_get,
@@ -308,6 +371,10 @@ module.exports = () => {
     sftp_download_get,
     sftp_create_folder_post,
     upload,
-    sftp_stream_download_get
+    sftp_stream_download_get,
+    sftp_home_get,
+    sftp_servers_get,
+    sftp_save_server_post,
+    sftp_id_list_files_get
   }
 }

@@ -17,9 +17,6 @@ html
         input(type="hidden" name="currentDirectory" value=currentDirectory)
       button(type="submit") Upload File
 
-    // SFTP Connection Form
-    
-
     form(action="/sftp/create-folder", method="POST" style="display:inline")
       input(type="text", name="folderName", placeholder="New folder name")
       input#rpath(type="hidden",  name="currentPath", value=currentDirectory)
@@ -80,7 +77,7 @@ html
       p No files.
 
     p
-      a(href="/files") Back to Root
+      a(href="/sftp/files/") Back to Root
 
     footer
       p File Manager App by James Lindstrom

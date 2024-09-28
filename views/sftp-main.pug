@@ -1,0 +1,34 @@
+doctype html
+html
+  head
+    title SFTP Browser
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 SFTP Browser
+
+    if message
+      p= message
+
+    h2 Add New SFTP Server
+    form(action="/sftp/save-server" method="POST")
+      div
+        label(for="host") Host:
+        input(type="text" name="host" required)
+      div
+        label(for="username") Username:
+        input(type="text" name="username" required)
+      div
+        label(for="password") Password:
+        input(type="password" name="password" required)
+      button(type="submit") Save Server
+
+    h2 Saved SFTP Servers
+    if servers.length
+      ul
+        each server in servers
+          li
+            | Host: #{server.host}, Username: #{server.username} 
+            a(href=`/sftp/connect/${server._id}/`) Connect
+            form(action="/sftp/delete-server" method="POST" style="display:inline")
+              input(type="hidden" name="serverId" value=server._id)
+              button(type="submit") Delete
