@@ -15,11 +15,13 @@ html
         label(for="file") Select File:
         input(type="file" name="files" required)
         input(type="hidden" name="currentDirectory" value=currentDirectory)
+        input(type="hidden" name="serverId" value=serverId)
       button(type="submit") Upload File
 
     form(action="/sftp/create-folder", method="POST" style="display:inline")
       input(type="text", name="folderName", placeholder="New folder name")
       input#rpath(type="hidden",  name="currentPath", value=currentDirectory)
+      input(type="hidden", name="serverId", value=serverId)
       button(type="submit") Create Folder
     p
     if breadcrumb
@@ -41,10 +43,12 @@ html
           each folder in folders
             tr
               td
-                a(href=`/sftp/files/${currentDirectory}/${folder.name}`) #{folder.name}
+                a(href=`/sftp/connect/${serverId}/${currentDirectory}/${folder.name}`) #{folder.name}
               td
                 form(action="/sftp/delete-folder" method="POST" style="display:inline")
-                  input(type="hidden" name="folderPath" value=`${relativePath}/${folder.name}`)
+                  input(type="hidden" name="serverId" value=serverId)
+                  input(type="hidden" name="currentDirectory" value=currentDirectory)
+                  input(type="hidden" name="deleteDir", value=folder.name)
                   button(type="submit") Delete Folder
     else
       p No folders.
@@ -62,17 +66,15 @@ html
           each file in files
             tr
               td
-                a(href=`/sftp/download/${currentDirectory}/${file.name}`) #{file.name}
+                a(href=`/sftp/download/${serverId}/${currentDirectory}/${file.name}`) #{file.name}
               td #{file.size} KB
               td #{file.date}
               td
-                form(action=`/sftp/delete/${relativePath}/${file.name}` method="POST" style="display:inline")
+                form(action=`/sftp/delete-file` method="POST" style="display:inline")
                   input(type="hidden" name="fileName" value=file.name)
+                  input(type="hidden" name="currentDirectory" value=currentDirectory)
+                  input(type="hidden" name="serverId" value=serverId)
                   button(type="submit") Delete
-                form(action="/sftp/share" method="POST" style="display:inline")
-                  input(type="hidden" name="filePath" value=relativePath)
-                  input(type="hidden" name="fileName" value=file.name)
-                  button(type="submit") Share
     else
       p No files.
 

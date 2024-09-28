@@ -41,17 +41,13 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post('/delete-folder', isAuthenticated, filemanagerController.deleteFolder)
 
   //Routes for the SFTP controller 
-  router.get('/sftp', sftpController.sftp_get)
-  router.get('/sftps', sftpController.sftp_servers_get)
+  router.get('/sftp', sftpController.sftp_servers_get)
   router.get('/sftp/connect/:serverId/*?', sftpController.sftp_id_list_files_get)
-  router.post('/sftp/connect', sftpController.sft_connect_post)
-  router.post('/sftp/download', sftpController.sftp_download_post)
   router.post('/sftp/upload',  storageController.uploadMiddleware, sftpController.sftp_upload_post)
-  router.post('/sftp/dir', sftpController.sft_list_directory_get)
-  router.get('/sftp/files/*', sftpController.list_directory_get)
-  router.get('/sftp/download/*', sftpController.sftp_download_get)
+  router.get('/sftp/download/:serverId/*', sftpController.sftp_download_get)
   router.post('/sftp/create-folder', sftpController.sftp_create_folder_post)
   router.post('/sftp/save-server', sftpController.sftp_save_server_post)
-  
+  router.post('/sftp/delete-file', sftpController.sftp_delete_file_post)
+  router.post('/sftp/delete-folder', sftpController.sftp_delete_folder_post)
   return router
 }

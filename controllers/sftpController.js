@@ -81,6 +81,23 @@ module.exports = () => {
     return breadcrumbs
   };
 
+  const generateBreadcrumb = (relativePath, serverId) => {
+    const breadcrumbs = []
+    let currentPath = `/sftp/connect/${serverId}/` // Start from the root (/files)
+    const pathParts = relativePath.split('/').filter(Boolean)
+
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      })
+    })
+    breadcrumbs.unshift({ name: 'Home', path: `/sftp/connect/${serverId}/` })
+
+    return breadcrumbs
+  };
+
   const sft_list_directory_get = async (req, res) => {
     ensureSftpConnection(req,res)
     const directory = req.body.directory
@@ -142,20 +159,26 @@ module.exports = () => {
   };
 
   const sftp_create_folder_post = async (req, res) => {
-    const { currentPath, folderName } = req.body;
+    const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName)
     const sftp = new SftpClient();
     console.log('np: '+newPath)
     try{
-      await sftp.connect({ host: shost,username: susername, password: spassword });
-    await sftp.mkdir(newPath)
+      const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
+      }
+
+      const { host, username, password } = server
+      await sftp.connect({ host ,username, password });
+      await sftp.mkdir(newPath)
     
     } catch (err) {
       console.log(err)
     } finally {
       await sftp.end();
     }
-    res.redirect(`/sftp/files/${currentPath}`)
+    res.redirect(`/sftp/connect/${serverId}/${currentPath}`)
   }
 
   /*
@@ -221,11 +244,17 @@ module.exports = () => {
     const localFilePath = path.join(path.join(__dirname, 'temp'), fileName)
     console.log('rp: '+remotePath)
     console.log('lp: '+ localFilePath)
-
+    const { serverId } = req.params
     const sftp = new SftpClient();
 
     try {
-      await sftp.connect({ host:shost, username:susername, password: spassword });
+      const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
+      }
+
+      const { host, username, password } = server
+      await sftp.connect({ host, username, password });
       await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
       
       res.download(localFilePath, (err) => {
@@ -258,23 +287,29 @@ module.exports = () => {
   const upload = multer({ storage: storage })
   
   const sftp_upload_post = async (req, res) => {
-      const { currentDirectory } = req.body;
+      const { currentDirectory, serverId } = req.body;
       const sftp = new SftpClient();
       const file = req.files[0]
       try {
-        await sftp.connect({ host: shost, username: susername, password: spassword });
+        const server = await SftpServer.findById(serverId)
+        if (!server) {
+          return res.status(404).send('server not found')
+        }
+
+        const { host, username, password } = server
+        await sftp.connect({ host, username, password });
         const tempFilePath = file.path // Path to the temporarily uploaded file
-          const uploadFileName = file.originalname // Original filename
-          console.log('fp: ' +tempFilePath)
-          console.log('ufl: '+ uploadFileName)
-          const sftpUploadPath = path.join(currentDirectory, uploadFileName)
-          console.log('sup: '+sftpUploadPath)
+        const uploadFileName = file.originalname // Original filename
+        console.log('fp: ' +tempFilePath)
+        console.log('ufl: '+ uploadFileName)
+        const sftpUploadPath = path.join(currentDirectory, uploadFileName)
+        console.log('sup: '+sftpUploadPath)
     
-          await sftp.fastPut(tempFilePath, sftpUploadPath); 
+        await sftp.fastPut(tempFilePath, sftpUploadPath); 
         
         await sftp.end();
         fs.unlinkSync(tempFilePath)
-        res.redirect(`/sftp/files/${currentDirectory}`);
+        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
         
       } catch (err) {
         console.error(err);
@@ -342,7 +377,7 @@ module.exports = () => {
           files.push({ name: item.name, size: (item.size / 1024).toFixed(2), date: item.modifyTime })
         }
       })
-      const breadcrumb = generateBreadcrumbs(currentDirectory)
+      const breadcrumb = generateBreadcrumb(currentDirectory, serverId)
       await sftp.end()
 
       res.render('sftplist', {
@@ -360,6 +395,56 @@ module.exports = () => {
     }
   }
 
+  const sftp_delete_file_post = async (req, res) => {
+    const { serverId, currentDirectory, fileName } = req.body
+    const fullPath = path.join(currentDirectory, fileName)
+    const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
+      }
+
+      const { host, username, password } = server
+
+      const sftp = new SftpClient()
+      try {
+        await sftp.connect({
+          host,
+          username,
+          password
+        })
+  
+        await sftp.delete(fullPath)
+        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
+      } catch (error) {
+        res.status(500).send('error deleting file')
+      }
+  }
+
+  const sftp_delete_folder_post = async (req, res) => {
+    const { serverId, currentDirectory, deleteDir } = req.body
+    const fullPath = path.join(currentDirectory, deleteDir)
+    const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
+      }
+
+      const { host, username, password } = server
+
+      const sftp = new SftpClient()
+      try {
+        await sftp.connect({
+          host,
+          username,
+          password
+        })
+  
+        await sftp.rmdir(fullPath)
+        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
+      } catch (error) {
+        res.status(500).send('error deleting file')
+      }
+  }
+
   return {
     sftp_get,
     sft_list_directory_get,
@@ -375,6 +460,8 @@ module.exports = () => {
     sftp_home_get,
     sftp_servers_get,
     sftp_save_server_post,
-    sftp_id_list_files_get
+    sftp_id_list_files_get,
+    sftp_delete_file_post,
+    sftp_delete_folder_post
   }
 }
