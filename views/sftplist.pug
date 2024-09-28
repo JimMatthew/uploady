@@ -6,51 +6,81 @@ html
   body
     h1 SFTP Browser
 
+    p Server: #{host} 
     if message
       p= message
 
-    // SFTP Connection Form
-    form(action="/sftp/connect", method="POST")
+    form(action="/sftp/upload" method="POST" enctype="multipart/form-data")
       div
-        input(type="hidden" name="host" value=host )
-      div
-        input(type="hidden" name="username" value=username )
-      div
-        input(type="hidden" name="password" value=password )
-      div
-        label(for="directory") Current Directory:
-        input(type="text" name="directory" value=currentDirectory required)
-      button(type="submit") Browse
+        label(for="file") Select File:
+        input(type="file" name="files" required)
+        input(type="hidden" name="currentDirectory" value=currentDirectory)
+      button(type="submit") Upload File
 
-    if files
-      h2 Files in #{currentDirectory}:
+    // SFTP Connection Form
+    
+
+    form(action="/sftp/create-folder", method="POST" style="display:inline")
+      input(type="text", name="folderName", placeholder="New folder name")
+      input#rpath(type="hidden",  name="currentPath", value=currentDirectory)
+      button(type="submit") Create Folder
+    p
+    if breadcrumb
+      if breadcrumb.length
+        nav
+          each crumb, i in breadcrumb
+            a(href=`${crumb.path}`) #{crumb.name}
+            if i < breadcrumb.length - 1
+              |  / 
+    
+    h3 Folders
+    if folders && folders.length
+      table
+        thead
+          tr
+            th Folder Name
+            th Actions
+        tbody
+          each folder in folders
+            tr
+              td
+                a(href=`/sftp/files/${currentDirectory}/${folder.name}`) #{folder.name}
+              td
+                form(action="/sftp/delete-folder" method="POST" style="display:inline")
+                  input(type="hidden" name="folderPath" value=`${relativePath}/${folder.name}`)
+                  button(type="submit") Delete Folder
+    else
+      p No folders.
+
+    h3 Files
+    if files.length
       table
         thead
           tr
             th File Name
-            th File Type
+            th Size (KB)
+            th Date Modified
             th Actions
         tbody
           each file in files
             tr
-              td 
-                if file.type === 'd'
-                  a(href="#", onclick="changeDirectory('#{file.name}')") #{file.name}
-                else
-                  | #{file.name}
-              td #{file.type === 'd' ? 'Directory' : 'File'}
               td
-                if file.type !== 'd'
-                  form(action="/sftp/download", method="POST", style="display:inline")
-                    input(type="hidden", name="remoteFilePath", value=currentDirectory)
-                    input(type="hidden", name="host", value=host)
-                    input(type="hidden", name="remoteFileName", value=file.name)
-                    input(type="hidden", name="username", value=username)
-                    input(type="hidden", name="password", value=password)
-                    button(type="submit") Download
-                form(action="/sftp/delete", method="POST", style="display:inline")
-                  input(type="hidden", name="remoteFilePath", value=currentDirectory + '/' + file.name)
-                  input(type="hidden", name="host", value=host)
-                  input(type="hidden", name="username", value=username)
-                  input(type="hidden", name="password", value=password)
+                a(href=`/sftp/download/${currentDirectory}/${file.name}`) #{file.name}
+              td #{file.size} KB
+              td #{file.date}
+              td
+                form(action=`/sftp/delete/${relativePath}/${file.name}` method="POST" style="display:inline")
+                  input(type="hidden" name="fileName" value=file.name)
                   button(type="submit") Delete
+                form(action="/sftp/share" method="POST" style="display:inline")
+                  input(type="hidden" name="filePath" value=relativePath)
+                  input(type="hidden" name="fileName" value=file.name)
+                  button(type="submit") Share
+    else
+      p No files.
+
+    p
+      a(href="/files") Back to Root
+
+    footer
+      p File Manager App by James Lindstrom

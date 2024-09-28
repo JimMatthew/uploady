@@ -1,5 +1,5 @@
 const express = require('express');
-const sftpController = require('../controllers/sftpController')
+const sftpController = require('../controllers/sftpController')()
 const storageController = require('../controllers/storageController')
 
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
@@ -44,8 +44,10 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.get('/sftp', sftpController.sftp_get)
   router.post('/sftp/connect', sftpController.sft_connect_post)
   router.post('/sftp/download', sftpController.sftp_download_post)
-  router.post('/sftp/upload', sftpController.sftp_upload_post)
-  router.get('/sftp/dir', sftpController.sft_list_directory_get)
-  
+  router.post('/sftp/upload',  storageController.uploadMiddleware, sftpController.sftp_upload_post)
+  router.post('/sftp/dir', sftpController.sft_list_directory_get)
+  router.get('/sftp/files/*', sftpController.list_directory_get)
+  router.get('/sftp/download/*', sftpController.sftp_download_get)
+  router.post('/sftp/create-folder', sftpController.sftp_create_folder_post)
   return router
 }

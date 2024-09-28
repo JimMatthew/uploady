@@ -312,16 +312,16 @@ module.exports = (configStoreType) => {
     } else {
       //throw new Error('Folder already exists');
     }
-  };
+  }
 
-  const create_folder_post = (req, res) => {
-    const { folderName, currentPath } = req.body;
+  const create_folder_post = (req, res, next) => {
+    const { folderName, currentPath } = req.body
     try {
-      const fullPath = path.join(uploadsDir, currentPath || '');
-      createFolder(fullPath, folderName);
-      res.redirect(`/files/${currentPath}`);  // Redirect to the current directory
+      const fullPath = path.join(uploadsDir, currentPath || '')
+      createFolder(fullPath, folderName)
+      res.redirect(`/files/${currentPath}`)  // Redirect to the current directory
     } catch (err) {
-      res.status(400).send('Error creating folder');
+        return next(err)
     }
   }
 
@@ -338,5 +338,3 @@ module.exports = (configStoreType) => {
     deleteFolder,
   }
 }
-
-
