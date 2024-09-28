@@ -8,6 +8,17 @@ const sftp = new SftpClient();
 const SftpServer = require('../models/SftpServer')
 module.exports = () => {
 
+  const tempdir = path.join(__dirname, '../temp')
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, path.join(tempdir))  // Use the provided uploads directory
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname)  // Preserve the original file name
+    }
+  })
+
   const sftp_get = (req, res) => {
     res.render('sftp', { files: null, message: null });
   }
@@ -45,7 +56,6 @@ module.exports = () => {
       const { host, username, password } = server
       await sftp.connect({ host ,username, password });
       await sftp.mkdir(newPath)
-    
     } catch (err) {
       console.log(err)
     } finally {
@@ -58,7 +68,6 @@ module.exports = () => {
     const relativePath = req.params[0] || ''
     const remotePath = relativePath ? `/${relativePath}` : '/';
     const fileName =remotePath.split('/').filter(Boolean).pop()
-    const localFilePath = path.join(path.join(__dirname, 'temp'), fileName)
     console.log('rp: '+remotePath)
     const sftp = new SftpClient();
     try {
@@ -79,15 +88,12 @@ module.exports = () => {
   }
 
   const sftp_download_get = async (req, res) => {
+    const { serverId } = req.params
     const relativePath = req.params[0] || ''
     const remotePath = relativePath ? `/${relativePath}` : '/';
     const fileName =remotePath.split('/').filter(Boolean).pop()
     const localFilePath = path.join(path.join(__dirname, 'temp'), fileName)
-    console.log('rp: '+remotePath)
-    console.log('lp: '+ localFilePath)
-    const { serverId } = req.params
     const sftp = new SftpClient();
-
     try {
       const server = await SftpServer.findById(serverId)
       if (!server) {
@@ -114,17 +120,7 @@ module.exports = () => {
       res.render('sftp', { files: null, message: 'File download failed' });
     }
   }
-  const tempdir = path.join(__dirname, '../temp')
-
-  const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.join(tempdir))  // Use the provided uploads directory
-    },
-    filename: function (req, file, cb) {
-      cb(null, file.originalname)  // Preserve the original file name
-    }
-  })
-
+ 
   const upload = multer({ storage: storage })
   
   const sftp_upload_post = async (req, res) => {
@@ -141,13 +137,9 @@ module.exports = () => {
         await sftp.connect({ host, username, password });
         const tempFilePath = file.path // Path to the temporarily uploaded file
         const uploadFileName = file.originalname // Original filename
-        console.log('fp: ' +tempFilePath)
-        console.log('ufl: '+ uploadFileName)
         const sftpUploadPath = path.join(currentDirectory, uploadFileName)
-        console.log('sup: '+sftpUploadPath)
     
         await sftp.fastPut(tempFilePath, sftpUploadPath); 
-        
         await sftp.end();
         fs.unlinkSync(tempFilePath)
         res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
@@ -169,13 +161,11 @@ module.exports = () => {
 
   const sftp_save_server_post = async (req, res) => {
     const { host, username, password } = req.body
-    console.log('host: '+host)
     const newServer = new SftpServer({
       host,
       username,
       password
     })
-
     try {
       await newServer.save()
       res.redirect('/sftps/')
@@ -186,11 +176,8 @@ module.exports = () => {
   }
 
   const sftp_id_list_files_get = async (req, res) => {
-    console.log('entered')
     const { serverId } = req.params
     const currentDirectory = req.params[0] || '/'
-    console.log('si: '+serverId)
-    console.log('cd: '+currentDirectory)
     try{
       const server = await SftpServer.findById(serverId)
       if (!server) {
@@ -198,7 +185,6 @@ module.exports = () => {
       }
 
       const { host, username, password } = server
-
       const sftp = new SftpClient()
 
       await sftp.connect({
@@ -206,7 +192,6 @@ module.exports = () => {
         username,
         password
       })
-
       const contents = await sftp.list(currentDirectory);
       const files = [];
       const folders = [];
@@ -229,7 +214,6 @@ module.exports = () => {
         serverId,
         host
       })
-
     } catch (error) {
       console.log(error)
       res.status(500).send('error connecting to sftp server')
@@ -243,7 +227,6 @@ module.exports = () => {
       if (!server) {
         return res.status(404).send('server not found')
       }
-
       const { host, username, password } = server
 
       const sftp = new SftpClient()
@@ -253,7 +236,6 @@ module.exports = () => {
           username,
           password
         })
-  
         await sftp.delete(fullPath)
         res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
       } catch (error) {
@@ -268,7 +250,6 @@ module.exports = () => {
       if (!server) {
         return res.status(404).send('server not found')
       }
-
       const { host, username, password } = server
 
       const sftp = new SftpClient()
