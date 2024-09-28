@@ -45,7 +45,7 @@ html
               td
                 a(href=`/sftp/connect/${serverId}/${currentDirectory}/${folder.name}`) #{folder.name}
               td
-                form(action="/sftp/delete-folder" method="POST" style="display:inline")
+                form#delfol(action="/sftp/delete-folder" method="POST" style="display:inline")
                   input(type="hidden" name="serverId" value=serverId)
                   input(type="hidden" name="currentDirectory" value=currentDirectory)
                   input(type="hidden" name="deleteDir", value=folder.name)
