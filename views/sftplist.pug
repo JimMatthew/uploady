@@ -6,7 +6,8 @@ html
   body
     h1 SFTP Browser
 
-    p Server: #{host} 
+    p  Server: #{host} - 
+      a(href=`/sftp/`) Disconnect
     if message
       p= message
 

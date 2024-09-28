@@ -10,12 +10,10 @@ const logger = require('morgan');
 const mongoose = require("mongoose");
 //const connectDB = require('./controllers/db')
 const ConfigStorageType = require('./ConfigStorageType')
-
+const sftpRouter = require('./routes/sftpRouter')
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
-
-//connectDB()
 
 const app = express()
 
@@ -78,6 +76,8 @@ function isAuthenticated(req, res, next) {
 const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.DATABASE)
 //const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
 app.use('/', routes)
+
+app.use('/sftp', sftpRouter)
 
 app.get('/login', (req, res) => {
   res.render('login', { message: req.session.messages || '' })

@@ -168,7 +168,7 @@ module.exports = () => {
     })
     try {
       await newServer.save()
-      res.redirect('/sftps/')
+      res.redirect('/sftp/')
     } catch (error) {
       console.log(error)
       res.status(500).send('error saving server')
