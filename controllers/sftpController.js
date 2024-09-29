@@ -54,7 +54,7 @@ module.exports = () => {
         return res.status(404).send('server not found')
       }
       const { host, username, password } = server
-      await sftp.connect({ host ,username, password });
+      await sftp.connect({ host, username, password });
       await sftp.mkdir(newPath)
     } catch (err) {
       console.log(err)
@@ -175,6 +175,16 @@ module.exports = () => {
     }
   }
 
+  const sftp_delete_server_post = async (req, res) => {
+    const { serverId } = req.body
+    try {
+      await SftpServer.findByIdAndDelete(serverId)
+      res.redirect('/sftp')
+    } catch (error) {
+      res.status(500).send('Error deleting server')
+    }
+  }
+
   const sftp_id_list_files_get = async (req, res) => {
     const { serverId } = req.params
     const currentDirectory = req.params[0] || '/'
@@ -277,8 +287,9 @@ module.exports = () => {
     sftp_home_get,
     sftp_servers_get,
     sftp_save_server_post,
+    sftp_delete_server_post,
     sftp_id_list_files_get,
     sftp_delete_file_post,
-    sftp_delete_folder_post
+    sftp_delete_folder_post,
   }
 }
