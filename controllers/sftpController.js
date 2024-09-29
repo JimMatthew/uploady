@@ -4,9 +4,8 @@ const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
-const sftp = new SftpClient();
 const SftpServer = require('../models/SftpServer')
-const { Client } = require('ssh2')
+
 module.exports = () => {
 
   const tempdir = path.join(__dirname, '../temp')
@@ -49,8 +48,10 @@ module.exports = () => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName)
     const sftp = new SftpClient();
-    try{
+
+    try {
       const server = await SftpServer.findById(serverId)
+
       if (!server) {
         return res.status(404).send('server not found')
       }
@@ -68,23 +69,23 @@ module.exports = () => {
   const sftp_stream_download_get = async (req, res) => {
     const relativePath = req.params[0] || ''
     const remotePath = relativePath ? `/${relativePath}` : '/';
-    const fileName =remotePath.split('/').filter(Boolean).pop()
-    console.log('rp: '+remotePath)
+    const fileName = remotePath.split('/').filter(Boolean).pop()
+    console.log('rp: ' + remotePath)
     const sftp = new SftpClient();
     try {
-      await sftp.connect({ host:shost, username:susername, password: spassword });
-      
+      await sftp.connect({ host: shost, username: susername, password: spassword });
+
       res.header("Content-Disposition", `attachment; filename="${fileName}"`);
       res.header("Content-Length", stats.size);
 
       const readStream = sftp.createReadStream(remotePath);
       readStream.pipe(res);
-  
+
     } catch (err) {
       console.error('Error:', err);
       res.status(500).send('Error downloading file from SFTP');
     } finally {
-      await sftp.end(); 
+      await sftp.end();
     }
   }
 
@@ -92,7 +93,7 @@ module.exports = () => {
     const { serverId } = req.params
     const relativePath = req.params[0] || ''
     const remotePath = relativePath ? `/${relativePath}` : '/';
-    const fileName =remotePath.split('/').filter(Boolean).pop()
+    const fileName = remotePath.split('/').filter(Boolean).pop()
     const localFilePath = path.join(path.join(__dirname, 'temp'), fileName)
     const sftp = new SftpClient();
     try {
@@ -104,51 +105,51 @@ module.exports = () => {
       const { host, username, password } = server
       await sftp.connect({ host, username, password });
       await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
-      
+
       res.download(localFilePath, (err) => {
-      if (err) {
-        return res.status(500).send('File not found')
-      }
-      fs.unlink(localFilePath, (err) => {
         if (err) {
-          return res.status(500).send('unable to delete file')
+          return res.status(500).send('File not found')
         }
+        fs.unlink(localFilePath, (err) => {
+          if (err) {
+            return res.status(500).send('unable to delete file')
+          }
+        })
       })
-    })
       await sftp.end();
     } catch (err) {
       console.error(err);
       res.render('sftp', { files: null, message: 'File download failed' });
     }
   }
- 
-  const upload = multer({ storage: storage })
-  
-  const sftp_upload_post = async (req, res) => {
-      const { currentDirectory, serverId } = req.body;
-      const sftp = new SftpClient();
-      const file = req.files[0]
-      try {
-        const server = await SftpServer.findById(serverId)
-        if (!server) {
-          return res.status(404).send('server not found')
-        }
 
-        const { host, username, password } = server
-        await sftp.connect({ host, username, password });
-        const tempFilePath = file.path // Path to the temporarily uploaded file
-        const uploadFileName = file.originalname // Original filename
-        const sftpUploadPath = path.join(currentDirectory, uploadFileName)
-    
-        await sftp.fastPut(tempFilePath, sftpUploadPath); 
-        await sftp.end();
-        fs.unlinkSync(tempFilePath)
-        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
-        
-      } catch (err) {
-        console.error(err);
-        res.redirect('sftp/files');
+  const upload = multer({ storage: storage })
+
+  const sftp_upload_post = async (req, res) => {
+    const { currentDirectory, serverId } = req.body;
+    const sftp = new SftpClient();
+    const file = req.files[0]
+    try {
+      const server = await SftpServer.findById(serverId)
+      if (!server) {
+        return res.status(404).send('server not found')
       }
+
+      const { host, username, password } = server
+      await sftp.connect({ host, username, password });
+      const tempFilePath = file.path // Path to the temporarily uploaded file
+      const uploadFileName = file.originalname // Original filename
+      const sftpUploadPath = path.join(currentDirectory, uploadFileName)
+
+      await sftp.fastPut(tempFilePath, sftpUploadPath);
+      await sftp.end();
+      fs.unlinkSync(tempFilePath)
+      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
+
+    } catch (err) {
+      console.error(err);
+      res.redirect('sftp/files');
+    }
   }
 
   const sftp_servers_get = async (req, res) => {
@@ -189,7 +190,7 @@ module.exports = () => {
   const sftp_id_list_files_get = async (req, res) => {
     const { serverId } = req.params
     const currentDirectory = req.params[0] || '/'
-    try{
+    try {
       const server = await SftpServer.findById(serverId)
       if (!server) {
         return res.status(404).send('server not found')
@@ -206,7 +207,7 @@ module.exports = () => {
       const contents = await sftp.list(currentDirectory);
       const files = [];
       const folders = [];
-      
+
       contents.forEach(item => {
         if (item.type === 'd') {
           folders.push({ name: item.name })
@@ -235,53 +236,54 @@ module.exports = () => {
     const { serverId, currentDirectory, fileName } = req.body
     const fullPath = path.join(currentDirectory, fileName)
     const server = await SftpServer.findById(serverId)
-      if (!server) {
-        return res.status(404).send('server not found')
-      }
-      const { host, username, password } = server
+    if (!server) {
+      return res.status(404).send('server not found')
+    }
+    const { host, username, password } = server
 
-      const sftp = new SftpClient()
-      try {
-        await sftp.connect({
-          host,
-          username,
-          password
-        })
-        await sftp.delete(fullPath)
-        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
-      } catch (error) {
-        res.status(500).send('error deleting file')
-      }
+    const sftp = new SftpClient()
+    try {
+      await sftp.connect({
+        host,
+        username,
+        password
+      })
+      await sftp.delete(fullPath)
+      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
+    } catch (error) {
+      res.status(500).send('error deleting file')
+    }
   }
 
   const sftp_delete_folder_post = async (req, res) => {
     const { serverId, currentDirectory, deleteDir } = req.body
     const fullPath = path.join(currentDirectory, deleteDir)
     const server = await SftpServer.findById(serverId)
-      if (!server) {
-        return res.status(404).send('server not found')
-      }
-      const { host, username, password } = server
+    if (!server) {
+      return res.status(404).send('server not found')
+    }
+    const { host, username, password } = server
 
-      const sftp = new SftpClient()
-      try {
-        await sftp.connect({
-          host,
-          username,
-          password
-        })
-  
-        await sftp.rmdir(fullPath)
-        res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
-      } catch (error) {
-        res.status(500).send('error deleting file')
-      }
+    const sftp = new SftpClient()
+    try {
+      await sftp.connect({
+        host,
+        username,
+        password
+      })
+
+      await sftp.rmdir(fullPath)
+      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`)
+    } catch (error) {
+      res.status(500).send('error deleting file')
+    }
   }
 
   const ssh_console_get = async (req, res) => {
     const { serverId } = req.params
-    const server = await SftpServer.findById(serverId)
-    res.render('sshconsole', { serverId })
+    res.render('sshconsole', {
+      serverId
+    })
   }
 
   return {

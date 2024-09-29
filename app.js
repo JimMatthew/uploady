@@ -27,7 +27,11 @@ const io = socketIO(server)
 io.on('connection', (socket) => {
   let sshClient = new Client()
   
-  socket.on('startSession', ({ host, port, username, password }) => {
+  socket.on('startSession', async ( serverId ) => {
+    
+    console.log('sid: '+ serverId.serverId)
+    const serverInfo = await SftpServer.findById(serverId.serverId)
+    const { host,  username, password } = serverInfo
     sshClient
       .on('ready', () => {
         console.log('in ssh')
@@ -53,7 +57,7 @@ io.on('connection', (socket) => {
       })
       .connect({
         host,
-        port,
+        port: 22,
         username,
         password
       })

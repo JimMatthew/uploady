@@ -21,8 +21,6 @@ router.post('/delete-file', sftpController.sftp_delete_file_post)
 
 router.post('/delete-folder', sftpController.sftp_delete_folder_post)
 
-router.get('/console', sftpController.ssh_console_get)
-
 router.get('/console/:serverId', sftpController.ssh_console_get )
 
 module.exports = router
