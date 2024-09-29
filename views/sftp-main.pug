@@ -30,11 +30,12 @@ html
         each server in servers
           li
             | #[strong Host:] #{server.host}, #[strong Username:] #{server.username} 
-            a(href=`/sftp/connect/${server._id}/`) #[strong Connect]
+            a(href=`/sftp/connect/${server._id}/`) #[strong SFTP -]  
+            a(href=`/sftp/console/${server._id}/`) #[strong SSH ]
             form#delfol(action="/sftp/delete-server" method="POST" style="display:inline")
               input(type="hidden" name="serverId" value=server._id)
               button(type="submit") Delete
-            a(href=`/sftp/console/${server._id}/`) SSH Console
+            
     
     footer
       p File Manager App by James Lindstrom

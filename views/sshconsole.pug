@@ -4,9 +4,9 @@ html
   head
     title SSH Console
     link(rel="stylesheet" href="/style.css") 
-    link(rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css")
+    link(rel="stylesheet" href="/xterm.css")
+    script(src="/xterm.js")
     script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js")
-    script(src="https://unpkg.com/xterm/lib/xterm.js")
     script.
         const serverId = "#{serverId}";
         
@@ -17,6 +17,7 @@ html
                 rows: 40,
                 cols: 120,
                 cursorBlink: true,
+                fontFamily: "monospace",
                 theme: {
                 background: '#1e1e1e'
                 }
