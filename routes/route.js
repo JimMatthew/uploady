@@ -7,6 +7,9 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   const filemanagerController = require('../controllers/fileManagerController')(configStoreType)
 
   const router = express.Router()
+  router.get('/', (req, res) => {
+    res.redirect('/files') 
+  })
 
   //list all files in the managed directory
   router.get('/files', isAuthenticated, filemanagerController.list_directory_get); 

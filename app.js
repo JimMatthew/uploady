@@ -26,7 +26,6 @@ const io = socketIO(server)
 
 io.on('connection', sshController)
 
-
 mongoose.set("strictPopulate", false);
 const mongoDB = "mongodb://192.168.1.237:27017/myapp";
 main().catch((err) => console.log(err));
@@ -89,8 +88,6 @@ const sftpRouter = require('./routes/sftpRouter')(isAuthenticated)
 app.use('/', routes)
 
 app.use('/sftp', sftpRouter)
-
-
 
 app.get('/login', (req, res) => {
   res.render('login', { message: req.session.messages || '' })

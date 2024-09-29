@@ -281,6 +281,10 @@ module.exports = () => {
 
   const ssh_console_get = async (req, res) => {
     const { serverId } = req.params
+    const server = await SftpServer.findById(serverId);
+    if (!server) {
+      res.redirect('/sftp');
+    }
     res.render('sshconsole', {
       serverId
     })

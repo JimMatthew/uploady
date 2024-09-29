@@ -3,9 +3,8 @@ doctype html
 html
   head
     title SSH Console
-    
-    link(rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css")
     link(rel="stylesheet" href="/style.css") 
+    link(rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css")
     script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js")
     script(src="https://unpkg.com/xterm/lib/xterm.js")
     script.
@@ -37,6 +36,6 @@ html
     h1 SSH Console
     p 
     a(href="/sftp") Back to SFTP Browser    
-    div#terminal(style="width: 80%; height: 500px;")
+    div#terminal(style="width: 80%; height: 500px; text-align: left;")
 
      
