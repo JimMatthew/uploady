@@ -5,38 +5,52 @@ html
     title SSH Console
     link(rel="stylesheet" href="/style.css") 
     link(rel="stylesheet" href="/xterm.css")
-    script(src="/xterm.js")
+    
     script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js")
-    script.
-        const serverId = "#{serverId}";
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            const socket = io()
-            const term = new Terminal({
-                rows: 40,
-                cols: 120,
-                cursorBlink: true,
-                fontFamily: "monospace",
-                theme: {
-                background: '#1e1e1e'
-                }
-        })
-        term.open(document.getElementById('terminal'))
-        socket.emit('startSession', { serverId })
-
-        term.onData(data => {
-          socket.emit('input', data)
-        })
-
-        socket.on('output', data => {
-          term.write(data)
-        })
-      })
+    
   body
     h1 SSH Console
     p 
     a(href="/sftp") Back to SFTP Browser    
     div#terminal(style="width: 80%; height: 500px; text-align: left;")
+    script(src="/xterm.js")
+    script(src="/xterm-addon-webgl.js")
+    
+    script. 
+      const serverId = "#{serverId}";
+      document.addEventListener('DOMContentLoaded', function () {
+    
+        const socket = io()
+        const term = new Terminal({
+            convertEol: true,
+            rows: 50,
+            cols: 120,
+            cursorBlink: true,
+            allowProposedApi: true, 
+            theme: {
+                background: '#282c34'
+            }
+        })
+
+        term.open(document.getElementById('terminal'))
+
+        const webglAddon = new WebglAddon.WebglAddon()
+        term.loadAddon(webglAddon)
+        
+        socket.emit('startSession', { serverId })
+      
+        socket.on('output', (data) => {
+          term.write(data)
+        })
+      
+        term.onData((input) => {
+          socket.emit('input', input)
+        })
+        if (webglAddon) {
+            console.log('WebGL renderer initialized.')
+        } else {
+            console.log('WebGL renderer failed, falling back to default renderer.')
+        }
+      })
 
      

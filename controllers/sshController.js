@@ -6,9 +6,7 @@ const ssh_session = (socket) => {
 	let sshClient = new Client()
 
 	socket.on('startSession', async (serverId) => {
-    if (!serverId) {
-      
-    }
+    console.log(serverId)
 
 		const serverInfo = await SftpServer.findById(serverId.serverId)
 		const { host, username, password } = serverInfo
