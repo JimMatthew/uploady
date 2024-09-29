@@ -16,6 +16,7 @@ const ConfigStorageType = require('./ConfigStorageType')
 const sftpRouter = require('./routes/sftpRouter')
 const { Client } = require('ssh2')
 const SftpServer = require('./models/SftpServer')
+const sshController = require('./controllers/sshController')
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
@@ -24,51 +25,7 @@ const app = express()
 const server = http.createServer(app)  // Create an HTTP server
 const io = socketIO(server)
 
-io.on('connection', (socket) => {
-  let sshClient = new Client()
-  
-  socket.on('startSession', async ( serverId ) => {
-    
-    console.log('sid: '+ serverId.serverId)
-    const serverInfo = await SftpServer.findById(serverId.serverId)
-    const { host,  username, password } = serverInfo
-    sshClient
-      .on('ready', () => {
-        console.log('in ssh')
-        socket.emit('output', '\r\n*** SSH CONNECTION ESTABLISHED ***\r\n')
-        sshClient.shell((err, stream) => {
-          if (err) return socket.emit('output', '\r\n*** SSH SHELL ERROR ***\r\n')
-
-          stream
-            .on('data', (data) => {
-              socket.emit('output', data.toString())
-            })
-            .on('close', () => {
-              sshClient.end()
-            })
-
-          socket.on('input', (data) => {
-            stream.write(data)  // Send input from client to SSH session
-          })
-        })
-      })
-      .on('error', (err) => {
-        socket.emit('output', `\r\n*** SSH CONNECTION ERROR: ${err.message} ***\r\n`)
-      })
-      .connect({
-        host,
-        port: 22,
-        username,
-        password
-      })
-  })
-
-  socket.on('disconnect', () => {
-    if (sshClient) {
-      sshClient.end()
-    }
-  })
-})
+io.on('connection', sshController)
 
 
 mongoose.set("strictPopulate", false);
