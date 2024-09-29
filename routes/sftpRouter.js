@@ -4,7 +4,9 @@ const sftpController = require('../controllers/sftpController')()
 const storageController = require('../controllers/storageController')
 
 module.exports = function(isAuthenticated) {
+
     const router = express.Router()
+    
     router.get('/',isAuthenticated, sftpController.sftp_servers_get)
 
     router.get('/connect/:serverId/*?', isAuthenticated, sftpController.sftp_id_list_files_get)

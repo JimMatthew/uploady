@@ -3,7 +3,6 @@ const SftpClient = require('ssh2-sftp-client');
 const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
-const crypto = require('crypto');
 const SftpServer = require('../models/SftpServer')
 
 module.exports = () => {

@@ -1,4 +1,3 @@
-const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const passport = require('passport');
@@ -10,18 +9,14 @@ const logger = require('morgan');
 const mongoose = require("mongoose");
 const http = require('http')
 const socketIO = require('socket.io')
-const pty = require('node-pty')
-//const connectDB = require('./controllers/db')
 const ConfigStorageType = require('./ConfigStorageType')
-const { Client } = require('ssh2')
-const SftpServer = require('./models/SftpServer')
 const sshController = require('./controllers/sshController')
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
 
 const app = express()
-const server = http.createServer(app)  // Create an HTTP server
+const server = http.createServer(app)  
 const io = socketIO(server)
 
 io.on('connection', sshController)

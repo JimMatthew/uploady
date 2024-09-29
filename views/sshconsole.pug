@@ -12,10 +12,10 @@ html
     h1 SSH Console
     p 
     a(href="/sftp") Back to SFTP Browser    
-    div#terminal(style="width: 80%; height: 500px; text-align: left;")
+    div#terminal(style="width: 80%; height:700px; text-align: left;")
     script(src="/xterm.js")
     script(src="/xterm-addon-webgl.js")
-    
+    script(src="/xterm-addon-fit.js")
     script. 
       const serverId = "#{serverId}";
       document.addEventListener('DOMContentLoaded', function () {
@@ -23,22 +23,22 @@ html
         const socket = io()
         const term = new Terminal({
             convertEol: true,
-            rows: 50,
-            cols: 120,
             cursorBlink: true,
             allowProposedApi: true, 
+            altClickMovesCursor: true,
+            drawBoldTextInBrightColors: true,
             theme: {
                 background: '#282c34'
             }
         })
-
-        term.open(document.getElementById('terminal'))
-
+        
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
         const webglAddon = new WebglAddon.WebglAddon()
         term.loadAddon(webglAddon)
-        
+        term.open(document.getElementById('terminal'))
         socket.emit('startSession', { serverId })
-      
+        fitAddon.fit()
         socket.on('output', (data) => {
           term.write(data)
         })
@@ -51,6 +51,10 @@ html
         } else {
             console.log('WebGL renderer failed, falling back to default renderer.')
         }
+        const handleResize = () => {
+            fitAddon.fit();
+        }
+         window.addEventListener("resize", handleResize)
       })
 
      

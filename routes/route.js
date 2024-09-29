@@ -42,8 +42,6 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post('/create-folder', isAuthenticated, filemanagerController.create_folder_post)
   
   router.post('/delete-folder', isAuthenticated, filemanagerController.deleteFolder)
-
-  //Routes for the SFTP controller 
   
   return router
 }
