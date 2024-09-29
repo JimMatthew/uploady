@@ -16,19 +16,43 @@ html
     script(src="/xterm.js")
     script(src="/xterm-addon-webgl.js")
     script(src="/xterm-addon-fit.js")
+    script(src="/xterm-addon-unicode11.js")
+    script(src="/xterm-addon-ligatures.js")
     script. 
       const serverId = "#{serverId}";
       document.addEventListener('DOMContentLoaded', function () {
     
         const socket = io()
         const term = new Terminal({
+            rows:40,
             convertEol: true,
             cursorBlink: true,
+            useStyle: true,
             allowProposedApi: true, 
             altClickMovesCursor: true,
             drawBoldTextInBrightColors: true,
             theme: {
-                background: '#282c34'
+                
+                foreground: '#F8F8F8',
+                background: '#2D2E2C',
+                selectionBackground: '#5DA5D533',
+                selectionInactiveBackground: '#555555AA',
+                black: '#1E1E1D',
+                brightBlack: '#262625',
+                red: '#CE5C5C',
+                brightRed: '#FF7272',
+                green: '#5BCC5B',
+                brightGreen: '#72FF72',
+                yellow: '#CCCC5B',
+                brightYellow: '#FFFF72',
+                blue: '#5D5DD3',
+                brightBlue: '#7279FF',
+                magenta: '#BC5ED1',
+                brightMagenta: '#E572FF',
+                cyan: '#5DA5D5',
+                brightCyan: '#72F0FF',
+                white: '#F8F8F8',
+                brightWhite: '#FFFFFF'
             }
         })
         
@@ -36,9 +60,17 @@ html
         term.loadAddon(fitAddon);
         const webglAddon = new WebglAddon.WebglAddon()
         term.loadAddon(webglAddon)
+        
+        const unicode11Addon = new Unicode11Addon.Unicode11Addon();
+        term.loadAddon(unicode11Addon);
+        const ligaturesAddon = new LigaturesAddon.LigaturesAddon();
+        
+        term.unicode.activeVersion = '11';
         term.open(document.getElementById('terminal'))
+        term.loadAddon(ligaturesAddon);
         socket.emit('startSession', { serverId })
         fitAddon.fit()
+        
         socket.on('output', (data) => {
           term.write(data)
         })
