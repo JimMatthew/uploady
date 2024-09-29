@@ -13,7 +13,6 @@ const socketIO = require('socket.io')
 const pty = require('node-pty')
 //const connectDB = require('./controllers/db')
 const ConfigStorageType = require('./ConfigStorageType')
-const sftpRouter = require('./routes/sftpRouter')
 const { Client } = require('ssh2')
 const SftpServer = require('./models/SftpServer')
 const sshController = require('./controllers/sshController')
@@ -85,6 +84,7 @@ function isAuthenticated(req, res, next) {
 }
 
 const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.DATABASE)
+const sftpRouter = require('./routes/sftpRouter')(isAuthenticated)
 //const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
 app.use('/', routes)
 
