@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const sftp = new SftpClient();
 const SftpServer = require('../models/SftpServer')
+const { Client } = require('ssh2')
 module.exports = () => {
 
   const tempdir = path.join(__dirname, '../temp')
@@ -277,6 +278,12 @@ module.exports = () => {
       }
   }
 
+  const ssh_console_get = async (req, res) => {
+    const { serverId } = req.params
+    const server = await SftpServer.findById(serverId)
+    res.render('sshconsole', { serverId })
+  }
+
   return {
     sftp_get,
     sftp_upload_post,
@@ -291,5 +298,6 @@ module.exports = () => {
     sftp_id_list_files_get,
     sftp_delete_file_post,
     sftp_delete_folder_post,
+    ssh_console_get
   }
 }

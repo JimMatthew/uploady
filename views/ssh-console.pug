@@ -1,0 +1,29 @@
+doctype html
+html
+  head
+    title SSH Console
+    link(rel="stylesheet" href="/style.css")
+  body
+    h1 SSH Console
+    pre(id="output") Output will appear here...
+    input(type="text" id="input" placeholder="Enter command...")
+    button(type="button" id="send") Send
+
+    script(src="/socket.io/socket.io.js")
+    script.
+      const socket = io()
+
+      const output = document.getElementById('output')
+      const input = document.getElementById('input')
+      const sendButton = document.getElementById('send')
+
+      // Display output from server
+      socket.on('output', (data) => {
+        output.textContent += data + '\n'
+      })
+
+      // Send command to server
+      sendButton.onclick = () => {
+        socket.emit('input', input.value)
+        input.value = ''
+      }

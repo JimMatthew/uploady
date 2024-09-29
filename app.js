@@ -8,14 +8,64 @@ const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require("mongoose");
+const http = require('http')
+const socketIO = require('socket.io')
+const pty = require('node-pty')
 //const connectDB = require('./controllers/db')
 const ConfigStorageType = require('./ConfigStorageType')
 const sftpRouter = require('./routes/sftpRouter')
+const { Client } = require('ssh2')
+const SftpServer = require('./models/SftpServer')
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
 
 const app = express()
+const server = http.createServer(app)  // Create an HTTP server
+const io = socketIO(server)
+
+io.on('connection', (socket) => {
+  let sshClient = new Client()
+  
+  socket.on('startSession', ({ host, port, username, password }) => {
+    sshClient
+      .on('ready', () => {
+        console.log('in ssh')
+        socket.emit('output', '\r\n*** SSH CONNECTION ESTABLISHED ***\r\n')
+        sshClient.shell((err, stream) => {
+          if (err) return socket.emit('output', '\r\n*** SSH SHELL ERROR ***\r\n')
+
+          stream
+            .on('data', (data) => {
+              socket.emit('output', data.toString())
+            })
+            .on('close', () => {
+              sshClient.end()
+            })
+
+          socket.on('input', (data) => {
+            stream.write(data)  // Send input from client to SSH session
+          })
+        })
+      })
+      .on('error', (err) => {
+        socket.emit('output', `\r\n*** SSH CONNECTION ERROR: ${err.message} ***\r\n`)
+      })
+      .connect({
+        host,
+        port,
+        username,
+        password
+      })
+  })
+
+  socket.on('disconnect', () => {
+    if (sshClient) {
+      sshClient.end()
+    }
+  })
+})
+
 
 mongoose.set("strictPopulate", false);
 const mongoDB = "mongodb://192.168.1.237:27017/myapp";
@@ -79,6 +129,8 @@ app.use('/', routes)
 
 app.use('/sftp', sftpRouter)
 
+
+
 app.get('/login', (req, res) => {
   res.render('login', { message: req.session.messages || '' })
 })
@@ -111,6 +163,12 @@ app.use((err, req, res, next) => {
   res.render('error', {
     errorMessage: err.message || 'Internal Server Error'
   })
+})
+
+
+const PORT = process.env.PORT || 3001
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`)
 })
 
 module.exports = app
