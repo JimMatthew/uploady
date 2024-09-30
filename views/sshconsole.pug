@@ -64,7 +64,6 @@ html
         
         socket.emit('startSession', { serverId })
         
-        
         socket.on('output', (data) => {
           term.write(data)
         })

@@ -1,7 +1,6 @@
 
 const SftpClient = require('ssh2-sftp-client');
 const fs = require('fs');
-const multer = require('multer');
 const path = require('path');
 const SftpServer = require('../models/SftpServer')
 
@@ -9,26 +8,9 @@ module.exports = () => {
 
   const tempdir = path.join(__dirname, '../temp')
 
-  const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.join(tempdir))  // Use the provided uploads directory
-    },
-    filename: function (req, file, cb) {
-      cb(null, file.originalname)  // Preserve the original file name
-    }
-  })
-
-  const sftp_get = (req, res) => {
-    res.render('sftp', { files: null, message: null });
-  }
-
-  const sftp_home_get = (req, res) => {
-    res.render('sftp-main');
-  }
-
   const generateBreadcrumb = (relativePath, serverId) => {
     const breadcrumbs = []
-    let currentPath = `/sftp/connect/${serverId}/` // Start from the root (/files)
+    let currentPath = `/sftp/connect/${serverId}/` 
     const pathParts = relativePath.split('/').filter(Boolean)
 
     pathParts.forEach((part, index) => {
@@ -122,8 +104,9 @@ module.exports = () => {
     }
   }
 
-  const upload = multer({ storage: storage })
-
+  // currently the file is being uploaded to this server first, 
+  //and then uploaded to the sftp server
+  //TODO: stream file from client to sftp server
   const sftp_upload_post = async (req, res) => {
     const { currentDirectory, serverId } = req.body;
     const sftp = new SftpClient();
@@ -290,13 +273,10 @@ module.exports = () => {
   }
 
   return {
-    sftp_get,
     sftp_upload_post,
     sftp_download_get,
     sftp_create_folder_post,
-    upload,
     sftp_stream_download_get,
-    sftp_home_get,
     sftp_servers_get,
     sftp_save_server_post,
     sftp_delete_server_post,
