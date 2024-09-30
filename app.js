@@ -11,6 +11,7 @@ const http = require('http')
 const socketIO = require('socket.io')
 const ConfigStorageType = require('./ConfigStorageType')
 const sshController = require('./controllers/sshController')
+
 const users = [
   { id: 1, username: 'admin', passwordHash: bcrypt.hashSync('123', 10) } 
 ]
@@ -80,6 +81,7 @@ function isAuthenticated(req, res, next) {
 const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.DATABASE)
 const sftpRouter = require('./routes/sftpRouter')(isAuthenticated)
 //const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
+
 app.use('/', routes)
 
 app.use('/sftp', sftpRouter)
@@ -117,7 +119,6 @@ app.use((err, req, res, next) => {
     errorMessage: err.message || 'Internal Server Error'
   })
 })
-
 
 const PORT = process.env.PORT || 3001
 server.listen(PORT, () => {

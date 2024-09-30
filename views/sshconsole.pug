@@ -12,7 +12,7 @@ html
     h1 SSH Console
     p 
     a(href="/sftp") Back to SFTP Browser    
-    div#terminal(style="width: 80%; height:auto; text-align: left; ")
+    div#terminal(style="width: 90%; height:auto; text-align: left; ")
     script(src="/xterm.js")
     script(src="/xterm-addon-webgl.js")
     script(src="/xterm-addon-fit.js")
@@ -25,7 +25,7 @@ html
         const socket = io()
         const term = new Terminal({
             rows: 50,
-            cols: 100,
+            cols: 120,
             convertEol: true,
             cursorBlink: true,
             useStyle: true,
