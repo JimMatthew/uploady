@@ -1,5 +1,4 @@
-const express = require('express');
-const sftpController = require('../controllers/sftpController')()
+const express = require('express')
 const storageController = require('../controllers/storageController')
 
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
@@ -12,7 +11,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   })
 
   //list all files in the managed directory
-  router.get('/files', isAuthenticated, filemanagerController.list_directory_get); 
+  router.get('/files', isAuthenticated, filemanagerController.list_directory_get)
 
   //list all files in path
   router.get('/files/*', isAuthenticated, filemanagerController.list_directory_get)

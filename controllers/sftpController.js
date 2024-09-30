@@ -1,5 +1,5 @@
 
-const SftpClient = require('ssh2-sftp-client');
+const SftpClient = require('ssh2-sftp-client')
 const fs = require('fs');
 const path = require('path');
 const SftpServer = require('../models/SftpServer')
@@ -26,9 +26,9 @@ module.exports = () => {
   };
 
   const sftp_create_folder_post = async (req, res) => {
-    const { currentPath, folderName, serverId } = req.body;
+    const { currentPath, folderName, serverId } = req.body
     const newPath = path.join(currentPath, folderName)
-    const sftp = new SftpClient();
+    const sftp = new SftpClient()
 
     try {
       const server = await SftpServer.findById(serverId)
@@ -37,36 +37,36 @@ module.exports = () => {
         return res.status(404).send('server not found')
       }
       const { host, username, password } = server
-      await sftp.connect({ host, username, password });
+      await sftp.connect({ host, username, password })
       await sftp.mkdir(newPath)
     } catch (err) {
       console.log(err)
     } finally {
-      await sftp.end();
+      await sftp.end()
     }
     res.redirect(`/sftp/connect/${serverId}/${currentPath}`)
   }
 
   const sftp_stream_download_get = async (req, res) => {
     const relativePath = req.params[0] || ''
-    const remotePath = relativePath ? `/${relativePath}` : '/';
+    const remotePath = relativePath ? `/${relativePath}` : '/'
     const fileName = remotePath.split('/').filter(Boolean).pop()
     console.log('rp: ' + remotePath)
-    const sftp = new SftpClient();
+    const sftp = new SftpClient()
     try {
-      await sftp.connect({ host: shost, username: susername, password: spassword });
+      await sftp.connect({ host: shost, username: susername, password: spassword })
 
-      res.header("Content-Disposition", `attachment; filename="${fileName}"`);
-      res.header("Content-Length", stats.size);
+      res.header("Content-Disposition", `attachment; filename="${fileName}"`)
+      res.header("Content-Length", stats.size)
 
-      const readStream = sftp.createReadStream(remotePath);
-      readStream.pipe(res);
+      const readStream = sftp.createReadStream(remotePath)
+      readStream.pipe(res)
 
     } catch (err) {
-      console.error('Error:', err);
-      res.status(500).send('Error downloading file from SFTP');
+      console.error('Error:', err)
+      res.status(500).send('Error downloading file from SFTP')
     } finally {
-      await sftp.end();
+      await sftp.end()
     }
   }
 
@@ -84,7 +84,7 @@ module.exports = () => {
       }
 
       const { host, username, password } = server
-      await sftp.connect({ host, username, password });
+      await sftp.connect({ host, username, password })
       await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
 
       res.download(localFilePath, (err) => {
@@ -97,10 +97,10 @@ module.exports = () => {
           }
         })
       })
-      await sftp.end();
+      await sftp.end()
     } catch (err) {
-      console.error(err);
-      res.render('sftp', { files: null, message: 'File download failed' });
+      console.error(err)
+      res.render('sftp', { files: null, message: 'File download failed' })
     }
   }
 
@@ -108,8 +108,8 @@ module.exports = () => {
   //and then uploaded to the sftp server
   //TODO: stream file from client to sftp server
   const sftp_upload_post = async (req, res) => {
-    const { currentDirectory, serverId } = req.body;
-    const sftp = new SftpClient();
+    const { currentDirectory, serverId } = req.body
+    const sftp = new SftpClient()
     const file = req.files[0]
     try {
       const server = await SftpServer.findById(serverId)
@@ -118,19 +118,19 @@ module.exports = () => {
       }
 
       const { host, username, password } = server
-      await sftp.connect({ host, username, password });
+      await sftp.connect({ host, username, password })
       const tempFilePath = file.path // Path to the temporarily uploaded file
       const uploadFileName = file.originalname // Original filename
       const sftpUploadPath = path.join(currentDirectory, uploadFileName)
 
-      await sftp.fastPut(tempFilePath, sftpUploadPath);
-      await sftp.end();
+      await sftp.fastPut(tempFilePath, sftpUploadPath)
+      await sftp.end()
       fs.unlinkSync(tempFilePath)
-      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
+      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`)
 
     } catch (err) {
-      console.error(err);
-      res.redirect('sftp/files');
+      console.error(err)
+      res.redirect('sftp/files')
     }
   }
 
@@ -186,9 +186,9 @@ module.exports = () => {
         username,
         password
       })
-      const contents = await sftp.list(currentDirectory);
-      const files = [];
-      const folders = [];
+      const contents = await sftp.list(currentDirectory)
+      const files = []
+      const folders = []
 
       contents.forEach(item => {
         if (item.type === 'd') {
@@ -263,9 +263,9 @@ module.exports = () => {
 
   const ssh_console_get = async (req, res) => {
     const { serverId } = req.params
-    const server = await SftpServer.findById(serverId);
+    const server = await SftpServer.findById(serverId)
     if (!server) {
-      res.redirect('/sftp');
+      res.redirect('/sftp')
     }
     res.render('sshconsole', {
       serverId

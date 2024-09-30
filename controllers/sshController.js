@@ -1,8 +1,8 @@
 const { Client } = require('ssh2')
 const SftpServer = require('../models/SftpServer')
-const socketIO = require('socket.io')
-const pty = require('node-pty');
+
 const ssh_session = (socket) => {
+
 	let sshClient = new Client()
 
 	socket.on('startSession', async (serverId) => {
@@ -12,11 +12,9 @@ const ssh_session = (socket) => {
 			.on('ready', () => {
 				socket.emit('output', '\r\n*** SSH CONNECTION ESTABLISHED ***\r\n')
 				sshClient.shell({term: "xterm-256color"},(err, stream) => {
+					
 					if (err) return socket.emit('output', '\r\n*** SSH SHELL ERROR ***\r\n')
 
-					//stream.write('TERM=xterm-256color\r\n') //hack - fix later
-					
-					//stream.write('export TERM=xterm-256color > /dev/null 2>&1\r\n')
 					stream
 						.on('data', (data) => {
 							stream.setWindow(50, 120)
