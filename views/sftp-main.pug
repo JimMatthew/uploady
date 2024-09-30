@@ -25,17 +25,25 @@ html
       button(type="submit") Save Server
 
     h2 Saved SFTP Servers
-    if servers.length
-      ul
-        each server in servers
-          li
-            | #[strong Host:] #{server.host}, #[strong Username:] #{server.username} 
-            a(href=`/sftp/connect/${server._id}/`) #[strong SFTP -]  
-            a(href=`/sftp/console/${server._id}/`) #[strong SSH ]
-            form#delfol(action="/sftp/delete-server" method="POST" style="display:inline")
-              input(type="hidden" name="serverId" value=server._id)
-              button(type="submit") Delete
-            
-    
+    if servers.length 
+      table#sftpTable 
+        thead 
+          tr 
+            th Server  
+            th Actions 
+            th 
+            th
+        tbody 
+          each server in servers 
+            tr 
+              td #[strong #{server.host}]       
+              td 
+                a(href=`/sftp/connect/${server._id}/`) #[strong SFTP ] 
+              td
+                a(href=`/sftp/console/${server._id}/`) #[strong SSH ]
+              td
+                form#delfol(action="/sftp/delete-server" method="POST" style="display:inline")
+                input(type="hidden" name="serverId" value=server._id)
+                button(type="submit") Delete
     footer
       p File Manager App by James Lindstrom

@@ -1,12 +1,12 @@
-const express = require('express');
-const path = require('path');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const session = require('express-session');
-const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
-const logger = require('morgan');
-const mongoose = require("mongoose");
+const express = require('express')
+const path = require('path')
+const passport = require('passport')
+const LocalStrategy = require('passport-local').Strategy
+const session = require('express-session')
+const bcrypt = require('bcryptjs')
+const cookieParser = require('cookie-parser')
+const logger = require('morgan')
+const mongoose = require("mongoose")
 const http = require('http')
 const socketIO = require('socket.io')
 const ConfigStorageType = require('./ConfigStorageType')
@@ -21,11 +21,11 @@ const io = socketIO(server)
 
 io.on('connection', sshController)
 
-mongoose.set("strictPopulate", false);
-const mongoDB = "mongodb://192.168.1.237:27017/myapp";
-main().catch((err) => console.log(err));
+mongoose.set("strictPopulate", false)
+const mongoDB = "mongodb://192.168.1.237:27017/myapp"
+main().catch((err) => console.log(err))
 async function main() {
-  await mongoose.connect(mongoDB);
+  await mongoose.connect(mongoDB)
 }
 
 app.use(session({

@@ -150,6 +150,12 @@ body {
   border-color: #6c6;
 }
 
+#sftpTable {
+  width: 50%;
+  background-color: white;
+  
+}
+
 #remshare, #delfol {
   margin-left: 10px;
   padding: 0;

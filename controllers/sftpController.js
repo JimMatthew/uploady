@@ -1,7 +1,7 @@
 
 const SftpClient = require('ssh2-sftp-client')
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs')
+const path = require('path')
 const SftpServer = require('../models/SftpServer')
 
 module.exports = () => {
@@ -23,7 +23,7 @@ module.exports = () => {
     breadcrumbs.unshift({ name: 'Home', path: `/sftp/connect/${serverId}/` })
 
     return breadcrumbs
-  };
+  }
 
   const sftp_create_folder_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body
@@ -73,10 +73,10 @@ module.exports = () => {
   const sftp_download_get = async (req, res) => {
     const { serverId } = req.params
     const relativePath = req.params[0] || ''
-    const remotePath = relativePath ? `/${relativePath}` : '/';
+    const remotePath = relativePath ? `/${relativePath}` : '/'
     const fileName = remotePath.split('/').filter(Boolean).pop()
     const localFilePath = path.join(path.join(__dirname, 'temp'), fileName)
-    const sftp = new SftpClient();
+    const sftp = new SftpClient()
     try {
       const server = await SftpServer.findById(serverId)
       if (!server) {
@@ -85,7 +85,7 @@ module.exports = () => {
 
       const { host, username, password } = server
       await sftp.connect({ host, username, password })
-      await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
+      await sftp.fastGet(remotePath, localFilePath) // Download remote file to local path
 
       res.download(localFilePath, (err) => {
         if (err) {
