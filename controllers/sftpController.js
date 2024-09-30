@@ -8,23 +8,6 @@ module.exports = () => {
 
   const tempdir = path.join(__dirname, '../temp')
 
-  const generateBreadcrumb = (relativePath, serverId) => {
-    const breadcrumbs = []
-    let currentPath = `/sftp/connect/${serverId}/` 
-    const pathParts = relativePath.split('/').filter(Boolean)
-
-    pathParts.forEach((part, index) => {
-      currentPath += `/${part}`
-      breadcrumbs.push({
-        name: part,
-        path: currentPath,
-      })
-    })
-    breadcrumbs.unshift({ name: 'Home', path: `/sftp/connect/${serverId}/` })
-
-    return breadcrumbs
-  }
-
   const sftp_create_folder_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body
     const newPath = path.join(currentPath, folderName)
@@ -169,6 +152,28 @@ module.exports = () => {
     }
   }
 
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp)
+    return date.toLocaleString() // Format to readable date and time
+  }
+
+  const generateBreadcrumb = (relativePath, serverId) => {
+    const breadcrumbs = []
+    let currentPath = `/sftp/connect/${serverId}/` 
+    const pathParts = relativePath.split('/').filter(Boolean)
+
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      })
+    })
+    breadcrumbs.unshift({ name: 'Home', path: `/sftp/connect/${serverId}/` })
+
+    return breadcrumbs
+  }
+
   const sftp_id_list_files_get = async (req, res) => {
     const { serverId } = req.params
     const currentDirectory = req.params[0] || '/'
@@ -194,7 +199,7 @@ module.exports = () => {
         if (item.type === 'd') {
           folders.push({ name: item.name })
         } else {
-          files.push({ name: item.name, size: (item.size / 1024).toFixed(2), date: item.modifyTime })
+          files.push({ name: item.name, size: (item.size / 1024).toFixed(2), date: formatDate(item.modifyTime) })
         }
       })
       const breadcrumb = generateBreadcrumb(currentDirectory, serverId)

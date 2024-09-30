@@ -61,11 +61,11 @@ module.exports = (configStoreType) => {
       err.status = 404
       return next(err)
     }
-
+    const relPathName = path.join(relativeFilePath, fileName)
     const token = crypto.randomBytes(5).toString('hex') // Generate random token
     const shareLink = `${req.protocol}://${req.get('host')}/share/${token}/${fileName}`
 
-    if(!await storeLinkInfo(fileName, absoluteFilePath, shareLink, token)) {
+    if(!await storeLinkInfo(fileName, relPathName, shareLink, token)) {
       const err = new Error("This File is already shared")
       err.status = 404
       return next(err)
@@ -108,7 +108,7 @@ module.exports = (configStoreType) => {
     switch (configStoreType) {
       case ConfigStoreType.DATABASE:
         const sharedFile = await SharedFile.findOne({ token });
-        return sharedFile ? sharedFile.filePath : null
+        return sharedFile ? path.join(uploadsDir, sharedFile.filePath) : null
 
       case ConfigStoreType.LOCAL:
         return sharedLinks.get(token)

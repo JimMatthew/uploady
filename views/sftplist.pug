@@ -3,6 +3,7 @@ html
   head
     title SFTP Browser
     link(rel="stylesheet" href="/style.css")
+    link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
   body
     h1 SFTP Browser
 
@@ -38,34 +39,30 @@ html
       table
         thead
           tr
-            th Folder Name
+            th Icon
+            th Name
+            th Size (KB)
+            th Date Modified
             th Actions
         tbody
           each folder in folders
             tr
+              td 
+                i(class="fas fa-folder")
               td
-                a(href=`/sftp/connect/${serverId}/${currentDirectory}/${folder.name}`) #{folder.name}
+                a(href=`/sftp/connect/${serverId}/${currentDirectory}/${folder.name}`) #[strong #{folder.name}]
+              td -
+              td -
               td
                 form#delfol(action="/sftp/delete-folder" method="POST" style="display:inline")
                   input(type="hidden" name="serverId" value=serverId)
                   input(type="hidden" name="currentDirectory" value=currentDirectory)
                   input(type="hidden" name="deleteDir", value=folder.name)
                   button(type="submit") Delete Folder
-    else
-      p No folders.
-
-    h3 Files
-    if files.length
-      table
-        thead
-          tr
-            th File Name
-            th Size (KB)
-            th Date Modified
-            th Actions
-        tbody
           each file in files
             tr
+              td 
+                i(class="fas fa-file")
               td
                 a(href=`/sftp/download/${serverId}/${currentDirectory}/${file.name}`) #{file.name}
               td #{file.size} KB
@@ -75,9 +72,9 @@ html
                   input(type="hidden" name="fileName" value=file.name)
                   input(type="hidden" name="currentDirectory" value=currentDirectory)
                   input(type="hidden" name="serverId" value=serverId)
-                  button(type="submit") Delete
+                  button(type="submit") Delete File
     else
-      p No files.
+      p No folders or files.
 
     p
       a(href=`/sftp/connect/${serverId}/`) Back to Root
