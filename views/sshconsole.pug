@@ -12,7 +12,7 @@ html
     h1 SSH Console
     p 
     a(href="/sftp") Back to SFTP Browser    
-    div#terminal(style="width: 80%; height:700px; text-align: left;")
+    div#terminal(style="width: 80%; height:auto; text-align: left; ")
     script(src="/xterm.js")
     script(src="/xterm-addon-webgl.js")
     script(src="/xterm-addon-fit.js")
@@ -24,7 +24,8 @@ html
     
         const socket = io()
         const term = new Terminal({
-            rows:40,
+            rows: 50,
+            cols: 100,
             convertEol: true,
             cursorBlink: true,
             useStyle: true,
@@ -33,26 +34,17 @@ html
             drawBoldTextInBrightColors: true,
             theme: {
                 
-                foreground: '#F8F8F8',
-                background: '#2D2E2C',
-                selectionBackground: '#5DA5D533',
-                selectionInactiveBackground: '#555555AA',
-                black: '#1E1E1D',
-                brightBlack: '#262625',
-                red: '#CE5C5C',
-                brightRed: '#FF7272',
-                green: '#5BCC5B',
-                brightGreen: '#72FF72',
-                yellow: '#CCCC5B',
-                brightYellow: '#FFFF72',
-                blue: '#5D5DD3',
-                brightBlue: '#7279FF',
-                magenta: '#BC5ED1',
-                brightMagenta: '#E572FF',
-                cyan: '#5DA5D5',
-                brightCyan: '#72F0FF',
-                white: '#F8F8F8',
-                brightWhite: '#FFFFFF'
+                background: '#282c34', // Dark background
+                foreground: '#abb2bf', // Light gray text #abb2bf
+                cursor: '#528bff',     // Blue cursor
+                black: '#1c1c1c',
+                red: '#e06c75',
+                green: '#98c379',
+                yellow: '#e5c07b',
+                blue: '#61afef',
+                magenta: '#c678dd',
+                cyan: '#56b6c2',
+                white: '#dcdfe4',
             }
         })
         
@@ -68,8 +60,10 @@ html
         term.unicode.activeVersion = '11';
         term.open(document.getElementById('terminal'))
         term.loadAddon(ligaturesAddon);
-        socket.emit('startSession', { serverId })
         fitAddon.fit()
+        
+        socket.emit('startSession', { serverId })
+        
         
         socket.on('output', (data) => {
           term.write(data)
