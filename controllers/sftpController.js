@@ -143,9 +143,7 @@ module.exports = () => {
       await sftp.put(PassThroughStream, remotePath)
       res.status(200).send('File uploaded successfully')
 
-    // Close the SFTP connection
-    sftp.end()
-
+      sftp.end()
     } catch (error) {
       console.error('Error uploading file:', error)
       next(error)
