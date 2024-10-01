@@ -17,11 +17,10 @@ html
       input#file-input(type='file', hidden)
     script.
       const serverId  = "#{serverId}";
+      const currentDirectory = "#{currentDirectory}";
       const dropZone = document.getElementById('drop-zone');
       const fileInput = document.getElementById('file-input');
       
-      const currentDirectory = "#{currentDirectory}";
-      //const currentDirectory !{JSON.stringify(currentDirectory)}
       // Prevent default behavior for drag and drops
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
         dropZone.addEventListener(event, e => e.preventDefault());

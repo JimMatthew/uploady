@@ -11,9 +11,9 @@ module.exports = function(isAuthenticated) {
 
     router.get('/connect/:serverId/*?', isAuthenticated, sftpController.sftp_id_list_files_get)
 
-    router.post('/upload', isAuthenticated, storageController.uploadMiddleware, sftpController.sftp_upload_post)
+    router.post('/upload', isAuthenticated, sftpController.upload.array('files', 10), sftpController.sftp_stream_upload_post)
 
-    router.get('/download/:serverId/*', isAuthenticated, sftpController.sftp_download_get)
+    router.get('/download/:serverId/*', isAuthenticated, sftpController.sftp_stream_download_get)
 
     router.post('/create-folder', isAuthenticated, sftpController.sftp_create_folder_post)
 
