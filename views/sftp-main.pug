@@ -3,6 +3,30 @@ html
   head
     title SFTP Browser
     link(rel="stylesheet" href="/style.css")
+    script.
+      document.addEventListener('DOMContentLoaded', function () {
+        const servers = document.querySelectorAll('.server-status');
+        
+        servers.forEach((server) => {
+          const serverId = server.dataset.serverId;
+          
+          fetch(`/sftp/server-status/${serverId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.status === 'online') {
+                server.textContent = 'Online';
+                server.style.color = 'green';  
+              } else {
+                server.textContent = 'Offline';
+                server.style.color = 'red';    
+              }
+            })
+            .catch(err => {
+              server.textContent = 'Error';
+              server.style.color = 'gray';    
+            });
+        });
+      });
   body
     h1 SFTP Browser
     h2 
@@ -30,13 +54,16 @@ html
         thead 
           tr 
             th Server  
+            th Status
             th Actions 
-            th 
+            th
             th
         tbody 
           each server in servers 
             tr 
-              td #[strong #{server.host}]       
+              td #[strong #{server.host}]    
+              td 
+                span.server-status(data-server-id=server._id) ...   
               td 
                 a(href=`/sftp/connect/${server._id}/`) #[strong SFTP ] 
               td
@@ -45,5 +72,6 @@ html
                 form#delfol(action="/sftp/delete-server" method="POST" style="display:inline")
                   input(type="hidden" name="serverId" value=server._id)
                   button(type="submit") Delete
+              
     footer
       p File Manager App by James Lindstrom

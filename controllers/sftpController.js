@@ -5,8 +5,9 @@ const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const multer = require("multer");
-
+const net = require('net');
 module.exports = () => {
+
   const sftp_create_folder_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName);
@@ -170,6 +171,40 @@ module.exports = () => {
     } catch (error) {
       return next(error);
     }
+  };
+
+  const server_status_get = async (req, res) => {
+    const { serverId } = req.params;
+    
+    try {
+      const server = await SftpServer.findById(serverId);
+      if (!server) return res.json({ status: 'offline' });
+  
+      const status = await checkServerStatus(server.host);
+      return res.json({ status });
+    } catch (error) {
+      return res.json({ status: 'offline' });
+    }
+  };
+
+  const checkServerStatus = (host, port = 22) => {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+  
+      socket.setTimeout(5000); // Set timeout to 5 seconds
+      socket
+        .connect(port, host, () => {
+          socket.end();
+          resolve('online');
+        })
+        .on('error', () => {
+          resolve('offline');
+        })
+        .on('timeout', () => {
+          socket.destroy();
+          resolve('offline');
+        });
+    });
   };
 
   const sftp_save_server_post = async (req, res, next) => {
@@ -343,5 +378,6 @@ module.exports = () => {
     ssh_console_get,
     upload,
     sftp_stream_upload_post,
+    server_status_get,
   };
 };

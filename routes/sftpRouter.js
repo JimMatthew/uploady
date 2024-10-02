@@ -63,5 +63,10 @@ module.exports = function (isAuthenticated) {
     sftpController.ssh_console_get
   );
 
+  router.get(
+    "/server-status/:serverId",
+    sftpController.server_status_get
+  )
+
   return router;
 };
