@@ -155,27 +155,46 @@ module.exports = (configStoreType) => {
     return breadcrumbs;
   };
 
-  /*
-    Renders the main file manager display, listing files and folders in 
-    current path
-  */
-  const list_directory_get = (req, res) => {
-    const relativePath = req.params[0] || "";
+  const getDirectoryData = (relativePath) => {
     const currentPath = relativePath ? `/files/${relativePath}` : "/files";
     const { files, folders } = getDirectoryContents_get(
       path.join(uploadsDir, relativePath)
     );
     const breadcrumb = generateBreadcrumbs(currentPath);
-
-    res.render("files", {
-      files: files,
-      folders: folders,
-      breadcrumb: breadcrumb,
-      currentPath: currentPath,
-      relativePath: relativePath,
-      user: req.user,
-    });
+  
+    return { files, folders, breadcrumb, currentPath, relativePath };
   };
+  /*
+    Renders the main file manager display, listing files and folders in 
+    current path
+  */
+
+    const list_directory_json_get = (req, res) => {
+      const relativePath = req.params[0] || "";
+      try {
+        const data = getDirectoryData(relativePath);
+        res.json({ ...data, user: req.user });
+      } catch (error) {
+        res.status(500).json({
+          error: "Failed to list directory contents",
+          message: error.message,
+        });
+      }
+    };
+    
+    const list_directory_view_get = (req, res) => {
+      const relativePath = req.params[0] || "";
+      try {
+        const data = getDirectoryData(relativePath);
+        res.render("files", { ...data, user: req.user });
+      } catch (error) {
+        res.status(500).render("error", {
+          message: "Failed to list directory contents",
+          error: error.message,
+        });
+      }
+    };
+
 
   /*
     Obtains the file and folder info for dirPath
@@ -229,6 +248,12 @@ module.exports = (configStoreType) => {
     }
     res.render("public-links", { links });
   };
+
+  const file_links_json_get = async (req, res) => {
+    const links = await SharedFile.find();
+
+    res.json({ links })
+  }
 
   /*
     Store file info for shared file
@@ -336,10 +361,12 @@ module.exports = (configStoreType) => {
     delete_file_post,
     download_file_get,
     create_folder_post,
-    list_directory_get,
     upload_files_post,
     generateShareLink,
     serveSharedFile,
     deleteFolder,
+    list_directory_json_get,
+    list_directory_view_get,
+    file_links_json_get
   };
 };

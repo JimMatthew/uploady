@@ -3,7 +3,7 @@ const storageController = require("../controllers/storageController");
 
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   const filemanagerController = require("../controllers/fileManagerController")(
-    configStoreType
+    configStoreType,
   );
 
   const router = express.Router();
@@ -11,18 +11,25 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
     res.redirect("/files");
   });
 
-  //list all files in the managed directory
+  router.get("/api/files/*", filemanagerController.list_directory_json_get)
+
+  router.get(
+    "/api/files",
+    isAuthenticated,
+    filemanagerController.list_directory_json_get
+  );
+  
   router.get(
     "/files",
     isAuthenticated,
-    filemanagerController.list_directory_get
+    filemanagerController.list_directory_view_get
   );
 
   //list all files in path
   router.get(
-    "/files/*",
+    "/files/*?",
     isAuthenticated,
-    filemanagerController.list_directory_get
+    filemanagerController.list_directory_view_get
   );
 
   //download file from public link - not authenticated
@@ -31,6 +38,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   //display list of all shared links
   router.get("/links", isAuthenticated, filemanagerController.file_links_get);
 
+  router.get("/api/links", filemanagerController.file_links_json_get);
   //create a public link for a file
   router.post(
     "/share",

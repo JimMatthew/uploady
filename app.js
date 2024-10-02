@@ -83,8 +83,9 @@ function isAuthenticated(req, res, next) {
 const routes = require("./routes/route")(
   path.join(__dirname, "uploads"),
   isAuthenticated,
-  ConfigStorageType.DATABASE
+  ConfigStorageType.DATABASE,
 );
+
 const sftpRouter = require("./routes/sftpRouter")(isAuthenticated);
 //const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
 
