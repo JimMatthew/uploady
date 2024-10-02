@@ -11,10 +11,8 @@ module.exports = () => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName);
     const sftp = new SftpClient();
-
     try {
       const server = await SftpServer.findById(serverId);
-
       if (!server) {
         return res.status(404).send("server not found");
       }
@@ -33,7 +31,6 @@ module.exports = () => {
     const { serverId } = req.params;
     const relativePath = req.params[0] || "";
     const remotePath = relativePath ? `/${relativePath}` : "/";
-
     try {
       const server = await SftpServer.findById(serverId);
       if (!server) {
@@ -41,7 +38,6 @@ module.exports = () => {
         err.status = 404;
         return next(err);
       }
-
       const { host, username, password } = server;
       const sftp = new SftpClient();
 
@@ -50,15 +46,12 @@ module.exports = () => {
         username,
         password,
       });
-
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="${remotePath.split("/").pop()}"`
       );
       res.setHeader("Content-Type", "application/octet-stream");
-
       const stream = new PassThrough();
-
       sftp
         .get(remotePath, stream)
         .then(() => {
@@ -93,11 +86,9 @@ module.exports = () => {
       if (!server) {
         return res.status(404).send("server not found");
       }
-
       const { host, username, password } = server;
       await sftp.connect({ host, username, password });
       await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
-
       res.download(localFilePath, (err) => {
         if (err) {
           return res.status(500).send("File not found");
@@ -124,27 +115,20 @@ module.exports = () => {
     const { currentDirectory, serverId } = req.body;
     try {
       const server = await SftpServer.findById(serverId);
-
       const { host, username, password } = server;
       const sftp = new SftpClient();
-
       await sftp.connect({
         host,
         username,
         password,
       });
-
       const PassThroughStream = new PassThrough();
-
       const fileStream = req.files[0].buffer;
-
       PassThroughStream.end(fileStream);
-
       const remotePath = `${currentDirectory}/${req.files[0].originalname}`;
 
       await sftp.put(PassThroughStream, remotePath);
       res.status(200).send("File uploaded successfully");
-
       sftp.end();
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -164,13 +148,11 @@ module.exports = () => {
       if (!server) {
         return res.status(404).send("server not found");
       }
-
       const { host, username, password } = server;
       await sftp.connect({ host, username, password });
       const tempFilePath = file.path; // Path to the temporarily uploaded file
       const uploadFileName = file.originalname; // Original filename
       const sftpUploadPath = path.join(currentDirectory, uploadFileName);
-
       await sftp.fastPut(tempFilePath, sftpUploadPath);
       await sftp.end();
       fs.unlinkSync(tempFilePath);
@@ -225,7 +207,6 @@ module.exports = () => {
     const breadcrumbs = [];
     let currentPath = `/sftp/connect/${serverId}/`;
     const pathParts = relativePath.split("/").filter(Boolean);
-
     pathParts.forEach((part, index) => {
       currentPath += `/${part}`;
       breadcrumbs.push({
@@ -234,14 +215,12 @@ module.exports = () => {
       });
     });
     breadcrumbs.unshift({ name: "Home", path: `/sftp/connect/${serverId}/` });
-
     return breadcrumbs;
   };
 
   const sftp_id_list_files_get = async (req, res, next) => {
     const { serverId } = req.params;
     const currentDirectory = req.params[0] || "/";
-
     if (!mongoose.Types.ObjectId.isValid(serverId)) {
       const err = new Error("Invalid server ID");
       err.status = 400;
@@ -255,18 +234,14 @@ module.exports = () => {
         err.status = 404;
         return next(err);
       }
-
       const { host, username, password } = server;
-
       sftp = new SftpClient();
-
       await sftp.connect({
         host,
         username,
         password,
       });
       const contents = await sftp.list(currentDirectory);
-
       const { files, folders } = contents.reduce(
         (acc, item) => {
           if (item.type === "d") {
@@ -282,9 +257,7 @@ module.exports = () => {
         },
         { files: [], folders: [] }
       );
-
       const breadcrumb = generateBreadcrumb(currentDirectory, serverId);
-
       res.render("sftplist", {
         files,
         folders,
@@ -309,7 +282,6 @@ module.exports = () => {
       return res.status(404).send("server not found");
     }
     const { host, username, password } = server;
-
     const sftp = new SftpClient();
     try {
       await sftp.connect({
@@ -332,7 +304,6 @@ module.exports = () => {
       return res.status(404).send("server not found");
     }
     const { host, username, password } = server;
-
     const sftp = new SftpClient();
     try {
       await sftp.connect({
@@ -340,7 +311,6 @@ module.exports = () => {
         username,
         password,
       });
-
       await sftp.rmdir(fullPath);
       res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`);
     } catch (error) {
