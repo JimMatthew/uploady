@@ -77,6 +77,12 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
     filemanagerController.download_file_get
   );
 
+  router.get(
+    "/api/download/*",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.download_file_get
+  )
+
   //upload file/s to managed directory
   router.post(
     "/upload",

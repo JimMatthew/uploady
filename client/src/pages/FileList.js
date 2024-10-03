@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Flex,
-  Text,
-  Container,
-} from "@chakra-ui/react";
+import { Box, Flex, Text, Container } from "@chakra-ui/react";
 import axios from "axios";
 import Header from "./Header";
 import Breadcrum from "./Breadcrumbs";
-import FileListPane from "./fileListPane"
-import SharedLinks from "./SharedLinks"
+import FileListPane from "./fileListPane";
+import SharedLinks from "./SharedLinks";
 
 const FileList = () => {
   const [fileData, setFileData] = useState(null);
@@ -56,10 +51,7 @@ const FileList = () => {
           onClick={handleBreadcrumbClick}
         />
         <SharedLinks />
-        <FileListPane 
-        data={fileData}
-        onFolderClick={handleFolderClick}
-        />
+        <FileListPane data={fileData} onFolderClick={handleFolderClick} />
       </Container>
       <Flex as="footer" bg="gray.200" p={4} mt={10} justify="center">
         <Text>© 2024 File Manager by James Lindstrom</Text>
