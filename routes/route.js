@@ -63,12 +63,24 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
     filemanagerController.stop_sharing_post
   );
 
+  router.post(
+    "/api/stop-sharing",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.stop_sharing_json_post
+  )
+
   //delete file from managed directory
   router.post(
     "/delete/*",
     isAuthenticated,
     filemanagerController.delete_file_post
   );
+
+  router.post(
+    "/api/delete/*",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.delete_file_jspn_post
+  )
 
   //download file from managed directory - is authenticated
   router.get(
@@ -92,16 +104,35 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   );
 
   router.post(
+    "/api/upload",
+    passport.authenticate('jwt', { session: false }),
+    storageController.uploadMiddleware,
+    filemanagerController.upload_files_post
+  )
+
+  router.post(
     "/create-folder",
     isAuthenticated,
     filemanagerController.create_folder_post
   );
 
   router.post(
+    "/api/create-folder",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.create_folder_post
+  )
+
+  router.post(
     "/delete-folder",
     isAuthenticated,
     filemanagerController.deleteFolder
   );
+
+  router.post(
+    "/api/delete-folder",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.deleteFolder
+  )
 
   return router;
 };

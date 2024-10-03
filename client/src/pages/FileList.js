@@ -5,7 +5,7 @@ import Header from "./Header";
 import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
-
+import FileUpload from "./FileUpload"
 const FileList = () => {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("/files");
@@ -45,12 +45,15 @@ const FileList = () => {
     <div>
       {/* Render file and folder list */}
       <Header username={fileData.user.username} />
+
       <Container maxW="container.lg" mt={4}>
+        <FileUpload relativePath={fileData.relativePath} refreshPath={fetchFiles}/>
+      <SharedLinks />
         <Breadcrum
           breadcrumb={fileData.breadcrumb}
           onClick={handleBreadcrumbClick}
         />
-        <SharedLinks />
+        
         <FileListPane data={fileData} onFolderClick={handleFolderClick} />
       </Container>
       <Flex as="footer" bg="gray.200" p={4} mt={10} justify="center">

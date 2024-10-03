@@ -41,7 +41,10 @@ app.use(
     saveUninitialized: true,
   })
 );
+const cors = require('cors')
 
+// Allow all origins for now (you can restrict this to specific origins)
+app.use(cors())
 app.use(passport.initialize());
 app.use(passport.session());
 // view engine setup

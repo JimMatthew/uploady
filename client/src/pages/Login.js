@@ -21,7 +21,7 @@ const Login = () => {
     try {
       const response = await axios.post("/apilogin", { username, password });
       localStorage.setItem("token", response.data.token); // Save JWT
-      navigate("/files"); // Redirect to file list
+      navigate("/api/files"); // Redirect to file list
     } catch (err) {
       setError("Invalid credentials");
     }

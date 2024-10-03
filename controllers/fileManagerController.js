@@ -9,6 +9,7 @@ module.exports = (configStoreType) => {
   const sharedLinks = new Map();
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
+  const domain = "uploady.lan"
 
   /*
     upload files to directory
@@ -54,7 +55,7 @@ module.exports = (configStoreType) => {
     const relativeFilePath = req.body.filePath || ""; // Pass full relative path from client
     const fileName = req.body.fileName;
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
-
+    console.log(relativeFilePath)
     if (!fs.existsSync(absoluteFilePath)) {
       const err = new Error("File not found");
       err.status = 404;
@@ -62,9 +63,7 @@ module.exports = (configStoreType) => {
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
-    const shareLink = `${req.protocol}://${req.get(
-      "host"
-    )}/share/${token}/${fileName}`;
+    const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
       const err = new Error("This File is already shared");
@@ -89,9 +88,7 @@ module.exports = (configStoreType) => {
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
-    const shareLink = `${req.protocol}://${req.get(
-      "host"
-    )}/share/${token}/${fileName}`;
+    const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
       return res.status(400).json({
@@ -320,7 +317,17 @@ module.exports = (configStoreType) => {
         }
     }
     res.redirect("/links");
+    await SharedFile.deleteOne({ fileName });
   };
+
+  const stop_sharing_json_post = async (req, res) => {
+    const token = req.body.token
+    console.log('deltoken: '+token)
+    await SharedFile.deleteOne({ token });
+    res.status(200).json({
+      message: "link deleted",
+    });
+  }
 
   const delete_file_post = async (req, res, next) => {
     const relativeFilePath = req.params[0];
@@ -343,8 +350,38 @@ module.exports = (configStoreType) => {
       case ConfigStoreType.DATABASE:
         const fullPath = path.join(filePath, fileName);
         await SharedFile.findOneAndDelete({ filePath, fileName });
+        
+        res.redirect("/files");
     }
-    res.redirect("/files");
+    
+    
+  };
+
+  const delete_file_jspn_post = async (req, res, next) => {
+    const relativeFilePath = req.params[0];
+    const filePath = path.join(uploadsDir, relativeFilePath);
+    const fileName = path.basename(filePath);
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        const err = new Error("Unable to delete file");
+        err.status = 404;
+        return next(err);
+      }
+    });
+    switch (configStoreType) {
+      case ConfigStoreType.LOCAL:
+        if (sharedLinks.has(fileName)) {
+          sharedLinks.delete(fileName);
+        }
+        break;
+
+      case ConfigStoreType.DATABASE:
+        const fullPath = path.join(filePath, fileName);
+        await SharedFile.findOneAndDelete({ filePath, fileName });
+       
+    }
+    
+    
   };
 
   const download_file_get = (req, res, next) => {
@@ -394,6 +431,8 @@ module.exports = (configStoreType) => {
     list_directory_json_get,
     list_directory_view_get,
     file_links_json_get,
-    generateShareLinkJsonPost
+    generateShareLinkJsonPost,
+    stop_sharing_json_post,
+    delete_file_jspn_post
   };
 };
