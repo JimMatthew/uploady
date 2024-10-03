@@ -1,24 +1,26 @@
 const express = require("express");
 const storageController = require("../controllers/storageController");
-
+const passport = require("passport");
 module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   const filemanagerController = require("../controllers/fileManagerController")(
-    configStoreType,
+    configStoreType
   );
 
   const router = express.Router();
-  router.get("/", (req, res) => {
-    res.redirect("/files");
-  });
+  
 
-  router.get("/api/files/*", filemanagerController.list_directory_json_get)
+  router.get(
+    "/api/files/*",
+    passport.authenticate("jwt", { session: false }),
+    filemanagerController.list_directory_json_get
+  );
 
   router.get(
     "/api/files",
-    isAuthenticated,
+    passport.authenticate("jwt", { session: false }),
     filemanagerController.list_directory_json_get
   );
-  
+
   router.get(
     "/files",
     isAuthenticated,
@@ -38,13 +40,21 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   //display list of all shared links
   router.get("/links", isAuthenticated, filemanagerController.file_links_get);
 
-  router.get("/api/links", filemanagerController.file_links_json_get);
+  router.get("/api/links",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.file_links_json_get);
+
   //create a public link for a file
   router.post(
     "/share",
     isAuthenticated,
     filemanagerController.generateShareLink
   );
+
+  router.post(
+    "/api/share", 
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.generateShareLinkJsonPost);
 
   //stop sharing a public file
   router.post(

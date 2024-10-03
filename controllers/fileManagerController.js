@@ -71,8 +71,34 @@ module.exports = (configStoreType) => {
       err.status = 404;
       return next(err);
     }
-
     res.render("linkgen", {
+      link: shareLink,
+      fileName: fileName,
+    });
+  };
+
+  const generateShareLinkJsonPost = async (req, res, next) => {
+    const relativeFilePath = req.body.filePath || ""; // Pass full relative path from client
+    const fileName = req.body.fileName;
+    const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
+
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(400).json({
+        error: 'File not found',
+      });
+    }
+    const relPathName = path.join(relativeFilePath, fileName);
+    const token = crypto.randomBytes(5).toString("hex"); // Generate random token
+    const shareLink = `${req.protocol}://${req.get(
+      "host"
+    )}/share/${token}/${fileName}`;
+
+    if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
+      return res.status(400).json({
+        error: 'This File is already shared"',
+      });
+    }
+    res.json({
       link: shareLink,
       fileName: fileName,
     });
@@ -367,6 +393,7 @@ module.exports = (configStoreType) => {
     deleteFolder,
     list_directory_json_get,
     list_directory_view_get,
-    file_links_json_get
+    file_links_json_get,
+    generateShareLinkJsonPost
   };
 };

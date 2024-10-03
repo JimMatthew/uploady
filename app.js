@@ -11,7 +11,9 @@ const http = require("http");
 const socketIO = require("socket.io");
 const ConfigStorageType = require("./ConfigStorageType");
 const sshController = require("./controllers/sshController");
-
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+const jwt = require('jsonwebtoken')
 const users = [
   { id: 1, username: "admin", passwordHash: bcrypt.hashSync("123", 10) },
 ];
@@ -28,7 +30,10 @@ main().catch((err) => console.log(err));
 async function main() {
   await mongoose.connect(mongoDB);
 }
-
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: 'your_jwt_secret', // Replace with a strong secret
+}
 app.use(
   session({
     secret: "secret_key",
@@ -49,6 +54,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+
 passport.use(
   new LocalStrategy((username, password, done) => {
     const user = users.find((user) => user.username === username);
@@ -61,6 +67,15 @@ passport.use(
     return done(null, user);
   })
 );
+
+passport.use(new JwtStrategy(jwtOptions, (jwtPayload, done) => {
+  const user = users.find(user => user.id === jwtPayload.id)
+  if (user) {
+    return done(null, user)
+  } else {
+    return done(null, false)
+  }
+}))
 
 // Serialize and deserialize user
 passport.serializeUser((user, done) => {
@@ -106,12 +121,32 @@ app.post(
   })
 );
 
+app.post('/apilogin', (req, res) => {
+  const { username, password } = req.body
+  const user = users.find(user => user.username === username)
+
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    return res.status(401).json({ message: 'Invalid username or password' })
+  }
+
+  // If the user is found and password matches, generate a JWT
+  const token = jwt.sign({ id: user.id }, 'your_jwt_secret', { expiresIn: '1h' }) // Token valid for 1 hour
+  return res.json({ token })
+})
+
 // Logout route
 app.get("/logout", (req, res) => {
   req.logout(() => {
     res.redirect("/login");
   });
 });
+
+app.use(express.static(path.join(__dirname, 'client/build')))
+
+// The "catchall" handler: for any request that doesn't match one above, send back index.html.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/build', 'index.html'))
+})
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
