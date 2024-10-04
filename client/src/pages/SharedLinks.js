@@ -16,7 +16,6 @@ import { Link } from "react-router-dom";
 
 const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
-  //const [links, setLinks] = useState([]);
   const token = localStorage.getItem("token");
   const toast = useToast();
   const handleShowLinks = () => {
@@ -25,25 +24,7 @@ const SharedLinks = ({ onReload, links }) => {
       return;
     }
     onToggle();
-
-    //fetchLinks();
     onReload();
-  };
-
-  const fetchLinks = () => {
-    fetch("/api/links", {
-      headers: {
-        Authorization: `Bearer ${token}`, // Add your token
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        //setLinks(data.links);
-        //onToggle() // Toggle the card to show links
-      })
-      .catch((err) => {
-        console.error("Error fetching shared links", err);
-      });
   };
 
   const deleteLink = (linkToken) => {
@@ -56,7 +37,6 @@ const SharedLinks = ({ onReload, links }) => {
       body: JSON.stringify({ token: linkToken }),
     })
       .then((res) => res.json())
-      //.then(fetchLinks())
       .then(onReload())
       .catch((err) => {
         toast({
