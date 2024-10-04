@@ -21,6 +21,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pug": "^2.0.0-beta11",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.0",
     "ssh2": "^1.16.0",
     "ssh2-sftp-client": "^11.0.0",

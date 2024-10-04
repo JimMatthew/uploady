@@ -10,5 +10,21 @@ html
     p
         a(href=link) #{link}
     p You can share this link with anyone to allow them to download the file.
+      
+    p 
+      button(id="generate-qr") Generate QR Code
+    p 
+      canvas(id="qr-code") 
+    p 
+    script(src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js")
+    script.
+      document.getElementById('generate-qr').addEventListener('click', function() {
+        const canvas = document.getElementById('qr-code')
+        const link = '#{link}'
+        QRCode.toCanvas(canvas, link, function (error) {
+          if (error) console.error(error)
+          console.log('QR code generated successfully')
+        })
+      })
     p
         a(href="/files") Back to File Manager
