@@ -14,9 +14,9 @@ import {
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const SharedLinks = () => {
+const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
-  const [links, setLinks] = useState([]);
+  //const [links, setLinks] = useState([]);
   const token = localStorage.getItem("token");
   const toast = useToast();
   const handleShowLinks = () => {
@@ -25,7 +25,9 @@ const SharedLinks = () => {
       return;
     }
     onToggle();
-    fetchLinks();
+
+    //fetchLinks();
+    onReload();
   };
 
   const fetchLinks = () => {
@@ -36,7 +38,7 @@ const SharedLinks = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        setLinks(data.links);
+        //setLinks(data.links);
         //onToggle() // Toggle the card to show links
       })
       .catch((err) => {
@@ -54,7 +56,8 @@ const SharedLinks = () => {
       body: JSON.stringify({ token: linkToken }),
     })
       .then((res) => res.json())
-      .then(fetchLinks())
+      //.then(fetchLinks())
+      .then(onReload())
       .catch((err) => {
         toast({
           title: "Error",
@@ -82,7 +85,7 @@ const SharedLinks = () => {
         a.remove();
       })
       .catch((error) => console.error("Download error:", error));
-  }
+  };
 
   return (
     <>
@@ -100,7 +103,11 @@ const SharedLinks = () => {
             {links.length > 0 ? (
               links.map((link, index) => (
                 <Box key={index} mb={2}>
-                  <Linkbox linkItem={link} stopSharing={deleteLink} clickLink={clickLink}/>
+                  <Linkbox
+                    linkItem={link}
+                    stopSharing={deleteLink}
+                    clickLink={clickLink}
+                  />
                 </Box>
               ))
             ) : (
@@ -120,9 +127,9 @@ const Linkbox = ({ linkItem, stopSharing, clickLink }) => {
       <CardHeader fontWeight="bold">{fileName}</CardHeader>
       <Stack>
         <CardBody>
-        <Text >Path: {filePath}</Text>
+          <Text>Path: {filePath}</Text>
           <Text color="gray.500">Link: {link}</Text>
-          
+
           <Button size="sm" onClick={() => stopSharing(token)}>
             Stop Sharing
           </Button>

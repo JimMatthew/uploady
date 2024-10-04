@@ -1,50 +1,68 @@
-import React, { useState } from 'react'
-
-function FileUpload({relativePath, refreshPath }) {
-  const [file, setFile] = useState(null)
+import React, { useState } from "react";
+import {
+  Button,
+  Input,
+  Box,
+  Text,
+  Collapse,
+  useDisclosure,
+  Card,
+  useToast,
+  CardHeader,
+  CardBody,
+  Stack,
+  SimpleGrid,
+  HStack,
+} from "@chakra-ui/react";
+function FileUpload({ relativePath, refreshPath }) {
+  const [file, setFile] = useState(null);
   const token = localStorage.getItem("token");
   const handleFileChange = (event) => {
-    setFile(event.target.files[0])
-  }
-const currentPath = '/'
+    setFile(event.target.files[0]);
+  };
+  const currentPath = "/";
   const handleSubmit = async (event) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!file) {
-      alert('Please select a file first')
-      return
+      alert("Please select a file first");
+      return;
     }
 
-    const formData = new FormData()
-    formData.append('folderPath', relativePath)
-    formData.append('files', file)
-    console.log('curp'+currentPath)
+    const formData = new FormData();
+    formData.append("folderPath", relativePath);
+    formData.append("files", file);
+    console.log("curp" + currentPath);
     try {
-      const response = await fetch('/api/upload', {
+      const response = await fetch("/api/upload", {
         headers: {
-            Authorization: `Bearer ${token}`, // Add your token
-          },
-        method: 'POST',
+          Authorization: `Bearer ${token}`, // Add your token
+        },
+        method: "POST",
         body: formData,
-      })
+      });
 
       if (response.ok) {
-        alert('File uploaded successfully')
-        refreshPath(relativePath)
+        alert("File uploaded successfully");
+        refreshPath(relativePath);
       } else {
-        alert('File upload failed')
+        alert("File upload failed");
       }
     } catch (error) {
-      console.error('Error uploading file:', error)
+      console.error("Error uploading file:", error);
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit}>
-      <input type="file" onChange={handleFileChange} />
-      <button type="submit">Upload</button>
+      <HStack>
+        <Input type="file" onChange={handleFileChange} />
+        <Button size="sm" type="submit">
+          Upload
+        </Button>
+      </HStack>
     </form>
-  )
+  );
 }
 
-export default FileUpload
+export default FileUpload;

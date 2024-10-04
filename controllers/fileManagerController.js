@@ -333,6 +333,8 @@ module.exports = (configStoreType) => {
     const relativeFilePath = req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
     const fileName = path.basename(filePath);
+    console.log('rp: '+relativeFilePath)
+    console.log('fp: '+filePath)
     fs.unlink(filePath, (err) => {
       if (err) {
         const err = new Error("Unable to delete file");
@@ -358,14 +360,14 @@ module.exports = (configStoreType) => {
   };
 
   const delete_file_jspn_post = async (req, res, next) => {
-    const relativeFilePath = req.params[0];
+    const relativeFilePath = '/'+req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
     const fileName = path.basename(filePath);
+    console.log('rp: '+relativeFilePath)
+    console.log('fp: '+filePath)
     fs.unlink(filePath, (err) => {
       if (err) {
-        const err = new Error("Unable to delete file");
-        err.status = 404;
-        return next(err);
+        throw err
       }
     });
     switch (configStoreType) {
@@ -378,7 +380,10 @@ module.exports = (configStoreType) => {
       case ConfigStoreType.DATABASE:
         const fullPath = path.join(filePath, fileName);
         await SharedFile.findOneAndDelete({ filePath, fileName });
-       
+        res.status(200).json({
+          message: "file deleted",
+        });
+
     }
     
     

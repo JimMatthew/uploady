@@ -5,12 +5,13 @@ import Header from "./Header";
 import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
-import FileUpload from "./FileUpload"
+import FileUpload from "./FileUpload";
 const FileList = () => {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("/files");
   const token = localStorage.getItem("token");
-
+  const [loading, setLoading] = useState(false);
+  const [links, setLinks] = useState([]);
   useEffect(() => {
     if (token) {
       fetchFiles(currentPath);
@@ -27,7 +28,29 @@ const FileList = () => {
     setCurrentPath(path);
   };
 
+  const reload = () => {
+    fetchLinks();
+    fetchFiles(currentPath);
+  };
+
+  const fetchLinks = () => {
+    fetch("/api/links", {
+      headers: {
+        Authorization: `Bearer ${token}`, // Add your token
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setLinks(data.links);
+        //onToggle() // Toggle the card to show links
+      })
+      .catch((err) => {
+        console.error("Error fetching shared links", err);
+      });
+  };
+
   const fetchFiles = (path) => {
+    setLoading(true);
     fetch(`/api/${path}/`, {
       method: "GET",
       headers: {
@@ -37,9 +60,10 @@ const FileList = () => {
     })
       .then((res) => res.json())
       .then((data) => setFileData(data))
+      .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
-  if (!fileData) return <div>Loading...</div>;
+  if (loading || !fileData) return <div>Loading...</div>;
 
   return (
     <div>
@@ -47,14 +71,18 @@ const FileList = () => {
       <Header username={fileData.user.username} />
 
       <Container maxW="container.lg" mt={4}>
-        <FileUpload relativePath={fileData.relativePath} refreshPath={fetchFiles}/>
-      <SharedLinks />
+        <FileUpload relativePath={fileData.relativePath} refreshPath={reload} />
+        <SharedLinks onReload={fetchLinks} links={links} />
         <Breadcrum
           breadcrumb={fileData.breadcrumb}
           onClick={handleBreadcrumbClick}
         />
-        
-        <FileListPane data={fileData} onFolderClick={handleFolderClick} />
+
+        <FileListPane
+          data={fileData}
+          onFolderClick={handleFolderClick}
+          onRefresh={reload}
+        />
       </Container>
       <Flex as="footer" bg="gray.200" p={4} mt={10} justify="center">
         <Text>© 2024 File Manager by James Lindstrom</Text>
