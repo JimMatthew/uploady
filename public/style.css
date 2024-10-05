@@ -3,8 +3,9 @@ body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f4;
   margin: 0;
-  padding: 20px;
+  padding: 5px;
   color: #333;
+  width: 100%S;
 }
 
 h1 {
@@ -35,6 +36,10 @@ form {
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+form button {
+  margin: 7px;
 }
 
 label {
@@ -79,7 +84,7 @@ ul li {
 }
 
 td form {
-  margin: 3px;
+  margin: 5px;
   padding: 0px;
   display: inline;
 }
@@ -133,7 +138,7 @@ body {
 }
 
 #drop-zone {
-  width: 400px;
+  width: 55%;
   height: 100px;
   border: 2px dashed #ccc;
   border-radius: 10px;
@@ -179,4 +184,87 @@ tr {
 
 tbody tr:hover {
   background-color: #f2f2f2; /* Optional: Adds a hover effect */
+}
+
+
+/* Ensure table container scrolls horizontally on smaller screens */
+.table-container {
+  width: 90%;
+  overflow-x: auto;
+}
+
+table {
+  width: 90%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+a {
+  color: #007BFF;
+  text-decoration: none;
+}
+
+button {
+  padding: 8px 12px;
+  
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ff6666;
+}
+
+/* Mobile-friendly adjustments */
+@media (max-width: 768px) {
+  /* Stack the rows for mobile */
+  table thead {
+    display: none;
+  }
+
+  table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #ddd;
+  }
+
+  table td {
+    display: block;
+    width: 95%;
+    
+    padding: 5px;
+    position: relative;
+    border: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  /* Adjust the layout for the header, footer, and buttons */
+  h1 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  a, button {
+    font-size: 1rem;
+    padding: 7px ;
+  }
+
+  footer p {
+    text-align: center;
+    font-size: 0.875rem;
+  }
 }

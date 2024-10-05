@@ -1,6 +1,7 @@
 doctype html
 html
   head
+    meta(name="viewport" content="width=device-width, initial-scale=1")
     title File Manager
     link(rel="stylesheet" href="/style.css")
     script.
@@ -17,7 +18,7 @@ html
     form(action="/create-folder", method="POST" style="display:inline")
       input(type="text", name="folderName", placeholder="New folder name")
       input#rpath(type="hidden",  name="currentPath", value=relativePath)
-      button(type="submit") Create Folder
+      button(type="submit") New Folder
     
     
     #drop-zone
