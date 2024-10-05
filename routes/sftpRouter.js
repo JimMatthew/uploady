@@ -1,5 +1,5 @@
 const express = require("express");
-
+const passport = require("passport");
 const sftpController = require("../controllers/sftpController")();
 const storageController = require("../controllers/storageController");
 
@@ -13,6 +13,11 @@ module.exports = function (isAuthenticated) {
     isAuthenticated,
     sftpController.sftp_id_list_files_get
   );
+
+  router.get("/api/",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_servers_json_get
+  )
 
   router.post(
     "/upload",

@@ -173,6 +173,15 @@ module.exports = () => {
     }
   };
 
+  const sftp_servers_json_get =  async (req, res, next) => {
+    try {
+      const servers = await SftpServer.find();
+      return res.json({ servers });
+    } catch (error) {
+      return res.json({ status: 'offline' });
+  };
+}
+
   const server_status_get = async (req, res) => {
     const { serverId } = req.params;
     
@@ -379,5 +388,6 @@ module.exports = () => {
     upload,
     sftp_stream_upload_post,
     server_status_get,
+    sftp_servers_json_get
   };
 };

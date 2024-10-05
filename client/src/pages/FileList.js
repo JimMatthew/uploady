@@ -6,6 +6,8 @@ import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
+import { Link } from "react-router-dom";
+import Footer from "./Footer";
 const FileList = () => {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("/files");
@@ -70,7 +72,9 @@ const FileList = () => {
     <div>
       {/* Render file and folder list */}
       <Header username={fileData.user.username} />
-
+      <Link to="/api/sftp">
+        <button>Go to SFTP Servers</button>
+      </Link>
       <Container maxW="container.lg" mt={4}>
         <FileUpload relativePath={fileData.relativePath} refreshPath={reload} toast={toast} />
         
@@ -89,9 +93,7 @@ const FileList = () => {
           toast={toast}
         />
       </Container>
-      <Flex as="footer" bg="gray.200" p={4} mt={10} justify="center">
-        <Text>© 2024 File Manager by James Lindstrom</Text>
-      </Flex>
+      
     </div>
   );
 };

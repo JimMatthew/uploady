@@ -59,7 +59,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
   };
 
   const handleDownload = (fileName) => {
-    fetch(`/api/download/${currentPath}/${fileName}`, {
+    fetch(`/api/download/${rp}/${fileName}`, {
       headers: {
         Authorization: `Bearer ${token}`, // Add your token
       },
