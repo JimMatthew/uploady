@@ -131,7 +131,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post(
     "/api/delete-folder",
     passport.authenticate('jwt', { session: false }),
-    filemanagerController.deleteFolder
+    filemanagerController.delete_folder_json_post
   )
 
   return router;

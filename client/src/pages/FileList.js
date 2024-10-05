@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Flex, Text, Container } from "@chakra-ui/react";
+import { Box, Flex, Text, Container, Center, useToast } from "@chakra-ui/react";
 import axios from "axios";
 import Header from "./Header";
 import Breadcrum from "./Breadcrumbs";
@@ -12,6 +12,7 @@ const FileList = () => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
+  const toast = useToast();
   useEffect(() => {
     if (token) {
       fetchFiles(currentPath);
@@ -71,8 +72,11 @@ const FileList = () => {
       <Header username={fileData.user.username} />
 
       <Container maxW="container.lg" mt={4}>
-        <FileUpload relativePath={fileData.relativePath} refreshPath={reload} />
+        <FileUpload relativePath={fileData.relativePath} refreshPath={reload} toast={toast} />
+        
         <SharedLinks onReload={fetchLinks} links={links} />
+        
+        
         <Breadcrum
           breadcrumb={fileData.breadcrumb}
           onClick={handleBreadcrumbClick}
@@ -82,6 +86,7 @@ const FileList = () => {
           data={fileData}
           onFolderClick={handleFolderClick}
           onRefresh={reload}
+          toast={toast}
         />
       </Container>
       <Flex as="footer" bg="gray.200" p={4} mt={10} justify="center">

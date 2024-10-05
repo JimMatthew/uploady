@@ -161,6 +161,24 @@ module.exports = (configStoreType) => {
     res.redirect(`/files/${relativePath}`);
   };
 
+  const delete_folder_json_post = (req, res, next) => {
+    const relativePath = req.body.folderPath || ""; // Path relative to the uploads directory
+    const folderName = req.body.folderName || "";
+    const folderPath = path.join(uploadsDir, relativePath, folderName);
+    console.log("del fo: " + folderPath);
+
+    fs.rmdir(folderPath, (err) => {
+      if (err) {
+        const err = new Error("Error deleting folder");
+        err.status = 404;
+        return next(err);
+      }
+    });
+    res.status(200).json({
+      message: "file deleted",
+    });
+  };
+
   const generateBreadcrumbs = (relativePath) => {
     const breadcrumbs = [];
     let currentPath = ""; // Start from the root (/files)
@@ -452,6 +470,7 @@ module.exports = (configStoreType) => {
     generateShareLinkJsonPost,
     stop_sharing_json_post,
     delete_file_jspn_post,
-    create_folder_json_post
+    create_folder_json_post,
+    delete_folder_json_post
   };
 };

@@ -3,7 +3,7 @@ import {
     Button,
     Input,
   } from "@chakra-ui/react";
-const CreateFolder = ({ onFolderCreated, currentPath }) => {
+const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
   const [folderName, setFolderName] = useState('');
 
   // Handle input change
@@ -33,16 +33,32 @@ const CreateFolder = ({ onFolderCreated, currentPath }) => {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Folder created successfully');
+        toast({
+            title: "Folder Created",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
         onFolderCreated(); // Refresh the folder list or trigger an update
       } else {
-        alert(data.message || 'Error creating folder');
+        toast({
+            title: "Error creating folder",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to create folder');
+      toast({
+        title: "Error creating folder",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      
     }
-
+    
     // Clear the input after submission
     setFolderName('');
   };

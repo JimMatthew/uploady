@@ -13,14 +13,20 @@ import {
   useToast,
   HStack,
   Input,
+  VStack,
+  Stack,
+  Icon,
+  useBreakpointValue
 } from "@chakra-ui/react";
 import CreateFolder from "./CreateFolder";
-
-const FileDisplay = ({ data, onFolderClick, onRefresh }) => {
+import { FcFolder } from "react-icons/fc";
+import { FcFile } from "react-icons/fc";
+const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
   const { files, folders, breadcrumb, currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
-  const toast = useToast();
+  
   const rp = "/" + relativePath;
+  const direction = useBreakpointValue({ base: 'column', md: 'row' });
   const handleShareLink = (fileName) => {
     fetch(`/api/share`, {
       method: "POST",
@@ -99,87 +105,119 @@ const FileDisplay = ({ data, onFolderClick, onRefresh }) => {
       });
   };
 
+  const handleDeleteFolder = (folderName) => {
+    fetch(`/api/delete-folder`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ folderName: folderName, folderPath: relativePath }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        onRefresh(relativePath);
+        toast({
+          title: "File Deleted.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
   return (
     <Box>
-      <Box mt={4} borderWidth="1px" borderRadius="lg" p={4}>
-        <Heading as="h2" size="md" mb={4}>
-          <HStack justify={"space-between"}>
-            <Text>Contents of {currentPath}</Text>
-            <Box>
-              <CreateFolder onFolderCreated={onRefresh} currentPath={relativePath}/>
-              
-            </Box>
-          </HStack>
-        </Heading>
+    <Box mt={4} borderWidth="1px" borderRadius="lg" p={4}>
+      <Heading as="h2" size="md" mb={4}>
+        <HStack justify={"space-between"}>
+          <Text>Contents of {currentPath}</Text>
+          <Box>
+            <CreateFolder onFolderCreated={onRefresh} currentPath={relativePath} toast={toast} />
+          </Box>
+        </HStack>
+      </Heading>
 
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Size (KB)</Th>
-              <Th>Date Modified</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {/* Folders */}
-            {folders.map((folder, index) => (
-              <Tr
-                key={index}
-                onClick={() => onFolderClick(folder.name)}
-                style={{ cursor: "pointer" }}
-              >
-                <Td>
-                  <Text as="span" mr={2}>
-                    📁
-                  </Text>
-                  {folder.name}
-                </Td>
-                <Td>--</Td>
-                <Td>--</Td>
-              </Tr>
-            ))}
+      {/* Stack for Folder and File Cards */}
+      <VStack spacing={4}>
+        {/* Folders */}
+        {folders.map((folder, index) => (
+          <Box
+            key={index}
+            w="100%"
+            p={4}
+            borderWidth="1px"
+            borderRadius="lg"
+            _hover={{ shadow: "md", cursor: "pointer" }}
+            onClick={() => onFolderClick(folder.name)}
+          >
+            <HStack align="center" justify="space-between">
+              <HStack>
+                <Icon as={FcFolder} boxSize={6} color="blue.500" />
+                <Text fontWeight="bold" isTruncated>{folder.name}</Text>
+              </HStack>
+              <Text fontSize="sm" color="gray.500">Folder</Text>
+              <Button size='sm' onClick={() => handleDeleteFolder(folder.name)}>Delete</Button>
+            </HStack>
+          </Box>
+        ))}
 
-            {/* Files */}
-            {files.map((file, index) => (
-              <Tr key={index}>
-                <Td>
-                  <Text as="span" mr={2}>
-                    📄
-                  </Text>
-                  {file.name}
-                </Td>
-                <Td>{file.size}</Td>
-                <Td>{file.date}</Td>
-                <Td>
-                  <Button
-                    size="sm"
-                    margin="2px"
-                    onClick={() => handleDownload(file.name)}
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    size="sm"
-                    margin="2px"
-                    onClick={() => handleShareLink(file.name)}
-                  >
-                    Share
-                  </Button>
-                  <Button
-                    size="sm"
-                    margin="2px"
-                    onClick={() => handleDelete(file.name)}
-                  >
-                    Delete
-                  </Button>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </Box>
+        {/* Files */}
+        {files.map((file, index) => (
+          <Box
+            key={index}
+            w="100%"
+            p={4}
+            borderWidth="1px"
+            borderRadius="lg"
+            _hover={{ shadow: "md" }}
+          >
+            <HStack align="center" justify="space-between">
+              <VStack align="start">
+                <HStack>
+                  <Icon as={FcFile} boxSize={6} color="green.500" />
+                  <Text fontWeight="bold" isTruncated>{file.name}</Text>
+                </HStack>
+                <Text fontSize="sm" color="gray.500">
+                  {file.size} KB | {file.date}
+                </Text>
+              </VStack>
+
+              {/* Action Buttons */}
+              <Stack direction={direction} spacing={2}>
+                <Button size="sm" onClick={() => handleDownload(file.name)}>
+                  Download
+                </Button>
+                <Button size="sm" onClick={() => handleShareLink(file.name)}>
+                  Share
+                </Button>
+                <Button size="sm" onClick={() => handleDelete(file.name)}>
+                  Delete
+                </Button>
+              </Stack>
+            </HStack>
+          </Box>
+        ))}
+      </VStack>
     </Box>
+  </Box>
   );
 };
 
 export default FileDisplay;
+
+
+/*
+
+📁
+📄
+               
+*/
