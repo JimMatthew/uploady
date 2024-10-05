@@ -14,6 +14,7 @@ import {
   HStack,
   Input,
 } from "@chakra-ui/react";
+import CreateFolder from "./CreateFolder";
 
 const FileDisplay = ({ data, onFolderClick, onRefresh }) => {
   const { files, folders, breadcrumb, currentPath, user, relativePath } = data;
@@ -105,13 +106,8 @@ const FileDisplay = ({ data, onFolderClick, onRefresh }) => {
           <HStack justify={"space-between"}>
             <Text>Contents of {currentPath}</Text>
             <Box>
-              <Input
-                size={"sm"}
-                htmlSize={6}
-                width="auto"
-                margin={"5px"}
-              ></Input>
-              <Button> New Folder</Button>
+              <CreateFolder onFolderCreated={onRefresh} currentPath={relativePath}/>
+              
             </Box>
           </HStack>
         </Heading>

@@ -119,7 +119,7 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
   router.post(
     "/api/create-folder",
     passport.authenticate('jwt', { session: false }),
-    filemanagerController.create_folder_post
+    filemanagerController.create_folder_json_post
   )
 
   router.post(

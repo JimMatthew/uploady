@@ -1,2 +1,6 @@
 /uploads
 /node_modules
+.idea/modules.xml
+.idea/uploady.iml
+.idea/vcs.xml
+.idea/.gitignore

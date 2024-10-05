@@ -423,6 +423,19 @@ module.exports = (configStoreType) => {
     }
   };
 
+  const create_folder_json_post = (req, res, next) => {
+    const { folderName, currentPath } = req.body;
+    try {
+      const fullPath = path.join(uploadsDir, currentPath || "");
+      createFolder(fullPath, folderName);
+      res.status(200).json({
+        message: "file created",
+      }); 
+    } catch (err) {
+      return next(err);
+    }
+  };
+
   return {
     file_links_get,
     stop_sharing_post,
@@ -438,6 +451,7 @@ module.exports = (configStoreType) => {
     file_links_json_get,
     generateShareLinkJsonPost,
     stop_sharing_json_post,
-    delete_file_jspn_post
+    delete_file_jspn_post,
+    create_folder_json_post
   };
 };

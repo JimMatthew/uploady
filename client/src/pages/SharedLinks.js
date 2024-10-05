@@ -108,7 +108,7 @@ const Linkbox = ({ linkItem, stopSharing, clickLink }) => {
       <Stack>
         <CardBody>
           <Text>Path: {filePath}</Text>
-          <Text color="gray.500">Link: {link}</Text>
+          <Text color="gray.500"> {link}</Text>
 
           <Button size="sm" onClick={() => stopSharing(token)}>
             Stop Sharing
