@@ -168,7 +168,7 @@ body {
 }
 
 table {
-  width: 75%;
+  width: 80%;
   border-collapse: collapse; /* Removes extra space between table cells */
 }
 
@@ -194,12 +194,12 @@ tbody tr:hover {
 }
 
 table {
-  width: 90%;
+  width: 70%;
   border-collapse: collapse;
 }
 
 th, td {
-  padding: 10px;
+  padding: 3px;
   border: 1px solid #ccc;
   text-align: left;
 }
