@@ -3,21 +3,11 @@ import {
   Button,
   Input,
   Box,
-  Text,
-  Collapse,
-  useDisclosure,
-  Card,
-  useToast,
-  CardHeader,
-  CardBody,
-  Stack,
-  SimpleGrid,
   HStack,
   FormControl,
   useColorModeValue,
 } from "@chakra-ui/react";
 function FileUpload({ relativePath, refreshPath, toast }) {
-  
   const [file, setFile] = useState(null);
   const token = localStorage.getItem("token");
   const handleFileChange = (event) => {
@@ -52,7 +42,6 @@ function FileUpload({ relativePath, refreshPath, toast }) {
           duration: 3000,
           isClosable: true,
         });
-        //alert("File uploaded successfully");
         refreshPath(relativePath);
       } else {
         alert("File upload failed");
