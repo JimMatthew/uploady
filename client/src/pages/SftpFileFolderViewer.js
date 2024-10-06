@@ -140,7 +140,7 @@ const FileFolderViewer = ({
           </Heading>
           <SimpleGrid
             spacing={4}
-            templateColumns="repeat(auto-fill, minmax(150px, 1fr))"
+            templateColumns="repeat(auto-fill, minmax(180px, 1fr))"
           >
             {files.map((file, index) => (
               <Box

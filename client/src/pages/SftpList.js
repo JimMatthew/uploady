@@ -25,11 +25,10 @@ const SFTPApp = () => {
   const handleServerClick = (serverId) => {
     const server = sftpServers.servers.find((s) => s._id === serverId);
     setSelectedServer(server);
-    
+
     if (!isDesktop) {
       setShowSidebar(false);
     }
-    
   };
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   useEffect(() => {
@@ -41,7 +40,6 @@ const SFTPApp = () => {
   }, [token]);
 
   const handleDelete = (id) => {
-    
     console.log("Deleting server:", id);
   };
 
@@ -83,7 +81,7 @@ const SFTPApp = () => {
       );
       if (!response.ok) throw new Error("Failed to fetch files");
       const data = await response.json();
-      setFiles(data); 
+      setFiles(data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -94,7 +92,6 @@ const SFTPApp = () => {
   const changeDirectory = async (directory) => {
     try {
       setfilesLoading(true);
-      const curPath = files ? files.currentDirectory : "";
       const response = await fetch(
         `/sftp/api/connect/${selectedServer}//${directory}/`,
         {
@@ -107,13 +104,11 @@ const SFTPApp = () => {
       );
       if (!response.ok) throw new Error("Failed to fetch files");
       const data = await response.json();
-      setFiles(data); 
-     
+      setFiles(data);
     } catch (error) {
       console.error(error);
     } finally {
       setfilesLoading(false);
-      
     }
   };
 
@@ -135,7 +130,7 @@ const SFTPApp = () => {
         a.remove();
       })
       .catch((error) => console.error("Download error:", error));
-  }
+  };
 
   const fetchFiles = () => {
     setLoading(true);
@@ -165,7 +160,7 @@ const SFTPApp = () => {
           borderColor="gray.300"
           minHeight="100vh"
           position={{ base: "absolute", lg: "relative" }}
-          zIndex={1000}
+          zIndex={1}
         >
           <VStack spacing={4}>
             <Link to="/app/files">
@@ -218,7 +213,7 @@ const SFTPApp = () => {
           top="10px"
           left="10px"
         >
-          Show Servers
+          Show 
         </Button>
       )}
 
@@ -226,7 +221,7 @@ const SFTPApp = () => {
       <Box
         flex={1}
         p={4}
-        ml={{ base: 0, lg: "100px" }} // Adjust margin on desktop to make room for the sidebar
+        ml={{ base: 0, lg: "20px" }} // Adjust margin on desktop to make room for the sidebar
       >
         {files && selectedServer ? (
           <Box>
