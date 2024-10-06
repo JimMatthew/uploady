@@ -232,6 +232,22 @@ module.exports = () => {
     }
   };
 
+  const sftp_save_server_json_post = async (req, res, next) => {
+    const { host, username, password } = req.body;
+    const newServer = new SftpServer({
+      host,
+      username,
+      password,
+    });
+    try {
+      await newServer.save();
+      res.status(200)
+    } catch (error) {
+      console.log(error);
+      return next(error);
+    }
+  };
+
   const sftp_delete_server_post = async (req, res, next) => {
     const { serverId } = req.body;
     try {
@@ -242,6 +258,15 @@ module.exports = () => {
     }
   };
 
+  const sftp_delete_server__json_post = async (req, res, next) => {
+    const { serverId } = req.body;
+    try {
+      await SftpServer.findByIdAndDelete(serverId);
+      res.status(200);
+    } catch (error) {
+      return next(error);
+    }
+  };
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleString(); // Format to readable date and time
@@ -438,6 +463,8 @@ module.exports = () => {
     sftp_stream_upload_post,
     server_status_get,
     sftp_servers_json_get,
-    sftp_id_list_files_json_get
+    sftp_id_list_files_json_get,
+    sftp_delete_server__json_post,
+    sftp_save_server_json_post
   };
 };

@@ -4,7 +4,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@chakra-ui/react";
 const Breadcrumbs = ({ breadcrumb, onClick }) => {
   return (
     <Breadcrumb>
-      {breadcrumb.map((crumb, index) => (
+      {breadcrumb && breadcrumb.map((crumb, index) => (
         <BreadcrumbItem key={index}>
           <BreadcrumbLink
             href="#"

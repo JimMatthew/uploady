@@ -32,9 +32,22 @@ module.exports = function (isAuthenticated) {
     sftpController.sftp_stream_upload_post
   );
 
+  router.post(
+    "/api/upload",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.upload.array("files", 10),
+    sftpController.sftp_stream_upload_post
+  );
+
   router.get(
     "/download/:serverId/*",
     isAuthenticated,
+    sftpController.sftp_stream_download_get
+  );
+
+  router.get(
+    "/api/download/:serverId/*",
+    passport.authenticate("jwt", { session: false }),
     sftpController.sftp_stream_download_get
   );
 

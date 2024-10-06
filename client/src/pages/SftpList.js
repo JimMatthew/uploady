@@ -91,6 +91,52 @@ const SFTPApp = () => {
     }
   };
 
+  const changeDirectory = async (directory) => {
+    try {
+      setfilesLoading(true);
+      const curPath = files ? files.currentDirectory : "";
+      const response = await fetch(
+        `/sftp/api/connect/${selectedServer}//${directory}/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch files");
+      const data = await response.json();
+      setFiles(data); 
+     
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setfilesLoading(false);
+      
+    }
+  };
+
+  const downloadFile = (filename) => {
+    const curPath = files ? files.currentDirectory : "";
+    fetch(`/sftp/api/download/${selectedServer}/${curPath}/${filename}`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Add your token
+      },
+    })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch((error) => console.error("Download error:", error));
+  }
+
   const fetchFiles = () => {
     setLoading(true);
     fetch("/sftp/api/", {
@@ -122,7 +168,7 @@ const SFTPApp = () => {
           zIndex={1000}
         >
           <VStack spacing={4}>
-            <Link to="/api/files">
+            <Link to="/app/files">
               <button>Go to files</button>
             </Link>
             {sftpServers.servers.map((server) => (
@@ -180,9 +226,9 @@ const SFTPApp = () => {
       <Box
         flex={1}
         p={4}
-        ml={{ base: 0, lg: "300px" }} // Adjust margin on desktop to make room for the sidebar
+        ml={{ base: 0, lg: "100px" }} // Adjust margin on desktop to make room for the sidebar
       >
-        {files ? (
+        {files && selectedServer ? (
           <Box>
             {/* You can add your file viewer component here */}
             <Heading size="lg">Connected to: {files.host}</Heading>
@@ -190,6 +236,10 @@ const SFTPApp = () => {
               files={files.files}
               folders={files.folders}
               onFolderClick={(folderName) => handleListDirectory(folderName)}
+              onDownload={(filename) => downloadFile(filename)}
+              currentDirectory={files.currentDirectory}
+              changeDir={(dir) => changeDirectory(dir)}
+              serverId={selectedServer}
             />
           </Box>
         ) : (
