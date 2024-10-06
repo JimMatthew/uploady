@@ -41,7 +41,8 @@ app.use(
     saveUninitialized: true,
   })
 );
-const cors = require('cors')
+const cors = require('cors');
+const { hostname } = require("os");
 
 // Allow all origins for now (you can restrict this to specific origins)
 app.use(cors())
@@ -143,6 +144,12 @@ app.get("/logout", (req, res) => {
     res.redirect("/login");
   });
 });
+
+app.get("/apilogout", (req, res) => {
+  req.logout(() => {
+    return res.status(200).json({ message: 'Use logged out' })
+  });
+})
 
 app.use(express.static(path.join(__dirname, 'client/build')))
 

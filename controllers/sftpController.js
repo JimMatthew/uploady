@@ -264,7 +264,7 @@ module.exports = () => {
 
   const sftp_id_list_files_get = async (req, res, next) => {
     const { serverId } = req.params;
-    const currentDirectory = req.params[0] || "/";
+    const currentDirectory = "/"+req.params[0] || "/";
     if (!mongoose.Types.ObjectId.isValid(serverId)) {
       const err = new Error("Invalid server ID");
       err.status = 400;
@@ -318,6 +318,55 @@ module.exports = () => {
     }
   };
 
+  const sftp_id_list_files_json_get = async (req, res, next) => {
+    const { serverId } = req.params;
+    const currentDirectory = '/'+ (req.params[0] || "/");
+    if (!mongoose.Types.ObjectId.isValid(serverId)) {
+      const err = new Error("Invalid server ID");
+      err.status = 400;
+      return next(err);
+    }
+    let sftp;
+    try {
+      const server = await SftpServer.findById(serverId);
+      if (!server) {
+        const err = new Error("Server not found");
+        err.status = 404;
+        return next(err);
+      }
+      const { host, username, password } = server;
+      sftp = new SftpClient();
+      await sftp.connect({
+        host,
+        username,
+        password,
+      });
+      const contents = await sftp.list(currentDirectory);
+      const { files, folders } = contents.reduce(
+        (acc, item) => {
+          if (item.type === "d") {
+            acc.folders.push({ name: item.name });
+          } else {
+            acc.files.push({
+              name: item.name,
+              size: (item.size / 1024).toFixed(2),
+              date: formatDate(item.modifyTime),
+            });
+          }
+          return acc;
+        },
+        { files: [], folders: [] }
+      );
+      const breadcrumb = generateBreadcrumb(currentDirectory, serverId);
+      res.json({ files, folders, currentDirectory, ...breadcrumb, serverId, host });
+     
+    } catch (error) {
+      console.log(error);
+      return next(error);
+    } finally {
+      if (sftp) await sftp.end(); // Ensure connection is always closed
+    }
+  };
   const sftp_delete_file_post = async (req, res, next) => {
     const { serverId, currentDirectory, fileName } = req.body;
     const fullPath = path.join(currentDirectory, fileName);
@@ -388,6 +437,7 @@ module.exports = () => {
     upload,
     sftp_stream_upload_post,
     server_status_get,
-    sftp_servers_json_get
+    sftp_servers_json_get,
+    sftp_id_list_files_json_get
   };
 };

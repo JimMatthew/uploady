@@ -5,6 +5,20 @@ const Header = ({ username, onLogout }) => {
   const headingSize = useBreakpointValue({ base: "md", md: "lg" });
   const showLogoutText = useBreakpointValue({ base: false, md: true });
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/apilogout', { method: 'GET' })
+      if (response.ok) {
+        // Handle successful logout (e.g., redirect to login page)
+        window.location.href = '/' // Redirect to home or login page
+      } else {
+        // Handle error
+        console.error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
+  }
   return (
     <Flex
       as="header"
@@ -30,7 +44,7 @@ const Header = ({ username, onLogout }) => {
       </Box>
 
       {showLogoutText ? (
-        <Button leftIcon={<FaSignOutAlt />} colorScheme="orange" onClick={onLogout}>
+        <Button leftIcon={<FaSignOutAlt />} colorScheme="orange" onClick={handleLogout}>
           Logout
         </Button>
       ) : (
@@ -38,7 +52,7 @@ const Header = ({ username, onLogout }) => {
           aria-label="Logout"
           icon={<FaSignOutAlt />}
           colorScheme="red"
-          onClick={onLogout}
+          onClick={handleLogout}
         />
       )}
     </Flex>

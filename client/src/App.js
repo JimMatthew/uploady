@@ -6,15 +6,19 @@ import Login from "./pages/Login";
 import FileList from "./pages/FileList";
 import SFTPServerList from "./pages/SftpServerList";
 import AppLayout from "./AppLayout";
+import SftpList from "./pages/SftpList"
 const App = () => {
   const [user, setuser] = useState(null);
   return (
     <Router>
       <AppLayout username={user}>
         <Routes>
+          
           <Route path="/" element={<Login />} />
-          <Route path="/api/files" element={<FileList setUser={setuser} />} />
-          <Route path="/api/sftp" element={<SFTPServerList />} />
+          <Route path="/app/files" element={<FileList setUser={setuser} />} />
+          <Route path="/api/sftp" element={<SftpList />} />
+          
+         
         </Routes>
       </AppLayout>
     </Router>

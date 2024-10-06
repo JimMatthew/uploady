@@ -19,6 +19,12 @@ module.exports = function (isAuthenticated) {
     sftpController.sftp_servers_json_get
   )
 
+  router.get(
+    "/api/connect/:serverId/*?",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_id_list_files_json_get
+  );
+
   router.post(
     "/upload",
     isAuthenticated,
