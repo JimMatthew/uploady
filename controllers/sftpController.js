@@ -29,6 +29,26 @@ module.exports = () => {
     res.redirect(`/sftp/connect/${serverId}/${currentPath}`);
   };
 
+  const sftp_create_folder_json_post = async (req, res) => {
+    const { currentPath, folderName, serverId } = req.body;
+    const newPath = path.join(currentPath, folderName);
+    const sftp = new SftpClient();
+    try {
+      const server = await SftpServer.findById(serverId);
+      if (!server) {
+        return res.status(404).send("server not found");
+      }
+      const { host, username, password } = server;
+      await sftp.connect({ host, username, password });
+      await sftp.mkdir(newPath);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      await sftp.end();
+    }
+    return res.status(200).send("Folder Created");;
+  };
+
   const sftp_stream_download_get = async (req, res, next) => {
     const { serverId } = req.params;
     const relativePath = req.params[0] || "";
@@ -459,9 +479,10 @@ module.exports = () => {
         password,
       });
       await sftp.rmdir(fullPath);
-      res.status(200)
+      res.status(200).send()
     } catch (error) {
-      return next(error);
+      res.status(400).send()
+      
     }
   };
 
@@ -518,6 +539,7 @@ module.exports = () => {
     sftp_delete_server__json_post,
     sftp_save_server_json_post,
     sftp_delete_file_json_post,
-    sftp_delete_folder_json_post
+    sftp_delete_folder_json_post,
+    sftp_create_folder_json_post
   };
 };

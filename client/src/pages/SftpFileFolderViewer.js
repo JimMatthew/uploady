@@ -7,6 +7,8 @@ import {
   Stack,
   Heading,
   HStack,
+  Input, 
+  Button
 } from "@chakra-ui/react";
 import {
   FaFolder,
@@ -29,11 +31,14 @@ const FileFolderViewer = ({
   toast,
 }) => {
   const [file, setFile] = useState(null);
+  const [folderName, setFolderName] = useState("");
   const token = localStorage.getItem("token");
-  const { deleteSftpFile,downloadSftpFile  } = SftpController({toast})
+  const { deleteSftpFile,downloadSftpFile, deleteSftpFolder, createSftpFolder  } = SftpController({toast})
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
+
+  
   const generateBreadcrumbs = (path) => {
     const breadcrumbs = [];
     let currentPath = ``;
@@ -97,7 +102,11 @@ const FileFolderViewer = ({
       <Heading size="md" mb={6}>
         Files and Folders
       </Heading>
+      <Box>
+      
+      </Box>
       <Text>
+      
         <Breadcrumbs
           breadcrumb={generateBreadcrumbs(currentDirectory || "/")}
           onClick={changeDir}
@@ -122,9 +131,15 @@ const FileFolderViewer = ({
                 _hover={{ bg: "gray.100", cursor: "pointer" }}
                 onClick={() => onFolderClick(folder.name)}
               >
-                <HStack>
+                <HStack justify="space-between">
                   <FaFolder size={24} />
                   <Text fontWeight="bold">{folder.name}</Text>
+                  <IconButton
+                      size="sm"
+                      aria-label="Delete File"
+                      icon={<FaTrash />}
+                      onClick={() => deleteSftpFolder(folder.name, serverId, currentDirectory, changeDir)}
+                    />
                 </HStack>
               </Box>
             ))}

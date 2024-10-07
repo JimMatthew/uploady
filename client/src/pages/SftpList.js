@@ -271,7 +271,7 @@ const SFTPApp = ({ toast }) => {
           ml={{ base: 0, lg: "30px" }} // Adjust margin for the sidebar on desktop
           transition="margin 0.3s ease"
         >
-          <Heading size="lg">Server Manager</Heading>
+          
           {selectedServer ? (
             view === "files" ? (
               <Box>
@@ -285,6 +285,7 @@ const SFTPApp = ({ toast }) => {
                   currentDirectory={files.currentDirectory}
                   changeDir={(dir) => changeDirectory(dir)}
                   serverId={selectedServer}
+                  toast={toast}
                 />
               </Box>
             ) : (

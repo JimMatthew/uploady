@@ -58,6 +58,12 @@ module.exports = function (isAuthenticated) {
   );
 
   router.post(
+    "/api/create-folder",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_create_folder_json_post
+  );
+
+  router.post(
     "/save-server",
     isAuthenticated,
     sftpController.sftp_save_server_post
@@ -96,7 +102,7 @@ module.exports = function (isAuthenticated) {
   router.post(
     "/api/delete-folder",
     passport.authenticate("jwt", { session: false }),
-    sftpController.sftp_delete_folder_post
+    sftpController.sftp_delete_folder_json_post
   );
 
   router.get(
