@@ -72,7 +72,7 @@ const SshConsole = ({ serverId }) => {
         id="terminal"
         h="900px"
         bg="gray.900"
-        overflow="auto"
+        overflow="hidden"
       />
     </Box>
   );

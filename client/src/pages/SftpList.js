@@ -19,7 +19,6 @@ const SFTPApp = () => {
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
   const [files, setFiles] = useState([]);
-  const [filesloading, setfilesLoading] = useState(false);
   const [selectedServer, setSelectedServer] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [view, setView] = useState("files");
@@ -61,7 +60,6 @@ const SFTPApp = () => {
   const handleConnect = async (serverId) => {
     try {
       handleServerClick(serverId);
-      setfilesLoading(true);
       const response = await fetch(`/sftp/api/connect/${serverId}/`, {
         method: "GET",
         headers: {
@@ -77,7 +75,6 @@ const SFTPApp = () => {
     } catch (error) {
       console.error(error);
     } finally {
-      setfilesLoading(false);
     }
   };
 
@@ -104,7 +101,6 @@ const SFTPApp = () => {
 
   const handleListDirectory = async (directory) => {
     try {
-      setfilesLoading(true);
       const curPath = files ? files.currentDirectory : "";
       const response = await fetch(
         `/sftp/api/connect/${selectedServer}//${curPath}/${directory}/`,
@@ -122,13 +118,11 @@ const SFTPApp = () => {
     } catch (error) {
       console.error(error);
     } finally {
-      setfilesLoading(false);
     }
   };
 
   const changeDirectory = async (directory) => {
     try {
-      setfilesLoading(true);
       const response = await fetch(
         `/sftp/api/connect/${selectedServer}//${directory}/`,
         {
@@ -139,13 +133,12 @@ const SFTPApp = () => {
           },
         }
       );
-      if (!response.ok) throw new Error("Failed to fetch files");
+      if (!response.ok) return;
       const data = await response.json();
       setFiles(data);
     } catch (error) {
       console.error(error);
     } finally {
-      setfilesLoading(false);
     }
   };
 
@@ -236,7 +229,7 @@ const SFTPApp = () => {
                           colorScheme="green"
                           onClick={() => handleConnect(server._id)}
                         >
-                          Connect
+                          SFTP
                         </Button>
                         <Button
                           colorScheme="blue"
@@ -290,10 +283,9 @@ const SFTPApp = () => {
                 onDelete={deleteFile}
               />
             ) : (
-              <Box >
+              <Box>
                 <SshConsole serverId={selectedServer} />
-                 </Box>
-              
+              </Box>
             )
           ) : (
             <Text>Select a server to connect to.</Text>
