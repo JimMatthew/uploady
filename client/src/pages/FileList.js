@@ -7,13 +7,13 @@ import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
 import { Link } from "react-router-dom";
 
-const FileList = ({setUser}) => {
+const FileList = ({setUser, toast}) => {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("/files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
-  const toast = useToast();
+  
 
   useEffect(() => {
     if (token) {

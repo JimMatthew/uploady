@@ -10,7 +10,6 @@ const SshConsole = ({ serverId }) => {
   const term = useRef(null);
 
   useEffect(() => {
-    
     term.current = new Terminal({
       cols: 120,
       rows: 50,
@@ -31,22 +30,17 @@ const SshConsole = ({ serverId }) => {
         white: "#dcdfe4",
       },
     });
-    
-    
+
     const terminalContainer = document.getElementById("terminal");
     term.current.open(terminalRef.current);
     term.current.loadAddon(new WebglAddon());
-    
+
     const socket = new WebSocket(`ws://192.168.1.119:3001/ssh`);
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
     };
     term.current.resize(110, 50);
-    
-
-    // Resize when the window is resized
-    //window.addEventListener('resize', fitAddon.fit);
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);

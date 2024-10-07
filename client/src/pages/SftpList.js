@@ -14,7 +14,7 @@ import {
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
-const SFTPApp = () => {
+const SFTPApp = ({toast}) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
@@ -74,6 +74,12 @@ const SFTPApp = () => {
       setView("files");
     } catch (error) {
       console.error(error);
+      toast({
+        title: "Error Connecting ",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
     }
   };
@@ -94,9 +100,20 @@ const SFTPApp = () => {
       }),
     });
     if (!response.ok) {
-      //error here
+      toast({
+        title: "Error Deleting File",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
     changeDirectory(files.currentDirectory);
+    toast({
+      title: "File Deleted.",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleListDirectory = async (directory) => {
@@ -133,11 +150,24 @@ const SFTPApp = () => {
           },
         }
       );
-      if (!response.ok) return;
+      if (!response.ok){
+        toast({
+          title: "Error Listing Directory",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      } 
       const data = await response.json();
       setFiles(data);
     } catch (error) {
-      console.error(error);
+      toast({
+        title: "Error Listing Directory",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
     }
   };
