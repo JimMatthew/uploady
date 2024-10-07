@@ -13,6 +13,7 @@ import {
 import CreateFolder from "./CreateFolder";
 import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
+import { handleFileDownload } from "../controllers/fileController";
 const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
   const { files, folders, breadcrumb, currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
@@ -204,7 +205,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
 
                 {/* Action Buttons */}
                 <Stack direction={direction} spacing={2}>
-                  <Button size="sm" onClick={() => handleDownload(file.name)}>
+                  <Button size="sm" onClick={() => handleFileDownload(file.name, rp)}>
                     Download
                   </Button>
                   <Button size="sm" onClick={() => handleShareLink(file.name)}>
@@ -225,9 +226,3 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
 
 export default FileDisplay;
 
-/*
-
-📁
-📄
-               
-*/

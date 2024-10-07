@@ -172,6 +172,31 @@ const SFTPApp = ({toast}) => {
     }
   };
 
+  const deleteServer = async (serverId) => {
+    const response = await fetch("/sftp/api/delete-server", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+
+      body: JSON.stringify({
+        serverId: serverId,
+      }),
+    });
+    if (!response.ok) {
+      toast({
+        title: "Error Deleting File",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    changeDirectory(files.currentDirectory);
+    
+  
+  }
+
   const downloadFile = (filename) => {
     const curPath = files ? files.currentDirectory : "";
     fetch(`/sftp/api/download/${selectedServer}/${curPath}/${filename}`, {
@@ -269,7 +294,7 @@ const SFTPApp = ({toast}) => {
                         </Button>
                         <Button
                           colorScheme="red"
-                          onClick={() => handleDelete(server.id)}
+                          onClick={() => deleteServer(server._id)}
                         >
                           Delete
                         </Button>
@@ -299,10 +324,12 @@ const SFTPApp = ({toast}) => {
           ml={{ base: 0, lg: "30px" }} // Adjust margin for the sidebar on desktop
           transition="margin 0.3s ease"
         >
-          <Heading size="lg">Connected to: {files.host}</Heading>
+          <Heading size="lg">Server Manager</Heading>
           {selectedServer ? (
             view === "files" ? (
-              <SftpFileFolderView
+              <Box> 
+                <Heading size="lg">Connected to: {files.host}</Heading>
+                <SftpFileFolderView
                 files={files.files}
                 folders={files.folders}
                 onFolderClick={(folderName) => handleListDirectory(folderName)}
@@ -312,6 +339,8 @@ const SFTPApp = ({toast}) => {
                 serverId={selectedServer}
                 onDelete={deleteFile}
               />
+              </Box>
+              
             ) : (
               <Box>
                 <SshConsole serverId={selectedServer} />

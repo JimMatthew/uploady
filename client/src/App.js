@@ -18,7 +18,7 @@ const App = () => {
           
           <Route path="/" element={<Login />} />
           <Route path="/app/files" element={<FileList setUser={setuser} toast={toast}/>} />
-          <Route path="/api/sftp" element={<SftpList />} />
+          <Route path="/api/sftp" element={<SftpList toast={toast}/>} />
           
          
         </Routes>

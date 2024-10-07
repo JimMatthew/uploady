@@ -11,11 +11,9 @@ import {
   Stack,
   SimpleGrid,
   IconButton,
-  
 } from "@chakra-ui/react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { FiLink, FiTrash } from 'react-icons/fi';
+import { FiLink, FiTrash } from "react-icons/fi";
+
 const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
   const token = localStorage.getItem("token");
@@ -53,7 +51,6 @@ const SharedLinks = ({ onReload, links }) => {
   const clickLink = (link, fileName) => {
     fetch(link, {
       headers: {
-        //Authorization: `Bearer ${token}`, // Add your token
       },
     })
       .then((res) => res.blob())
@@ -71,88 +68,88 @@ const SharedLinks = ({ onReload, links }) => {
 
   return (
     <>
-    {/* Button to show/hide shared links */}
-    <Button
-      leftIcon={<FiLink />}
-      colorScheme="blue"
-      mb={4}
-      onClick={handleShowLinks}
-    >
-      Show Shared Links
-    </Button>
-
-    {/* Card that slides down when the shared links are shown */}
-    <Collapse in={isOpen}>
-      <Box
-        p={5}
-        shadow="lg"
-        borderWidth="1px"
-        borderRadius="md"
-        background="white"
+      {/* Button to show/hide shared links */}
+      <Button
+        leftIcon={<FiLink />}
+        colorScheme="blue"
+        mb={4}
+        onClick={handleShowLinks}
       >
-        <SimpleGrid
-          spacing={6}
-          templateColumns="repeat(auto-fill, minmax(300px, 1fr))"
+        Show Shared Links
+      </Button>
+
+      {/* Card that slides down when the shared links are shown */}
+      <Collapse in={isOpen}>
+        <Box
+          p={5}
+          shadow="lg"
+          borderWidth="1px"
+          borderRadius="md"
+          background="white"
         >
-          {links.length > 0 ? (
-            links.map((link, index) => (
-              <LinkCard
-                key={index}
-                linkItem={link}
-                stopSharing={deleteLink}
-                clickLink={clickLink}
-              />
-            ))
-          ) : (
-            <Text>No shared links available</Text>
-          )}
-        </SimpleGrid>
-      </Box>
-    </Collapse>
-  </>
-);
+          <SimpleGrid
+            spacing={6}
+            templateColumns="repeat(auto-fill, minmax(300px, 1fr))"
+          >
+            {links.length > 0 ? (
+              links.map((link, index) => (
+                <LinkCard
+                  key={index}
+                  linkItem={link}
+                  stopSharing={deleteLink}
+                  clickLink={clickLink}
+                />
+              ))
+            ) : (
+              <Text>No shared links available</Text>
+            )}
+          </SimpleGrid>
+        </Box>
+      </Collapse>
+    </>
+  );
 };
 
 const LinkCard = ({ linkItem, stopSharing, clickLink }) => {
-const { fileName, filePath, link, token } = linkItem;
+  const { fileName, filePath, link, token } = linkItem;
 
-return (
-  <Card shadow="md" borderWidth="1px" borderRadius="lg" p={4}>
-    <CardHeader fontWeight="bold" fontSize="lg" mb={2}>
-      {fileName}
-    </CardHeader>
+  return (
+    <Card shadow="md" borderWidth="1px" borderRadius="lg" p={4}>
+      <CardHeader fontWeight="bold" fontSize="lg" mb={2}>
+        {fileName}
+      </CardHeader>
 
-    <CardBody>
-      <Stack spacing={3}>
-        <Text fontSize="sm" color="gray.600">
-          Path: {filePath}
-        </Text>
+      <CardBody>
+        <Stack spacing={3}>
+          <Text fontSize="sm" color="gray.600">
+            Path: {filePath}
+          </Text>
 
-        {/* Clickable Link */}
-        <Text
-          color="blue.500"
-          cursor="pointer"
-          onClick={() => clickLink(link)}
-          textDecoration="underline"
-        >
-          {link}
-        </Text>
+          {/* Clickable Link */}
+          <Text
+            color="blue.500"
+            cursor="pointer"
+            onClick={() => clickLink(link, fileName)}
+            textDecoration="underline"
+          >
+            {link}
+          </Text>
 
-        <Box>
-          {/* Button to stop sharing */}
-          <IconButton
-            aria-label="Stop Sharing"
-            icon={<FiTrash />}
-            size="sm"
-            colorScheme="red"
-            onClick={() => stopSharing(token)}
-            mt={2}
-          />
-        </Box>
-      </Stack>
-    </CardBody>
-  </Card>
-);
+          <Box>
+            {/* Button to stop sharing */}
+            <IconButton
+              aria-label="Stop Sharing"
+              icon={<FiTrash />}
+              size="sm"
+              colorScheme="red"
+              onClick={() => stopSharing(token)}
+              mt={2}
+            />
+          </Box>
+        </Stack>
+      </CardBody>
+    </Card>
+  );
 };
 
 export default SharedLinks;

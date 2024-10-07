@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const multer = require("multer");
 const net = require('net');
+const { send } = require("process");
 module.exports = () => {
 
   const sftp_create_folder_post = async (req, res) => {
@@ -261,8 +262,9 @@ module.exports = () => {
   const sftp_delete_server__json_post = async (req, res, next) => {
     const { serverId } = req.body;
     try {
+      console.log('del serv '+serverId)
       await SftpServer.findByIdAndDelete(serverId);
-      res.status(200);
+      res.status(200).send('server dlelered');
     } catch (error) {
       return next(error);
     }

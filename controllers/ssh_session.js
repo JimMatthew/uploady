@@ -6,7 +6,6 @@ const ssh_session = (socket) => {
 
   socket.on("message", async (message) => {
     const { event, serverId, data } = JSON.parse(message)
-    console.log('in server ssh sess')
 
     if (event === "startSession") {
       const serverInfo = await SftpServer.findById(serverId)
