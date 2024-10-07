@@ -414,6 +414,55 @@ module.exports = () => {
     }
   };
 
+  const sftp_delete_file_json_post = async (req, res, next) => {
+    const { serverId, currentDirectory, fileName } = req.body;
+    if (serverId && currentDirectory && fileName) {
+      const fullPath = path.join(currentDirectory, fileName);
+      console.log('sid: '+serverId)
+      console.log('fp: '+fullPath)
+      const server = await SftpServer.findById(serverId);
+      if (!server) {
+        return res.status(404).send("server not found");
+      }
+      const { host, username, password } = server;
+      const sftp = new SftpClient();
+      try {
+        await sftp.connect({
+          host,
+          username,
+          password,
+        });
+        await sftp.delete(fullPath);
+        return res.status(200).send("File Deleted");
+      } catch (error) {
+        return next(error);
+      }
+    }
+    return res.status(404).send("server not found")
+  };
+
+  const sftp_delete_folder_json_post = async (req, res, next) => {
+    const { serverId, currentDirectory, deleteDir } = req.body;
+    const fullPath = path.join(currentDirectory, deleteDir);
+    const server = await SftpServer.findById(serverId);
+    if (!server) {
+      return res.status(404).send("server not found");
+    }
+    const { host, username, password } = server;
+    const sftp = new SftpClient();
+    try {
+      await sftp.connect({
+        host,
+        username,
+        password,
+      });
+      await sftp.rmdir(fullPath);
+      res.status(200)
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   const sftp_delete_folder_post = async (req, res, next) => {
     const { serverId, currentDirectory, deleteDir } = req.body;
     const fullPath = path.join(currentDirectory, deleteDir);
@@ -465,6 +514,8 @@ module.exports = () => {
     sftp_servers_json_get,
     sftp_id_list_files_json_get,
     sftp_delete_server__json_post,
-    sftp_save_server_json_post
+    sftp_save_server_json_post,
+    sftp_delete_file_json_post,
+    sftp_delete_folder_json_post
   };
 };

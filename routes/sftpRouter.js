@@ -72,12 +72,24 @@ module.exports = function (isAuthenticated) {
   router.post(
     "/delete-file",
     isAuthenticated,
-    sftpController.sftp_delete_file_post
+    sftpController.sftp_delete_file_json_post
+  );
+
+  router.post(
+    "/api/delete-file",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_delete_file_json_post
   );
 
   router.post(
     "/delete-folder",
     isAuthenticated,
+    sftpController.sftp_delete_folder_post
+  );
+
+  router.post(
+    "/api/delete-folder",
+    passport.authenticate("jwt", { session: false }),
     sftpController.sftp_delete_folder_post
   );
 

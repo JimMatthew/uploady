@@ -14,15 +14,25 @@ const sshController = require("./controllers/sshController");
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 const jwt = require('jsonwebtoken')
+const WebSocket = require('ws')
+const sshSessionHandler = require('./controllers/ssh_session')
 const users = [
   { id: 1, username: "admin", passwordHash: bcrypt.hashSync("123", 10) },
 ];
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+//const io = socketIO(server);
+const cors = require('cors');
+const { hostname } = require("os");
 
-io.on("connection", sshController);
+// Allow all origins for now (you can restrict this to specific origins)
+app.use(cors())
+//io.on("connection", sshController);
+const wss = new WebSocket.Server({ server })
+wss.on('connection', (socket) => {
+  sshSessionHandler(socket)
+})
 
 mongoose.set("strictPopulate", false);
 const mongoDB = "mongodb://192.168.1.237:27017/myapp";
@@ -41,11 +51,7 @@ app.use(
     saveUninitialized: true,
   })
 );
-const cors = require('cors');
-const { hostname } = require("os");
 
-// Allow all origins for now (you can restrict this to specific origins)
-app.use(cors())
 app.use(passport.initialize());
 app.use(passport.session());
 // view engine setup
