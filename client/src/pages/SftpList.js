@@ -14,7 +14,8 @@ import {
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
-const SFTPApp = ({toast}) => {
+import SftpController from "../controllers/SftpController";
+const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
@@ -84,38 +85,6 @@ const SFTPApp = ({toast}) => {
     }
   };
 
-  const deleteFile = async (filename) => {
-    const cd = files.currentDirectory ? files.currentDirectory : "/";
-    const response = await fetch("/sftp/api/delete-file", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-
-      body: JSON.stringify({
-        currentDirectory: cd,
-        serverId: selectedServer,
-        fileName: filename,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Deleting File",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    changeDirectory(files.currentDirectory);
-    toast({
-      title: "File Deleted.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
   const handleListDirectory = async (directory) => {
     try {
       const curPath = files ? files.currentDirectory : "";
@@ -150,7 +119,7 @@ const SFTPApp = ({toast}) => {
           },
         }
       );
-      if (!response.ok){
+      if (!response.ok) {
         toast({
           title: "Error Listing Directory",
           status: "error",
@@ -158,7 +127,7 @@ const SFTPApp = ({toast}) => {
           isClosable: true,
         });
         return;
-      } 
+      }
       const data = await response.json();
       setFiles(data);
     } catch (error) {
@@ -193,28 +162,6 @@ const SFTPApp = ({toast}) => {
       });
     }
     changeDirectory(files.currentDirectory);
-    
-  
-  }
-
-  const downloadFile = (filename) => {
-    const curPath = files ? files.currentDirectory : "";
-    fetch(`/sftp/api/download/${selectedServer}/${curPath}/${filename}`, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Add your token
-      },
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
   };
 
   const fetchFiles = () => {
@@ -327,20 +274,19 @@ const SFTPApp = ({toast}) => {
           <Heading size="lg">Server Manager</Heading>
           {selectedServer ? (
             view === "files" ? (
-              <Box> 
+              <Box>
                 <Heading size="lg">Connected to: {files.host}</Heading>
                 <SftpFileFolderView
-                files={files.files}
-                folders={files.folders}
-                onFolderClick={(folderName) => handleListDirectory(folderName)}
-                onDownload={(filename) => downloadFile(filename)}
-                currentDirectory={files.currentDirectory}
-                changeDir={(dir) => changeDirectory(dir)}
-                serverId={selectedServer}
-                onDelete={deleteFile}
-              />
+                  files={files.files}
+                  folders={files.folders}
+                  onFolderClick={(folderName) =>
+                    handleListDirectory(folderName)
+                  }
+                  currentDirectory={files.currentDirectory}
+                  changeDir={(dir) => changeDirectory(dir)}
+                  serverId={selectedServer}
+                />
               </Box>
-              
             ) : (
               <Box>
                 <SshConsole serverId={selectedServer} />

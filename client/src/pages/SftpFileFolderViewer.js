@@ -17,11 +17,10 @@ import {
 } from "react-icons/fa";
 import Breadcrumbs from "./Breadcrumbs";
 import Upload from "./Upload";
+import SftpController from "../controllers/SftpController";
 const FileFolderViewer = ({
   files,
   folders,
-  onDownload,
-  onDelete,
   onShare,
   onFolderClick,
   currentDirectory,
@@ -31,6 +30,7 @@ const FileFolderViewer = ({
 }) => {
   const [file, setFile] = useState(null);
   const token = localStorage.getItem("token");
+  const { deleteSftpFile,downloadSftpFile  } = SftpController({toast})
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
@@ -163,7 +163,7 @@ const FileFolderViewer = ({
                       size="sm"
                       aria-label="Download File"
                       icon={<FaDownload />}
-                      onClick={() => onDownload(file.name)}
+                      onClick={() => downloadSftpFile(file.name, serverId, currentDirectory)}
                     />
                     <IconButton
                       size="sm"
@@ -175,7 +175,7 @@ const FileFolderViewer = ({
                       size="sm"
                       aria-label="Delete File"
                       icon={<FaTrash />}
-                      onClick={() => onDelete(file.name)}
+                      onClick={() => deleteSftpFile(file.name, serverId, currentDirectory,changeDir)}
                     />
                   </HStack>
                 </Stack>

@@ -15,102 +15,11 @@ import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
 import fileController from "../controllers/fileController";
 const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
-  const { files, folders, breadcrumb, currentPath, user, relativePath } = data;
+  const { files, folders, currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
-  const { handleFileDownload, handleFileDelete } = fileController({toast, onRefresh})
+  const { handleFileDownload, handleFileDelete, handleFileShareLink, handleDeleteFolder } = fileController({toast, onRefresh})
   const rp = "/" + relativePath;
   const direction = useBreakpointValue({ base: "column", md: "row" });
-  const handleShareLink = (fileName) => {
-    fetch(`/api/share`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ fileName, filePath: rp }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        onRefresh();
-        toast({
-          title: "Link generated.",
-          description: `Share link created for ${fileName}`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: `Failed to generate link for ${fileName}`,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
-  const handleDelete = (fileName) => {
-    fetch(`/api/delete/${rp}/${fileName}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ fileName: fileName }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        onRefresh(relativePath);
-        toast({
-          title: "File Deleted.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
-  const handleDeleteFolder = (folderName) => {
-    fetch(`/api/delete-folder`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        folderName: folderName,
-        folderPath: relativePath,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        onRefresh(relativePath);
-        toast({
-          title: "File Deleted.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
 
   return (
     <Box>
@@ -131,7 +40,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
         {/* Stack for Folder and File Cards */}
         <VStack spacing={4}>
           {/* Folders */}
-          {folders.map((folder, index) => (
+          {folders && folders.map((folder, index) => (
             <Box
               key={index}
               w="100%"
@@ -153,7 +62,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
                 </Text>
                 <Button
                   size="sm"
-                  onClick={() => fileController.handleDeleteFolder(folder.name)}
+                  onClick={() => handleDeleteFolder(folder.name, rp)}
                 >
                   Delete
                 </Button>
@@ -162,7 +71,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
           ))}
 
           {/* Files */}
-          {files.map((file, index) => (
+          {files && files.map((file, index) => (
             <Box
               key={index}
               w="100%"
@@ -189,7 +98,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
                   <Button size="sm" onClick={() => handleFileDownload(file.name, rp)}>
                     Download
                   </Button>
-                  <Button size="sm" onClick={() => handleShareLink(file.name)}>
+                  <Button size="sm" onClick={() => handleFileShareLink(file.name, rp)}>
                     Share
                   </Button>
                   <Button size="sm" onClick={() => handleFileDelete(file.name, rp)}>
