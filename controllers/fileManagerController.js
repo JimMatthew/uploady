@@ -9,7 +9,7 @@ module.exports = (configStoreType) => {
   const sharedLinks = new Map();
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
-  const domain = "uploady.lan"
+  const domain = "uploady.lan";
 
   /*
     upload files to directory
@@ -55,7 +55,7 @@ module.exports = (configStoreType) => {
     const relativeFilePath = req.body.filePath || ""; // Pass full relative path from client
     const fileName = req.body.fileName;
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
-    console.log(relativeFilePath)
+    console.log(relativeFilePath);
     if (!fs.existsSync(absoluteFilePath)) {
       const err = new Error("File not found");
       err.status = 404;
@@ -83,7 +83,7 @@ module.exports = (configStoreType) => {
 
     if (!fs.existsSync(absoluteFilePath)) {
       return res.status(400).json({
-        error: 'File not found',
+        error: "File not found",
       });
     }
     const relPathName = path.join(relativeFilePath, fileName);
@@ -202,7 +202,7 @@ module.exports = (configStoreType) => {
       path.join(uploadsDir, relativePath)
     );
     const breadcrumb = generateBreadcrumbs(currentPath);
-  
+
     return { files, folders, breadcrumb, currentPath, relativePath };
   };
   /*
@@ -210,32 +210,31 @@ module.exports = (configStoreType) => {
     current path
   */
 
-    const list_directory_json_get = (req, res) => {
-      const relativePath = req.params[0] || "";
-      try {
-        const data = getDirectoryData(relativePath);
-        res.json({ ...data, user: req.user });
-      } catch (error) {
-        res.status(500).json({
-          error: "Failed to list directory contents",
-          message: error.message,
-        });
-      }
-    };
-    
-    const list_directory_view_get = (req, res) => {
-      const relativePath = req.params[0] || "";
-      try {
-        const data = getDirectoryData(relativePath);
-        res.render("files", { ...data, user: req.user });
-      } catch (error) {
-        res.status(500).render("error", {
-          message: "Failed to list directory contents",
-          error: error.message,
-        });
-      }
-    };
+  const list_directory_json_get = (req, res) => {
+    const relativePath = req.params[0] || "";
+    try {
+      const data = getDirectoryData(relativePath);
+      res.json({ ...data, user: req.user });
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to list directory contents",
+        message: error.message,
+      });
+    }
+  };
 
+  const list_directory_view_get = (req, res) => {
+    const relativePath = req.params[0] || "";
+    try {
+      const data = getDirectoryData(relativePath);
+      res.render("files", { ...data, user: req.user });
+    } catch (error) {
+      res.status(500).render("error", {
+        message: "Failed to list directory contents",
+        error: error.message,
+      });
+    }
+  };
 
   /*
     Obtains the file and folder info for dirPath
@@ -293,8 +292,8 @@ module.exports = (configStoreType) => {
   const file_links_json_get = async (req, res) => {
     const links = await SharedFile.find();
 
-    res.json({ links })
-  }
+    res.json({ links });
+  };
 
   /*
     Store file info for shared file
@@ -339,20 +338,20 @@ module.exports = (configStoreType) => {
   };
 
   const stop_sharing_json_post = async (req, res) => {
-    const token = req.body.token
-    console.log('deltoken: '+token)
+    const token = req.body.token;
+    console.log("deltoken: " + token);
     await SharedFile.deleteOne({ token });
     res.status(200).json({
       message: "link deleted",
     });
-  }
+  };
 
   const delete_file_post = async (req, res, next) => {
     const relativeFilePath = req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
     const fileName = path.basename(filePath);
-    console.log('rp: '+relativeFilePath)
-    console.log('fp: '+filePath)
+    console.log("rp: " + relativeFilePath);
+    console.log("fp: " + filePath);
     fs.unlink(filePath, (err) => {
       if (err) {
         const err = new Error("Unable to delete file");
@@ -370,22 +369,23 @@ module.exports = (configStoreType) => {
       case ConfigStoreType.DATABASE:
         const fullPath = path.join(filePath, fileName);
         await SharedFile.findOneAndDelete({ filePath, fileName });
-        
+
         res.redirect("/files");
     }
-    
-    
   };
 
   const delete_file_jspn_post = async (req, res, next) => {
-    const relativeFilePath = '/'+req.params[0];
+    const relativeFilePath = "/" + req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
     const fileName = path.basename(filePath);
-    console.log('rp: '+relativeFilePath)
-    console.log('fp: '+filePath)
+    console.log("rp: " + relativeFilePath);
+    console.log("fp: " + filePath);
     fs.unlink(filePath, (err) => {
       if (err) {
-        throw err
+        res.status(400).json({
+          message: "file deleted",
+        });
+        return;
       }
     });
     switch (configStoreType) {
@@ -401,10 +401,7 @@ module.exports = (configStoreType) => {
         res.status(200).json({
           message: "file deleted",
         });
-
     }
-    
-    
   };
 
   const download_file_get = (req, res, next) => {
@@ -448,7 +445,7 @@ module.exports = (configStoreType) => {
       createFolder(fullPath, folderName);
       res.status(200).json({
         message: "file created",
-      }); 
+      });
     } catch (err) {
       return next(err);
     }
@@ -471,6 +468,6 @@ module.exports = (configStoreType) => {
     stop_sharing_json_post,
     delete_file_jspn_post,
     create_folder_json_post,
-    delete_folder_json_post
+    delete_folder_json_post,
   };
 };

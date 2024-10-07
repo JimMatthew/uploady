@@ -13,11 +13,11 @@ import {
 import CreateFolder from "./CreateFolder";
 import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
-import { handleFileDownload } from "../controllers/fileController";
+import fileController from "../controllers/fileController";
 const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
   const { files, folders, breadcrumb, currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
-
+  const { handleFileDownload, handleFileDelete } = fileController({toast, onRefresh})
   const rp = "/" + relativePath;
   const direction = useBreakpointValue({ base: "column", md: "row" });
   const handleShareLink = (fileName) => {
@@ -51,25 +51,6 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
       });
   };
 
-  const handleDownload = (fileName) => {
-    fetch(`/api/download/${rp}/${fileName}`, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Add your token
-      },
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
-  };
-  
   const handleDelete = (fileName) => {
     fetch(`/api/delete/${rp}/${fileName}`, {
       method: "POST",
@@ -172,7 +153,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
                 </Text>
                 <Button
                   size="sm"
-                  onClick={() => handleDeleteFolder(folder.name)}
+                  onClick={() => fileController.handleDeleteFolder(folder.name)}
                 >
                   Delete
                 </Button>
@@ -211,7 +192,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
                   <Button size="sm" onClick={() => handleShareLink(file.name)}>
                     Share
                   </Button>
-                  <Button size="sm" onClick={() => handleDelete(file.name)}>
+                  <Button size="sm" onClick={() => handleFileDelete(file.name, rp)}>
                     Delete
                   </Button>
                 </Stack>
