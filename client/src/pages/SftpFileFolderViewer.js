@@ -7,8 +7,8 @@ import {
   Stack,
   Heading,
   HStack,
-  Input, 
-  Button
+  Input,
+  Button,
 } from "@chakra-ui/react";
 import {
   FaFolder,
@@ -20,6 +20,7 @@ import {
 import Breadcrumbs from "./Breadcrumbs";
 import Upload from "./Upload";
 import SftpController from "../controllers/SftpController";
+import CreateSftpFolder from "./CreateSftpFolder";
 const FileFolderViewer = ({
   files,
   folders,
@@ -33,12 +34,16 @@ const FileFolderViewer = ({
   const [file, setFile] = useState(null);
   const [folderName, setFolderName] = useState("");
   const token = localStorage.getItem("token");
-  const { deleteSftpFile,downloadSftpFile, deleteSftpFolder, createSftpFolder  } = SftpController({toast})
+  const {
+    deleteSftpFile,
+    downloadSftpFile,
+    deleteSftpFolder,
+    createSftpFolder,
+  } = SftpController({ toast });
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
-  
   const generateBreadcrumbs = (path) => {
     const breadcrumbs = [];
     let currentPath = ``;
@@ -78,15 +83,6 @@ const FileFolderViewer = ({
 
       if (response.ok) {
         changeDir(currentDirectory);
-        /*
-        toast({
-          title: "File Uploaded",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        */
-        //refreshPath(relativePath);
       } else {
         alert("File upload failed");
       }
@@ -99,14 +95,20 @@ const FileFolderViewer = ({
     <Box p={4}>
       {/* Heading */}
       <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit} />
+
       <Heading size="md" mb={6}>
         Files and Folders
       </Heading>
       <Box>
-      
+        <CreateSftpFolder
+          onFolderCreated={changeDir}
+          serverId={serverId}
+          currentDirectory={currentDirectory}
+          toast={toast}
+          sftpCreateFolderOnSubmit={(folder) => createSftpFolder(folder, serverId, currentDirectory, changeDir)}
+        />
       </Box>
       <Text>
-      
         <Breadcrumbs
           breadcrumb={generateBreadcrumbs(currentDirectory || "/")}
           onClick={changeDir}
@@ -135,11 +137,18 @@ const FileFolderViewer = ({
                   <FaFolder size={24} />
                   <Text fontWeight="bold">{folder.name}</Text>
                   <IconButton
-                      size="sm"
-                      aria-label="Delete File"
-                      icon={<FaTrash />}
-                      onClick={() => deleteSftpFolder(folder.name, serverId, currentDirectory, changeDir)}
-                    />
+                    size="sm"
+                    aria-label="Delete File"
+                    icon={<FaTrash />}
+                    onClick={() =>
+                      deleteSftpFolder(
+                        folder.name,
+                        serverId,
+                        currentDirectory,
+                        changeDir
+                      )
+                    }
+                  />
                 </HStack>
               </Box>
             ))}
@@ -178,7 +187,9 @@ const FileFolderViewer = ({
                       size="sm"
                       aria-label="Download File"
                       icon={<FaDownload />}
-                      onClick={() => downloadSftpFile(file.name, serverId, currentDirectory)}
+                      onClick={() =>
+                        downloadSftpFile(file.name, serverId, currentDirectory)
+                      }
                     />
                     <IconButton
                       size="sm"
@@ -190,7 +201,14 @@ const FileFolderViewer = ({
                       size="sm"
                       aria-label="Delete File"
                       icon={<FaTrash />}
-                      onClick={() => deleteSftpFile(file.name, serverId, currentDirectory,changeDir)}
+                      onClick={() =>
+                        deleteSftpFile(
+                          file.name,
+                          serverId,
+                          currentDirectory,
+                          changeDir
+                        )
+                      }
                     />
                   </HStack>
                 </Stack>

@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const multer = require("multer");
 const net = require('net');
-const { send } = require("process");
+
 module.exports = () => {
 
   const sftp_create_folder_post = async (req, res) => {
@@ -46,7 +46,7 @@ module.exports = () => {
     } finally {
       await sftp.end();
     }
-    return res.status(200).send("Folder Created");;
+    return res.status(200).send("Folder created");
   };
 
   const sftp_stream_download_get = async (req, res, next) => {
