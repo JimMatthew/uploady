@@ -1,14 +1,10 @@
 import React, { useState } from "react";
-import { Button, Input } from "@chakra-ui/react";
+import { Button, Input, Box, HStack } from "@chakra-ui/react";
 const CreateSftpFolder = ({
-  onFolderCreated,
-  serverId,
      sftpCreateFolderOnSubmit,
-  currentDirectory,
-  toast,
 }) => {
   const [folderName, setFolderName] = useState("");
-  const cd = currentDirectory ? currentDirectory : "/";
+  
   const handleInputChange = (e) => {
     setFolderName(e.target.value);
   };
@@ -22,53 +18,43 @@ const CreateSftpFolder = ({
     }
 
     sftpCreateFolderOnSubmit(folderName)
-    return
-    const response = await fetch("/sftp/api/create-folder", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-            currentPath: cd,
-            serverId: serverId,
-            folderName: folderName,
-        }),
-      });
-      if (!response.ok) {
-        toast({
-          title: "Error Creating Folder",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-      onFolderCreated(cd);
-      toast({
-        title: "Foldery Created.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-    //setFolderName("");
+    setFolderName('')
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      p={4}
+      boxShadow="md"
+      borderRadius="md"
+      bg="gray.50"
+      maxW="400px"
+      mx="auto"
+      mt={6}
+    >
+      <HStack spacing={4}>
         <Input
           size="sm"
-          type="text"
+          variant="filled"
           placeholder="Enter folder name"
           value={folderName}
           onChange={handleInputChange}
+          focusBorderColor="blue.400"
+          borderRadius="md"
+          bg="white"
         />
-        <Button size="sm" type="submit">
-          Create Folder
+        <Button
+          size="sm"
+          type="submit"
+          colorScheme="blue"
+          borderRadius="md"
+          px={6}
+        >
+          Create
         </Button>
-      </form>
-    </div>
+      </HStack>
+    </Box>
   );
 };
 

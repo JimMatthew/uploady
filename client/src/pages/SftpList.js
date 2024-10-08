@@ -181,7 +181,7 @@ const SFTPApp = ({ toast }) => {
   if (loading || !sftpServers) return <div>Loading...</div>;
 
   return (
-    <Flex minHeight="50vh" direction="column">
+    <Flex minHeight="100%" direction="column">
       {/* "Show" button (for mobile) */}
       {!isDesktop && !showSidebar && (
         <Box width="100%" mb={2} textAlign="center">
@@ -229,17 +229,20 @@ const SFTPApp = ({ toast }) => {
                       >
                         <Button
                           colorScheme="green"
+                          size="sm"
                           onClick={() => handleConnect(server._id)}
                         >
                           SFTP
                         </Button>
                         <Button
+                        size="sm"
                           colorScheme="blue"
                           onClick={() => handleSshLaunch(server._id)}
                         >
                           SSH
                         </Button>
                         <Button
+                        size="sm"
                           colorScheme="red"
                           onClick={() => deleteServer(server._id)}
                         >

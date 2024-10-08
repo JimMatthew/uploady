@@ -32,7 +32,6 @@ const FileFolderViewer = ({
   toast,
 }) => {
   const [file, setFile] = useState(null);
-  const [folderName, setFolderName] = useState("");
   const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
@@ -101,11 +100,10 @@ const FileFolderViewer = ({
       </Heading>
       <Box>
         <CreateSftpFolder
-          onFolderCreated={changeDir}
-          serverId={serverId}
+          sftpCreateFolderOnSubmit={(folder) =>
+            createSftpFolder(folder, serverId, currentDirectory, changeDir)
+          }
           currentDirectory={currentDirectory}
-          toast={toast}
-          sftpCreateFolderOnSubmit={(folder) => createSftpFolder(folder, serverId, currentDirectory, changeDir)}
         />
       </Box>
       <Text>
