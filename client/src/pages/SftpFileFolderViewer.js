@@ -7,95 +7,38 @@ import {
   Stack,
   Heading,
   HStack,
-  Spinner
- 
+  Spinner,
 } from "@chakra-ui/react";
-import {
-  FaFolder,
-  FaFile,
-  FaDownload,
-  FaTrash,
-} from "react-icons/fa";
+import { FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 import Breadcrumbs from "./Breadcrumbs";
 import Upload from "./Upload";
 import SftpController from "../controllers/SftpController";
 import CreateSftpFolder from "./CreateSftpFolder";
-const FileFolderViewer = ({
-  serverId,
-  toast,
-}) => {
+const FileFolderViewer = ({ serverId, toast }) => {
   const [file, setFile] = useState(null);
   const [files, setFiles] = useState([]);
-  const [selectedServer, setSelectedServer] = useState(null);
-  const [loading, setLoading] = useState(true)
-  const [connected, setConnected] = useState(false)
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
   const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
     downloadSftpFile,
     deleteSftpFolder,
     createSftpFolder,
-    generateBreadcrumb
-  } = SftpController({ toast });
+    generateBreadcrumb,
+    changeSftpDirectory,
+    handleUpload,
+  } = SftpController({ toast, setFiles });
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
-  const generateBreadcrumbs = (path) => {
-    const breadcrumbs = [];
-    let currentPath = ``;
-    const pathParts = path.split("/").filter(Boolean);
-    pathParts.forEach((part, index) => {
-      currentPath += `/${part}`;
-      breadcrumbs.push({
-        name: part,
-        path: currentPath,
-      });
-    });
-    breadcrumbs.unshift({ name: "Home", path: `/` });
-    return breadcrumbs;
-  };
-
-  const handleConnect = async (serverId) => {
-    try {
-      
-      //handleServerClick(serverId);
-      const response = await fetch(`/sftp/api/connect/${serverId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch files");
-      setSelectedServer(serverId);
-      const data = await response.json();
-      console.log(data)
-      setFiles(data);
-      //setView("files");
-      //addTab(server, "SFTP");
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error Connecting ",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-    }
-  };
-  if (!files) {
-    //handleConnect(serverId)
-    
-  }
   useEffect(() => {
     if (!connected) {
-      // Connect only if not already connected
       const connectToServer = async () => {
         try {
-          setLoading(true)
+          setLoading(true);
           const response = await fetch(`/sftp/api/connect/${serverId}/`, {
             method: "GET",
             headers: {
@@ -103,75 +46,19 @@ const FileFolderViewer = ({
               "Content-Type": "application/json",
             },
           });
-          const data = await response.json()
-          setFiles(data) // Set files once connected
-          setConnected(true) // Mark as connected
+          const data = await response.json();
+          setFiles(data);
+          setConnected(true);
         } catch (error) {
-          console.error("Failed to connect to the server:", error)
+          console.error("Failed to connect to the server:", error);
         } finally {
-          setLoading(false)
+          setLoading(false);
         }
-      }
+      };
 
-      connectToServer()
+      connectToServer();
     }
-  }, [serverId, connected])
-  
-  const changeDirectory = async (directory) => {
-    try {
-      const response = await fetch(
-        `/sftp/api/connect/${serverId}//${directory}/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        toast({
-          title: "Error Listing Directory",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-      const data = await response.json();
-      setFiles(data);
-    } catch (error) {
-      toast({
-        title: "Error Listing Directory",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-    }
-  };
-
-  const handleListDirectory = async (directory) => {
-    try {
-      const curPath = files ? files.currentDirectory : "";
-      const response = await fetch(
-        `/sftp/api/connect/${serverId}//${curPath}/${directory}/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch files");
-      const data = await response.json();
-      setFiles(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-    }
-  };
+  }, [serverId, connected]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -180,29 +67,12 @@ const FileFolderViewer = ({
       alert("Please select a file first");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("currentDirectory", files.currentDirectory);
-    formData.append("files", file);
-    formData.append("serverId", serverId);
-
-    try {
-      const response = await fetch("/sftp/api/upload", {
-        headers: {
-          Authorization: `Bearer ${token}`, // Add your token
-        },
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        changeDirectory(files.currentDirectory);
-      } else {
-        alert("File upload failed");
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error);
-    }
+    handleUpload(
+      file,
+      serverId,
+      files.currentDirectory,
+      changeSftpDirectory(serverId, files.currentDirectory)
+    );
   };
   if (loading) {
     return (
@@ -210,11 +80,11 @@ const FileFolderViewer = ({
         <Spinner size="lg" />
         <Text mt={2}>Connecting to the server...</Text>
       </Box>
-    )
+    );
   }
 
   if (!files) {
-    return <Text>No files found or failed to connect to the server.</Text>
+    return <Text>No files found or failed to connect to the server.</Text>;
   }
 
   return (
@@ -228,7 +98,11 @@ const FileFolderViewer = ({
       <Box>
         <CreateSftpFolder
           sftpCreateFolderOnSubmit={(folder) =>
-            createSftpFolder(folder, serverId, files.currentDirectory, changeDirectory)
+            createSftpFolder(
+              folder,
+              serverId,
+              files.currentDirectory,
+            )
           }
           currentDirectory={files.currentDirectory}
         />
@@ -236,7 +110,9 @@ const FileFolderViewer = ({
       <Text>
         <Breadcrumbs
           breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-          onClick={changeDirectory}
+          onClick={(directory) =>
+            changeSftpDirectory(serverId, directory)
+          }
         />
       </Text>
       {/* Folders */}
@@ -256,7 +132,12 @@ const FileFolderViewer = ({
                 borderRadius="md"
                 p={4}
                 _hover={{ bg: "gray.100", cursor: "pointer" }}
-                onClick={() => handleListDirectory(folder.name)}
+                onClick={() =>
+                  changeSftpDirectory(
+                    serverId,
+                    files.currentDirectory + "/" + folder.name,
+                  )
+                }
               >
                 <HStack justify="space-between">
                   <FaFolder size={24} />
@@ -270,7 +151,6 @@ const FileFolderViewer = ({
                         folder.name,
                         serverId,
                         files.currentDirectory,
-                        changeDirectory
                       )
                     }
                   />
@@ -313,10 +193,14 @@ const FileFolderViewer = ({
                       aria-label="Download File"
                       icon={<FaDownload />}
                       onClick={() =>
-                        downloadSftpFile(file.name, serverId, files.currentDirectory)
+                        downloadSftpFile(
+                          file.name,
+                          serverId,
+                          files.currentDirectory
+                        )
                       }
                     />
-                    
+
                     <IconButton
                       size="sm"
                       aria-label="Delete File"
@@ -326,7 +210,6 @@ const FileFolderViewer = ({
                           file.name,
                           serverId,
                           files.currentDirectory,
-                          changeDirectory
                         )
                       }
                     />

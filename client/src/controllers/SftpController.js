@@ -1,10 +1,9 @@
-const SftpController = ({ toast }) => {
+const SftpController = ({ toast, setFiles }) => {
   const token = localStorage.getItem("token");
   const deleteSftpFile = async (
     filename,
     serverId,
     currentDirectory,
-    changeDirectory
   ) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/delete-file", {
@@ -27,7 +26,7 @@ const SftpController = ({ toast }) => {
         isClosable: true,
       });
     }
-    changeDirectory(cd);
+    changeSftpDirectory(serverId, cd);
     toast({
       title: "File Deleted.",
       status: "success",
@@ -40,7 +39,6 @@ const SftpController = ({ toast }) => {
     folder,
     serverId,
     currentDirectory,
-    changeDirectory
   ) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/delete-folder", {
@@ -63,7 +61,7 @@ const SftpController = ({ toast }) => {
         isClosable: true,
       });
     }
-    changeDirectory(cd);
+    changeSftpDirectory(serverId, cd);
     toast({
       title: "Folder Deleted.",
       status: "success",
@@ -76,7 +74,6 @@ const SftpController = ({ toast }) => {
     folder,
     serverId,
     currentDirectory,
-    changeDirectory
   ) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/create-folder", {
@@ -99,7 +96,7 @@ const SftpController = ({ toast }) => {
         isClosable: true,
       });
     }
-    changeDirectory(cd);
+    changeSftpDirectory(serverId, cd);
     toast({
       title: "Folder Created.",
       status: "success",
@@ -142,12 +139,72 @@ const SftpController = ({ toast }) => {
     return breadcrumbs;
   };
 
+  const changeSftpDirectory = async (serverId, directory) => {
+    try {
+      const response = await fetch(
+        `/sftp/api/connect/${serverId}//${directory}/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        toast({
+          title: "Error Listing Directory",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      const data = await response.json();
+      setFiles(data);
+    } catch (error) {
+      toast({
+        title: "Error Listing Directory",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } 
+  };
+
+  const handleUpload = async (file, serverId, currentDirectory) => {
+    const formData = new FormData();
+    formData.append("currentDirectory", currentDirectory);
+    formData.append("files", file);
+    formData.append("serverId", serverId);
+
+    try {
+      const response = await fetch("/sftp/api/upload", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        changeSftpDirectory(serverId, currentDirectory);
+      } else {
+        alert("File upload failed");
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+
   return {
     deleteSftpFile,
     downloadSftpFile,
     deleteSftpFolder,
     createSftpFolder,
-    generateBreadcrumb
+    generateBreadcrumb,
+    changeSftpDirectory,
+    handleUpload
   };
 };
 

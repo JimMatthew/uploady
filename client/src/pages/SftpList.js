@@ -20,12 +20,10 @@ import {
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
-import SftpController from "../controllers/SftpController";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
-  const [files, setFiles] = useState([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [view, setView] = useState("files");
   const [tabs, setTabs] = useState([]);
