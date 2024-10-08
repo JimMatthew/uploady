@@ -11,7 +11,7 @@ const SshConsole = ({ serverId }) => {
 
   useEffect(() => {
     term.current = new Terminal({
-      cols: 120,
+      cols: 100,
       rows: 50,
       cursorBlink: true,
       theme: {
@@ -64,7 +64,7 @@ const SshConsole = ({ serverId }) => {
       <Box
         ref={terminalRef}
         id="terminal"
-        h="900px"
+        h="920px"
         bg="gray.900"
         overflow="hidden"
       />

@@ -10,6 +10,12 @@ import {
   Card,
   Text,
   Heading,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  HStack
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
@@ -20,23 +26,37 @@ const SFTPApp = ({ toast }) => {
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
   const [files, setFiles] = useState([]);
-  const [selectedServer, setSelectedServer] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [view, setView] = useState("files");
-  const handleServerClick = (serverId) => {
-    const server = sftpServers.servers.find((s) => s._id === serverId);
-    setSelectedServer(server);
+  const [tabs, setTabs] = useState([]);
 
-    if (!isDesktop) {
-      setShowSidebar(false);
-    }
+  const addTab = (server, type) => {
+    const newTab = {
+      id: `${server._id}-${type}`,
+      label: `${server.host} - ${type}`,
+    
+      content:
+        type === "SFTP" ? (
+          <SftpFileFolderView 
+          serverId={server._id}
+          toast={toast}
+           />
+        ) : (
+          <SshConsole serverId={server._id} />
+        ),
+    };
+    setTabs((prevTabs) => [...prevTabs, newTab]);
   };
 
-  const handleSshLaunch = (serverId) => {
-    setSelectedServer(serverId);
-    setView("ssh");
+  const closeTab = (indexToRemove) => {
+    setTabs((prevTabs) => prevTabs.filter((_, index) => index !== indexToRemove))
+  }
+
+  const handleSshLaunch = (server) => {
+    addTab(server, "SSH")
   };
   const isDesktop = useBreakpointValue({ base: false, lg: true });
+
   useEffect(() => {
     if (token) {
       fetchFiles();
@@ -45,100 +65,10 @@ const SFTPApp = ({ toast }) => {
     }
   }, [token]);
 
-  const handleDelete = (id) => {
-    console.log("Deleting server:", id);
-  };
-
-  const getAllServerStats = () => {};
-
-  const pingServer = async (serverId) => {
-    const response = fetch(`/sftp/server-status/${serverId}`).then((response) =>
-      response.json()
-    );
-    return response;
-  };
-
-  const handleConnect = async (serverId) => {
-    try {
-      handleServerClick(serverId);
-      const response = await fetch(`/sftp/api/connect/${serverId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch files");
-      setSelectedServer(serverId);
-      const data = await response.json();
-      setFiles(data);
+  
+  const handleConnect = async (server) => {
       setView("files");
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error Connecting ",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-    }
-  };
-
-  const handleListDirectory = async (directory) => {
-    try {
-      const curPath = files ? files.currentDirectory : "";
-      const response = await fetch(
-        `/sftp/api/connect/${selectedServer}//${curPath}/${directory}/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch files");
-      const data = await response.json();
-      setFiles(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-    }
-  };
-
-  const changeDirectory = async (directory) => {
-    try {
-      const response = await fetch(
-        `/sftp/api/connect/${selectedServer}//${directory}/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        toast({
-          title: "Error Listing Directory",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-      const data = await response.json();
-      setFiles(data);
-    } catch (error) {
-      toast({
-        title: "Error Listing Directory",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-    }
+      addTab(server, "SFTP");
   };
 
   const deleteServer = async (serverId) => {
@@ -161,7 +91,6 @@ const SFTPApp = ({ toast }) => {
         isClosable: true,
       });
     }
-    changeDirectory(files.currentDirectory);
   };
 
   const fetchFiles = () => {
@@ -230,19 +159,19 @@ const SFTPApp = ({ toast }) => {
                         <Button
                           colorScheme="green"
                           size="sm"
-                          onClick={() => handleConnect(server._id)}
+                          onClick={() => handleConnect(server)}
                         >
                           SFTP
                         </Button>
                         <Button
-                        size="sm"
+                          size="sm"
                           colorScheme="blue"
-                          onClick={() => handleSshLaunch(server._id)}
+                          onClick={() => handleSshLaunch(server)}
                         >
                           SSH
                         </Button>
                         <Button
-                        size="sm"
+                          size="sm"
                           colorScheme="red"
                           onClick={() => deleteServer(server._id)}
                         >
@@ -274,31 +203,24 @@ const SFTPApp = ({ toast }) => {
           ml={{ base: 0, lg: "30px" }} // Adjust margin for the sidebar on desktop
           transition="margin 0.3s ease"
         >
-          
-          {selectedServer ? (
-            view === "files" ? (
-              <Box>
-                <Heading size="lg">Connected to: {files.host}</Heading>
-                <SftpFileFolderView
-                  files={files.files}
-                  folders={files.folders}
-                  onFolderClick={(folderName) =>
-                    handleListDirectory(folderName)
-                  }
-                  currentDirectory={files.currentDirectory}
-                  changeDir={(dir) => changeDirectory(dir)}
-                  serverId={selectedServer}
-                  toast={toast}
-                />
-              </Box>
-            ) : (
-              <Box>
-                <SshConsole serverId={selectedServer} />
-              </Box>
-            )
-          ) : (
-            <Text>Select a server to connect to.</Text>
-          )}
+          <Tabs>
+            <TabList>
+            {tabs.map((tab, index) => (
+            <HStack key={index} spacing={2}>
+              <Tab>{tab.label}</Tab>
+              <Button size="xs" colorScheme="red" onClick={() => closeTab(index)}>
+                ✕
+              </Button>
+            </HStack>
+          ))}
+            </TabList>
+
+            <TabPanels>
+              {tabs.map((tab) => (
+                <TabPanel key={tab.id}>{tab.content}</TabPanel>
+              ))}
+            </TabPanels>
+          </Tabs>
         </Box>
       </Flex>
     </Flex>

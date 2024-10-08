@@ -21,7 +21,7 @@ const ssh_session = (socket) => {
 
           stream.on("data", (data) => {
             socket.send(JSON.stringify({ event: "output", data: data.toString() }))  // Send SSH output to client
-            stream.setWindow(50,120)
+            stream.setWindow(50,100)
           })
 
           socket.on("message", (message) => {

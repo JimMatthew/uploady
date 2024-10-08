@@ -126,11 +126,28 @@ const SftpController = ({ toast }) => {
       })
       .catch((error) => console.error("Download error:", error));
   };
+
+  const generateBreadcrumb = (path) => {
+    const breadcrumbs = [];
+    let currentPath = ``;
+    const pathParts = path.split("/").filter(Boolean);
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`;
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      });
+    });
+    breadcrumbs.unshift({ name: "Home", path: `/` });
+    return breadcrumbs;
+  };
+
   return {
     deleteSftpFile,
     downloadSftpFile,
     deleteSftpFolder,
     createSftpFolder,
+    generateBreadcrumb
   };
 };
 
