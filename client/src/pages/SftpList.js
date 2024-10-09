@@ -16,6 +16,7 @@ import {
   Tab,
   TabPanel,
   HStack,
+  Input
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
@@ -35,14 +36,16 @@ const SFTPApp = ({ toast }) => {
 
   const addTab = (server, type) => {
     const newTab = {
-      id: `${server._id}-${type}`,
-      label: `${server.host} - ${type}`,
-
+      id: `${server ? server._id : 'new-server'}-${type}`,
+      label: type === "Add Server" ? "Add New Server" : `${server.host} - ${type}`,
+      
       content:
         type === "SFTP" ? (
           <SftpFileFolderView serverId={server._id} toast={toast} />
-        ) : (
+        ) : type === "SSH" ? (
           <SshConsole serverId={server._id} />
+        ) : (
+          <AddServer handleSaveServer={handleSaveServer} />
         ),
     };
     setTabs((prevTabs) => [...prevTabs, newTab]);
@@ -76,8 +79,8 @@ const SFTPApp = ({ toast }) => {
   };
 
 
-  const handleSaveServer = async (e) => {
-    e.preventDefault();
+  const handleSaveServer = async (host, username, password) => {
+    
     const response = await fetch("/sftp/api/save-server", {
       method: "POST",
       headers: {
@@ -85,9 +88,9 @@ const SFTPApp = ({ toast }) => {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify({
-        host: newServerDetails.host,
-        username: newServerDetails.username,
-        password: newServerDetails.password,
+        host: host,
+        username: username,
+        password: password,
       }),
     });
     if (!response.ok) {
@@ -98,7 +101,7 @@ const SFTPApp = ({ toast }) => {
         isClosable: true,
       });
     }
-    
+    fetchFiles()
     toast({
       title: "Server created",
       status: "success",
@@ -121,12 +124,19 @@ const SFTPApp = ({ toast }) => {
     });
     if (!response.ok) {
       toast({
-        title: "Error Deleting File",
+        title: "Error Deleting Server",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
+    fetchFiles()
+    toast({
+      title: "Server Deleted",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleInputChange = (e) => {
@@ -179,8 +189,9 @@ const SFTPApp = ({ toast }) => {
           >
             <VStack spacing={4}>
               <Link to="/app/files">
-                <Button>Go to files</Button>
+                <Button>Go to filess</Button>
               </Link>
+              <Button onClick={() => addTab("new-server", "Add New Server")}>Add New Server</Button>
               {sftpServers.servers.map((server) => (
                 <Card key={server.id}>
                   <CardBody>
@@ -260,7 +271,7 @@ const SFTPApp = ({ toast }) => {
             </TabList>
 
             <TabPanels>
-              {tabs.map((tab) => (
+            {tabs.map((tab) => (
                 <TabPanel key={tab.id}>{tab.content}</TabPanel>
               ))}
             </TabPanels>

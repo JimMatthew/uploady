@@ -262,7 +262,7 @@ module.exports = () => {
     });
     try {
       await newServer.save();
-      res.status(200)
+      res.status(200).send()
     } catch (error) {
       console.log(error);
       return next(error);
