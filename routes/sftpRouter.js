@@ -70,6 +70,12 @@ module.exports = function (isAuthenticated) {
   );
 
   router.post(
+    "/api/save-server",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_save_server_json_post
+  );
+
+  router.post(
     "/delete-server",
     isAuthenticated,
     sftpController.sftp_delete_server_post

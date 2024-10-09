@@ -15,30 +15,32 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-  HStack
+  HStack,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
+import AddServer from "./AddServer";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [view, setView] = useState("files");
   const [tabs, setTabs] = useState([]);
+  const [newServerDetails, setNewServerDetails] = useState({
+    host: "",
+    username: "",
+    password: "",
+  });
 
   const addTab = (server, type) => {
     const newTab = {
       id: `${server._id}-${type}`,
       label: `${server.host} - ${type}`,
-    
+
       content:
         type === "SFTP" ? (
-          <SftpFileFolderView 
-          serverId={server._id}
-          toast={toast}
-           />
+          <SftpFileFolderView serverId={server._id} toast={toast} />
         ) : (
           <SshConsole serverId={server._id} />
         ),
@@ -47,12 +49,18 @@ const SFTPApp = ({ toast }) => {
   };
 
   const closeTab = (indexToRemove) => {
-    setTabs((prevTabs) => prevTabs.filter((_, index) => index !== indexToRemove))
-  }
+    setTabs((prevTabs) =>
+      prevTabs.filter((_, index) => index !== indexToRemove)
+    );
+  };
 
   const handleSshLaunch = (server) => {
-    addTab(server, "SSH")
+    addTab(server, "SSH");
   };
+
+  const handleAddServerLaunch = () => {
+    
+  }
   const isDesktop = useBreakpointValue({ base: false, lg: true });
 
   useEffect(() => {
@@ -63,11 +71,41 @@ const SFTPApp = ({ toast }) => {
     }
   }, [token]);
 
-  
   const handleConnect = async (server) => {
-      setView("files");
-      addTab(server, "SFTP");
+    addTab(server, "SFTP");
   };
+
+
+  const handleSaveServer = async (e) => {
+    e.preventDefault();
+    const response = await fetch("/sftp/api/save-server", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        host: newServerDetails.host,
+        username: newServerDetails.username,
+        password: newServerDetails.password,
+      }),
+    });
+    if (!response.ok) {
+      toast({
+        title: "Error Adding Server",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    
+    toast({
+      title: "Server created",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
 
   const deleteServer = async (serverId) => {
     const response = await fetch("/sftp/api/delete-server", {
@@ -90,6 +128,10 @@ const SFTPApp = ({ toast }) => {
       });
     }
   };
+
+  const handleInputChange = (e) => {
+    setNewServerDetails({ ...newServerDetails, [e.target.name]: e.target.value })
+  }
 
   const fetchFiles = () => {
     setLoading(true);
@@ -128,7 +170,7 @@ const SFTPApp = ({ toast }) => {
             p={4}
             borderRight={{ base: "none", lg: "1px solid" }}
             borderColor="gray.300"
-            minHeight={{ base: "100vh", lg: "auto" }}
+            minHeight={{ base: "100vh", lg: "100%y" }}
             position={{ base: "absolute", lg: "relative" }}
             zIndex={{ base: 10, lg: 1 }}
             top={0}
@@ -203,14 +245,18 @@ const SFTPApp = ({ toast }) => {
         >
           <Tabs>
             <TabList>
-            {tabs.map((tab, index) => (
-            <HStack key={index} spacing={2}>
-              <Tab>{tab.label}</Tab>
-              <Button size="xs" colorScheme="red" onClick={() => closeTab(index)}>
-                ✕
-              </Button>
-            </HStack>
-          ))}
+              {tabs.map((tab, index) => (
+                <HStack key={index} spacing={2}>
+                  <Tab>{tab.label}</Tab>
+                  <Button
+                    size="xs"
+                    colorScheme="red"
+                    onClick={() => closeTab(index)}
+                  >
+                    ✕
+                  </Button>
+                </HStack>
+              ))}
             </TabList>
 
             <TabPanels>

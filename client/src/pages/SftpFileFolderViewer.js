@@ -104,7 +104,6 @@ const FileFolderViewer = ({ serverId, toast }) => {
               files.currentDirectory,
             )
           }
-          currentDirectory={files.currentDirectory}
         />
       </Box>
       <Text>
