@@ -414,6 +414,7 @@ module.exports = () => {
       if (sftp) await sftp.end(); // Ensure connection is always closed
     }
   };
+
   const sftp_delete_file_post = async (req, res, next) => {
     const { serverId, currentDirectory, fileName } = req.body;
     const fullPath = path.join(currentDirectory, fileName);
@@ -482,7 +483,6 @@ module.exports = () => {
       res.status(200).send()
     } catch (error) {
       res.status(400).send()
-      
     }
   };
 

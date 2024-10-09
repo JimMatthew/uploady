@@ -55,7 +55,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
           setLoading(false);
         }
       };
-
+      
       connectToServer();
     }
   }, [serverId, connected]);
