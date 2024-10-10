@@ -63,7 +63,7 @@ module.exports = (configStoreType) => {
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
-    const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
+    const shareLink = `${req.protocol}://${domain}:3001/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
       const err = new Error("This File is already shared");
@@ -88,7 +88,7 @@ module.exports = (configStoreType) => {
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
-    const shareLink = `${req.protocol}://192.168.1.119:3002/${token}/${fileName}`;
+    const shareLink = `${req.protocol}://${domain}:3001/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
       return res.status(400).json({
