@@ -11,6 +11,8 @@ import SftpList from "./pages/SftpList"
 const App = () => {
   const [user, setuser] = useState(null);
   const toast = useToast();
+  let vh = window.innerHeight * 0.01
+  document.documentElement.style.setProperty('--vh', `${vh}px`)
   return (
     <Router>
       <AppLayout username={user}>

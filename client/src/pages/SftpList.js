@@ -17,6 +17,7 @@ import {
   TabPanel,
   HStack,
   Input,
+  Spacer
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
@@ -146,7 +147,7 @@ const SFTPApp = ({ toast }) => {
   if (loading || !sftpServers) return <div>Loading...</div>;
 
   return (
-    <Flex minHeight="100%" direction="column">
+    <Flex flex={1} minHeight="100%" direction="column">
       {/* "Show" button (for mobile) */}
       {!isDesktop && !showSidebar && (
         <Box width="100%" mb={2} textAlign="center">
@@ -166,7 +167,7 @@ const SFTPApp = ({ toast }) => {
             p={4}
             borderRight={{ base: "none", lg: "1px solid" }}
             borderColor="gray.300"
-            minHeight={{ base: "100vh", lg: "100%y" }}
+            minHeight={{ base: "100vh", lg: "100%" }}
             position={{ base: "absolute", lg: "relative" }}
             zIndex={{ base: 10, lg: 1 }}
             top={0}
@@ -175,7 +176,7 @@ const SFTPApp = ({ toast }) => {
           >
             <VStack spacing={4}>
               <Link to="/app/files">
-                <Button>Go to filess</Button>
+                <Button>Go to files</Button>
               </Link>
               <Button onClick={() => addTab("", "Add Server")}>
                 Add New Server
@@ -221,6 +222,7 @@ const SFTPApp = ({ toast }) => {
                   </CardBody>
                 </Card>
               ))}
+              <Spacer/>
             </VStack>
 
             {/* Close button for mobile */}

@@ -4,7 +4,7 @@ import "xterm/css/xterm.css";
 import "../xterm.css";
 import { Box } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
-
+import { FitAddon } from '@xterm/addon-fit';
 const SshConsole = ({ serverId }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
@@ -30,7 +30,8 @@ const SshConsole = ({ serverId }) => {
         white: "#dcdfe4",
       },
     });
-
+    const fitAddon = new FitAddon();
+    term.current.loadAddon(fitAddon);
     const terminalContainer = document.getElementById("terminal");
     term.current.open(terminalRef.current);
     term.current.loadAddon(new WebglAddon());
@@ -41,7 +42,7 @@ const SshConsole = ({ serverId }) => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
     };
     term.current.resize(110, 50);
-
+    fitAddon.fit();
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.event === "output") {

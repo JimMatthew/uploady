@@ -8,9 +8,14 @@ module.exports = function (uploadsDir, isAuthenticated, configStoreType) {
 
   const router = express.Router();
   
-
   router.get(
     "/api/files/*",
+    passport.authenticate("jwt", { session: false }),
+    filemanagerController.list_directory_json_get
+  );
+
+  router.get(
+    "/api//files/*",
     passport.authenticate("jwt", { session: false }),
     filemanagerController.list_directory_json_get
   );
