@@ -60,9 +60,8 @@ const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
       onSubmit={handleSubmit}
       display="flex"
       gap="2"
-      
+      alignItems="center"
       maxW="300px"
-      mx="auto"
       mb="4"
     >
       <Input

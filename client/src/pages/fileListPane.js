@@ -31,19 +31,22 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
     <Box>
       <Box mt={4} borderWidth="1px" borderRadius="lg" p={4}>
         <Heading as="h2" size="md" mb={4}>
-          <VStack  align={"left"}>
-          <CreateFolder
-                onFolderCreated={onRefresh}
-                currentPath={relativePath}
-                toast={toast}
-              />
-            
-            <Breadcrum
-              breadcrumb={data.breadcrumb}
-              onClick={(path) => handleBreadcrumbClick(path)}
-            />
-            
-          </VStack>
+        <Stack
+    direction={{ base: "column", md: "row" }} // VStack on mobile, HStack on desktop
+    justify="space-between" // Spread items apart in row mode
+    align="start" // Align items to the start
+    spacing={4} // Spacing between elements
+  >
+    <Breadcrum
+      breadcrumb={data.breadcrumb}
+      onClick={(path) => handleBreadcrumbClick(path)}
+    />
+    <CreateFolder
+      onFolderCreated={onRefresh}
+      currentPath={relativePath}
+      toast={toast}
+    />
+  </Stack>
         </Heading>
 
         {/* Stack for Folder and File Cards */}
