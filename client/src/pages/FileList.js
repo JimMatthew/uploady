@@ -1,61 +1,67 @@
 import React, { useEffect, useState } from "react";
-import { Box, Flex, Text, Container, Center, useToast } from "@chakra-ui/react";
+import {
+  Box,
+  Container,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import axios from "axios";
 import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
 import { Link } from "react-router-dom";
+import DragAndDropUpload from "./DragDropUpload";
 
-const FileList = ({setUser, toast}) => {
+const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
-  const [fileTrie, setFileTrie] = useState({})
+  const [fileTrie, setFileTrie] = useState({});
   const [currentPath, setCurrentPath] = useState("/files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
-  
+  const isMobile = useBreakpointValue({ base: true, md: false });
   const updateTrie = (path, files, folders) => {
+    setFileData(files);
     setFileTrie((fileTrie) => {
-      const paths = path.split("/").filter(Boolean)
-      let currentNode = { ...fileTrie}
+      const paths = path.split("/").filter(Boolean);
+      let currentNode = { ...fileTrie };
 
-      let node = currentNode
+      let node = currentNode;
       paths.forEach((segment) => {
-        if (!node[segment]) {
-          node[segment] = { files: [], folders: [] }
-        }
-        node = node[segment].folders
-      })
+        if (!node[segment]) node[segment] = { files: [], folders: {} };
+        node = node[segment].folders;
+      });
 
-      node.files = files
-      node.folders = folders.reduce((acc, folder) => {
-        acc[folder.name] = { files: [], folders: {} }
-        return acc
-      }, {})
-      return currentNode
-    })
-  }
+      if (files) node.files = files;
+      if (folders)
+        node.folders = folders.reduce((acc, folder) => {
+          acc[folder.name] = { files: [], folders: {} };
+          return acc;
+        }, {});
+      //console.log(currentNode)
+      return currentNode;
+    });
+  };
 
   const getFolderFromTrie = (path) => {
-    const paths = path.split("/").filter(Boolean)
-    let currentNode = fileTrie
+    const paths = path.split("/").filter(Boolean);
+    let currentNode = fileTrie;
 
     for (const segment of paths) {
       if (!currentNode[segment]) {
-        return null
+        return null; // Folder not found, fetch it
       }
-      currentNode = currentNode[segment].folders
+      currentNode = currentNode[segment].folders;
     }
 
-    return currentNode
-  }
+    return currentNode;
+  };
 
   useEffect(() => {
     if (token) {
       fetchFiles(currentPath);
       if (fileData) {
-        setUser(fileData.user.username)
+        setUser(fileData.user.username);
       }
     } else {
       console.error("No token found");
@@ -63,7 +69,7 @@ const FileList = ({setUser, toast}) => {
   }, [currentPath, token]);
 
   const handleFolderClick = (folderName) => {
-    setCurrentPath((prevPath) => `${prevPath}/${folderName}`); 
+    setCurrentPath((prevPath) => `${prevPath}/${folderName}`);
   };
 
   const handleBreadcrumbClick = (path) => {
@@ -78,7 +84,7 @@ const FileList = ({setUser, toast}) => {
   const fetchLinks = () => {
     fetch("/api/links", {
       headers: {
-        Authorization: `Bearer ${token}`, 
+        Authorization: `Bearer ${token}`,
       },
     })
       .then((res) => res.json())
@@ -90,12 +96,15 @@ const FileList = ({setUser, toast}) => {
       });
   };
 
-  const fetchFiles = (path) => {
+  const fetchFiles = async (path) => {
     setLoading(true);
-    const existingFolder = getFolderFromTrie(path)
+    const existingFolder = getFolderFromTrie(path);
 
     if (existingFolder) {
-      console.log(existingFolder)
+      //console.log(existingFolder)
+      setFileData(existingFolder.files);
+      setLoading(false);
+      //return
     }
     fetch(`/api/${path}/`, {
       method: "GET",
@@ -105,7 +114,9 @@ const FileList = ({setUser, toast}) => {
       },
     })
       .then((res) => res.json())
-      .then((data) => {setFileData(data),updateTrie(path, data.files, data.folders)})
+      .then((data) => {
+        updateTrie(path, data);
+      })
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
@@ -118,10 +129,24 @@ const FileList = ({setUser, toast}) => {
         <button>Go to SFTP Servers</button>
       </Link>
       <Container maxW="container.lg" mt={4}>
-        <FileUpload relativePath={fileData.relativePath} refreshPath={reload} toast={toast} />
-        
+        <Box align="center">
+          {isMobile ? (
+            <FileUpload
+              relativePath={fileData.relativePath}
+              refreshPath={reload}
+              toast={toast}
+            />
+          ) : (
+            <DragAndDropUpload
+              relativePath={fileData.relativePath}
+              refreshPath={reload}
+              toast={toast}
+            />
+          )}
+        </Box>
+
         <SharedLinks onReload={fetchLinks} links={links} />
-        
+
         <Breadcrum
           breadcrumb={fileData.breadcrumb}
           onClick={handleBreadcrumbClick}
@@ -136,7 +161,6 @@ const FileList = ({setUser, toast}) => {
           folders={fileData.folders}
         />
       </Container>
-      
     </div>
   );
 };

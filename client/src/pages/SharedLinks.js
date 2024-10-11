@@ -50,8 +50,7 @@ const SharedLinks = ({ onReload, links }) => {
 
   const clickLink = (link, fileName) => {
     fetch(link, {
-      headers: {
-      },
+      headers: {},
     })
       .then((res) => res.blob())
       .then((blob) => {
@@ -69,14 +68,17 @@ const SharedLinks = ({ onReload, links }) => {
   return (
     <>
       {/* Button to show/hide shared links */}
-      <Button
-        leftIcon={<FiLink />}
-        colorScheme="blue"
-        mb={4}
-        onClick={handleShowLinks}
-      >
-        Show Shared Links
-      </Button>
+      <Box align="center">
+        <Button
+          leftIcon={<FiLink />}
+          colorScheme="blue"
+          mb={4}
+          onClick={handleShowLinks}
+          margin={"5px"}
+        >
+          Show Shared Links
+        </Button>
+      </Box>
 
       {/* Card that slides down when the shared links are shown */}
       <Collapse in={isOpen}>
