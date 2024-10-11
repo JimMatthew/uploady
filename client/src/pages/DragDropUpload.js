@@ -8,25 +8,21 @@ import {
   Text,
   VStack,
   useToast,
-  Center,
 } from "@chakra-ui/react";
 
 const DragAndDropUpload = ({ relativePath, refreshPath }) => {
   const [files, setFiles] = useState([]);
   const token = localStorage.getItem("token");
-  const toast = useToast(); // Chakra toast for notifications
+  const toast = useToast(); 
 
-  // Callback function to handle file drops
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
   }, []);
 
-  // useDropzone hook to configure drag and drop
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
   });
 
-  // Function to handle file upload
   const handleSubmit = async (event) => {
     event.preventDefault();
 

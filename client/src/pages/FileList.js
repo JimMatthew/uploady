@@ -38,7 +38,6 @@ const FileList = ({ setUser, toast }) => {
           acc[folder.name] = { files: [], folders: {} };
           return acc;
         }, {});
-      //console.log(currentNode)
       return currentNode;
     });
   };
@@ -49,11 +48,10 @@ const FileList = ({ setUser, toast }) => {
 
     for (const segment of paths) {
       if (!currentNode[segment]) {
-        return null; // Folder not found, fetch it
+        return null; // Folder not found
       }
       currentNode = currentNode[segment].folders;
     }
-
     return currentNode;
   };
 
@@ -101,10 +99,8 @@ const FileList = ({ setUser, toast }) => {
     const existingFolder = getFolderFromTrie(path);
 
     if (existingFolder) {
-      //console.log(existingFolder)
       setFileData(existingFolder.files);
       setLoading(false);
-      //return
     }
     fetch(`/api/${path}/`, {
       method: "GET",
