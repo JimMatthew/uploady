@@ -9,14 +9,12 @@ import {
   CardBody,
   Card,
   Text,
-  Heading,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
   HStack,
-  Input,
   Spacer
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";

@@ -60,6 +60,7 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
           isClosable: true,
         });
         refreshPath(); // Refresh folder content
+        setFiles([])
       } else {
         toast({
           title: "Upload Failed",

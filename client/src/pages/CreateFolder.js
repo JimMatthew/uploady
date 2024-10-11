@@ -25,8 +25,6 @@ const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
         body: JSON.stringify({ folderName, currentPath }),
       });
 
-      const data = await response.json();
-
       if (response.ok) {
         toast({
           title: "Folder Created",

@@ -4,7 +4,6 @@ import {
   Container,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import axios from "axios";
 import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
