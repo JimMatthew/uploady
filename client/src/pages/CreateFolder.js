@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Input } from "@chakra-ui/react";
+import { Button, Input, Box } from "@chakra-ui/react";
 const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
   const [folderName, setFolderName] = useState("");
 
@@ -32,7 +32,7 @@ const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
           duration: 3000,
           isClosable: true,
         });
-        onFolderCreated(); 
+        onFolderCreated();
       } else {
         toast({
           title: "Error creating folder",
@@ -55,20 +55,28 @@ const CreateFolder = ({ onFolderCreated, currentPath, toast }) => {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <Input
-          size="sm"
-          type="text"
-          placeholder="Enter folder name"
-          value={folderName}
-          onChange={handleInputChange}
-        />
-        <Button size="sm" type="submit">
-          Create Folder
-        </Button>
-      </form>
-    </div>
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      display="flex"
+      gap="2"
+      
+      maxW="300px"
+      mx="auto"
+      mb="4"
+    >
+      <Input
+        size="sm"
+        type="text"
+        placeholder="Folder name"
+        value={folderName}
+        onChange={handleInputChange}
+        flex="1"
+      />
+      <Button size="sm" type="submit" colorScheme="blue">
+        Create
+      </Button>
+    </Box>
   );
 };
 

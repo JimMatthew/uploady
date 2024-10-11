@@ -14,7 +14,8 @@ import CreateFolder from "./CreateFolder";
 import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
 import fileController from "../controllers/fileController";
-const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders }) => {
+import Breadcrum from "./Breadcrumbs";
+const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, handleBreadcrumbClick }) => {
   const {  currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
   const {
@@ -30,16 +31,19 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders }) 
     <Box>
       <Box mt={4} borderWidth="1px" borderRadius="lg" p={4}>
         <Heading as="h2" size="md" mb={4}>
-          <HStack justify={"space-between"}>
-            <Text>Contents of {currentPath}</Text>
-            <Box>
-              <CreateFolder
+          <VStack  align={"left"}>
+          <CreateFolder
                 onFolderCreated={onRefresh}
                 currentPath={relativePath}
                 toast={toast}
               />
-            </Box>
-          </HStack>
+            
+            <Breadcrum
+              breadcrumb={data.breadcrumb}
+              onClick={(path) => handleBreadcrumbClick(path)}
+            />
+            
+          </VStack>
         </Heading>
 
         {/* Stack for Folder and File Cards */}

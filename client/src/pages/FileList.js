@@ -4,7 +4,6 @@ import {
   Container,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import Breadcrum from "./Breadcrumbs";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
@@ -142,11 +141,6 @@ const FileList = ({ setUser, toast }) => {
 
         <SharedLinks onReload={fetchLinks} links={links} />
 
-        <Breadcrum
-          breadcrumb={fileData.breadcrumb}
-          onClick={handleBreadcrumbClick}
-        />
-
         <FileListPane
           data={fileData}
           onFolderClick={handleFolderClick}
@@ -154,6 +148,7 @@ const FileList = ({ setUser, toast }) => {
           toast={toast}
           files={fileData.files}
           folders={fileData.folders}
+          handleBreadcrumbClick={handleBreadcrumbClick}
         />
       </Container>
     </div>
