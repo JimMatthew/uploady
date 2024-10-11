@@ -9,11 +9,47 @@ import { Link } from "react-router-dom";
 
 const FileList = ({setUser, toast}) => {
   const [fileData, setFileData] = useState(null);
+  const [fileTrie, setFileTrie] = useState({})
   const [currentPath, setCurrentPath] = useState("/files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
   
+  const updateTrie = (path, files, folders) => {
+    setFileTrie((fileTrie) => {
+      const paths = path.split("/").filter(Boolean)
+      let currentNode = { ...fileTrie}
+
+      let node = currentNode
+      paths.forEach((segment) => {
+        if (!node[segment]) {
+          node[segment] = { files: [], folders: [] }
+        }
+        node = node[segment].folders
+      })
+
+      node.files = files
+      node.folders = folders.reduce((acc, folder) => {
+        acc[folder.name] = { files: [], folders: {} }
+        return acc
+      }, {})
+      return currentNode
+    })
+  }
+
+  const getFolderFromTrie = (path) => {
+    const paths = path.split("/").filter(Boolean)
+    let currentNode = fileTrie
+
+    for (const segment of paths) {
+      if (!currentNode[segment]) {
+        return null
+      }
+      currentNode = currentNode[segment].folders
+    }
+
+    return currentNode
+  }
 
   useEffect(() => {
     if (token) {
@@ -56,6 +92,11 @@ const FileList = ({setUser, toast}) => {
 
   const fetchFiles = (path) => {
     setLoading(true);
+    const existingFolder = getFolderFromTrie(path)
+
+    if (existingFolder) {
+      console.log(existingFolder)
+    }
     fetch(`/api/${path}/`, {
       method: "GET",
       headers: {
@@ -64,7 +105,7 @@ const FileList = ({setUser, toast}) => {
       },
     })
       .then((res) => res.json())
-      .then((data) => setFileData(data))
+      .then((data) => {setFileData(data),updateTrie(path, data.files, data.folders)})
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
@@ -91,6 +132,8 @@ const FileList = ({setUser, toast}) => {
           onFolderClick={handleFolderClick}
           onRefresh={reload}
           toast={toast}
+          files={fileData.files}
+          folders={fileData.folders}
         />
       </Container>
       

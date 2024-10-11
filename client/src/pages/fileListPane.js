@@ -14,8 +14,8 @@ import CreateFolder from "./CreateFolder";
 import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
 import fileController from "../controllers/fileController";
-const FileDisplay = ({ data, onFolderClick, onRefresh, toast }) => {
-  const { files, folders, currentPath, user, relativePath } = data;
+const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders }) => {
+  const {  currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");
   const {
     handleFileDownload,

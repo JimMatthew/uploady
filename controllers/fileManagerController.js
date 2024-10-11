@@ -442,11 +442,13 @@ module.exports = (configStoreType) => {
     const { folderName, currentPath } = req.body;
     try {
       const fullPath = path.join(uploadsDir, currentPath || "");
+      console.log(fullPath)
       createFolder(fullPath, folderName);
       res.status(200).json({
         message: "file created",
       });
     } catch (err) {
+      console.log(err)
       return next(err);
     }
   };
