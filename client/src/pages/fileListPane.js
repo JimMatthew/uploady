@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Heading,
   Text,
   Button,
   HStack,
@@ -112,7 +111,6 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
               </Text>
             </VStack>
   
-            {/* Action Buttons */}
             <Stack direction={{ base: "column", md: "row" }} spacing={2}>
               <Button
                 size="sm"

@@ -88,6 +88,7 @@ const FileList = ({ setUser, toast }) => {
         setLinks(data.links);
       })
       .catch((err) => {
+
         console.error("Error fetching shared links", err);
       });
   };
@@ -95,24 +96,34 @@ const FileList = ({ setUser, toast }) => {
   const fetchFiles = async (path) => {
     setLoading(true);
     const existingFolder = getFolderFromTrie(path);
-
+  
     if (existingFolder) {
       setFileData(existingFolder.files);
       setLoading(false);
     }
-    fetch(`/api/${path}/`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        updateTrie(path, data);
-      })
-      .then(setLoading(false))
-      .catch((err) => console.error("Error fetching files:", err));
+  
+    try {
+      const response = await fetch(`/api/${path}/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+  
+      if (response.status === 401) {
+        navigate('/') 
+        return;
+      }
+  
+      const data = await response.json();
+  
+      updateTrie(path, data);
+    } catch (err) {
+      console.error("Error fetching files:", err);
+    } finally {
+      setLoading(false); 
+    }
   };
   if (loading || !fileData)
     return (
