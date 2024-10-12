@@ -8,10 +8,10 @@ import {
   Button,
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
-import SharedLinks from "./SharedLinks";
-import FileUpload from "./FileUpload";
+import SharedLinks from "../components/SharedLinks";
+import FileUpload from "../components/FileUpload";
 import { Link } from "react-router-dom";
-import DragAndDropUpload from "./DragDropUpload";
+import DragAndDropUpload from "../components/DragDropUpload";
 import { useNavigate } from "react-router-dom";
 
 const FileList = ({ setUser, toast }) => {

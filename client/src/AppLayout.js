@@ -1,6 +1,6 @@
 import { Box, Flex } from "@chakra-ui/react";
-import Footer from './pages/Footer';
-import Header from './pages/Header';
+import Footer from './components/Footer';
+import Header from './components/Header';
 import { Global } from "@emotion/react";
 const AppLayout = ({ children, username }) => {
   return (

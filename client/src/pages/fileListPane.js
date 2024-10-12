@@ -9,11 +9,11 @@ import {
   Icon,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import CreateFolder from "./CreateFolder";
+import CreateFolder from "../components/CreateFolder";
 import { FcFolder } from "react-icons/fc";
 import { FcFile } from "react-icons/fc";
 import fileController from "../controllers/fileController";
-import Breadcrum from "./Breadcrumbs";
+import Breadcrum from "../components/Breadcrumbs";
 const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, handleBreadcrumbClick }) => {
   const {  currentPath, user, relativePath } = data;
   const token = localStorage.getItem("token");

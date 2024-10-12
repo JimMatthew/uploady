@@ -20,7 +20,7 @@ import {
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
-import AddServer from "./AddServer";
+import AddServer from "../components/AddServer";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);

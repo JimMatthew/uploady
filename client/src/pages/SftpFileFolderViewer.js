@@ -10,8 +10,8 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
-import Breadcrumbs from "./Breadcrumbs";
-import Upload from "./Upload";
+import Breadcrumbs from "../components/Breadcrumbs";
+import Upload from "../components/Upload";
 import SftpController from "../controllers/SftpController";
 import CreateSftpFolder from "./CreateSftpFolder";
 const FileFolderViewer = ({ serverId, toast }) => {
