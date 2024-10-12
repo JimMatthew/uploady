@@ -4,15 +4,8 @@ import {
   Text,
   Collapse,
   useDisclosure,
-  Card,
   useToast,
-  CardHeader,
-  CardBody,
-  Stack,
   SimpleGrid,
-  IconButton,
-  Flex,
-  Heading,
 } from "@chakra-ui/react";
 import { FiLink, FiTrash } from "react-icons/fi";
 import LinkCard from "./LinkCard";
@@ -113,7 +106,7 @@ const SharedLinks = ({ onReload, links }) => {
                   linkItem={link}
                   stopSharing={deleteLink}
                   clickLink={clickLink}
-                  copyToClipboard={() => copyToClipboard(link.link)}
+                  copyToClipboard={copyToClipboard}
                 />
               ))
             ) : (
