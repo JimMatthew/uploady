@@ -55,7 +55,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
           setLoading(false);
         }
       };
-      
+
       connectToServer();
     }
   }, [serverId, connected]);
@@ -88,36 +88,44 @@ const FileFolderViewer = ({ serverId, toast }) => {
   }
 
   return (
-    <Box p={4}>
+    <Box
+      p={6}
+      borderWidth="1px"
+      borderRadius="md"
+      boxShadow="md"
+      bg="white"
+      maxWidth="1200px"
+      mx="auto"
+    >
       {/* Heading */}
-      <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit} />
+      <Box mb={6}>
+        <Upload
+          handleFileChange={handleFileChange}
+          handleSubmit={handleSubmit}
+        />
+        <Heading size="lg" mb={4} color="gray.700">
+          Files and Folders
+        </Heading>
+      </Box>
 
-      <Heading size="md" mb={6}>
-        Files and Folders
-      </Heading>
-      <Box>
+      {/* Folder Creation and Breadcrumb */}
+      <HStack justify="space-between" mb={6} align="center">
         <CreateSftpFolder
           sftpCreateFolderOnSubmit={(folder) =>
-            createSftpFolder(
-              folder,
-              serverId,
-              files.currentDirectory,
-            )
+            createSftpFolder(folder, serverId, files.currentDirectory)
           }
         />
-      </Box>
-      <Text>
         <Breadcrumbs
           breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-          onClick={(directory) =>
-            changeSftpDirectory(serverId, directory)
-          }
+          onClick={(directory) => changeSftpDirectory(serverId, directory)}
+          color="gray.500"
         />
-      </Text>
-      {/* Folders */}
+      </HStack>
+
+      {/* Folders Section */}
       {files.folders && files.folders.length > 0 && (
-        <Box mb={6}>
-          <Heading size="sm" mb={4}>
+        <Box mb={8}>
+          <Heading size="md" mb={4} color="gray.600">
             Folders
           </Heading>
           <SimpleGrid
@@ -127,31 +135,38 @@ const FileFolderViewer = ({ serverId, toast }) => {
             {files.folders.map((folder, index) => (
               <Box
                 key={index}
+                p={4}
                 borderWidth="1px"
                 borderRadius="md"
-                p={4}
-                _hover={{ bg: "gray.100", cursor: "pointer" }}
+                _hover={{ bg: "gray.50", cursor: "pointer" }}
+                transition="background-color 0.2s"
                 onClick={() =>
                   changeSftpDirectory(
                     serverId,
-                    files.currentDirectory + "/" + folder.name,
+                    `${files.currentDirectory}/${folder.name}`
                   )
                 }
               >
-                <HStack justify="space-between">
-                  <FaFolder size={24} />
-                  <Text fontWeight="bold">{folder.name}</Text>
+                <HStack justify="space-between" align="center">
+                  <HStack spacing={2}>
+                    <FaFolder size={24} />
+                    <Text fontWeight="medium" color="gray.700">
+                      {folder.name}
+                    </Text>
+                  </HStack>
                   <IconButton
                     size="sm"
-                    aria-label="Delete File"
                     icon={<FaTrash />}
+                    aria-label="Delete Folder"
                     onClick={() =>
                       deleteSftpFolder(
                         folder.name,
                         serverId,
-                        files.currentDirectory,
+                        files.currentDirectory
                       )
                     }
+                    variant="ghost"
+                    colorScheme="red"
                   />
                 </HStack>
               </Box>
@@ -160,10 +175,10 @@ const FileFolderViewer = ({ serverId, toast }) => {
         </Box>
       )}
 
-      {/* Files */}
+      {/* Files Section */}
       {files.files && files.files.length > 0 && (
         <Box>
-          <Heading size="sm" mb={4}>
+          <Heading size="md" mb={4} color="gray.600">
             Files
           </Heading>
           <SimpleGrid
@@ -173,24 +188,31 @@ const FileFolderViewer = ({ serverId, toast }) => {
             {files.files.map((file, index) => (
               <Box
                 key={index}
+                p={4}
                 borderWidth="1px"
                 borderRadius="md"
-                p={4}
-                _hover={{ bg: "gray.100" }}
+                _hover={{ bg: "gray.50" }}
+                transition="background-color 0.2s"
               >
                 <Stack>
-                  <HStack>
-                    <FaFile size={24} />
-                    <Text fontWeight="bold">{file.name}</Text>
+                  <HStack justify="space-between" align="center">
+                    <HStack spacing={2}>
+                      <FaFile size={24} />
+                      <Text fontWeight="medium" color="gray.700">
+                        {file.name}
+                      </Text>
+                    </HStack>
+                    <Text color="gray.500" fontSize="sm">
+                      {file.size} KB
+                    </Text>
                   </HStack>
-                  <Text color="gray.500">{file.size} KB</Text>
 
-                  {/* Action buttons */}
-                  <HStack justify="space-between">
+                  {/* Action Buttons */}
+                  <HStack justify="space-between" mt={4}>
                     <IconButton
                       size="sm"
-                      aria-label="Download File"
                       icon={<FaDownload />}
+                      aria-label="Download File"
                       onClick={() =>
                         downloadSftpFile(
                           file.name,
@@ -198,19 +220,22 @@ const FileFolderViewer = ({ serverId, toast }) => {
                           files.currentDirectory
                         )
                       }
+                      variant="outline"
+                      colorScheme="blue"
                     />
-
                     <IconButton
                       size="sm"
-                      aria-label="Delete File"
                       icon={<FaTrash />}
+                      aria-label="Delete File"
                       onClick={() =>
                         deleteSftpFile(
                           file.name,
                           serverId,
-                          files.currentDirectory,
+                          files.currentDirectory
                         )
                       }
+                      variant="outline"
+                      colorScheme="red"
                     />
                   </HStack>
                 </Stack>

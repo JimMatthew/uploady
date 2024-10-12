@@ -28,112 +28,120 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
   const direction = useBreakpointValue({ base: "column", md: "row" });
 
   return (
-    <Box>
-      <Box mt={4} borderWidth="1px" borderRadius="lg" p={4}>
-        <Heading as="h2" size="md" mb={4}>
-        <Stack
-    direction={{ base: "column", md: "row" }} // VStack on mobile, HStack on desktop
-    justify="space-between" // Spread items apart in row mode
-    align="start" // Align items to the start
-    spacing={4} // Spacing between elements
-  >
-    <Breadcrum
-      breadcrumb={data.breadcrumb}
-      onClick={(path) => handleBreadcrumbClick(path)}
-    />
-    <CreateFolder
-      onFolderCreated={onRefresh}
-      currentPath={relativePath}
-      toast={toast}
-    />
-  </Stack>
-        </Heading>
-
-        {/* Stack for Folder and File Cards */}
-        <VStack spacing={4}>
-          {/* Folders */}
-          {folders &&
-            folders.map((folder, index) => (
-              <Box
-                key={index}
-                w="100%"
-                p={4}
-                borderWidth="1px"
-                borderRadius="lg"
-                _hover={{ shadow: "md", cursor: "pointer" }}
-                onClick={() => onFolderClick(folder.name)}
+    <Box mt={6} p={6} borderWidth="1px" borderRadius="lg" boxShadow="lg" bg="white" maxWidth="1200px" mx="auto">
+    {/* Header with Breadcrumb and Folder Creation */}
+    <Stack
+      direction={{ base: "column", md: "row" }} // VStack on mobile, HStack on desktop
+      justify="space-between" // Spread items apart in row mode
+      align={{ base: "start", md: "center" }} // Align items on mobile/desktop
+      spacing={4}
+      mb={6} // Add spacing below the header
+    >
+      <Breadcrum
+        breadcrumb={data.breadcrumb}
+        onClick={(path) => handleBreadcrumbClick(path)}
+        color="gray.600"
+      />
+      <CreateFolder
+        onFolderCreated={onRefresh}
+        currentPath={relativePath}
+        toast={toast}
+      />
+    </Stack>
+  
+    {/* List of Folders and Files */}
+    <VStack spacing={6} align="stretch">
+      {/* Folders */}
+      {folders && folders.length > 0 && folders.map((folder, index) => (
+        <Box
+          key={index}
+          p={4}
+          borderWidth="1px"
+          borderRadius="lg"
+          _hover={{ shadow: "xl", bg: "gray.50", cursor: "pointer" }}
+          transition="all 0.2s"
+          onClick={() => onFolderClick(folder.name)}
+        >
+          <HStack justify="space-between" align="center">
+            <HStack>
+              <Icon as={FcFolder} boxSize={6} />
+              <Text fontWeight="semibold" fontSize="lg" isTruncated>
+                {folder.name}
+              </Text>
+            </HStack>
+            <HStack spacing={4}>
+              <Text fontSize="sm" color="gray.500">
+                Folder
+              </Text>
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent clicking folder
+                  handleDeleteFolder(folder.name, rp);
+                }}
               >
-                <HStack align="center" justify="space-between">
-                  <HStack>
-                    <Icon as={FcFolder} boxSize={6} color="blue.500" />
-                    <Text fontWeight="bold" isTruncated>
-                      {folder.name}
-                    </Text>
-                  </HStack>
-                  <Text fontSize="sm" color="gray.500">
-                    Folder
-                  </Text>
-                  <Button
-                    size="sm"
-                    onClick={() => handleDeleteFolder(folder.name, rp)}
-                  >
-                    Delete
-                  </Button>
-                </HStack>
-              </Box>
-            ))}
-
-          {/* Files */}
-          {files &&
-            files.map((file, index) => (
-              <Box
-                key={index}
-                w="100%"
-                p={4}
-                borderWidth="1px"
-                borderRadius="lg"
-                _hover={{ shadow: "md" }}
+                Delete
+              </Button>
+            </HStack>
+          </HStack>
+        </Box>
+      ))}
+  
+      {/* Files */}
+      {files && files.length > 0 && files.map((file, index) => (
+        <Box
+          key={index}
+          p={4}
+          borderWidth="1px"
+          borderRadius="lg"
+          _hover={{ shadow: "xl", bg: "gray.50",cursor: "pointer" }}
+          transition="all 0.2s"
+        >
+          <HStack justify="space-between" align="center">
+            <VStack align="start" spacing={1}>
+              <HStack>
+                <Icon as={FcFile} boxSize={6} />
+                <Text fontWeight="semibold" fontSize="lg" isTruncated>
+                  {file.name}
+                </Text>
+              </HStack>
+              <Text fontSize="sm" color="gray.500">
+                {file.size} KB | {file.date}
+              </Text>
+            </VStack>
+  
+            {/* Action Buttons */}
+            <Stack direction={{ base: "column", md: "row" }} spacing={2}>
+              <Button
+                size="sm"
+                colorScheme="blue"
+                onClick={() => handleFileDownload(file.name, rp)}
               >
-                <HStack align="center" justify="space-between">
-                  <VStack align="start">
-                    <HStack>
-                      <Icon as={FcFile} boxSize={6} color="green.500" />
-                      <Text fontWeight="bold" isTruncated>
-                        {file.name}
-                      </Text>
-                    </HStack>
-                    <Text fontSize="sm" color="gray.500">
-                      {file.size} KB | {file.date}
-                    </Text>
-                  </VStack>
-
-                  {/* Action Buttons */}
-                  <Stack direction={direction} spacing={2}>
-                    <Button
-                      size="sm"
-                      onClick={() => handleFileDownload(file.name, rp)}
-                    >
-                      Download
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleFileShareLink(file.name, rp)}
-                    >
-                      Share
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleFileDelete(file.name, rp)}
-                    >
-                      Delete
-                    </Button>
-                  </Stack>
-                </HStack>
-              </Box>
-            ))}
-        </VStack>
-      </Box>
-    </Box>
+                Download
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="blue"
+                onClick={() => handleFileShareLink(file.name, rp)}
+              >
+                Share
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="ghost"
+                onClick={() => handleFileDelete(file.name, rp)}
+              >
+                Delete
+              </Button>
+            </Stack>
+          </HStack>
+        </Box>
+      ))}
+    </VStack>
+  </Box>
   );
 };
 
