@@ -4,14 +4,15 @@ import {
   Container,
   useBreakpointValue,
   Spinner,
-  Text
+  Text,
+  Button,
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
 import { Link } from "react-router-dom";
 import DragAndDropUpload from "./DragDropUpload";
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom";
 
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
@@ -21,7 +22,7 @@ const FileList = ({ setUser, toast }) => {
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const updateTrie = (path, files, folders) => {
     setFileData(files);
@@ -38,7 +39,7 @@ const FileList = ({ setUser, toast }) => {
       if (files) node.files = files;
       if (folders)
         node.folders = folders.reduce((acc, folder) => {
-          acc[folder.name] = {  folders: {} };
+          acc[folder.name] = { folders: {} };
           return acc;
         }, {});
       return currentNode;
@@ -51,7 +52,7 @@ const FileList = ({ setUser, toast }) => {
 
     for (const segment of paths) {
       if (!currentNode[segment]) {
-        return null; 
+        return null;
       }
       currentNode = currentNode[segment].folders;
     }
@@ -62,7 +63,7 @@ const FileList = ({ setUser, toast }) => {
     if (token) {
       fetchFiles(currentPath);
     } else {
-      navigate("/")
+      navigate("/");
       console.error("No token found");
     }
   }, [currentPath, token]);
@@ -113,50 +114,62 @@ const FileList = ({ setUser, toast }) => {
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
-  if (loading || !fileData) return (
-  
-     <Box textAlign="center" py={10}>
+  if (loading || !fileData)
+    return (
+      <Box textAlign="center" py={10}>
         <Spinner size="lg" />
         <Text mt={2}>Loading...</Text>
       </Box>
-  );
+    );
 
   return (
-    <div>
-      {/* Render file and folder list */}
-      <Link to="/api/sftp">
-        <button>Go to SFTP Servers</button>
-      </Link>
-      <Container maxW="container.lg" mt={4}>
+    <Box as="main" minH="80vh" bg="gray.50" py={8}>
+      <Container maxW="container.lg">
+        {/* Link to SFTP Servers */}
         <Box align="center">
-          {isMobile ? (
-            <FileUpload
-              relativePath={fileData.relativePath}
-              refreshPath={reload}
-              toast={toast}
-            />
-          ) : (
-            <DragAndDropUpload
-              relativePath={fileData.relativePath}
-              refreshPath={reload}
-              toast={toast}
-            />
-          )}
+          <Link to="/api/sftp">
+            <Button colorScheme="blue" mb={6} size="lg" variant="outline">
+              Go to SFTP Servers
+            </Button>
+          </Link>
+
+          {/* Upload Area */}
+          <Box mb={8}>
+            {isMobile ? (
+              <FileUpload
+                relativePath={fileData.relativePath}
+                refreshPath={reload}
+                toast={toast}
+              />
+            ) : (
+              <DragAndDropUpload
+                relativePath={fileData.relativePath}
+                refreshPath={reload}
+                toast={toast}
+              />
+            )}
+          </Box>
         </Box>
 
-        <SharedLinks onReload={fetchLinks} links={links} />
+        {/* Shared Links Section */}
+        <Box mb={8} bg="white" boxShadow="sm" p={6} borderRadius="md">
+          <SharedLinks onReload={fetchLinks} links={links} />
+        </Box>
 
-        <FileListPane
-          data={fileData}
-          onFolderClick={handleFolderClick}
-          onRefresh={reload}
-          toast={toast}
-          files={fileData.files}
-          folders={fileData.folders}
-          handleBreadcrumbClick={setCurrentPath}
-        />
+        {/* File List Pane */}
+        <Box bg="white" boxShadow="md" p={6} borderRadius="md">
+          <FileListPane
+            data={fileData}
+            onFolderClick={handleFolderClick}
+            onRefresh={reload}
+            toast={toast}
+            files={fileData.files}
+            folders={fileData.folders}
+            handleBreadcrumbClick={setCurrentPath}
+          />
+        </Box>
       </Container>
-    </div>
+    </Box>
   );
 };
 
