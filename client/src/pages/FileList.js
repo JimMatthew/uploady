@@ -47,7 +47,7 @@ const FileList = ({ setUser, toast }) => {
 
     for (const segment of paths) {
       if (!currentNode[segment]) {
-        return null; // Folder not found
+        return null; 
       }
       currentNode = currentNode[segment].folders;
     }
