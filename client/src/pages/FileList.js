@@ -3,12 +3,15 @@ import {
   Box,
   Container,
   useBreakpointValue,
+  Spinner,
+  Text
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
 import SharedLinks from "./SharedLinks";
 import FileUpload from "./FileUpload";
 import { Link } from "react-router-dom";
 import DragAndDropUpload from "./DragDropUpload";
+import { useNavigate } from "react-router-dom"
 
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
@@ -18,7 +21,8 @@ const FileList = ({ setUser, toast }) => {
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  
+  const navigate = useNavigate()
+
   const updateTrie = (path, files, folders) => {
     setFileData(files);
     setFileTrie((fileTrie) => {
@@ -57,10 +61,8 @@ const FileList = ({ setUser, toast }) => {
   useEffect(() => {
     if (token) {
       fetchFiles(currentPath);
-      if (fileData) {
-        setUser(fileData.user.username);
-      }
     } else {
+      navigate("/")
       console.error("No token found");
     }
   }, [currentPath, token]);
@@ -115,7 +117,13 @@ const FileList = ({ setUser, toast }) => {
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
-  if (loading || !fileData) return <div>Loading...</div>;
+  if (loading || !fileData) return (
+  
+     <Box textAlign="center" py={10}>
+        <Spinner size="lg" />
+        <Text mt={2}>Loading...</Text>
+      </Box>
+  );
 
   return (
     <div>
