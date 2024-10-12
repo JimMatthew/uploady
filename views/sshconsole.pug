@@ -1,0 +1,85 @@
+
+doctype html
+html
+  head
+    title SSH Console
+    link(rel="stylesheet" href="/style.css") 
+    link(rel="stylesheet" href="/xterm.css")
+    
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js")
+    
+  body
+    h1 SSH Console
+    p 
+    a(href="/sftp") Back to SFTP Browser    
+    div#terminal(style="width: 90%; height:auto; text-align: left; ")
+    script(src="/xterm.js")
+    script(src="/xterm-addon-webgl.js")
+    script(src="/xterm-addon-fit.js")
+    script(src="/xterm-addon-unicode11.js")
+    script(src="/xterm-addon-ligatures.js")
+    script. 
+      const serverId = "#{serverId}";
+      document.addEventListener('DOMContentLoaded', function () {
+    
+        const socket = io()
+        const term = new Terminal({
+            rows: 50,
+            cols: 120,
+            convertEol: true,
+            cursorBlink: true,
+            useStyle: true,
+            allowProposedApi: true, 
+            altClickMovesCursor: true,
+            drawBoldTextInBrightColors: true,
+            theme: {
+                
+                background: '#282c34', // Dark background
+                foreground: '#abb2bf', // Light gray text #abb2bf
+                cursor: '#528bff',     // Blue cursor
+                black: '#1c1c1c',
+                red: '#e06c75',
+                green: '#98c379',
+                yellow: '#e5c07b',
+                blue: '#61afef',
+                magenta: '#c678dd',
+                cyan: '#56b6c2',
+                white: '#dcdfe4',
+            }
+        })
+        
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        const webglAddon = new WebglAddon.WebglAddon()
+        term.loadAddon(webglAddon)
+        
+        const unicode11Addon = new Unicode11Addon.Unicode11Addon();
+        term.loadAddon(unicode11Addon);
+        const ligaturesAddon = new LigaturesAddon.LigaturesAddon();
+        
+        term.unicode.activeVersion = '11';
+        term.open(document.getElementById('terminal'))
+        term.loadAddon(ligaturesAddon);
+        fitAddon.fit()
+        
+        socket.emit('startSession', { serverId })
+        
+        socket.on('output', (data) => {
+          term.write(data)
+        })
+      
+        term.onData((input) => {
+          socket.emit('input', input)
+        })
+        if (webglAddon) {
+            console.log('WebGL renderer initialized.')
+        } else {
+            console.log('WebGL renderer failed, falling back to default renderer.')
+        }
+        const handleResize = () => {
+            fitAddon.fit();
+        }
+         window.addEventListener("resize", handleResize)
+      })
+
+     

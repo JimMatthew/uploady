@@ -6,15 +6,27 @@ html
   body
     h1 All Public Links
     if links.length
-      ul
-        each link in links
-          li
-            | File: #{link.fileName} - 
-            a(href=link.link) #{link.link}
-            form#remshare(action="/stop-sharing", method="POST", style="display:inline")
-              input(type="hidden", name="fileName", value=link.fileName)
-              button(type="submit") Stop Sharing
+      table
+        thead
+          tr
+            th File Name
+            th Path
+            th Link
+            th Actions
+        tbody
+          each link in links
+            tr
+              td #{link.fileName}
+              td #{link.filePath}
+              td 
+                a(href=link.link) #{link.link}
+              td
+                form#remshare(action="/stop-sharing", method="POST", style="display:inline")
+                  input(type="hidden", name="fileName", value=link.fileName)
+                  button(type="submit") Stop Sharing
     else
       p No public links available.
     p 
-        a(href="/") Back to File Manager
+      a(href="/files") Back to File Manager
+    footer
+      p File Manager App by James Lindstrom

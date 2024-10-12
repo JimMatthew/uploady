@@ -1,0 +1,81 @@
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config globals 'globals'
+	option ula_prefix 'fd0f:a9d6:8bd7::/48'
+
+config interface 'lan'
+	option device 'eth0'
+	option proto 'static'
+	option ipaddr '192.168.1.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+
+config interface 'wan'
+	option device 'eth1'
+	option proto 'dhcp'
+	option peerdns '0'
+
+config interface 'wan6'
+	option device 'eth1'
+	option proto 'dhcpv6'
+	option reqaddress 'try'
+	option reqprefix 'auto'
+	option peerdns '0'
+
+config device
+	option name 'eth0'
+	option macaddr '00:E2:69:5D:AD:89'
+	option ipv6 '1'
+
+config device
+	option name 'eth1'
+	option macaddr '00:E2:69:5D:AD:88'
+
+config interface 'wg1'
+	option proto 'wireguard'
+	option private_key '4FvKGPlKhnEeAS0UK5ljCoqo0ygQf53+O1Wimfw0LFY='
+	option listen_port '51820'
+	list addresses '192.168.3.1/24'
+	option mtu '1420'
+	option delegate '0'
+	list dns '192.168.1.1'
+
+config wireguard_wg1
+	option description 'android'
+	option public_key 'D+o3gmF3Uz8AGgRD6GbsEgN0jIdPdA409G3Js9DGoFA='
+	option preshared_key '8OzVahoNWObTQU6zVYHuPZTgsKxW+Ca9i8y+8jVKt6I='
+	option endpoint_port '51820'
+	list allowed_ips '192.168.3.2/32'
+
+config wireguard_wg1
+	option description 'cell'
+	option public_key 'Sm7DquLGy8HI0g4C6tLr1Y9pqJ2qxnz5Jf0U8tjlGTg='
+	option private_key 'iNTqy9Kpw11QKzcQHvnD68mLWLawbBIj1+EnyNRJOU4='
+	option preshared_key 'R+qhxG3NiR2MO0S0nqBG4Liy0QysRgp95Qw7++TiAxQ='
+	list allowed_ips '192.168.3.2/32'
+	option route_allowed_ips '1'
+
+config device
+	option name 'wg1'
+	option acceptlocal '1'
+	option ipv6 '0'
+
+config wireguard_wg1
+	option description 'laptop '
+	option public_key 'T1ij22vjChSqBh3s7Ov1MH7RvqWwh1nPqSelP/vQCXQ='
+	option private_key 'mCQ2FcL8IRECbiOG9UriJh3HeYu4oYh6TU7U/6rbzmw='
+	option preshared_key 'MVEKPwVpScnbPseOAQlTzhUjVjyR4hgJtQIpvw43hHg='
+	list allowed_ips '192.168.3.2/32'
+
+config wireguard_wg1
+	option description 'S23 '
+	option public_key 'Z129WskxOBUKhXtgh5JRODFE3qufSo71z7KZOqnBSQs='
+	option private_key 'AFRae7+wn8P2xv4CwoJOJmklIospPAB65/Bme37ZqG0='
+	option preshared_key 'WY+W4tFSFydks5ES6ZBeNX+rzxq1QnIwgw28VU4a1i8='
+	list allowed_ips '192.168.3.2/32'
+
