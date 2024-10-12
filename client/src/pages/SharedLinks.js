@@ -11,6 +11,8 @@ import {
   Stack,
   SimpleGrid,
   IconButton,
+  Flex,
+  Heading,
 } from "@chakra-ui/react";
 import { FiLink, FiTrash } from "react-icons/fi";
 
@@ -48,6 +50,16 @@ const SharedLinks = ({ onReload, links }) => {
       });
   };
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Link copied!",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  };
+
   const clickLink = (link, fileName) => {
     fetch(link, {
       headers: {},
@@ -74,20 +86,21 @@ const SharedLinks = ({ onReload, links }) => {
           colorScheme="blue"
           mb={4}
           onClick={handleShowLinks}
-          margin={"5px"}
+          margin="5px"
         >
           Show Shared Links
         </Button>
       </Box>
 
-      {/* Card that slides down when the shared links are shown */}
       <Collapse in={isOpen}>
         <Box
-          p={5}
+          p={6}
           shadow="lg"
           borderWidth="1px"
-          borderRadius="md"
+          borderRadius="lg"
           background="white"
+          transition="0.3s ease"
+          _hover={{ shadow: "xl" }}
         >
           <SimpleGrid
             spacing={6}
@@ -100,6 +113,7 @@ const SharedLinks = ({ onReload, links }) => {
                   linkItem={link}
                   stopSharing={deleteLink}
                   clickLink={clickLink}
+                  copyToClipboard={() => copyToClipboard(link.link)}
                 />
               ))
             ) : (
@@ -112,45 +126,49 @@ const SharedLinks = ({ onReload, links }) => {
   );
 };
 
-const LinkCard = ({ linkItem, stopSharing, clickLink }) => {
-  const { fileName, filePath, link, token } = linkItem;
 
+const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
   return (
-    <Card shadow="md" borderWidth="1px" borderRadius="lg" p={4}>
-      <CardHeader fontWeight="bold" fontSize="lg" mb={2}>
-        {fileName}
-      </CardHeader>
+    <Box
+      p={4}
+      shadow="md"
+      borderWidth="1px"
+      borderRadius="lg"
+      background="gray.50"
+      transition="0.3s ease"
+      _hover={{ shadow: "lg", background: "gray.100" }}
+    >
+      <Flex justify="space-between" align="center" mb={3}>
+        <Heading size="sm" isTruncated maxW="200px">
+          {linkItem.fileName}
+        </Heading>
+        <Button
+          size="xs"
+          colorScheme="red"
+          onClick={() => stopSharing(linkItem.token)}
+        >
+          Stop Sharing
+        </Button>
+      </Flex>
 
-      <CardBody>
-        <Stack spacing={3}>
-          <Text fontSize="sm" color="gray.600">
-            Path: {filePath}
-          </Text>
+      <Text fontSize="sm" color="gray.600" mb={2} noOfLines={2}>
+        {linkItem.link}
+      </Text>
 
-          {/* Clickable Link */}
-          <Text
-            color="blue.500"
-            cursor="pointer"
-            onClick={() => clickLink(link, fileName)}
-            textDecoration="underline"
-          >
-            {link}
-          </Text>
-
-          <Box>
-            {/* Button to stop sharing */}
-            <IconButton
-              aria-label="Stop Sharing"
-              icon={<FiTrash />}
-              size="sm"
-              colorScheme="red"
-              onClick={() => stopSharing(token)}
-              mt={2}
-            />
-          </Box>
-        </Stack>
-      </CardBody>
-    </Card>
+      <Flex justify="space-between" align="center">
+        <Button
+          size="sm"
+          colorScheme="blue"
+          variant="outline"
+          onClick={() => clickLink(linkItem.link, linkItem.fileName)}
+        >
+          Download
+        </Button>
+        <Button size="sm" colorScheme="green" onClick={copyToClipboard}>
+          Copy Link
+        </Button>
+      </Flex>
+    </Box>
   );
 };
 

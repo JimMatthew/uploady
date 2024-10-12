@@ -38,7 +38,7 @@ const FileList = ({ setUser, toast }) => {
       if (files) node.files = files;
       if (folders)
         node.folders = folders.reduce((acc, folder) => {
-          acc[folder.name] = { files: [], folders: {} };
+          acc[folder.name] = {  folders: {} };
           return acc;
         }, {});
       return currentNode;
@@ -69,10 +69,6 @@ const FileList = ({ setUser, toast }) => {
 
   const handleFolderClick = (folderName) => {
     setCurrentPath((prevPath) => `${prevPath}/${folderName}`);
-  };
-
-  const handleBreadcrumbClick = (path) => {
-    setCurrentPath(path);
   };
 
   const reload = () => {
@@ -157,7 +153,7 @@ const FileList = ({ setUser, toast }) => {
           toast={toast}
           files={fileData.files}
           folders={fileData.folders}
-          handleBreadcrumbClick={handleBreadcrumbClick}
+          handleBreadcrumbClick={setCurrentPath}
         />
       </Container>
     </div>
