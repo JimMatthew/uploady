@@ -15,7 +15,7 @@ import {
   Heading,
 } from "@chakra-ui/react";
 import { FiLink, FiTrash } from "react-icons/fi";
-
+import LinkCard from "./LinkCard";
 const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
   const token = localStorage.getItem("token");
@@ -127,49 +127,6 @@ const SharedLinks = ({ onReload, links }) => {
 };
 
 
-const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
-  return (
-    <Box
-      p={4}
-      shadow="md"
-      borderWidth="1px"
-      borderRadius="lg"
-      background="gray.50"
-      transition="0.3s ease"
-      _hover={{ shadow: "lg", background: "gray.100" }}
-    >
-      <Flex justify="space-between" align="center" mb={3}>
-        <Heading size="sm" isTruncated maxW="200px">
-          {linkItem.fileName}
-        </Heading>
-        <Button
-          size="xs"
-          colorScheme="red"
-          onClick={() => stopSharing(linkItem.token)}
-        >
-          Stop Sharing
-        </Button>
-      </Flex>
 
-      <Text fontSize="sm" color="gray.600" mb={2} noOfLines={2}>
-        {linkItem.link}
-      </Text>
-
-      <Flex justify="space-between" align="center">
-        <Button
-          size="sm"
-          colorScheme="blue"
-          variant="outline"
-          onClick={() => clickLink(linkItem.link, linkItem.fileName)}
-        >
-          Download
-        </Button>
-        <Button size="sm" colorScheme="green" onClick={copyToClipboard}>
-          Copy Link
-        </Button>
-      </Flex>
-    </Box>
-  );
-};
 
 export default SharedLinks;
