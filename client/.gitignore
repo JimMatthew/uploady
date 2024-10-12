@@ -10,7 +10,7 @@
 
 # production
 /build
-
+/uploady12
 # misc
 .DS_Store
 .env.local
