@@ -18,6 +18,7 @@ const FileList = ({ setUser, toast }) => {
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
+  
   const updateTrie = (path, files, folders) => {
     setFileData(files);
     setFileTrie((fileTrie) => {
