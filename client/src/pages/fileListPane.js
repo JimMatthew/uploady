@@ -31,11 +31,11 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
     <Box mt={6} p={6} borderWidth="1px" borderRadius="lg" boxShadow="lg" bg="white" maxWidth="1200px" mx="auto">
     {/* Header with Breadcrumb and Folder Creation */}
     <Stack
-      direction={{ base: "column", md: "row" }} // VStack on mobile, HStack on desktop
-      justify="space-between" // Spread items apart in row mode
-      align={{ base: "start", md: "center" }} // Align items on mobile/desktop
+      direction={{ base: "column", md: "row" }} 
+      justify="space-between" 
+      align={{ base: "start", md: "center" }} 
       spacing={4}
-      mb={6} // Add spacing below the header
+      mb={6} 
     >
       <Breadcrum
         breadcrumb={data.breadcrumb}
