@@ -26,6 +26,20 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
   const rp = "/" + relativePath;
   const direction = useBreakpointValue({ base: "column", md: "row" });
 
+  const generateBreadcrumb = (path) => {
+    const breadcrumbs = [];
+    let currentPath = `files`;
+    const pathParts = path.split("/").filter(Boolean);
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`;
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      });
+    });
+    breadcrumbs.unshift({ name: "Home", path: `files` });
+    return breadcrumbs;
+  };
   return (
     <Box mt={6} p={6} borderWidth="1px" borderRadius="lg" boxShadow="lg" bg="white" maxWidth="1200px" mx="auto">
     {/* Header with Breadcrumb and Folder Creation */}
@@ -37,7 +51,7 @@ const FileDisplay = ({ data, onFolderClick, onRefresh, toast, files, folders, ha
       mb={6} 
     >
       <Breadcrum
-        breadcrumb={data.breadcrumb}
+        breadcrumb={generateBreadcrumb(rp)}
         onClick={(path) => handleBreadcrumbClick(path)}
         color="gray.600"
       />

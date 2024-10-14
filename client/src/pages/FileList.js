@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
   const [fileTrie, setFileTrie] = useState({});
-  const [currentPath, setCurrentPath] = useState("/files");
+  const [currentPath, setCurrentPath] = useState("files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [links, setLinks] = useState([]);

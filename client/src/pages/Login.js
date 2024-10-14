@@ -19,7 +19,15 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("/apilogin", { username, password });
+      const response = await axios.post(
+        "/apilogin",
+        { username, password },
+        {
+          headers: {
+            "Content-Type": "application/json", // Ensure you're sending JSON
+          },
+        }
+      );
       localStorage.setItem("token", response.data.token); // Save JWT
       navigate("/app/files"); // Redirect to file list
     } catch (err) {
