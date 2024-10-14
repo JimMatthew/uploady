@@ -30,7 +30,7 @@ const CreateSftpFolder = ({
       borderRadius="md"
       bg="gray.50"
       maxW="400px"
-      mx="auto"
+      mx="5px"
       mt={6}
     >
       <HStack spacing={4}>

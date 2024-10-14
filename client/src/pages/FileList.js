@@ -19,7 +19,7 @@ const FileList = ({ setUser, toast }) => {
   const [fileTrie, setFileTrie] = useState({});
   const [currentPath, setCurrentPath] = useState("files");
   const token = localStorage.getItem("token");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
   const navigate = useNavigate();
@@ -62,6 +62,7 @@ const FileList = ({ setUser, toast }) => {
   useEffect(() => {
     if (token) {
       fetchFiles(currentPath);
+      setLoading(false)
     } else {
       navigate("/");
       console.error("No token found");
