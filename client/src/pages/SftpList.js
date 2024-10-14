@@ -15,12 +15,15 @@ import {
   Tab,
   TabPanel,
   HStack,
-  Spacer
+  Spacer,
+  IconButton,
+  Center
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
+import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa"
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
@@ -146,127 +149,139 @@ const SFTPApp = ({ toast }) => {
 
   return (
     <Flex flex={1} minHeight="100%" direction="column">
-      {/* "Show" button (for mobile) */}
-      {!isDesktop && !showSidebar && (
-        <Box width="100%" mb={2} textAlign="center">
-          <Button colorScheme="blue" onClick={() => setShowSidebar(true)}>
-            Show Servers
-          </Button>
-        </Box>
-      )}
+  {/* "Show" button for mobile view */}
+  {!isDesktop && !showSidebar && (
+    <Box width="100%" mb={2} textAlign="center">
+      <Button colorScheme="blue" onClick={() => setShowSidebar(true)}>
+        Show Servers
+      </Button>
+    </Box>
+  )}
 
-      {/* Flex Container for Sidebar and Main Panel */}
-      <Flex flex={1}>
-        {/* Sidebar (SFTP Server List) */}
-        {isDesktop || showSidebar ? (
-          <Box
-            width={{ base: "100%", lg: "300px" }}
-            bg="gray.100"
-            p={4}
-            borderRight={{ base: "none", lg: "1px solid" }}
-            borderColor="gray.300"
-            minHeight={{ base: "100vh", lg: "100%" }}
-            position={{ base: "absolute", lg: "relative" }}
-            zIndex={{ base: 10, lg: 1 }}
-            top={0}
-            left={0}
-            transition="all 0.3s ease"
+  {/* Flex container for Sidebar and Main Panel */}
+  <Flex flex={1}>
+    {/* Sidebar for SFTP Server List */}
+    {isDesktop || showSidebar ? (
+      <Box
+        width={{ base: "100%", lg: "300px" }}
+        bg="gray.50"
+        p={4}
+        borderRight="1px solid"
+        borderColor="gray.200"
+        minHeight="100vh"
+        position={{ base: "absolute", lg: "relative" }}
+        zIndex={{ base: 10, lg: 1 }}
+        top={0}
+        left={0}
+        transition="all 0.3s ease"
+      >
+        <VStack spacing={6}>
+          <Link to="/app/files">
+            <Button colorScheme="teal" width="100%">
+              Go to Files
+            </Button>
+          </Link>
+
+          <Button
+            colorScheme="blue"
+            width="100%"
+            onClick={() => addTab("", "Add Server")}
           >
-            <VStack spacing={4}>
-              <Link to="/app/files">
-                <Button>Go to files</Button>
-              </Link>
-              <Button onClick={() => addTab("", "Add Server")}>
-                Add New Server
-              </Button>
-              {sftpServers.servers.map((server) => (
-                <Card key={server.id}>
-                  <CardBody>
-                    <Stack spacing={2}>
-                      <Text>
-                        <strong>Host:</strong> {server.host}
-                      </Text>
-                      <Text>
-                        <strong>Status:</strong> {server.status}
-                      </Text>
-                      <Stack
-                        direction="row"
-                        spacing={2}
-                        justify="space-between"
-                      >
-                        <Button
-                          colorScheme="green"
-                          size="sm"
-                          onClick={() => handleConnect(server)}
-                        >
-                          SFTP
-                        </Button>
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          onClick={() => handleSshLaunch(server)}
-                        >
-                          SSH
-                        </Button>
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          onClick={() => deleteServer(server._id)}
-                        >
-                          Delete
-                        </Button>
-                      </Stack>
+            Add New Server
+          </Button>
+
+          {/* List of Servers */}
+          {sftpServers.servers.length > 0 ? (
+            sftpServers.servers.map((server) => (
+              <Card key={server.id} border="1px solid" borderColor="gray.300">
+                <CardBody>
+                  <Stack spacing={3}>
+                    <Text fontWeight="bold">
+                      Host: <span style={{ color: "gray.600" }}>{server.host}</span>
+                    </Text>
+                    <Text fontWeight="bold">
+                      Status:{" "}
+                      <span style={{ color: server.status === "Connected" ? "green" : "red" }}>
+                        {server.status}
+                      </span>
+                    </Text>
+                    <Stack direction="row" justify="space-between" spacing={3}>
+                      <IconButton
+                        aria-label="SFTP"
+                        icon={<FaFileAlt />}
+                        colorScheme="green"
+                        onClick={() => handleConnect(server)}
+                      />
+                      <IconButton
+                        aria-label="SSH"
+                        icon={<FaTerminal />}
+                        colorScheme="blue"
+                        onClick={() => handleSshLaunch(server)}
+                      />
+                      <IconButton
+                        aria-label="Delete"
+                        icon={<FaTrash />}
+                        colorScheme="red"
+                        onClick={() => deleteServer(server._id)}
+                      />
                     </Stack>
-                  </CardBody>
-                </Card>
-              ))}
-              <Spacer/>
-            </VStack>
+                  </Stack>
+                </CardBody>
+              </Card>
+            ))
+          ) : (
+            <Text color="gray.500">No servers available.</Text>
+          )}
 
-            {/* Close button for mobile */}
-            {!isDesktop && (
-              <Button
-                mt={4}
-                colorScheme="red"
-                onClick={() => setShowSidebar(false)}
-              >
-                Close Sidebar
-              </Button>
-            )}
-          </Box>
-        ) : null}
+          <Spacer />
+        </VStack>
 
-        <Box
-          flex={1}
-          p={4}
-          ml={{ base: 0, lg: "30px" }} // Adjust margin for the sidebar on desktop
-          transition="margin 0.3s ease"
-        >
-          <Tabs>
-            <TabList>
-              {tabs.map((tab, index) => (
-                <HStack key={index} spacing={2}>
-                  <Tab>{tab.label}</Tab>
-                  <Button
-                    size="xs"
-                    colorScheme="red"
-                    onClick={() => closeTab(index)}
-                  >
-                    ✕
-                  </Button>
-                </HStack>
-              ))}
-            </TabList>
+        {/* Close Sidebar Button for Mobile */}
+        {!isDesktop && (
+          <Button mt={4} colorScheme="red" onClick={() => setShowSidebar(false)}>
+            Close Sidebar
+          </Button>
+        )}
+      </Box>
+    ) : null}
 
-            <TabPanels>
-              {tabs.map((tab) => (
-                <TabPanel key={tab.id}>{tab.content}</TabPanel>
-              ))}
-            </TabPanels>
-          </Tabs>
-        </Box>
-      </Flex>
-    </Flex>
+    {/* Main Panel */}
+    <Box flex={1} p={4} ml={{ base: 0, lg: "30px" }} transition="margin 0.3s ease">
+      <Tabs>
+        <TabList>
+          {tabs.length > 0 ? (
+            tabs.map((tab, index) => (
+              <HStack key={index} spacing={2}>
+                <Tab>{tab.label}</Tab>
+                <Button size="xs" colorScheme="red" onClick={() => closeTab(index)}>
+                  ✕
+                </Button>
+              </HStack>
+            ))
+          ) : (
+            <Text color="gray.500" fontSize="lg">
+              No open tabs. Select a server to begin.
+            </Text>
+          )}
+        </TabList>
+
+        <TabPanels>
+          {tabs.length > 0 ? (
+            tabs.map((tab) => <TabPanel key={tab.id}>{tab.content}</TabPanel>)
+          ) : (
+            <Center height="300px">
+              <Box textAlign="center">
+                <Text fontSize="lg" color="gray.500">
+                  No tabs open. Please select a server from the list to start.
+                </Text>
+              </Box>
+            </Center>
+          )}
+        </TabPanels>
+      </Tabs>
+    </Box>
+  </Flex>
+</Flex>
   );
 };
 
