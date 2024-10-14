@@ -9,26 +9,6 @@ const net = require('net');
 
 module.exports = () => {
 
-  const sftp_create_folder_post = async (req, res) => {
-    const { currentPath, folderName, serverId } = req.body;
-    const newPath = path.join(currentPath, folderName);
-    const sftp = new SftpClient();
-    try {
-      const server = await SftpServer.findById(serverId);
-      if (!server) {
-        return res.status(404).send("server not found");
-      }
-      const { host, username, password } = server;
-      await sftp.connect({ host, username, password });
-      await sftp.mkdir(newPath);
-    } catch (err) {
-      console.log(err);
-    } finally {
-      await sftp.end();
-    }
-    res.redirect(`/sftp/connect/${serverId}/${currentPath}`);
-  };
-
   const sftp_create_folder_json_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName);
@@ -185,15 +165,6 @@ module.exports = () => {
     }
   };
 
-  const sftp_servers_get = async (req, res, next) => {
-    try {
-      const servers = await SftpServer.find();
-      res.render("sftp-main", { servers });
-    } catch (error) {
-      return next(error);
-    }
-  };
-
   const sftp_servers_json_get =  async (req, res, next) => {
     try {
       const servers = await SftpServer.find();
@@ -237,22 +208,6 @@ module.exports = () => {
     });
   };
 
-  const sftp_save_server_post = async (req, res, next) => {
-    const { host, username, password } = req.body;
-    const newServer = new SftpServer({
-      host,
-      username,
-      password,
-    });
-    try {
-      await newServer.save();
-      res.redirect("/sftp/");
-    } catch (error) {
-      console.log(error);
-      return next(error);
-    }
-  };
-
   const sftp_save_server_json_post = async (req, res, next) => {
     const { host, username, password } = req.body;
     const newServer = new SftpServer({
@@ -265,16 +220,6 @@ module.exports = () => {
       res.status(200).send()
     } catch (error) {
       console.log(error);
-      return next(error);
-    }
-  };
-
-  const sftp_delete_server_post = async (req, res, next) => {
-    const { serverId } = req.body;
-    try {
-      await SftpServer.findByIdAndDelete(serverId);
-      res.redirect("/sftp");
-    } catch (error) {
       return next(error);
     }
   };
@@ -307,62 +252,6 @@ module.exports = () => {
     });
     breadcrumbs.unshift({ name: "Home", path: `/sftp/connect/${serverId}/` });
     return breadcrumbs;
-  };
-
-  const sftp_id_list_files_get = async (req, res, next) => {
-    const { serverId } = req.params;
-    const currentDirectory = "/"+req.params[0] || "/";
-    if (!mongoose.Types.ObjectId.isValid(serverId)) {
-      const err = new Error("Invalid server ID");
-      err.status = 400;
-      return next(err);
-    }
-    let sftp;
-    try {
-      const server = await SftpServer.findById(serverId);
-      if (!server) {
-        const err = new Error("Server not found");
-        err.status = 404;
-        return next(err);
-      }
-      const { host, username, password } = server;
-      sftp = new SftpClient();
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
-      const contents = await sftp.list(currentDirectory);
-      const { files, folders } = contents.reduce(
-        (acc, item) => {
-          if (item.type === "d") {
-            acc.folders.push({ name: item.name });
-          } else {
-            acc.files.push({
-              name: item.name,
-              size: (item.size / 1024).toFixed(2),
-              date: formatDate(item.modifyTime),
-            });
-          }
-          return acc;
-        },
-        { files: [], folders: [] }
-      );
-      const breadcrumb = generateBreadcrumb(currentDirectory, serverId);
-      res.render("sftplist", {
-        files,
-        folders,
-        currentDirectory,
-        breadcrumb,
-        serverId,
-        host,
-      });
-    } catch (error) {
-      console.log(error);
-      return next(error);
-    } finally {
-      if (sftp) await sftp.end(); // Ensure connection is always closed
-    }
   };
 
   const sftp_id_list_files_json_get = async (req, res, next) => {
@@ -415,28 +304,6 @@ module.exports = () => {
     }
   };
 
-  const sftp_delete_file_post = async (req, res, next) => {
-    const { serverId, currentDirectory, fileName } = req.body;
-    const fullPath = path.join(currentDirectory, fileName);
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      return res.status(404).send("server not found");
-    }
-    const { host, username, password } = server;
-    const sftp = new SftpClient();
-    try {
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
-      await sftp.delete(fullPath);
-      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`);
-    } catch (error) {
-      return next(error);
-    }
-  };
-
   const sftp_delete_file_json_post = async (req, res, next) => {
     const { serverId, currentDirectory, fileName } = req.body;
     if (serverId && currentDirectory && fileName) {
@@ -486,28 +353,6 @@ module.exports = () => {
     }
   };
 
-  const sftp_delete_folder_post = async (req, res, next) => {
-    const { serverId, currentDirectory, deleteDir } = req.body;
-    const fullPath = path.join(currentDirectory, deleteDir);
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      return res.status(404).send("server not found");
-    }
-    const { host, username, password } = server;
-    const sftp = new SftpClient();
-    try {
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
-      await sftp.rmdir(fullPath);
-      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}/`);
-    } catch (error) {
-      return next(error);
-    }
-  };
-
   const ssh_console_get = async (req, res) => {
     const { serverId } = req.params;
     const server = await SftpServer.findById(serverId);
@@ -522,14 +367,7 @@ module.exports = () => {
   return {
     sftp_upload_post,
     sftp_download_get,
-    sftp_create_folder_post,
     sftp_stream_download_get,
-    sftp_servers_get,
-    sftp_save_server_post,
-    sftp_delete_server_post,
-    sftp_id_list_files_get,
-    sftp_delete_file_post,
-    sftp_delete_folder_post,
     ssh_console_get,
     upload,
     sftp_stream_upload_post,

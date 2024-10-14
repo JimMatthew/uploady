@@ -1,16 +1,12 @@
 const express = require("express");
 const path = require("path");
 const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 const http = require("http");
-const socketIO = require("socket.io");
-const ConfigStorageType = require("./ConfigStorageType");
-const sshController = require("./controllers/sshController");
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 const jwt = require('jsonwebtoken')
@@ -22,13 +18,10 @@ const users = [
 
 const app = express();
 const server = http.createServer(app);
-//const io = socketIO(server);
 const cors = require('cors');
 const { hostname } = require("os");
 
-// Allow all origins for now (you can restrict this to specific origins)
 app.use(cors())
-//io.on("connection", sshController);
 const wss = new WebSocket.Server({ server })
 wss.on('connection', (socket) => {
   sshSessionHandler(socket)
@@ -42,7 +35,7 @@ async function main() {
 }
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: 'your_jwt_secret', // Replace with a strong secret
+  secretOrKey: 'your_jwt_secret', 
 }
 app.use(
   session({
@@ -54,29 +47,12 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-// view engine setup
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
 
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-
-
-passport.use(
-  new LocalStrategy((username, password, done) => {
-    const user = users.find((user) => user.username === username);
-    if (!user) {
-      return done(null, false, { message: "Incorrect username." });
-    }
-    if (!bcrypt.compareSync(password, user.passwordHash)) {
-      return done(null, false, { message: "Incorrect password." });
-    }
-    return done(null, user);
-  })
-);
 
 passport.use(new JwtStrategy(jwtOptions, (jwtPayload, done) => {
   const user = users.find(user => user.id === jwtPayload.id)
@@ -97,39 +73,17 @@ passport.deserializeUser((id, done) => {
   done(null, user);
 });
 
-// Middleware to check if the user is authenticated
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect("/login");
-}
-
 const routes = require("./routes/route")(
   path.join(__dirname, "uploads"),
-  isAuthenticated,
-  ConfigStorageType.DATABASE,
 );
 
-const sftpRouter = require("./routes/sftpRouter")(isAuthenticated);
-//const routes = require('./routes/route')(path.join(__dirname, 'uploads'), isAuthenticated, ConfigStorageType.LOCAL)
+const sftpRouter = require("./routes/sftpRouter")();
 
 app.use("/", routes);
-
 app.use("/sftp", sftpRouter);
-
 app.get("/login", (req, res) => {
   res.render("login", { message: req.session.messages || "" });
 });
-
-app.post(
-  "/login",
-  passport.authenticate("local", {
-    successRedirect: "/files",
-    failureRedirect: "/login",
-    failureMessage: true,
-  })
-);
 
 app.post('/apilogin', (req, res) => {
   const { username, password } = req.body
@@ -143,13 +97,6 @@ app.post('/apilogin', (req, res) => {
   const token = jwt.sign({ id: user.id }, 'your_jwt_secret', { expiresIn: '8h' }) // Token valid for 1 hour
   return res.json({ token })
 })
-
-// Logout route
-app.get("/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect("/login");
-  });
-});
 
 app.get("/apilogout", (req, res) => {
   req.logout(() => {
@@ -174,9 +121,7 @@ app.use((req, res, next) => {
 // Error handler middleware
 app.use((err, req, res, next) => {
   res.status(err.status || 500);
-  res.render("error", {
-    errorMessage: err.message || "Internal Server Error",
-  });
+  
 });
 
 const PORT = process.env.PORT || 3001;
