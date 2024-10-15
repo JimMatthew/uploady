@@ -28,7 +28,7 @@ wss.on('connection', (socket) => {
 })
 
 mongoose.set("strictPopulate", false);
-const mongoDB = "mongodb://192.168.1.237:27017/myapp";
+const mongoDB = "mongodb://upapp:qwerty@192.168.1.237:27017/myapp";
 main().catch((err) => console.log(err));
 async function main() {
   await mongoose.connect(mongoDB);

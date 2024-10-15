@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  SimpleGrid,
   Text,
-  IconButton,
   Stack,
   Heading,
-  HStack,
   Spinner,
 } from "@chakra-ui/react";
-import { FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/Upload";
 import SftpController from "../controllers/SftpController";
 import CreateSftpFolder from "./CreateSftpFolder";
+import FolderListSftp from "../components/FolderListSftp";
+import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast }) => {
   const [file, setFile] = useState(null);
   const [files, setFiles] = useState([]);
@@ -60,11 +58,24 @@ const FileFolderViewer = ({ serverId, toast }) => {
     }
   }, [serverId, connected]);
 
+  const handleDownload = (filename) => {
+    downloadSftpFile(filename, serverId, files.currentDirectory);
+  };
+
+  const handleDelete = (filename) => {
+    deleteSftpFile(filename, serverId, files.currentDirectory);
+  };
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!file) {
-      alert("Please select a file first");
+      toast({
+        title: "No file selected",
+        description: "Please select a file to upload",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
       return;
     }
     handleUpload(
@@ -89,142 +100,59 @@ const FileFolderViewer = ({ serverId, toast }) => {
 
   return (
     <Box
-    p={6}
-    borderWidth="1px"
-    borderRadius="md"
-    boxShadow="md"
-    bg="white"
-    maxWidth="1200px"
-    mx="auto"
-  >
-    {/* Heading */}
-    <Box mb={6}>
-      <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit} />
-      <Heading size="lg" mb={4} color="gray.700">
-        Files and Folders
-      </Heading>
-    </Box>
-
-    {/* Folder Creation and Breadcrumb */}
-    <Stack
-      direction={{ base: "column", md: "row" }} 
-      justify="space-between" 
-      align={{ base: "start", md: "center" }} 
-      spacing={4}
-      mb={6} 
+      p={6}
+      borderWidth="1px"
+      borderRadius="md"
+      boxShadow="md"
+      bg="white"
+      maxWidth="1200px"
+      mx="auto"
     >
-      <Breadcrumbs
-         breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-         onClick={(directory) => changeSftpDirectory(serverId, directory)}
-         color="gray.500"
-      />
-      <CreateSftpFolder
-        sftpCreateFolderOnSubmit={(folder) =>
-          createSftpFolder(folder, serverId, files.currentDirectory)
+      {/* Heading */}
+      <Box mb={6}>
+        <Upload
+          handleFileChange={handleFileChange}
+          handleSubmit={handleSubmit}
+        />
+        <Heading size="lg" mb={4} color="gray.700">
+          Files and Folders
+        </Heading>
+      </Box>
+
+      {/* Folder Creation and Breadcrumb */}
+      <Stack
+        direction={{ base: "column", md: "row" }}
+        justify="space-between"
+        align={{ base: "start", md: "center" }}
+        spacing={4}
+        mb={6}
+      >
+        <Breadcrumbs
+          breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
+          onClick={(directory) => changeSftpDirectory(serverId, directory)}
+          color="gray.500"
+        />
+        <CreateSftpFolder
+          sftpCreateFolderOnSubmit={(folder) =>
+            createSftpFolder(folder, serverId, files.currentDirectory)
+          }
+        />
+      </Stack>
+
+      <FolderListSftp
+        folders={files.folders}
+        changeDirectory={(folder) =>
+          changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
         }
+        deleteFolder={deleteSftpFolder}
       />
-    </Stack>
-    
 
-    {/* Folders Section */}
-    {files.folders && files.folders.length > 0 && (
-      <Box mb={8}>
-        <Heading size="md" mb={4} color="gray.600">
-          Folders
-        </Heading>
-        <Box>
-          {files.folders.map((folder, index) => (
-            <HStack
-              key={index}
-              justify="space-between"
-              p={4}
-              borderWidth="1px"
-              borderRadius="md"
-              _hover={{ bg: "gray.50", cursor: "pointer" }}
-              transition="background-color 0.2s"
-              onClick={() =>
-                changeSftpDirectory(
-                  serverId,
-                  `${files.currentDirectory}/${folder.name}`
-                )
-              }
-            >
-              <HStack spacing={2}>
-                <FaFolder size={24} />
-                <Text fontWeight="medium" color="gray.700">
-                  {folder.name}
-                </Text>
-              </HStack>
-              <IconButton
-                size="sm"
-                icon={<FaTrash />}
-                aria-label="Delete Folder"
-                onClick={() =>
-                  deleteSftpFolder(folder.name, serverId, files.currentDirectory)
-                }
-                variant="ghost"
-                colorScheme="red"
-              />
-            </HStack>
-          ))}
-        </Box>
-      </Box>
-    )}
-
-    {/* Files Section */}
-    {files.files && files.files.length > 0 && (
-      <Box>
-        <Heading size="md" mb={4} color="gray.600">
-          Files
-        </Heading>
-        <Box>
-          {files.files.map((file, index) => (
-            <HStack
-              key={index}
-              justify="space-between"
-              p={4}
-              borderWidth="1px"
-              borderRadius="md"
-              _hover={{ bg: "gray.50" }}
-              transition="background-color 0.2s"
-            >
-              <HStack spacing={2}>
-                <FaFile size={24} />
-                <Text fontWeight="medium" color="gray.700">
-                  {file.name}
-                </Text>
-              </HStack>
-              <Text color="gray.500" fontSize="sm">
-                {file.size} KB
-              </Text>
-              <HStack spacing={2}>
-                <IconButton
-                  size="sm"
-                  icon={<FaDownload />}
-                  aria-label="Download File"
-                  onClick={() =>
-                    downloadSftpFile(file.name, serverId, files.currentDirectory)
-                  }
-                  variant="outline"
-                  colorScheme="blue"
-                />
-                <IconButton
-                  size="sm"
-                  icon={<FaTrash />}
-                  aria-label="Delete File"
-                  onClick={() =>
-                    deleteSftpFile(file.name, serverId, files.currentDirectory)
-                  }
-                  variant="outline"
-                  colorScheme="red"
-                />
-              </HStack>
-            </HStack>
-          ))}
-        </Box>
-      </Box>
-    )}
-  </Box>
+      <FileListSftp
+        files={files.files}
+        downloadFile={handleDownload}
+        deleteFile={handleDelete}
+      />
+    </Box>
   );
 };
 
