@@ -110,11 +110,27 @@ const FileController = ({ toast, onRefresh }) => {
         });
       });
   };
+
+  const generateBreadcrumb = (path) => {
+    const breadcrumbs = [];
+    let currentPath = `files`;
+    const pathParts = path.split("/").filter(Boolean);
+    pathParts.forEach((part, index) => {
+      currentPath += `/${part}`;
+      breadcrumbs.push({
+        name: part,
+        path: currentPath,
+      });
+    });
+    breadcrumbs.unshift({ name: "Home", path: `files` });
+    return breadcrumbs;
+  };
   return {
     handleFileDownload,
     handleFileDelete,
     handleFileShareLink,
     handleDeleteFolder,
+    generateBreadcrumb
   };
 };
 
