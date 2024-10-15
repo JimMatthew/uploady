@@ -9,7 +9,7 @@ import {
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/Upload";
 import SftpController from "../controllers/SftpController";
-import CreateSftpFolder from "./CreateSftpFolder";
+import CreateSftpFolder from "../components/CreateSftpFolder";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast }) => {
