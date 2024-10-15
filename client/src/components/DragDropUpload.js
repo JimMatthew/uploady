@@ -7,6 +7,7 @@ import {
   ListItem,
   Text,
   VStack,
+  useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
 
@@ -14,7 +15,8 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
   const [files, setFiles] = useState([]);
   const token = localStorage.getItem("token");
   const toast = useToast(); 
-
+  const bgg = useColorModeValue('white', 'gray.300')
+  const bggover = useColorModeValue('grey.500', 'grey.400' )
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
   }, []);
@@ -96,7 +98,7 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
         cursor="pointer"
         transition="border-color 0.2s"
         _hover={{ borderColor: "blue.300" }}
-        bg={isDragActive ? "gray.50" : "white"}
+        bg={isDragActive ? bggover : bgg}
       >
         <input {...getInputProps()} />
         {isDragActive ? (

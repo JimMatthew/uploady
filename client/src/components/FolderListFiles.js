@@ -1,19 +1,22 @@
 import React from "react";
-import { Box, HStack, Text, Button, Icon } from "@chakra-ui/react";
+import { Box, HStack, Text, Button, Icon, useColorModeValue } from "@chakra-ui/react";
 import { FcFolder } from "react-icons/fc";
 
 const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
+  const bgg = useColorModeValue('white', 'gray.800')
+  const hvr = useColorModeValue('gray.50', 'gray.700')
   return (
-    <>
+    <Box bg={bgg}>
       {folders && folders.length > 0 && folders.map((folder, index) => (
         <Box
           key={index}
           p={4}
           borderWidth="1px"
           borderRadius="lg"
-          _hover={{ shadow: "xl", bg: "gray.50", cursor: "pointer" }}
+          bg={"bgg"}
           transition="all 0.2s"
           onClick={() => onFolderClick(folder.name)}
+          _hover={{ shadow: "xl", bg: hvr, cursor: "pointer" }}
         >
           <HStack justify="space-between" align="center">
             <HStack>
@@ -41,7 +44,7 @@ const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
           </HStack>
         </Box>
       ))}
-    </>
+    </Box>
   );
 };
 

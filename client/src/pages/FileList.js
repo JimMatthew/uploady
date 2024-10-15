@@ -6,6 +6,7 @@ import {
   Spinner,
   Text,
   Button,
+  useColorModeValue
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
 import SharedLinks from "../components/SharedLinks";
@@ -13,7 +14,7 @@ import FileUpload from "../components/FileUpload";
 import { Link } from "react-router-dom";
 import DragAndDropUpload from "../components/DragDropUpload";
 import { useNavigate } from "react-router-dom";
-
+import DarkModeToggle from "../components/DarkModeToggle";
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
   const [fileTrie, setFileTrie] = useState({});
@@ -126,6 +127,7 @@ const FileList = ({ setUser, toast }) => {
       setLoading(false); 
     }
   };
+  const bgg = useColorModeValue('white', 'gray.700')
   if (loading || !fileData)
     return (
       <Box textAlign="center" py={10}>
@@ -135,9 +137,10 @@ const FileList = ({ setUser, toast }) => {
     );
 
   return (
-    <Box as="main" minH="80vh" bg="gray.50" py={8}>
+    <Box as="main" minH="80vh" py={8}>
       <Container maxW="container.lg">
         {/* Link to SFTP Servers */}
+      
         <Box align="center">
           <Link to="/api/sftp">
             <Button colorScheme="blue" mb={6} size="lg" variant="outline">
@@ -164,12 +167,12 @@ const FileList = ({ setUser, toast }) => {
         </Box>
 
         {/* Shared Links Section */}
-        <Box mb={8} bg="white" boxShadow="sm" p={6} borderRadius="md">
+        <Box mb={8} bg={bgg} boxShadow="sm" p={6} borderRadius="md">
           <SharedLinks onReload={fetchLinks} links={links} />
         </Box>
 
         {/* File List Pane */}
-        <Box bg="white" boxShadow="md" p={6} borderRadius="md">
+        <Box bg={bgg} boxShadow="md" p={6} borderRadius="md">
           <FileListPane
             data={fileData}
             onFolderClick={handleFolderClick}

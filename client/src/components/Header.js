@@ -1,10 +1,9 @@
-import { Flex, Heading, Text, Button, Spacer, Box, IconButton, useBreakpointValue } from "@chakra-ui/react";
+import { Flex, Heading, Text, Button, Spacer, Box, IconButton, useBreakpointValue,useColorMode, } from "@chakra-ui/react";
 import { FaSignOutAlt } from "react-icons/fa";
-
+import DarkModeToggle from "./DarkModeToggle";
 const Header = ({ username, onLogout }) => {
   const headingSize = useBreakpointValue({ base: "md", md: "lg" });
   const showLogoutText = useBreakpointValue({ base: false, md: true });
-
   const handleLogout = async () => {
     try {
       const response = await fetch('/apilogout', { method: 'GET' })
@@ -38,11 +37,16 @@ const Header = ({ username, onLogout }) => {
       <Spacer />
 
       <Box>
+      <DarkModeToggle />
+      
+    </Box>
+      <Box>
         <Text fontSize={{ base: "sm", md: "md" }} mr={4} fontWeight="semibold">
           Logged in as: {username}
         </Text>
       </Box>
 
+      
       {showLogoutText ? (
         <Button leftIcon={<FaSignOutAlt />} colorScheme="orange" onClick={handleLogout}>
           Logout

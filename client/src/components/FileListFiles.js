@@ -11,7 +11,7 @@ const FileList = ({ files, rp, handleFileDownload, handleFileShareLink, handleFi
           p={4}
           borderWidth="1px"
           borderRadius="lg"
-          _hover={{ shadow: "xl", bg: "gray.50", cursor: "pointer" }}
+          
           transition="all 0.2s"
         >
           <HStack justify="space-between" align="center">

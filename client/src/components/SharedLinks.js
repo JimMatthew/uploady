@@ -6,6 +6,7 @@ import {
   useDisclosure,
   useToast,
   SimpleGrid,
+  useColorModeValue
 } from "@chakra-ui/react";
 import { FiLink, FiTrash } from "react-icons/fi";
 import LinkCard from "./LinkCard";
@@ -13,6 +14,7 @@ const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
   const token = localStorage.getItem("token");
   const toast = useToast();
+  const bgg = useColorModeValue('white', 'gray.700')
   const handleShowLinks = () => {
     if (isOpen) {
       onToggle();
@@ -130,6 +132,7 @@ const SharedLinks = ({ onReload, links }) => {
           background="white"
           transition="0.3s ease"
           _hover={{ shadow: "xl" }}
+          bg={bgg}
         >
           <SimpleGrid
             spacing={6}
@@ -143,6 +146,7 @@ const SharedLinks = ({ onReload, links }) => {
                   stopSharing={deleteLink}
                   clickLink={clickLink}
                   copyToClipboard={copyToClip}
+                  
                 />
               ))
             ) : (
