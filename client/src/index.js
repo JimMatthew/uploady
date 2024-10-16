@@ -7,8 +7,8 @@ import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const config = {
-  initialColorMode: 'light', // or 'dark', whichever you prefer as default
-  useSystemColorMode: false, // If true, use the user's system preferences
+  initialColorMode: 'light', 
+  useSystemColorMode: false, 
 };
 const theme = extendTheme({
   config: {

@@ -5,10 +5,13 @@ import {
   IconButton,
   Heading,
   HStack,
+  useColorModeValue
 } from "@chakra-ui/react";
 import { FaFolder, FaTrash } from "react-icons/fa";
 
-const FolderList = ({ folders, changeDirectory, deleteFolder }) => (
+const FolderList = ({ folders, changeDirectory, deleteFolder }) =>{
+  const bgg = useColorModeValue('gray.50', 'gray.600')
+  return (
     <Box mb={8}>
       <Heading size="md" mb={4} color="gray.600">
         Folders
@@ -21,12 +24,12 @@ const FolderList = ({ folders, changeDirectory, deleteFolder }) => (
             p={4}
             borderWidth="1px"
             borderRadius="md"
-            _hover={{ bg: "gray.50", cursor: "pointer" }}
+            _hover={{ bg: bgg, cursor: "pointer" }}
             onClick={() => changeDirectory(folder.name)}
           >
             <HStack spacing={2}>
               <FaFolder size={24} />
-              <Text fontWeight="medium" color="gray.700">
+              <Text fontWeight="medium" >
                 {folder.name}
               </Text>
             </HStack>
@@ -43,5 +46,6 @@ const FolderList = ({ folders, changeDirectory, deleteFolder }) => (
       </Box>
     </Box>
   );
+} 
 
   export default FolderList;

@@ -1,14 +1,15 @@
 import { Box, Flex } from "@chakra-ui/react";
-import Footer from './components/Footer';
-import Header from './components/Header';
+import Footer from "./components/Footer";
+import Header from "./components/Header";
 import { Global } from "@emotion/react";
 const AppLayout = ({ children, username }) => {
   return (
-    
     <Flex direction="column" minHeight="100vh">
       <GlobalStyles />
       <Header username={username} />
-      <Box flex="1" > {/* This box will take up available space */}
+      <Box flex="1">
+        {" "}
+        {/* This box will take up available space */}
         {children}
       </Box>
       <Footer />

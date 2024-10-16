@@ -11,12 +11,12 @@ import {
   PopoverCloseButton,
   PopoverHeader,
   PopoverBody,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import QRCode from "react-qr-code";
 const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
-  const bgg = useColorModeValue('white', 'gray.800')
-  const hvr = useColorModeValue('gray.100', 'gray.750')
+  const bgg = useColorModeValue("white", "gray.800");
+  const hvr = useColorModeValue("gray.100", "gray.750");
   return (
     <Box
       p={4}
@@ -53,7 +53,11 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
         >
           Download
         </Button>
-        <Button size="sm" colorScheme="green" onClick={() => copyToClipboard(linkItem.link)}>
+        <Button
+          size="sm"
+          colorScheme="green"
+          onClick={() => copyToClipboard(linkItem.link)}
+        >
           Copy Link
         </Button>
         <Popover>

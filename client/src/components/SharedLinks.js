@@ -6,7 +6,7 @@ import {
   useDisclosure,
   useToast,
   SimpleGrid,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FiLink, FiTrash } from "react-icons/fi";
 import LinkCard from "./LinkCard";
@@ -14,7 +14,7 @@ const SharedLinks = ({ onReload, links }) => {
   const { isOpen, onToggle } = useDisclosure();
   const token = localStorage.getItem("token");
   const toast = useToast();
-  const bgg = useColorModeValue('white', 'gray.700')
+  const bgg = useColorModeValue("white", "gray.700");
   const handleShowLinks = () => {
     if (isOpen) {
       onToggle();
@@ -58,7 +58,8 @@ const SharedLinks = ({ onReload, links }) => {
   const copyToClip = (text) => {
     if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
       // If clipboard API is available, use it
-      navigator.clipboard.writeText(text)
+      navigator.clipboard
+        .writeText(text)
         .then(() => {
           toast({
             title: "Link copied!",
@@ -146,7 +147,6 @@ const SharedLinks = ({ onReload, links }) => {
                   stopSharing={deleteLink}
                   clickLink={clickLink}
                   copyToClipboard={copyToClip}
-                  
                 />
               ))
             ) : (
@@ -158,8 +158,5 @@ const SharedLinks = ({ onReload, links }) => {
     </>
   );
 };
-
-
-
 
 export default SharedLinks;

@@ -18,21 +18,22 @@ import {
   Spacer,
   IconButton,
   Center,
-  Spinner
+  Spinner,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
-import axios from "axios"
-import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa"
+import axios from "axios";
+import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState([]);
-  const [serverStatuses, setServerStatuses] = useState({})
+  const [serverStatuses, setServerStatuses] = useState({});
 
   const addTab = (server, type) => {
     const newTab = {
@@ -62,15 +63,13 @@ const SFTPApp = ({ toast }) => {
   };
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
-
+  const bgg = useColorModeValue("gray.50", "gray.800");
   useEffect(() => {
     if (token) {
-      fetchFiles()
-      //fetchStatuses()
+      fetchFiles();
     } else {
       console.error("No token found");
     }
-
   }, []);
 
   const handleConnect = async (server) => {
@@ -107,20 +106,20 @@ const SFTPApp = ({ toast }) => {
     });
   };
   const fetchStatuses = async (data) => {
-    const statuses = {}
-    console.log('insode')
+    const statuses = {};
+    console.log("insode");
     await Promise.all(
       data.servers.map(async (server) => {
         try {
-          const response = await axios.get(`/sftp/server-status/${server._id}`)
-          statuses[server._id] = response.data.status
+          const response = await axios.get(`/sftp/server-status/${server._id}`);
+          statuses[server._id] = response.data.status;
         } catch (error) {
-          statuses[server._id] = "Error fetching status"
+          statuses[server._id] = "Error fetching status";
         }
       })
-    )
-    setServerStatuses(statuses)
-  }
+    );
+    setServerStatuses(statuses);
+  };
 
   const deleteServer = async (serverId) => {
     const response = await fetch("/sftp/api/delete-server", {
@@ -188,7 +187,7 @@ const SFTPApp = ({ toast }) => {
         {isDesktop || showSidebar ? (
           <Box
             width={{ base: "100%", lg: "300px" }}
-            bg="gray.50"
+            bg={bgg}
             p={4}
             borderRight="1px solid"
             borderColor="gray.200"
@@ -217,23 +216,41 @@ const SFTPApp = ({ toast }) => {
               {/* List of Servers */}
               {sftpServers.servers.length > 0 ? (
                 sftpServers.servers.map((server) => (
-                  <Card key={server._id} border="1px solid" borderColor="gray.300">
+                  <Card
+                    key={server._id}
+                    border="1px solid"
+                    borderColor="gray.300"
+                  >
                     <CardBody>
                       <Stack spacing={3}>
                         <Text fontWeight="bold">
-                          Host: <span style={{ color: "gray.600" }}>{server.host}</span>
+                          Host:{" "}
+                          <span style={{ color: "gray.600" }}>
+                            {server.host}
+                          </span>
                         </Text>
                         <Text fontWeight="bold">
                           <strong>Status:</strong>{" "}
                           {serverStatuses[server._id] ? (
-                            <Text as="span" color={serverStatuses[server._id] === "online" ? "green.500" : "red.500"}>
+                            <Text
+                              as="span"
+                              color={
+                                serverStatuses[server._id] === "online"
+                                  ? "green.500"
+                                  : "red.500"
+                              }
+                            >
                               {serverStatuses[server._id]}
                             </Text>
                           ) : (
                             <Spinner size="sm" />
                           )}
                         </Text>
-                        <Stack direction="row" justify="space-between" spacing={3}>
+                        <Stack
+                          direction="row"
+                          justify="space-between"
+                          spacing={3}
+                        >
                           <IconButton
                             aria-label="SFTP"
                             icon={<FaFileAlt />}
@@ -266,7 +283,11 @@ const SFTPApp = ({ toast }) => {
 
             {/* Close Sidebar Button for Mobile */}
             {!isDesktop && (
-              <Button mt={4} colorScheme="red" onClick={() => setShowSidebar(false)}>
+              <Button
+                mt={4}
+                colorScheme="red"
+                onClick={() => setShowSidebar(false)}
+              >
                 Close Sidebar
               </Button>
             )}
@@ -274,14 +295,23 @@ const SFTPApp = ({ toast }) => {
         ) : null}
 
         {/* Main Panel */}
-        <Box flex={1} p={4} ml={{ base: 0, lg: "30px" }} transition="margin 0.3s ease">
+        <Box
+          flex={1}
+          p={4}
+          ml={{ base: 0, lg: "30px" }}
+          transition="margin 0.3s ease"
+        >
           <Tabs>
             <TabList>
               {tabs.length > 0 ? (
                 tabs.map((tab, index) => (
                   <HStack key={index} spacing={2}>
                     <Tab>{tab.label}</Tab>
-                    <Button size="xs" colorScheme="red" onClick={() => closeTab(index)}>
+                    <Button
+                      size="xs"
+                      colorScheme="red"
+                      onClick={() => closeTab(index)}
+                    >
                       ✕
                     </Button>
                   </HStack>
@@ -295,12 +325,15 @@ const SFTPApp = ({ toast }) => {
 
             <TabPanels>
               {tabs.length > 0 ? (
-                tabs.map((tab) => <TabPanel key={tab.id}>{tab.content}</TabPanel>)
+                tabs.map((tab) => (
+                  <TabPanel key={tab.id}>{tab.content}</TabPanel>
+                ))
               ) : (
                 <Center height="300px">
                   <Box textAlign="center">
                     <Text fontSize="lg" color="gray.500">
-                      No tabs open. Please select a server from the list to start.
+                      No tabs open. Please select a server from the list to
+                      start.
                     </Text>
                   </Box>
                 </Center>

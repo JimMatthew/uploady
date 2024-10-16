@@ -7,6 +7,7 @@ import {
   Input,
   FormControl,
   FormLabel,
+  useColorModeValue,
 } from "@chakra-ui/react";
 
 const AddServer = ({ handleSaveServer }) => {
@@ -15,7 +16,11 @@ const AddServer = ({ handleSaveServer }) => {
     username: "",
     password: "",
   });
-
+  const boxBg = useColorModeValue("white", "gray.700");
+  const inputBg = useColorModeValue("gray.50", "gray.800");
+  const borderColor = useColorModeValue("gray.300", "gray.600");
+  const labelColor = useColorModeValue("gray.600", "gray.300");
+  const headingColor = useColorModeValue("gray.800", "white");
   const handleInputChange = (e) => {
     setNewServerDetails({
       ...newServerDetails,
@@ -25,7 +30,6 @@ const AddServer = ({ handleSaveServer }) => {
 
   const handleSave = (e) => {
     e.preventDefault();
-
     handleSaveServer(
       newServerDetails.host,
       newServerDetails.username,
@@ -36,23 +40,23 @@ const AddServer = ({ handleSaveServer }) => {
 
   return (
     <Box
-      bg="white"
-      p={6}
-      borderRadius="sm"
-      boxShadow="sm"
+      bg={boxBg}
+      p={8}
+      borderRadius="lg"
+      boxShadow="lg"
       border="1px solid"
-      borderColor="gray.200"
+      borderColor={borderColor}
       maxW="sm"
       mx="auto"
-      mt={6}
+      mt={10}
     >
-      <VStack as="form" spacing={4} onSubmit={handleSave}>
-        <Heading size="md" mb={4} color="gray.800" fontWeight="medium">
+      <VStack as="form" spacing={6} onSubmit={handleSave}>
+        <Heading size="lg" color={headingColor} fontWeight="bold">
           Add New Server
         </Heading>
 
         <FormControl id="host" isRequired>
-          <FormLabel fontSize="sm" fontWeight="medium" color="gray.600">
+          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
             Host
           </FormLabel>
           <Input
@@ -60,17 +64,21 @@ const AddServer = ({ handleSaveServer }) => {
             placeholder="Enter server host"
             value={newServerDetails.host}
             onChange={handleInputChange}
-            bg="gray.50"
+            bg={inputBg}
             border="1px solid"
-            borderColor="gray.300"
-            borderRadius="none"
-            _hover={{ borderColor: "gray.400" }}
-            _focus={{ borderColor: "blue.400", boxShadow: "none" }}
+            borderColor={borderColor}
+            borderRadius="md"
+            _hover={{ borderColor: "blue.400" }}
+            _focus={{
+              borderColor: "blue.500",
+              boxShadow: "0 0 0 1px blue.500",
+            }}
+            transition="border-color 0.2s ease, box-shadow 0.2s ease"
           />
         </FormControl>
 
         <FormControl id="username" isRequired>
-          <FormLabel fontSize="sm" fontWeight="medium" color="gray.600">
+          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
             Username
           </FormLabel>
           <Input
@@ -78,17 +86,21 @@ const AddServer = ({ handleSaveServer }) => {
             placeholder="Enter username"
             value={newServerDetails.username}
             onChange={handleInputChange}
-            bg="gray.50"
+            bg={inputBg}
             border="1px solid"
-            borderColor="gray.300"
-            borderRadius="none"
-            _hover={{ borderColor: "gray.400" }}
-            _focus={{ borderColor: "blue.400", boxShadow: "none" }}
+            borderColor={borderColor}
+            borderRadius="md"
+            _hover={{ borderColor: "blue.400" }}
+            _focus={{
+              borderColor: "blue.500",
+              boxShadow: "0 0 0 1px blue.500",
+            }}
+            transition="border-color 0.2s ease, box-shadow 0.2s ease"
           />
         </FormControl>
 
         <FormControl id="password" isRequired>
-          <FormLabel fontSize="sm" fontWeight="medium" color="gray.600">
+          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
             Password
           </FormLabel>
           <Input
@@ -97,12 +109,16 @@ const AddServer = ({ handleSaveServer }) => {
             placeholder="Enter password"
             value={newServerDetails.password}
             onChange={handleInputChange}
-            bg="gray.50"
+            bg={inputBg}
             border="1px solid"
-            borderColor="gray.300"
-            borderRadius="none"
-            _hover={{ borderColor: "gray.400" }}
-            _focus={{ borderColor: "blue.400", boxShadow: "none" }}
+            borderColor={borderColor}
+            borderRadius="md"
+            _hover={{ borderColor: "blue.400" }}
+            _focus={{
+              borderColor: "blue.500",
+              boxShadow: "0 0 0 1px blue.500",
+            }}
+            transition="border-color 0.2s ease, box-shadow 0.2s ease"
           />
         </FormControl>
 
@@ -111,9 +127,10 @@ const AddServer = ({ handleSaveServer }) => {
           type="submit"
           width="full"
           bg="blue.500"
-          borderRadius="none"
+          borderRadius="md"
           _hover={{ bg: "blue.600" }}
-          _focus={{ boxShadow: "none" }}
+          _focus={{ boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
+          transition="background-color 0.2s ease, box-shadow 0.2s ease"
         >
           Save Server
         </Button>

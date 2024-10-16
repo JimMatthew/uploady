@@ -8,10 +8,14 @@ import {
   Heading,
   HStack,
   Spinner,
+  useColorModeValue
 } from "@chakra-ui/react";
 import { FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 
-const FileList = ({ files, downloadFile, deleteFile }) => (
+const FileList = ({ files, downloadFile, deleteFile }) => {
+  const bgg = useColorModeValue('gray.50', 'gray.600')
+
+  return (
     <Box>
       <Heading size="md" mb={4} color="gray.600">
         Files
@@ -24,12 +28,12 @@ const FileList = ({ files, downloadFile, deleteFile }) => (
             p={4}
             borderWidth="1px"
             borderRadius="md"
-            _hover={{ bg: "gray.50" }}
+            _hover={{ bg: bgg }}
             transition="background-color 0.2s"
           >
             <HStack spacing={2}>
               <FaFile size={24} />
-              <Text fontWeight="medium" color="gray.700">
+              <Text fontWeight="medium" >
                 {file.name}
               </Text>
             </HStack>
@@ -59,5 +63,7 @@ const FileList = ({ files, downloadFile, deleteFile }) => (
       </Box>
     </Box>
   );
+}
+
 
   export default FileList

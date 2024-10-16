@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Text,
-  Stack,
-  Heading,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Text, Stack, Heading, Spinner } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/Upload";
 import SftpController from "../controllers/SftpController";
@@ -104,7 +98,6 @@ const FileFolderViewer = ({ serverId, toast }) => {
       borderWidth="1px"
       borderRadius="md"
       boxShadow="md"
-      bg="white"
       maxWidth="1200px"
       mx="auto"
     >

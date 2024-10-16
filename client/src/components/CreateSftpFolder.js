@@ -1,10 +1,15 @@
 import React, { useState } from "react";
-import { Button, Input, Box, HStack } from "@chakra-ui/react";
-const CreateSftpFolder = ({
-     sftpCreateFolderOnSubmit,
-}) => {
+import {
+  Button,
+  Input,
+  Box,
+  HStack,
+  useColorModeValue,
+} from "@chakra-ui/react";
+const CreateSftpFolder = ({ sftpCreateFolderOnSubmit }) => {
   const [folderName, setFolderName] = useState("");
-  
+  const bgg = useColorModeValue("gray.50", "gray.800");
+  const bgi = useColorModeValue("white", "gray.700");
   const handleInputChange = (e) => {
     setFolderName(e.target.value);
   };
@@ -17,8 +22,8 @@ const CreateSftpFolder = ({
       return;
     }
 
-    sftpCreateFolderOnSubmit(folderName)
-    setFolderName('')
+    sftpCreateFolderOnSubmit(folderName);
+    setFolderName("");
   };
 
   return (
@@ -28,7 +33,7 @@ const CreateSftpFolder = ({
       p={4}
       boxShadow="md"
       borderRadius="md"
-      bg="gray.50"
+      bg={bgg}
       maxW="400px"
       mx="5px"
       mt={6}
@@ -42,7 +47,7 @@ const CreateSftpFolder = ({
           onChange={handleInputChange}
           focusBorderColor="blue.400"
           borderRadius="md"
-          bg="white"
+          bg={bgi}
         />
         <Button
           size="sm"

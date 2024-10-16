@@ -46,7 +46,7 @@ function FileUpload({ relativePath, refreshPath, toast }) {
   };
 
   return (
-   <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit}/>
+    <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit} />
   );
 }
 
