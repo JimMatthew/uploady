@@ -137,7 +137,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
         changeDirectory={(folder) =>
           changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
         }
-        deleteFolder={deleteSftpFolder}
+        deleteFolder={(folder) => deleteSftpFolder(folder, serverId, files.currentDirectory)}
       />
 
       <FileListSftp

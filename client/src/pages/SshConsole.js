@@ -41,7 +41,7 @@ const SshConsole = ({ serverId }) => {
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
     };
-    term.current.resize(110, 50);
+    //term.current.resize(110, 50);
     fitAddon.fit();
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);

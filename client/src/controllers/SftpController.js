@@ -175,9 +175,9 @@ const SftpController = ({ toast, setFiles }) => {
   const handleUpload = async (file, serverId, currentDirectory) => {
     const formData = new FormData();
     formData.append("currentDirectory", currentDirectory);
-    formData.append("files", file);
+    
     formData.append("serverId", serverId);
-
+    formData.append("files", file);
     try {
       const response = await fetch("/sftp/api/upload", {
         headers: {
