@@ -308,8 +308,6 @@ module.exports = () => {
     const { serverId, currentDirectory, fileName } = req.body;
     if (serverId && currentDirectory && fileName) {
       const fullPath = path.join(currentDirectory, fileName);
-      console.log('sid: '+serverId)
-      console.log('fp: '+fullPath)
       const server = await SftpServer.findById(serverId);
       if (!server) {
         return res.status(404).send("server not found");
