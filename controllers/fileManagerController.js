@@ -2,11 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
-
+require('dotenv').config();
 module.exports = () => {
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
-  const domain = "uploady.lan";
+  const domain = process.env.HOSTNAME;
 
   /*
     upload files to directory
@@ -58,7 +58,7 @@ module.exports = () => {
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
-    const shareLink = `${req.protocol}://${domain}:3001/share/${token}/${fileName}`;
+    const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
       return res.status(400).json({

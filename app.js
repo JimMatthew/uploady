@@ -7,36 +7,41 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 const http = require("http");
-const JwtStrategy = require('passport-jwt').Strategy
-const ExtractJwt = require('passport-jwt').ExtractJwt
-const jwt = require('jsonwebtoken')
-const WebSocket = require('ws')
-const sshSessionHandler = require('./controllers/ssh_session')
+const JwtStrategy = require("passport-jwt").Strategy;
+const ExtractJwt = require("passport-jwt").ExtractJwt;
+const jwt = require("jsonwebtoken");
+const WebSocket = require("ws");
+const sshSessionHandler = require("./controllers/ssh_session");
+require("dotenv").config();
 const users = [
-  { id: 1, username: "admin", passwordHash: bcrypt.hashSync("123", 10) },
+  {
+    id: 1,
+    username: process.env.USERNAME,
+    passwordHash: bcrypt.hashSync(process.env.PASSWORD, 10),
+  },
 ];
 
 const app = express();
 const server = http.createServer(app);
-const cors = require('cors');
+const cors = require("cors");
 const { hostname } = require("os");
 
-app.use(cors())
-const wss = new WebSocket.Server({ server })
-wss.on('connection', (socket) => {
-  sshSessionHandler(socket)
-})
+app.use(cors());
+const wss = new WebSocket.Server({ server });
+wss.on("connection", (socket) => {
+  sshSessionHandler(socket);
+});
 
 mongoose.set("strictPopulate", false);
-const mongoDB = "mongodb://upapp:qwerty@192.168.1.237:27017/myapp";
+const mongoDB = process.env.DATABASE;
 main().catch((err) => console.log(err));
 async function main() {
   await mongoose.connect(mongoDB);
 }
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: 'your_jwt_secret', 
-}
+  secretOrKey: "your_jwt_secret",
+};
 app.use(
   session({
     secret: "secret_key",
@@ -54,14 +59,16 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-passport.use(new JwtStrategy(jwtOptions, (jwtPayload, done) => {
-  const user = users.find(user => user.id === jwtPayload.id)
-  if (user) {
-    return done(null, user)
-  } else {
-    return done(null, false)
-  }
-}))
+passport.use(
+  new JwtStrategy(jwtOptions, (jwtPayload, done) => {
+    const user = users.find((user) => user.id === jwtPayload.id);
+    if (user) {
+      return done(null, user);
+    } else {
+      return done(null, false);
+    }
+  })
+);
 
 // Serialize and deserialize user
 passport.serializeUser((user, done) => {
@@ -73,9 +80,7 @@ passport.deserializeUser((id, done) => {
   done(null, user);
 });
 
-const routes = require("./routes/route")(
-  path.join(__dirname, "uploads"),
-);
+const routes = require("./routes/route")(path.join(__dirname, "uploads"));
 
 const sftpRouter = require("./routes/sftpRouter")();
 
@@ -85,31 +90,33 @@ app.get("/login", (req, res) => {
   res.render("login", { message: req.session.messages || "" });
 });
 
-app.post('/apilogin', (req, res) => {
-  const { username, password } = req.body
-  const user = users.find(user => user.username === username)
+app.post("/apilogin", (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find((user) => user.username === username);
 
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    return res.status(401).json({ message: 'Invalid username or password' })
+    return res.status(401).json({ message: "Invalid username or password" });
   }
 
   // If the user is found and password matches, generate a JWT
-  const token = jwt.sign({ id: user.id }, 'your_jwt_secret', { expiresIn: '8h' }) // Token valid for 1 hour
-  return res.json({ token })
-})
+  const token = jwt.sign({ id: user.id }, "your_jwt_secret", {
+    expiresIn: "8h",
+  }); // Token valid for 1 hour
+  return res.json({ token });
+});
 
 app.get("/apilogout", (req, res) => {
   req.logout(() => {
-    return res.status(200).json({ message: 'Use logged out' })
+    return res.status(200).json({ message: "Use logged out" });
   });
-})
+});
 
-app.use(express.static(path.join(__dirname, 'client/build')))
+app.use(express.static(path.join(__dirname, "client/build")));
 
 // The "catchall" handler: for any request that doesn't match one above, send back index.html.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/build', 'index.html'))
-})
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client/build", "index.html"));
+});
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
@@ -121,7 +128,6 @@ app.use((req, res, next) => {
 // Error handler middleware
 app.use((err, req, res, next) => {
   res.status(err.status || 500);
-  
 });
 
 const PORT = process.env.PORT || 3001;
