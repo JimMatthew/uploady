@@ -7,11 +7,10 @@ import CreateSftpFolder from "../components/CreateSftpFolder";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast }) => {
-  const [file, setFile] = useState(null);
+  
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
@@ -20,12 +19,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
     createSftpFolder,
     generateBreadcrumb,
     changeSftpDirectory,
-    handleUpload,
   } = SftpController({ toast, setFiles });
-
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
-  };
 
   useEffect(() => {
     if (!connected) {
@@ -60,54 +54,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
   const handleDelete = (filename) => {
     deleteSftpFile(filename, serverId, files.currentDirectory);
   };
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!file) {
-      toast({
-        title: "No file selected",
-        description: "Please select a file to upload",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
-    }
-    
-
-    const formData = new FormData();
-    formData.append("currentDirectory", files.currentDirectory);
-    formData.append("serverId", serverId);
-    formData.append("files", file);
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-            const percentCompleted = Math.round((event.loaded * 100) / event.total);
-            setUploadProgress(percentCompleted); // Update progress state
-        }
-    });
-
-    xhr.open("POST", "/sftp/api/upload", true);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    
-    xhr.onload = function () {
-        if (xhr.status === 200) {
-            changeSftpDirectory(serverId, files.currentDirectory); // Refresh directory on successful upload
-            setUploadProgress(0);
-            setFile(null);
-        } else {
-            alert("File upload failed");
-        }
-    };
-
-    xhr.onerror = function () {
-        console.error("Error uploading file");
-    };
-
-    xhr.send(formData);
-  };
+  
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -133,9 +80,10 @@ const FileFolderViewer = ({ serverId, toast }) => {
       {/* Heading */}
       <Box mb={6}>
         <Upload
-          handleFileChange={handleFileChange}
-          handleSubmit={handleSubmit}
-          uploadProgress={uploadProgress}
+        changeSftpDirectory={changeSftpDirectory}
+          toast={toast}
+          serverId={serverId}
+          currentDirectory={files.currentDirectory}
         />
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders
