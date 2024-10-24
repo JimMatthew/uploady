@@ -4,6 +4,7 @@ const path = require("path");
 const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
+const Busboy = require("busboy");
 const multer = require("multer");
 const net = require('net');
 
@@ -110,10 +111,69 @@ module.exports = () => {
 
   const upload = multer();
 
+  const sftp_stream_upload_post = async (req, res, next) => {
+    const busboy = Busboy({ headers: req.headers });
+    let currentDirectory, serverId, sftp, remotePath;
+    let fileUploaded = false;
+  
+    // Handle form fields
+    busboy.on("field", (fieldname, value) => {
+      if (fieldname === "currentDirectory") currentDirectory = value;
+      if (fieldname === "serverId") serverId = value;
+    });
+  
+    // Handle file stream
+    busboy.on("file", async (fieldname, file, filename) => {
+      try {
+        if (!serverId || !currentDirectory) {
+          return res.status(400).send("Missing directory or server ID");
+        }
+  
+        // Fetch server details
+        const server = await SftpServer.findById(serverId);
+        const { host, username, password } = server;
+  
+        // Establish SFTP connection
+        sftp = new SftpClient();
+        await sftp.connect({
+          host,
+          username,
+          password,
+        });
+  
+        remotePath = `${currentDirectory}/${filename.filename}`;
+        
+        // Stream file directly to SFTP server
+        await sftp.put(file, remotePath);
+        fileUploaded = true;
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        res.status(500).send("Error uploading file");
+        next(error);
+      } finally {
+        if (sftp) sftp.end(); // End the SFTP session
+      }
+    });
+  
+    // Handle the close event
+    busboy.on("finish", () => {
+      res.status(200).send("File uploaded successfully");
+    });
+  
+    // Error handler
+    busboy.on("error", (error) => {
+      console.error("Error during file upload:", error);
+      res.status(500).send("File upload error");
+    });
+  
+    // Pipe the request to Busboy
+    req.pipe(busboy);
+  };
+  
   /*
     Stream file upload from client to sftp server
   */
-  const sftp_stream_upload_post = async (req, res, next) => {
+  const sftp_stream_upload_post2 = async (req, res, next) => {
     const { currentDirectory, serverId } = req.body;
     try {
       const server = await SftpServer.findById(serverId);

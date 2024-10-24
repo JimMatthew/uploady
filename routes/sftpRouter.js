@@ -19,7 +19,7 @@ module.exports = function () {
   router.post(
     "/api/upload",
     passport.authenticate("jwt", { session: false }),
-    sftpController.upload.array("files", 10),
+    //sftpController.upload.array("files", 10),
     sftpController.sftp_stream_upload_post
   );
 
