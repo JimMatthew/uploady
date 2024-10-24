@@ -138,9 +138,9 @@ module.exports = () => {
     }
   };
 
-  // currently the file is being uploaded to this server first,
+  // the file is being uploaded to this server first,
   //and then uploaded to the sftp server
-  //TODO: stream file from client to sftp server
+  //Use stream method instead
   const sftp_upload_post = async (req, res) => {
     const { currentDirectory, serverId } = req.body;
     const sftp = new SftpClient();

@@ -196,12 +196,11 @@ module.exports = () => {
 
   /*
     Store file info for shared file
-    Save to configured storage 
   */
   const storeLinkInfo = async (fileName, filePath, link, token) => {
-    const ff = await SharedFile.findOne({ fileName, filePath });
-    if (ff) {
-      return false;
+    
+    if (await SharedFile.findOne({ fileName, filePath })) {
+      return false; //file already shared
     }
 
     const sharedFile = new SharedFile({
@@ -234,7 +233,6 @@ module.exports = () => {
         return;
       }
     });
-    const fullPath = path.join(filePath, fileName);
     await SharedFile.findOneAndDelete({ filePath, fileName });
     res.status(200).json({
       message: "file deleted",
