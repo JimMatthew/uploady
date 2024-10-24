@@ -11,6 +11,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
@@ -72,12 +73,40 @@ const FileFolderViewer = ({ serverId, toast }) => {
       });
       return;
     }
-    handleUpload(
-      file,
-      serverId,
-      files.currentDirectory,
-      changeSftpDirectory(serverId, files.currentDirectory)
-    );
+    
+
+    const formData = new FormData();
+    formData.append("currentDirectory", files.currentDirectory);
+    formData.append("serverId", serverId);
+    formData.append("files", file);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+            const percentCompleted = Math.round((event.loaded * 100) / event.total);
+            setUploadProgress(percentCompleted); // Update progress state
+        }
+    });
+
+    xhr.open("POST", "/sftp/api/upload", true);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            changeSftpDirectory(serverId, files.currentDirectory); // Refresh directory on successful upload
+            setUploadProgress(0);
+            setFile(null);
+        } else {
+            alert("File upload failed");
+        }
+    };
+
+    xhr.onerror = function () {
+        console.error("Error uploading file");
+    };
+
+    xhr.send(formData);
   };
   if (loading) {
     return (
@@ -106,6 +135,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
         <Upload
           handleFileChange={handleFileChange}
           handleSubmit={handleSubmit}
+          uploadProgress={uploadProgress}
         />
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders

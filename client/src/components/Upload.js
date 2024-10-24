@@ -6,9 +6,10 @@ import {
   HStack,
   FormControl,
   useColorModeValue,
+  Progress
 } from "@chakra-ui/react";
 
-function Upload({ handleSubmit, handleFileChange }) {
+function Upload({ handleSubmit, handleFileChange, uploadProgress }) {
   
   return (
     <Box
@@ -45,6 +46,9 @@ function Upload({ handleSubmit, handleFileChange }) {
             Upload
           </Button>
         </HStack>
+        {uploadProgress > 0 && (
+          <Progress mt={4} value={uploadProgress} size="sm" colorScheme="blue" />
+        )}
       </FormControl>
     </Box>
   );

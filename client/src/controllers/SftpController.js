@@ -172,7 +172,40 @@ const SftpController = ({ toast, setFiles }) => {
     } 
   };
 
-  const handleUpload = async (file, serverId, currentDirectory) => {
+  const handleUpload = async (file, serverId, currentDirectory, ) => {
+    const formData = new FormData();
+    formData.append("currentDirectory", currentDirectory);
+    formData.append("serverId", serverId);
+    formData.append("files", file);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+            const percentCompleted = Math.round((event.loaded * 100) / event.total);
+            //setUploadProgress(percentCompleted); // Update progress state
+        }
+    });
+
+    xhr.open("POST", "/sftp/api/upload", true);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            changeSftpDirectory(serverId, currentDirectory); // Refresh directory on successful upload
+        } else {
+            alert("File upload failed");
+        }
+    };
+
+    xhr.onerror = function () {
+        console.error("Error uploading file");
+    };
+
+    xhr.send(formData);
+};
+
+  const handleUpload2 = async (file, serverId, currentDirectory) => {
     const formData = new FormData();
     formData.append("currentDirectory", currentDirectory);
     
