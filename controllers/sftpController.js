@@ -5,7 +5,7 @@ const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const Busboy = require("busboy");
-const multer = require("multer");
+//const multer = require("multer");
 const net = require('net');
 
 module.exports = () => {
@@ -109,7 +109,7 @@ module.exports = () => {
     }
   };
 
-  const upload = multer();
+  //const upload = multer();
 
   const sftp_stream_upload_post = async (req, res, next) => {
     const busboy = Busboy({ headers: req.headers });
@@ -427,7 +427,7 @@ module.exports = () => {
     sftp_download_get,
     sftp_stream_download_get,
     ssh_console_get,
-    upload,
+    //upload,
     sftp_stream_upload_post,
     server_status_get,
     sftp_servers_json_get,

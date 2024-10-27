@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, Stack, Heading, Spinner } from "@chakra-ui/react";
+import { Box, Text, Stack, Heading, Spinner, useBreakpointValue } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/Upload";
+import DragDropSftp from "../components/DragDropSftp";
 import SftpController from "../controllers/SftpController";
 import CreateSftpFolder from "../components/CreateSftpFolder";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast }) => {
-  
+
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, md: false });
   const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
@@ -54,7 +56,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
   const handleDelete = (filename) => {
     deleteSftpFile(filename, serverId, files.currentDirectory);
   };
-  
+
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -78,13 +80,24 @@ const FileFolderViewer = ({ serverId, toast }) => {
       mx="auto"
     >
       {/* Heading */}
-      <Box mb={6}>
-        <Upload
-        changeSftpDirectory={changeSftpDirectory}
-          toast={toast}
-          serverId={serverId}
-          currentDirectory={files.currentDirectory}
-        />
+      <Box mb={6} >
+        <Box align="center">
+          {!isMobile ? (
+            <DragDropSftp
+              changeSftpDirectory={changeSftpDirectory}
+              toast={toast}
+              serverId={serverId}
+              currentDirectory={files.currentDirectory}
+            />
+          ) : (
+            <Upload
+              changeSftpDirectory={changeSftpDirectory}
+              toast={toast}
+              serverId={serverId}
+              currentDirectory={files.currentDirectory}
+            />
+          )}
+        </Box>
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders
         </Heading>
