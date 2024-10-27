@@ -80,15 +80,14 @@ passport.deserializeUser((id, done) => {
   done(null, user);
 });
 
+//routes for file manager
 const routes = require("./routes/route")(path.join(__dirname, "uploads"));
 
+//routes for sftp server manager
 const sftpRouter = require("./routes/sftpRouter")();
 
 app.use("/", routes);
 app.use("/sftp", sftpRouter);
-app.get("/login", (req, res) => {
-  res.render("login", { message: req.session.messages || "" });
-});
 
 app.post("/apilogin", (req, res) => {
   const { username, password } = req.body;

@@ -148,6 +148,7 @@ const DragAndDropUpload = ({ changeSftpDirectory, toast, serverId, currentDirect
               >
                 <Text>{file.name}</Text>
                 <Progress
+                textAlign="center"
                   value={progresses[index]}
                   size="md"
                   colorScheme="blue"

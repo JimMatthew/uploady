@@ -9,10 +9,10 @@ import {
   VStack,
   useColorModeValue,
   useToast,
-  Progress,
+  Progress, // Import Progress from Chakra UI
 } from "@chakra-ui/react";
 
-const DragAndDropUpload = ({ currentDirectory, serverId, changeSftpDirectory }) => {
+const DragAndDropUpload = ({ relativePath, refreshPath }) => {
   const [files, setFiles] = useState([]);
   const [progresses, setProgresses] = useState([]); // Track progress for each file
   const token = localStorage.getItem("token");
@@ -43,11 +43,17 @@ const DragAndDropUpload = ({ currentDirectory, serverId, changeSftpDirectory }) 
       return;
     }
 
+    const formData = new FormData();
+    formData.append("folderPath", relativePath);
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
     // Create an array to hold the XMLHttpRequests
     const uploadPromises = files.map((file, index) => {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/sftp/api/upload", true);
+        xhr.open("POST", "/api/upload", true);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
         // Update progress for each file
@@ -78,8 +84,7 @@ const DragAndDropUpload = ({ currentDirectory, serverId, changeSftpDirectory }) 
 
         // Send the form data for this file
         const singleFileFormData = new FormData();
-        singleFileFormData.append("currentDirectory", currentDirectory);
-        singleFileFormData.append("serverId", serverId);
+        singleFileFormData.append("folderPath", relativePath);
         singleFileFormData.append("files", file);
 
         xhr.send(singleFileFormData);
@@ -95,7 +100,7 @@ const DragAndDropUpload = ({ currentDirectory, serverId, changeSftpDirectory }) 
         duration: 3000,
         isClosable: true,
       });
-      changeSftpDirectory(serverId, currentDirectory); // Refresh directory after upload
+      refreshPath(); // Refresh folder content
       setFiles([]);
       setProgresses([]); // Reset progresses
     } catch (error) {
@@ -159,7 +164,7 @@ const DragAndDropUpload = ({ currentDirectory, serverId, changeSftpDirectory }) 
                   textAlign="left"
                   value={progresses[index]} // Display progress for each file
                   size="md"
-                  colorScheme="blue"
+                  colorScheme="green"
                   mt={2}
                 />
               </ListItem>

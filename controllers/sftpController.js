@@ -426,7 +426,7 @@ module.exports = () => {
     sftp_upload_post,
     sftp_download_get,
     sftp_stream_download_get,
-    ssh_console_get,
+    //ssh_console_get,
     //upload,
     sftp_stream_upload_post,
     server_status_get,
