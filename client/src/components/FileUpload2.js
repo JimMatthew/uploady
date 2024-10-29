@@ -1,12 +1,20 @@
-import React, { useState } from "react";
+import React, { useState,useRef } from "react";
 import Upload from "./Upload";
-import { Progress } from "@chakra-ui/react"; // Assuming you're using Chakra UI
+import { Progress, Button,
+  Input,
+  Box,
+  HStack,
+  FormControl,
+  useColorModeValue,
+   } from "@chakra-ui/react"; // Assuming you're using Chakra UI
 
 function FileUpload({ relativePath, refreshPath, toast }) {
   const [file, setFile] = useState(null);
-  const [progress, setProgress] = useState(0); // Track the upload progress
+  //const [progress, setProgress] = useState(0); // Track the upload progress
   const token = localStorage.getItem("token");
-
+  const [uploadProgress, setProgress] = useState(0);
+  
+  const fileInputRef = useRef(null);
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
@@ -63,20 +71,46 @@ function FileUpload({ relativePath, refreshPath, toast }) {
   };
 
   return (
-    <div>
-      <Upload handleFileChange={handleFileChange} handleSubmit={handleSubmit} />
-      {file && (
-        <Progress
-        textAlign="left"
-          value={progress}
-          size="md"
-          colorScheme="green"
-          mt={4}
-          hasStripe
-          isAnimated
-        />
-      )}
-    </div>
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      p={4}
+      shadow="md"
+      borderWidth="1px"
+      borderRadius="lg"
+      background={useColorModeValue("gray.50", "gray.800")}
+      maxW="lg"
+      mx="auto"
+    >
+      <FormControl>
+        <HStack spacing={4} align="center">
+          <Input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            variant="unstyled"
+            _focus={{ outline: "none" }}
+            p={2}
+            bg={useColorModeValue("white", "gray.700")}
+            borderWidth="1px"
+            borderRadius="md"
+            size="md"
+          />
+          <Button
+            colorScheme="blue"
+            type="submit"
+            size="md"
+            px={6}
+            _hover={{ bg: "blue.600" }}
+          >
+            Upload
+          </Button>
+        </HStack>
+        {uploadProgress > 0 && (
+          <Progress align="left" mt={4} value={uploadProgress} size="sm" colorScheme="blue" />
+        )}
+      </FormControl>
+    </Box>
   );
 }
 

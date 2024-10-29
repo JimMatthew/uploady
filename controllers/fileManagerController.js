@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
-require('dotenv').config();
+require("dotenv").config();
 module.exports = () => {
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
@@ -24,9 +24,9 @@ module.exports = () => {
     }
 
     if (!files) {
-      const err = new Error("No File Uploaded");
-      err.status = 404;
-      return next(err);
+      return res.status(400).json({
+        error: "File not Uploaded",
+      });
     }
 
     files.forEach((file) => {
@@ -198,7 +198,6 @@ module.exports = () => {
     Store file info for shared file
   */
   const storeLinkInfo = async (fileName, filePath, link, token) => {
-    
     if (await SharedFile.findOne({ fileName, filePath })) {
       return false; //file already shared
     }

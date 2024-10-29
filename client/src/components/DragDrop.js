@@ -164,7 +164,7 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
                   textAlign="left"
                   value={progresses[index]} // Display progress for each file
                   size="md"
-                  colorScheme="green"
+                  colorScheme="blue"
                   mt={2}
                 />
               </ListItem>

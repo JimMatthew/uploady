@@ -6,10 +6,9 @@ const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const Busboy = require("busboy");
 //const multer = require("multer");
-const net = require('net');
+const net = require("net");
 
 module.exports = () => {
-
   const sftp_create_folder_json_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName);
@@ -37,9 +36,9 @@ module.exports = () => {
     try {
       const server = await SftpServer.findById(serverId);
       if (!server) {
-        const err = new Error("Server not found");
-        err.status = 404;
-        return next(err);
+        return res.status(404).json({
+          error: "Server not found",
+        });
       }
       const { host, username, password } = server;
       const sftp = new SftpClient();
@@ -63,12 +62,16 @@ module.exports = () => {
         .catch((err) => {
           console.error("Error streaming file:", err);
           sftp.end();
-          next(err);
+          return res.status(400).json({
+            error: "Error downloading file",
+          });
         });
       stream.pipe(res);
     } catch (error) {
       console.log("Error:", error);
-      return next(error);
+      return res.status(400).json({
+        error: "Error downloading",
+      });
     }
   };
 
@@ -115,24 +118,24 @@ module.exports = () => {
     const busboy = Busboy({ headers: req.headers });
     let currentDirectory, serverId, sftp, remotePath;
     let fileUploaded = false;
-  
+
     // Handle form fields
     busboy.on("field", (fieldname, value) => {
       if (fieldname === "currentDirectory") currentDirectory = value;
       if (fieldname === "serverId") serverId = value;
     });
-  
+
     // Handle file stream
     busboy.on("file", async (fieldname, file, filename) => {
       try {
         if (!serverId || !currentDirectory) {
           return res.status(400).send("Missing directory or server ID");
         }
-  
+
         // Fetch server details
         const server = await SftpServer.findById(serverId);
         const { host, username, password } = server;
-  
+
         // Establish SFTP connection
         sftp = new SftpClient();
         await sftp.connect({
@@ -140,36 +143,35 @@ module.exports = () => {
           username,
           password,
         });
-  
+
         remotePath = `${currentDirectory}/${filename.filename}`;
-        
+
         // Stream file directly to SFTP server
         await sftp.put(file, remotePath);
         fileUploaded = true;
       } catch (error) {
         console.error("Error uploading file:", error);
         res.status(500).send("Error uploading file");
-        next(error);
       } finally {
         if (sftp) sftp.end(); // End the SFTP session
       }
     });
-  
+
     // Handle the close event
     busboy.on("finish", () => {
       res.status(200).send("File uploaded successfully");
     });
-  
+
     // Error handler
     busboy.on("error", (error) => {
       console.error("Error during file upload:", error);
       res.status(500).send("File upload error");
     });
-  
+
     // Pipe the request to Busboy
     req.pipe(busboy);
   };
-  
+
   /*
     Stream file upload from client to sftp server
   */
@@ -225,45 +227,45 @@ module.exports = () => {
     }
   };
 
-  const sftp_servers_json_get =  async (req, res, next) => {
+  const sftp_servers_json_get = async (req, res, next) => {
     try {
       const servers = await SftpServer.find();
       return res.json({ servers });
     } catch (error) {
-      return res.json({ status: 'offline' });
+      return res.json({ status: "offline" });
+    }
   };
-}
 
   const server_status_get = async (req, res) => {
     const { serverId } = req.params;
-    
+
     try {
       const server = await SftpServer.findById(serverId);
-      if (!server) return res.json({ status: 'offline' });
-  
+      if (!server) return res.json({ status: "offline" });
+
       const status = await checkServerStatus(server.host);
       return res.json({ status });
     } catch (error) {
-      return res.json({ status: 'offline' });
+      return res.json({ status: "offline" });
     }
   };
 
   const checkServerStatus = (host, port = 22) => {
     return new Promise((resolve) => {
       const socket = new net.Socket();
-  
+
       socket.setTimeout(5000); // Set timeout to 5 seconds
       socket
         .connect(port, host, () => {
           socket.end();
-          resolve('online');
+          resolve("online");
         })
-        .on('error', () => {
-          resolve('offline');
+        .on("error", () => {
+          resolve("offline");
         })
-        .on('timeout', () => {
+        .on("timeout", () => {
           socket.destroy();
-          resolve('offline');
+          resolve("offline");
         });
     });
   };
@@ -277,21 +279,23 @@ module.exports = () => {
     });
     try {
       await newServer.save();
-      res.status(200).send()
+      res.status(200).send();
     } catch (error) {
       console.log(error);
-      return next(error);
+      return res.status(400).json({
+        error: "Cannot save server",
+      });
     }
   };
 
   const sftp_delete_server__json_post = async (req, res, next) => {
     const { serverId } = req.body;
     try {
-      console.log('del serv '+serverId)
+      console.log("del serv " + serverId);
       await SftpServer.findByIdAndDelete(serverId);
-      res.status(200).send('server dlelered');
+      res.status(200).send("server dlelered");
     } catch (error) {
-      return next(error);
+      return res.status(404).send("Error deleting server");
     }
   };
   const formatDate = (timestamp) => {
@@ -316,7 +320,7 @@ module.exports = () => {
 
   const sftp_id_list_files_json_get = async (req, res, next) => {
     const { serverId } = req.params;
-    const currentDirectory = '/'+ (req.params[0] || "/");
+    const currentDirectory = "/" + (req.params[0] || "/");
     if (!mongoose.Types.ObjectId.isValid(serverId)) {
       const err = new Error("Invalid server ID");
       err.status = 400;
@@ -326,9 +330,9 @@ module.exports = () => {
     try {
       const server = await SftpServer.findById(serverId);
       if (!server) {
-        const err = new Error("Server not found");
-        err.status = 404;
-        return next(err);
+        return res.status(404).json({
+          error: "Server not found",
+        });
       }
       const { host, username, password } = server;
       sftp = new SftpClient();
@@ -354,11 +358,17 @@ module.exports = () => {
         { files: [], folders: [] }
       );
       const breadcrumb = generateBreadcrumb(currentDirectory, serverId);
-      res.json({ files, folders, currentDirectory, ...breadcrumb, serverId, host });
-     
+      res.json({
+        files,
+        folders,
+        currentDirectory,
+        ...breadcrumb,
+        serverId,
+        host,
+      });
     } catch (error) {
       console.log(error);
-      return next(error);
+      return res.status(404).send("Error listing directory");
     } finally {
       if (sftp) await sftp.end(); // Ensure connection is always closed
     }
@@ -383,10 +393,10 @@ module.exports = () => {
         await sftp.delete(fullPath);
         return res.status(200).send("File Deleted");
       } catch (error) {
-        return next(error);
+        return res.status(400).send("Error deleting file");
       }
     }
-    return res.status(404).send("server not found")
+    return res.status(404).send("server not found");
   };
 
   const sftp_delete_folder_json_post = async (req, res, next) => {
@@ -405,28 +415,16 @@ module.exports = () => {
         password,
       });
       await sftp.rmdir(fullPath);
-      res.status(200).send()
+      res.status(200).send();
     } catch (error) {
-      res.status(400).send()
+      res.status(400).send();
     }
-  };
-
-  const ssh_console_get = async (req, res) => {
-    const { serverId } = req.params;
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      res.redirect("/sftp");
-    }
-    res.render("sshconsole", {
-      serverId,
-    });
   };
 
   return {
     sftp_upload_post,
     sftp_download_get,
     sftp_stream_download_get,
-    //ssh_console_get,
     //upload,
     sftp_stream_upload_post,
     server_status_get,
@@ -436,6 +434,6 @@ module.exports = () => {
     sftp_save_server_json_post,
     sftp_delete_file_json_post,
     sftp_delete_folder_json_post,
-    sftp_create_folder_json_post
+    sftp_create_folder_json_post,
   };
 };

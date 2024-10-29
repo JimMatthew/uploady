@@ -36,7 +36,7 @@ const SshConsole = ({ serverId }) => {
     term.current.open(terminalRef.current);
     term.current.loadAddon(new WebglAddon());
 
-    const socket = new WebSocket(`ws://192.168.1.119:3001/ssh`);
+    const socket = new WebSocket(`ws://${window.location.hostname}:3001/ssh`);
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
@@ -48,6 +48,7 @@ const SshConsole = ({ serverId }) => {
       if (message.event === "output") {
         term.current.write(message.data);
         terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        //socket.send(JSON.stringify({ event: "up", data: "up" }));
       }
     };
 
