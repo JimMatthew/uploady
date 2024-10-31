@@ -24,6 +24,11 @@ module.exports = function () {
   );
 
   router.get(
+    "/api/download-folder/:serverId/*",
+    sftpController.sftp_get_folder_archive
+  );
+
+  router.get(
     "/api/download/:serverId/*",
     passport.authenticate("jwt", { session: false }),
     sftpController.sftp_stream_download_get

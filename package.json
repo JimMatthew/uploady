@@ -8,6 +8,7 @@
   "dependencies": {
     "@xterm/addon-unicode11": "^0.8.0",
     "@xterm/addon-webgl": "^0.18.0",
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",
     "cookie-parser": "~1.4.4",

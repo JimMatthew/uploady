@@ -7,6 +7,7 @@ const { PassThrough } = require("stream");
 const Busboy = require("busboy");
 //const multer = require("multer");
 const net = require("net");
+const archiver = require('archiver');
 
 module.exports = () => {
   const sftp_create_folder_json_post = async (req, res) => {
@@ -28,6 +29,49 @@ module.exports = () => {
     }
     return res.status(200).send("Folder created");
   };
+
+  const sftp_get_folder_archive = async (req, res) => {
+    const { serverId } = req.params;
+    const relativePath = req.params[0] || "";
+    const remotePath = relativePath ? `/${relativePath}` : "/";
+    try {
+
+      const server = await SftpServer.findById(serverId)
+      if(!server) {
+        return res.status(404).json({
+          error: "Server not found",
+        });
+      }
+      const { host, username, password } = server;
+      const sftp = new SftpClient()
+
+      await sftp.connect({
+        host,
+        username,
+        password,
+      });
+      const folderContents = await sftp.list(remotePath);
+      res.setHeader('Content-Disposition', 'attachment; filename="folder.zip"');
+      res.setHeader('Content-Type', 'application/zip');
+      const archive = archiver('zip', { slib: { level: 9 }});
+      archive.pipe(res);
+
+      for (const item of folderContents) {
+        if (item.type === '-') {
+          const filePath = `${remotePath}/${item.name}`;
+          const stream = await sftp.get(filePath);
+          archive.append(stream, { name: item.name });
+        }
+      }
+      archive.finalize();
+
+    }catch (error) {
+      console.log("Error:", error);
+      return res.status(400).json({
+        error: "Error downloading",
+      });
+  }
+}
 
   const sftp_stream_download_get = async (req, res, next) => {
     const { serverId } = req.params;
@@ -435,5 +479,6 @@ module.exports = () => {
     sftp_delete_file_json_post,
     sftp_delete_folder_json_post,
     sftp_create_folder_json_post,
+    sftp_get_folder_archive
   };
 };

@@ -7,9 +7,9 @@ import {
   HStack,
   useColorModeValue
 } from "@chakra-ui/react";
-import { FaFolder, FaTrash } from "react-icons/fa";
+import { FaFolder, FaTrash, FaDownload } from "react-icons/fa";
 
-const FolderList = ({ folders, changeDirectory, deleteFolder }) =>{
+const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder }) =>{
   const bgg = useColorModeValue('gray.50', 'gray.600')
   return (
     <Box mb={8}>
@@ -33,6 +33,15 @@ const FolderList = ({ folders, changeDirectory, deleteFolder }) =>{
                 {folder.name}
               </Text>
             </HStack>
+            <HStack spacing={2}>
+            <IconButton
+              size="sm"
+              icon={<FaDownload />}
+              aria-label="download Folder"
+              onClick={() => downloadFolder(folder.name)}
+              variant="ghost"
+              colorScheme="blue"
+            />
             <IconButton
               size="sm"
               icon={<FaTrash />}
@@ -41,6 +50,7 @@ const FolderList = ({ folders, changeDirectory, deleteFolder }) =>{
               variant="ghost"
               colorScheme="red"
             />
+            </HStack>
           </HStack>
         ))}
       </Box>

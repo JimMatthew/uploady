@@ -57,6 +57,28 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     deleteSftpFile(filename, serverId, files.currentDirectory);
   };
 
+  const downloadFolder = (foldername) => {
+    const folder = `${files.currentDirectory}/${foldername}`;
+    fetch(`/sftp/api/download-folder/${serverId}/${folder}`, {
+      headers: {
+        Authorization: `Bearer ${token}`, 
+      },
+    })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${foldername}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch((error) => console.error("Download error:", error));
+  };
+
+  
+
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -129,6 +151,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
         }
         deleteFolder={(folder) => deleteSftpFolder(folder, serverId, files.currentDirectory)}
+        downloadFolder={(folder) => downloadFolder(folder)}
       />
 
       <FileListSftp
