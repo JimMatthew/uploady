@@ -1,5 +1,5 @@
 import CodeMirror from "@uiw/react-codemirror";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, useColorModeValue } from "@chakra-ui/react";
 import { githubDark } from "@uiw/codemirror-theme-github";
 import { githubLight } from "@uiw/codemirror-theme-github";
@@ -37,7 +37,7 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
     
     formData.append("serverId", serverId);
     const fileBlob = new Blob([text], { type: "text/plain" });
-    formData.append("files", fileBlob, filename); // provide a filename
+    formData.append("files", fileBlob, filename); 
 
     try {
         const response = await fetch("/sftp/api/upload", {
@@ -71,7 +71,7 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
   const updateContent = (content) => {
     setText(content)
   }
-  const t = "this is the text";
+  
   return (
     <div>
         <Button
