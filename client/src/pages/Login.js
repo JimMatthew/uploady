@@ -24,12 +24,12 @@ const Login = () => {
         { username, password },
         {
           headers: {
-            "Content-Type": "application/json", // Ensure you're sending JSON
+            "Content-Type": "application/json", 
           },
         }
       );
-      localStorage.setItem("token", response.data.token); // Save JWT
-      navigate("/app/files"); // Redirect to file list
+      localStorage.setItem("token", response.data.token); 
+      navigate("/app/files"); 
     } catch (err) {
       setError("Invalid credentials");
     }

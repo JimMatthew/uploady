@@ -9,12 +9,12 @@ import {
   VStack,
   useColorModeValue,
   useToast,
-  Progress, // Import Progress from Chakra UI
+  Progress, 
 } from "@chakra-ui/react";
 
 const DragAndDropUpload = ({ relativePath, refreshPath }) => {
   const [files, setFiles] = useState([]);
-  const [progresses, setProgresses] = useState([]); // Track progress for each file
+  const [progresses, setProgresses] = useState([]); 
   const token = localStorage.getItem("token");
   const toast = useToast();
   const bgg = useColorModeValue("white", "gray.300");
@@ -22,7 +22,7 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
 
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
-    setProgresses(new Array(acceptedFiles.length).fill(0)); // Reset progress for new files
+    setProgresses(new Array(acceptedFiles.length).fill(0)); 
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -49,26 +49,23 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
       formData.append("files", file);
     });
 
-    // Create an array to hold the XMLHttpRequests
     const uploadPromises = files.map((file, index) => {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/upload", true);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
-        // Update progress for each file
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const percentComplete = (event.loaded / event.total) * 100;
             setProgresses((prevProgresses) => {
               const newProgresses = [...prevProgresses];
-              newProgresses[index] = percentComplete; // Update the progress for the current file
+              newProgresses[index] = percentComplete; 
               return newProgresses;
             });
           }
         };
 
-        // Handle response
         xhr.onload = () => {
           if (xhr.status === 200) {
             resolve();
@@ -77,12 +74,10 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
           }
         };
 
-        // Handle error
         xhr.onerror = () => {
           reject(new Error("An error occurred while uploading the file."));
         };
 
-        // Send the form data for this file
         const singleFileFormData = new FormData();
         singleFileFormData.append("folderPath", relativePath);
         singleFileFormData.append("files", file);
@@ -91,7 +86,6 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
       });
     });
 
-    // Handle all uploads
     try {
       await Promise.all(uploadPromises);
       toast({
@@ -100,9 +94,9 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
         duration: 3000,
         isClosable: true,
       });
-      refreshPath(); // Refresh folder content
+      refreshPath(); 
       setFiles([]);
-      setProgresses([]); // Reset progresses
+      setProgresses([]); 
     } catch (error) {
       console.error("Error uploading files:", error);
       toast({

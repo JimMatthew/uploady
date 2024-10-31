@@ -1,16 +1,14 @@
 import React, { useState,useRef } from "react";
-import Upload from "./Upload";
 import { Progress, Button,
   Input,
   Box,
   HStack,
   FormControl,
   useColorModeValue,
-   } from "@chakra-ui/react"; // Assuming you're using Chakra UI
+   } from "@chakra-ui/react"; 
 
 function FileUpload({ relativePath, refreshPath, toast }) {
   const [file, setFile] = useState(null);
-  //const [progress, setProgress] = useState(0); // Track the upload progress
   const token = localStorage.getItem("token");
   const [uploadProgress, setProgress] = useState(0);
   
@@ -32,20 +30,17 @@ function FileUpload({ relativePath, refreshPath, toast }) {
     formData.append("folderPath", relativePath);
     formData.append("files", file);
 
-    // Create a new XMLHttpRequest for file upload with progress tracking
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload", true);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
-    // Update progress
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const percentComplete = (event.loaded / event.total) * 100;
-        setProgress(percentComplete); // Update progress bar
+        setProgress(percentComplete); 
       }
     };
 
-    // Handle response
     xhr.onload = () => {
       if (xhr.status === 200) {
         toast({
@@ -55,18 +50,16 @@ function FileUpload({ relativePath, refreshPath, toast }) {
           isClosable: true,
         });
         refreshPath(relativePath);
-        setProgress(0); // Reset progress
+        setProgress(0); 
       } else {
         alert("File upload failed");
       }
     };
 
-    // Handle error
     xhr.onerror = () => {
       alert("An error occurred while uploading the file.");
     };
 
-    // Send the form data
     xhr.send(formData);
   };
 

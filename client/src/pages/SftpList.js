@@ -183,7 +183,7 @@ const SFTPApp = ({ toast }) => {
       .then((res) => res.json())
       .then((data) => {
         setSftpServers(data);
-        return data; // Pass data to the next .then()
+        return data; 
       })
       .then((data) => fetchStatuses(data))
       .then(setLoading(false))

@@ -3,7 +3,7 @@ const FileController = ({ toast, onRefresh }) => {
   const handleFileDownload = (fileName, path) => {
     fetch(`/api/download/${path}/${fileName}`, {
       headers: {
-        Authorization: `Bearer ${token}`, // Add your token
+        Authorization: `Bearer ${token}`, 
       },
     })
       .then((res) => res.blob())
