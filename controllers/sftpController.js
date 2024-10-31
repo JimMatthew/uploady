@@ -30,6 +30,59 @@ module.exports = () => {
     return res.status(200).send("Folder created");
   };
 
+  const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
+    const folderContents = await sftp.list(folderPath);
+
+    for (const item of folderContents) {
+      const itemPath = `${folderPath}/${item.name}`;
+      const zipPath = `${zipFolderPath}/${item.name}`;
+
+      if (item.type === '-') {
+        const stream = await sftp.get(itemPath);
+        
+        archive.append(stream || Buffer.alloc(0), { name: zipPath });
+        //archive.append(stream, { name: zipPath });
+      } else if (item.type === 'd') {
+        archive.append(null, { name: `${zipPath}/`});
+        await addFolderToArchive(sftp, archive, itemPath, zipPath);
+      }
+    }
+  }
+
+  const sftp_get_archive_folder = async (req, res) => {
+    const { serverId } = req.params;
+    const relativePath = req.params[0] || "";
+    const remotePath = relativePath ? `/${relativePath}` : "/";
+    try {
+
+      const server = await SftpServer.findById(serverId)
+      if(!server) {
+        return res.status(404).json({
+          error: "Server not found",
+        });
+      }
+      const { host, username, password } = server;
+      const sftp = new SftpClient()
+
+      await sftp.connect({
+        host,
+        username,
+        password,
+      });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename="folder.zip"');
+      res.setHeader('Content-Type', 'application/zip');
+      const archive = archiver('zip', { slib: { level: 9 }});
+      archive.pipe(res);
+
+      await addFolderToArchive(sftp, archive, remotePath, "/");
+      archive.finalize();
+  } catch (err) {
+      console.error('Error downloading folder:', err);
+      res.status(500).send('Failed to download folder');
+  }
+}
+
   const sftp_get_folder_archive = async (req, res) => {
     const { serverId } = req.params;
     const relativePath = req.params[0] || "";
@@ -479,6 +532,7 @@ module.exports = () => {
     sftp_delete_file_json_post,
     sftp_delete_folder_json_post,
     sftp_create_folder_json_post,
-    sftp_get_folder_archive
+    sftp_get_folder_archive,
+    sftp_get_archive_folder
   };
 };

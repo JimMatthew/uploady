@@ -25,7 +25,7 @@ module.exports = function () {
 
   router.get(
     "/api/download-folder/:serverId/*",
-    sftpController.sftp_get_folder_archive
+    sftpController.sftp_get_archive_folder
   );
 
   router.get(
