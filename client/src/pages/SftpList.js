@@ -27,6 +27,7 @@ import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
 import axios from "axios";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
+import FileEdit from "./FileEdit";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,11 @@ const SFTPApp = ({ toast }) => {
         type === "Add Server" ? "Add New Server" : `${server.host} - ${type}`,
       content:
         type === "SFTP" ? (
-          <SftpFileFolderView serverId={server._id} toast={toast} />
+          <SftpFileFolderView
+            serverId={server._id}
+            toast={toast}
+            openFile={handleOpenFile}
+          />
         ) : type === "SSH" ? (
           <SshConsole serverId={server._id} />
         ) : (
@@ -56,6 +61,22 @@ const SFTPApp = ({ toast }) => {
     setTabs((prevTabs) =>
       prevTabs.filter((_, index) => index !== indexToRemove)
     );
+  };
+
+  const handleOpenFile = async (serverId, currentDirectory, filename) => {
+    const newTab = {
+      id: filename,
+      label: filename,
+      content: (
+        <FileEdit
+          serverId={serverId}
+          currentDirectory={currentDirectory}
+          filename={filename}
+          toast={toast}
+        />
+      ),
+    };
+    setTabs((prevTabs) => [...prevTabs, newTab]);
   };
 
   const handleSshLaunch = (server) => {

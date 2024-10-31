@@ -7,7 +7,7 @@ import SftpController from "../controllers/SftpController";
 import CreateSftpFolder from "../components/CreateSftpFolder";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
-const FileFolderViewer = ({ serverId, toast }) => {
+const FileFolderViewer = ({ serverId, toast, openFile }) => {
 
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +135,7 @@ const FileFolderViewer = ({ serverId, toast }) => {
         files={files.files}
         downloadFile={handleDownload}
         deleteFile={handleDelete}
+        openFile={(filename) => openFile(serverId, files.currentDirectory, filename)}
       />
     </Box>
   );
