@@ -100,7 +100,7 @@ app.post("/apilogin", (req, res) => {
   // If the user is found and password matches, generate a JWT
   const token = jwt.sign({ id: user.id }, "your_jwt_secret", {
     expiresIn: "8h",
-  }); // Token valid for 1 hour
+  }); 
   return res.json({ token });
 });
 

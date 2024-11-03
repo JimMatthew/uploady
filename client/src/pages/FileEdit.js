@@ -4,10 +4,18 @@ import { Button, useColorModeValue } from "@chakra-ui/react";
 import { githubDark } from "@uiw/codemirror-theme-github";
 import { githubLight } from "@uiw/codemirror-theme-github";
 import { materialDark }from "@uiw/codemirror-theme-material";
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { java } from "@codemirror/lang-java";
+import { json } from "@codemirror/lang-json";
+import { rust } from "@codemirror/lang-rust";
+import { html } from "@codemirror/lang-html"
+//import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+//import { languages } from '@codemirror/language-data';
 const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
-  const cm = useColorModeValue(githubLight, materialDark);
+  const cm = useColorModeValue(githubLight, githubDark);
   useEffect(() => {
     async function fetchFile() {
       const decoder = new TextDecoder();
@@ -30,6 +38,32 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
     }
     fetchFile();
   }, []);
+
+  function getFileExtension(filename) {
+    const parts = filename.split(".");
+    return parts.length > 1 ? parts.pop().toLowerCase() : "";
+  }
+
+  function getLanguageExtension(fileType) {
+    switch (fileType) {
+      case "js":
+        return javascript({ jsx: true });
+      case "java":
+        return java();
+      case "json":
+        return json();
+      case "rs":
+        return rust();
+      case "html":
+        return html();
+      default:
+        return javascript(); // Default to JavaScript
+    }
+  }
+
+  function getExtension(filename) {
+    return getLanguageExtension(getFileExtension(filename))
+  }
 
   const saveFile = async () => {
     const formData = new FormData();
@@ -84,7 +118,11 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
             >
                 Save
             </Button>
-      <CodeMirror value={text} onChange={updateContent} theme={cm}/>
+      <CodeMirror 
+        value={text} 
+        onChange={updateContent} 
+        theme={cm} 
+        extensions={getExtension(filename)}/>
     </div>
   );
 };
