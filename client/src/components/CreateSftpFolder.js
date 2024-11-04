@@ -31,7 +31,6 @@ const CreateSftpFolder = ({ sftpCreateFolderOnSubmit }) => {
       as="form"
       onSubmit={handleSubmit}
       p={4}
-      boxShadow="md"
       borderRadius="md"
       bg={bgg}
       maxW="400px"

@@ -4,8 +4,11 @@ const SftpServer = require("../models/SftpServer")
 const ssh_session = (socket) => {
   let sshClient = new Client()
 
+  let row = 100;
+  let col = 50;
   socket.on("message", async (message) => {
-    const { event, serverId, data } = JSON.parse(message)
+    const { event, serverId, data, rows, cols } = JSON.parse(message)
+    
 
     if (event === "startSession") {
       const serverInfo = await SftpServer.findById(serverId)
@@ -21,7 +24,17 @@ const ssh_session = (socket) => {
 
           stream.on("data", (data) => {
             socket.send(JSON.stringify({ event: "output", data: data.toString() }))  // Send SSH output to client
-            stream.setWindow(50,100)
+            //stream.setWindow(row, col)
+          })
+
+          socket.on("message", (message) => {
+            const { event, rows, cols } = JSON.parse(message)
+            if (event === "resize") {
+              console.log("resize")
+              row = rows;
+              col = cols;
+              stream.setWindow(rows, cols)  // Send client input to SSH session
+            }
           })
 
           socket.on("message", (message) => {
