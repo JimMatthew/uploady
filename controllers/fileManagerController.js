@@ -12,6 +12,7 @@ module.exports = () => {
     upload files to directory
     We upload to temp folder and rename to desired directory
   */
+
   const upload_files_post = (req, res, next) => {
     const folderPath = req.body.folderPath || ""; // Default to root if no folder is provided
     const targetFolder = path.join(uploadsDir, folderPath);
@@ -24,18 +25,18 @@ module.exports = () => {
     if (!files) {
       return next({ message: "No files uploaded", status: 400 });
     }
-    try {
-      files.forEach((file) => {
-        const targetPath = pathjoin(targetFolder, file.originalname);
-        const currPath = path.join(tempdir, file.originalname);
 
-        fs.renameSync(currPath, targetPath);
-        //await fs.promises.rename(currPath, targetPath);
+    files.forEach((file) => {
+      const targetPath = path.join(targetFolder, file.originalname);
+      const currPath = path.join(tempdir, file.originalname);
+
+      fs.rename(currPath, targetPath, (err) => {
+        if (err) {
+          next({ message: "File upload failed", status: 500 });
+        }
       });
-      res.redirect(`/files/${folderPath}`);
-    } catch (err) {
-      next({ message: "File upload failed", status: 500 });
-    }
+    });
+    res.redirect(`/files/${folderPath}`);
   };
 
   /*
@@ -206,16 +207,19 @@ module.exports = () => {
 
   const delete_file_json_post = async (req, res, next) => {
     try {
-      const relativeFilePath = req.params[0]
-      const filePath = path.join(uploadsDir, relativeFilePath)
+      const relativeFilePath = req.params[0];
+      const filePath = path.join(uploadsDir, relativeFilePath);
 
-      await fs.promises.unlink(filePath)
-      await SharedFile.findOneAndDelete({ filePath, fileName: path.basename(filePath)})
-      res.status(200).json({ message: "File deleted" })
-    } catch(err) {
-      next({ message: "Error deleting file", status: 400 })
+      await fs.promises.unlink(filePath);
+      await SharedFile.findOneAndDelete({
+        filePath,
+        fileName: path.basename(filePath),
+      });
+      res.status(200).json({ message: "File deleted" });
+    } catch (err) {
+      next({ message: "Error deleting file", status: 400 });
     }
-  }
+  };
 
   const delete_file_jspn_post = async (req, res, next) => {
     const relativeFilePath = "/" + req.params[0];
@@ -272,6 +276,6 @@ module.exports = () => {
     delete_file_jspn_post,
     create_folder_json_post,
     delete_folder_json_post,
-    delete_file_json_post
+    delete_file_json_post,
   };
 };

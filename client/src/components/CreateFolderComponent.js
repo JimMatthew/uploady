@@ -30,12 +30,10 @@ import {
       <Box
         as="form"
         onSubmit={handleSubmit}
-        //p={4}
         borderRadius="md"
         bg={bgg}
         maxW="400px"
         mx="5px"
-        //mt={1}
       >
         <HStack spacing={4}>
           <Input
