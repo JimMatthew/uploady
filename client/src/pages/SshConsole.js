@@ -4,7 +4,7 @@ import "xterm/css/xterm.css";
 import "../xterm.css";
 import { Box } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
-import { FitAddon } from '@xterm/addon-fit';
+import { FitAddon } from "@xterm/addon-fit";
 const SshConsole = ({ serverId }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
@@ -35,22 +35,27 @@ const SshConsole = ({ serverId }) => {
     term.current.loadAddon(new WebglAddon());
 
     const socket = new WebSocket(`ws://${window.location.hostname}:3001/ssh`);
-    
+
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
-      handleResize()
     };
-    
+
     fitAddon.fit();
 
     const handleResize = () => {
       fitAddon.fit();
-      const r = term.current.rows;
-      const c = term.current.cols;
-      socket.send(JSON.stringify({ event: "resize", rows: r, cols: c }));
-  };
+
+      socket.send(
+        JSON.stringify({
+          event: "resize",
+          rows: term.current.rows,
+          cols: term.current.cols,
+        })
+      );
+    };
 
     window.addEventListener("resize", handleResize);
+
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.event === "output") {

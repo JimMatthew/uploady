@@ -125,12 +125,54 @@ const FileController = ({ toast, onRefresh }) => {
     breadcrumbs.unshift({ name: "Home", path: `files` });
     return breadcrumbs;
   };
+
+  const createFolder = async (folderName, currentPath) => {
+
+    try {
+      const response = await fetch("/api/create-folder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ folderName, currentPath }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Folder Created",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        onRefresh(currentPath);
+      } else {
+        toast({
+          title: "Error creating folder",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error creating folder",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
+
+
   return {
     handleFileDownload,
     handleFileDelete,
     handleFileShareLink,
     handleDeleteFolder,
-    generateBreadcrumb
+    generateBreadcrumb,
+    createFolder
   };
 };
 

@@ -11,7 +11,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/Upload";
 import DragDropSftp from "../components/DragDropSftp";
 import SftpController from "../controllers/SftpController";
-import CreateSftpFolder from "../components/CreateSftpFolder";
+import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
@@ -142,10 +142,11 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           onClick={(directory) => changeSftpDirectory(serverId, directory)}
           color="gray.500"
         />
-        <CreateSftpFolder
-          sftpCreateFolderOnSubmit={(folder) =>
-            createSftpFolder(folder, serverId, files.currentDirectory)
-          }
+        
+        <CreateFolderComponent
+          handleCreateFolder={(folder) => {
+            createSftpFolder(folder, serverId, files.currentDirectory);
+          }}
         />
       </Stack>
 

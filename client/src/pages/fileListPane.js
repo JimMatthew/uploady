@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, VStack, Stack, useColorModeValue } from "@chakra-ui/react";
-import CreateFolder from "../components/CreateFolder";
+import CreateFolderComponent from "../components/CreateFolderComponent";
 import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
 import FileListFile from "../components/FileListFiles";
@@ -20,10 +20,11 @@ const FileDisplay = ({
     handleFileShareLink,
     handleDeleteFolder,
     generateBreadcrumb,
+    createFolder,
   } = fileController({ toast, onRefresh });
   const { relativePath } = data;
   const rp = "/" + relativePath;
-  const bgg = useColorModeValue('white', 'gray.800')
+  const bgg = useColorModeValue("white", "gray.800");
   return (
     <Box
       mt={6}
@@ -48,22 +49,22 @@ const FileDisplay = ({
           onClick={(path) => handleBreadcrumbClick(path)}
           color="gray.600"
         />
-        <CreateFolder
-          onFolderCreated={onRefresh}
-          currentPath={relativePath}
-          toast={toast}
+
+        <CreateFolderComponent
+          handleCreateFolder={(folderName) => {
+            createFolder(folderName, rp);
+          }}
         />
       </Stack>
 
       <VStack spacing={6} align="stretch">
-
         <FolderListFile
           folders={folders}
           rp={rp}
           onFolderClick={onFolderClick}
           handleDeleteFolder={handleDeleteFolder}
         />
-        
+
         <FileListFile
           files={files}
           rp={rp}
