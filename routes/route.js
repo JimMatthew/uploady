@@ -44,7 +44,7 @@ module.exports = function () {
   router.post(
     "/api/delete/*",
     passport.authenticate('jwt', { session: false }),
-    filemanagerController.delete_file_jspn_post
+    filemanagerController.delete_file_json_post
   )
 
   router.get(

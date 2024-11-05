@@ -126,7 +126,14 @@ app.use((req, res, next) => {
 
 // Error handler middleware
 app.use((err, req, res, next) => {
-  res.status(err.status || 500);
+  console.error("Error:", err.message); 
+
+  const statusCode = err.status || 500;
+  const message = err.message || "Internal Server Error";
+
+  res.status(statusCode).json({
+    error: message,
+  });
 });
 
 const PORT = process.env.PORT || 3001;

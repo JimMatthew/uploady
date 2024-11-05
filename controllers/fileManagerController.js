@@ -18,28 +18,24 @@ module.exports = () => {
     const files = req.files;
 
     if (!fs.existsSync(targetFolder)) {
-      const err = new Error("Folder does not exist");
-      err.status = 404;
-      return next(err);
+      return next({ message: "Folder does not exist", status: 404 });
     }
 
     if (!files) {
-      return res.status(400).json({
-        error: "File not Uploaded",
-      });
+      return next({ message: "No files uploaded", status: 400 });
     }
+    try {
+      files.forEach((file) => {
+        const targetPath = pathjoin(targetFolder, file.originalname);
+        const currPath = path.join(tempdir, file.originalname);
 
-    files.forEach((file) => {
-      const targetPath = path.join(targetFolder, file.originalname);
-      const currPath = path.join(tempdir, file.originalname);
-
-      fs.rename(currPath, targetPath, (err) => {
-        if (err) {
-          throw err;
-        }
+        fs.renameSync(currPath, targetPath);
+        //await fs.promises.rename(currPath, targetPath);
       });
-    });
-    res.redirect(`/files/${folderPath}`);
+      res.redirect(`/files/${folderPath}`);
+    } catch (err) {
+      next({ message: "File upload failed", status: 500 });
+    }
   };
 
   /*
@@ -52,18 +48,14 @@ module.exports = () => {
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
 
     if (!fs.existsSync(absoluteFilePath)) {
-      return res.status(400).json({
-        error: "File not found",
-      });
+      return next({ message: "File not found", status: 400 });
     }
     const relPathName = path.join(relativeFilePath, fileName);
     const token = crypto.randomBytes(5).toString("hex"); // Generate random token
     const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
 
     if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
-      return res.status(400).json({
-        error: 'This File is already shared"',
-      });
+      return next({ message: "File is already shared", status: 400 });
     }
     res.json({
       link: shareLink,
@@ -75,11 +67,11 @@ module.exports = () => {
     Server a shared file. 
     We use the token to lookup the shared file 
   */
-  const serveSharedFile = async (req, res) => {
+  const serveSharedFile = async (req, res, next) => {
     const { token, filename } = req.params; // Extract token and file name from the URL
     const filePath = await getFilePathFromStorageToken(token);
     if (!filePath) {
-      return res.status(404).send("Shared link not found");
+      return next({ message: "File not Found", status: 404 });
     }
 
     const absoluteFilePath = path.join(path.dirname(filePath), filename);
@@ -99,22 +91,18 @@ module.exports = () => {
     return sharedFile ? path.join(uploadsDir, sharedFile.filePath) : null;
   };
 
-  const delete_folder_json_post = (req, res, next) => {
-    const relativePath = req.body.folderPath || ""; // Path relative to the uploads directory
-    const folderName = req.body.folderName || "";
-    const folderPath = path.join(uploadsDir, relativePath, folderName);
-    console.log("del fo: " + folderPath);
-
-    fs.rmdir(folderPath, (err) => {
-      if (err) {
-        const err = new Error("Error deleting folder");
-        err.status = 404;
-        return next(err);
-      }
-    });
-    res.status(200).json({
-      message: "file deleted",
-    });
+  const delete_folder_json_post = async (req, res, next) => {
+    try {
+      const folderPath = path.join(
+        uploadsDir,
+        req.body.folderPath || "",
+        req.body.folderName || ""
+      );
+      await fs.promises.rmdir(folderPath);
+      res.status(200).json({ message: "Folder deleted" });
+    } catch (err) {
+      next({ message: "Error deleting folder", status: 400 });
+    }
   };
 
   const generateBreadcrumbs = (relativePath) => {
@@ -149,16 +137,12 @@ module.exports = () => {
     current path
   */
 
-  const list_directory_json_get = (req, res) => {
-    const relativePath = req.params[0] || "";
+  const list_directory_json_get = (req, res, next) => {
     try {
-      const data = getDirectoryData(relativePath);
+      const data = getDirectoryData(req.params[0] || "");
       res.json({ ...data, user: req.user });
     } catch (error) {
-      res.status(500).json({
-        error: "Failed to list directory contents",
-        message: error.message,
-      });
+      next({ message: "Failed to list directory", status: 500 });
     }
   };
 
@@ -220,6 +204,19 @@ module.exports = () => {
     });
   };
 
+  const delete_file_json_post = async (req, res, next) => {
+    try {
+      const relativeFilePath = req.params[0]
+      const filePath = path.join(uploadsDir, relativeFilePath)
+
+      await fs.promises.unlink(filePath)
+      await SharedFile.findOneAndDelete({ filePath, fileName: path.basename(filePath)})
+      res.status(200).json({ message: "File deleted" })
+    } catch(err) {
+      next({ message: "Error deleting file", status: 400 })
+    }
+  }
+
   const delete_file_jspn_post = async (req, res, next) => {
     const relativeFilePath = "/" + req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
@@ -249,30 +246,18 @@ module.exports = () => {
     });
   };
 
-  // Helper function to create a new folder
-  const createFolder = (dirPath, folderName) => {
-    const newFolderPath = path.join(dirPath, folderName);
-    if (!fs.existsSync(newFolderPath)) {
-      fs.mkdirSync(newFolderPath);
-    } else {
-      const err = new Error("Folder already exists");
-      err.status = 404;
-      return next(err);
-    }
-  };
-
-  const create_folder_json_post = (req, res, next) => {
-    const { folderName, currentPath } = req.body;
+  const create_folder_json_post = async (req, res, next) => {
     try {
-      const fullPath = path.join(uploadsDir, currentPath || "");
-      console.log(fullPath);
-      createFolder(fullPath, folderName);
-      res.status(200).json({
-        message: "file created",
-      });
+      const { folderName, currentPath = "" } = req.body;
+      const fullPath = path.join(uploadsDir, currentPath, folderName);
+
+      if (fs.existsSync(fullPath)) {
+        return next({ message: "Folder already exists", status: 404 });
+      }
+      fs.promises.mkdir(fullPath);
+      res.status(200).json({ message: "Folder created " });
     } catch (err) {
-      console.log(err);
-      return next(err);
+      return next({ message: "Error creating folder", status: 404 });
     }
   };
 
@@ -287,5 +272,6 @@ module.exports = () => {
     delete_file_jspn_post,
     create_folder_json_post,
     delete_folder_json_post,
+    delete_file_json_post
   };
 };
