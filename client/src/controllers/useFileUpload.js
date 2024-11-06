@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@chakra-ui/react";
 
-const useFileUpload2 = ({ apiEndpoint, token, additionalData = {} }) => {
+const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
   const [progresses, setProgresses] = useState([]);
   const toast = useToast();
 
@@ -47,11 +47,11 @@ const useFileUpload2 = ({ apiEndpoint, token, additionalData = {} }) => {
         };
 
         const formData = new FormData();
-        formData.append("files", file);
+        
         for (const key in additionalData) {
           formData.append(key, additionalData[key]);
         }
-
+        formData.append("files", file);
         xhr.send(formData);
       });
     });
@@ -82,4 +82,4 @@ const useFileUpload2 = ({ apiEndpoint, token, additionalData = {} }) => {
   return { uploadFiles, progresses };
 };
 
-export default useFileUpload2;
+export default useFileUpload;

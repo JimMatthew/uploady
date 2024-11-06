@@ -7,9 +7,9 @@ import {
   HStack,
   FormControl,
   useColorModeValue,
+  List, ListItem, Text, 
 } from "@chakra-ui/react";
-import { useFileUpload } from "../controllers/UsefileUpload";
-import useFileUpload2 from "../controllers/useFileUpload2";
+import useFileUpload from "../controllers/useFileUpload";
 function Upload({
   postUrl,
   relativePath,
@@ -18,10 +18,8 @@ function Upload({
   refreshCallback,
   toast,
 }) {
-  const [file, setFile] = useState(null);
-  const [files, setFiles] = useState([]);
   
-  const token = localStorage.getItem("token");
+  const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
   const additionalData =
     serverId && currentDirectory
@@ -29,23 +27,18 @@ function Upload({
       : { folderPath: relativePath };
 
   const { uploadFiles, progresses } = useFileUpload({
-    apiEndpoint,
+    apiEndpoint: postUrl,
     token: localStorage.getItem("token"),
     additionalData,
   });
-  const { uploadProgress, uploadFile } = useFileUpload({
-    postUrl,
-    token,
-    toast,
-  });
-
+  
   const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
+    setFiles(Array.from(event.target.files));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!file) {
+    if (!files) {
       toast({
         title: "No File Selected",
         description: "Please select a file to upload",
@@ -55,19 +48,9 @@ function Upload({
       });
       return;
     }
-
-    
-
-    try {
-      await uploadFile(file, additionalData);
-
-      refreshCallback();
-
-      setFile(null);
-      fileInputRef.current.value = null;
-    } catch (error) {
-      console.log(error);
-    }
+    await uploadFiles(files, refreshCallback)
+    setFiles([])
+    fileInputRef.current.value = null;
   };
   return (
     <Box
@@ -105,15 +88,17 @@ function Upload({
             Upload
           </Button>
         </HStack>
-        {uploadProgress > 0 && (
-          <Progress
-            align="left"
-            mt={4}
-            value={uploadProgress}
-            size="sm"
-            colorScheme="blue"
-          />
-        )}
+        {files.length > 0 && (
+        <List spacing={2} width="100%">
+          {files.map((file, index) => (
+            <ListItem key={index} bg="gray.100" p={2} borderRadius="md" borderWidth="1px">
+              <Text>{file.name}</Text>
+              <Progress align="left" value={progresses[index]} size="md" colorScheme="blue" mt={2} />
+            </ListItem>
+          ))}
+        </List>
+      )}
+       
       </FormControl>
     </Box>
   );
