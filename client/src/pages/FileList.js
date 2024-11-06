@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
 import SharedLinks from "../components/SharedLinks";
-import FileUpload from "../components/FileUpload2";
+import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
 import DragAndDropUpload from "../components/DragDrop";
 import { useNavigate } from "react-router-dom";
@@ -150,11 +150,12 @@ const FileList = ({ setUser, toast }) => {
           {/* Upload Area */}
           <Box mb={8}>
             {isMobile ? (
-              <FileUpload
-                relativePath={fileData.relativePath}
-                refreshPath={reload}
-                toast={toast}
-              />
+              <Upload 
+              postUrl={"/api/upload"}
+              relativePath={fileData.relativePath}
+              refreshCallback={reload}
+              toast={toast}
+            />
             ) : (
               <DragAndDropUpload
                 relativePath={fileData.relativePath}
@@ -164,7 +165,7 @@ const FileList = ({ setUser, toast }) => {
             )}
           </Box>
         </Box>
-
+            
         {/* Shared Links Section */}
         <Box mb={8} bg={bgg} boxShadow="sm" p={6} borderRadius="md">
           <SharedLinks onReload={fetchLinks} links={links} />

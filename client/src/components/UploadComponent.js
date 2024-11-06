@@ -1,68 +1,66 @@
-import React, { useState,useRef } from "react";
-import { Progress, Button,
+import React, { useRef, useState } from "react";
+import {
+  Progress,
+  Button,
   Input,
   Box,
   HStack,
   FormControl,
   useColorModeValue,
-   } from "@chakra-ui/react"; 
+} from "@chakra-ui/react";
+import { useFileUpload } from "../controllers/UsefileUpload";
 
-function FileUpload({ relativePath, refreshPath, toast }) {
+function Upload({
+  postUrl,
+  relativePath,
+  serverId,
+  currentDirectory,
+  refreshCallback,
+  toast,
+}) {
   const [file, setFile] = useState(null);
   const token = localStorage.getItem("token");
-  const [uploadProgress, setProgress] = useState(0);
-  
   const fileInputRef = useRef(null);
+
+  const { uploadProgress, uploadFile } = useFileUpload({
+    postUrl,
+    token,
+    toast,
+  });
+
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
-  const currentPath = "/";
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!file) {
-      alert("Please select a file first");
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
       return;
     }
 
-    const formData = new FormData();
-    formData.append("folderPath", relativePath);
-    formData.append("files", file);
+    const additionalData =
+      serverId && currentDirectory
+        ? { currentDirectory, serverId }
+        : { folderPath: relativePath };
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/upload", true);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    try {
+      await uploadFile(file, additionalData);
 
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = (event.loaded / event.total) * 100;
-        setProgress(percentComplete); 
-      }
-    };
+      refreshCallback();
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        toast({
-          title: "File Uploaded",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        refreshPath(relativePath);
-        setProgress(0); 
-      } else {
-        alert("File upload failed");
-      }
-    };
-
-    xhr.onerror = () => {
-      alert("An error occurred while uploading the file.");
-    };
-
-    xhr.send(formData);
+      setFile(null);
+      fileInputRef.current.value = null;
+    } catch (error) {
+      console.log(error);
+    }
   };
-
   return (
     <Box
       as="form"
@@ -100,11 +98,17 @@ function FileUpload({ relativePath, refreshPath, toast }) {
           </Button>
         </HStack>
         {uploadProgress > 0 && (
-          <Progress align="left" mt={4} value={uploadProgress} size="sm" colorScheme="blue" />
+          <Progress
+            align="left"
+            mt={4}
+            value={uploadProgress}
+            size="sm"
+            colorScheme="blue"
+          />
         )}
       </FormControl>
     </Box>
   );
 }
 
-export default FileUpload;
+export default Upload;

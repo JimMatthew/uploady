@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  SimpleGrid,
   Text,
   IconButton,
-  Stack,
   Heading,
   HStack,
-  Spinner,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 
 const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
-  const bgg = useColorModeValue('gray.50', 'gray.600')
+  const bgg = useColorModeValue("gray.50", "gray.600");
 
   return (
     <Box>
@@ -33,15 +30,13 @@ const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
           >
             <HStack spacing={2}>
               <FaFile size={24} />
-              <Text fontWeight="medium" >
-                {file.name}
-              </Text>
+              <Text fontWeight="medium">{file.name}</Text>
             </HStack>
             <Text color="gray.500" fontSize="sm">
               {file.size} KB
             </Text>
             <HStack spacing={2}>
-            <IconButton
+              <IconButton
                 size="sm"
                 icon={<FaEdit />}
                 aria-label="Download File"
@@ -71,7 +66,6 @@ const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
       </Box>
     </Box>
   );
-}
+};
 
-
-  export default FileList
+export default FileList;

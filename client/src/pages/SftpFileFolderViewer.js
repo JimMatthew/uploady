@@ -8,7 +8,7 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
-import Upload from "../components/Upload";
+import Upload from "../components/UploadComponent" ;
 import DragDropSftp from "../components/DragDropSftp";
 import SftpController from "../controllers/SftpController";
 import CreateFolderComponent from "../components/CreateFolderComponent";
@@ -117,13 +117,15 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
             />
           ) : (
             <Upload
-              changeSftpDirectory={changeSftpDirectory}
-              toast={toast}
+              postUrl={"/sftp/api/upload"}
               serverId={serverId}
               currentDirectory={files.currentDirectory}
+              refreshCallback={() => changeSftpDirectory(serverId, files.currentDirectory)}
+              toast={toast}
             />
           )}
         </Box>
+      
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders
         </Heading>
