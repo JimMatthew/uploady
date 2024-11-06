@@ -12,7 +12,7 @@ import FileListPane from "./fileListPane";
 import SharedLinks from "../components/SharedLinks";
 import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
-import DragAndDropUpload from "../components/DragDrop";
+import DragAndDropComponent from "../components/DragDropComponent";
 import { useNavigate } from "react-router-dom";
 
 const FileList = ({ setUser, toast }) => {
@@ -157,15 +157,15 @@ const FileList = ({ setUser, toast }) => {
               toast={toast}
             />
             ) : (
-              <DragAndDropUpload
-                relativePath={fileData.relativePath}
-                refreshPath={reload}
-                toast={toast}
+              <DragAndDropComponent 
+                apiEndpoint={"/api/upload"}
+                additionalData={{ folderPath: fileData.relativePath }}
+                onUploadSuccess={reload}
               />
             )}
           </Box>
         </Box>
-            
+           
         {/* Shared Links Section */}
         <Box mb={8} bg={bgg} boxShadow="sm" p={6} borderRadius="md">
           <SharedLinks onReload={fetchLinks} links={links} />

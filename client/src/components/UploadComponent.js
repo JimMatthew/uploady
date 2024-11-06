@@ -9,7 +9,7 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { useFileUpload } from "../controllers/UsefileUpload";
-
+import useFileUpload2 from "../controllers/useFileUpload2";
 function Upload({
   postUrl,
   relativePath,
@@ -19,9 +19,20 @@ function Upload({
   toast,
 }) {
   const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  
   const token = localStorage.getItem("token");
   const fileInputRef = useRef(null);
+  const additionalData =
+    serverId && currentDirectory
+      ? { currentDirectory, serverId }
+      : { folderPath: relativePath };
 
+  const { uploadFiles, progresses } = useFileUpload({
+    apiEndpoint,
+    token: localStorage.getItem("token"),
+    additionalData,
+  });
   const { uploadProgress, uploadFile } = useFileUpload({
     postUrl,
     token,
@@ -45,10 +56,7 @@ function Upload({
       return;
     }
 
-    const additionalData =
-      serverId && currentDirectory
-        ? { currentDirectory, serverId }
-        : { folderPath: relativePath };
+    
 
     try {
       await uploadFile(file, additionalData);

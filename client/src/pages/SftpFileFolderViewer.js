@@ -8,8 +8,8 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
-import Upload from "../components/UploadComponent" ;
-import DragDropSftp from "../components/DragDropSftp";
+import Upload from "../components/UploadComponent";
+import DragAndDropComponent from "../components/DragDropComponent";
 import SftpController from "../controllers/SftpController";
 import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
@@ -109,23 +109,29 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
       <Box mb={6}>
         <Box align="center">
           {!isMobile ? (
-            <DragDropSftp
-              changeSftpDirectory={changeSftpDirectory}
-              toast={toast}
-              serverId={serverId}
-              currentDirectory={files.currentDirectory}
+            <DragAndDropComponent
+              apiEndpoint={"/sftp/api/upload"}
+              additionalData={{
+                serverId,
+                currentDirectory: files.currentDirectory,
+              }}
+              onUploadSuccess={() =>
+                changeSftpDirectory(serverId, files.currentDirectory)
+              }
             />
           ) : (
             <Upload
               postUrl={"/sftp/api/upload"}
               serverId={serverId}
               currentDirectory={files.currentDirectory}
-              refreshCallback={() => changeSftpDirectory(serverId, files.currentDirectory)}
+              refreshCallback={() =>
+                changeSftpDirectory(serverId, files.currentDirectory)
+              }
               toast={toast}
             />
           )}
         </Box>
-      
+
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders
         </Heading>
@@ -144,7 +150,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           onClick={(directory) => changeSftpDirectory(serverId, directory)}
           color="gray.500"
         />
-        
+
         <CreateFolderComponent
           handleCreateFolder={(folder) => {
             createSftpFolder(folder, serverId, files.currentDirectory);

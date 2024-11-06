@@ -9,20 +9,25 @@ import {
   VStack,
   useColorModeValue,
   useToast,
-  Progress, 
+  Progress,
 } from "@chakra-ui/react";
 
-const DragDropComponent = ({ relativePath, refreshPath }) => {
+const DragAndDropComponent = ({
+  apiEndpoint,
+  additionalData = {},
+  onUploadSuccess,
+  onUploadError,
+}) => {
   const [files, setFiles] = useState([]);
-  const [progresses, setProgresses] = useState([]); 
-  const token = localStorage.getItem("token");
+  const [progresses, setProgresses] = useState([]);
   const toast = useToast();
-  const bgg = useColorModeValue("white", "gray.300");
-  const bggover = useColorModeValue("grey.500", "grey.400");
+  const bgColor = useColorModeValue("white", "gray.300");
+  const bgHover = useColorModeValue("gray.500", "gray.400");
+  const token = localStorage.getItem("token");
 
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
-    setProgresses(new Array(acceptedFiles.length).fill(0)); 
+    setProgresses(new Array(acceptedFiles.length).fill(0));
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -43,24 +48,18 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("folderPath", relativePath);
-    files.forEach((file) => {
-      formData.append("files", file);
-    });
-
     const uploadPromises = files.map((file, index) => {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/upload", true);
+        xhr.open("POST", apiEndpoint, true);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
+            const percentComplete = Math.round((event.loaded * 100) / event.total);
             setProgresses((prevProgresses) => {
               const newProgresses = [...prevProgresses];
-              newProgresses[index] = percentComplete; 
+              newProgresses[index] = percentComplete;
               return newProgresses;
             });
           }
@@ -78,11 +77,13 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
           reject(new Error("An error occurred while uploading the file."));
         };
 
-        const singleFileFormData = new FormData();
-        singleFileFormData.append("folderPath", relativePath);
-        singleFileFormData.append("files", file);
-
-        xhr.send(singleFileFormData);
+        const formData = new FormData();
+        
+        for (const key in additionalData) {
+          formData.append(key, additionalData[key]);
+        }
+        formData.append("files", file);
+        xhr.send(formData);
       });
     });
 
@@ -94,9 +95,9 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
         duration: 3000,
         isClosable: true,
       });
-      refreshPath(); 
+      onUploadSuccess?.(); // Callback to refresh or perform post-upload actions
       setFiles([]);
-      setProgresses([]); 
+      setProgresses([]);
     } catch (error) {
       console.error("Error uploading files:", error);
       toast({
@@ -106,12 +107,12 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
         duration: 3000,
         isClosable: true,
       });
+      onUploadError?.(error);
     }
   };
 
   return (
     <VStack spacing={4} width="50%">
-      {/* Dropzone area */}
       <Box
         {...getRootProps()}
         border="2px dashed"
@@ -123,7 +124,7 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
         cursor="pointer"
         transition="border-color 0.2s"
         _hover={{ borderColor: "blue.300" }}
-        bg={isDragActive ? bggover : bgg}
+        bg={isDragActive ? bgHover : bgColor}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
@@ -137,7 +138,6 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
         )}
       </Box>
 
-      {/* Display selected files and their upload progress */}
       {files.length > 0 && (
         <Box width="100%">
           <Text fontWeight="bold" mb={2}>
@@ -155,8 +155,8 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
               >
                 <Text>{file.name}</Text>
                 <Progress
-                  textAlign="left"
-                  value={progresses[index]} // Display progress for each file
+                align="left"
+                  value={progresses[index]}
                   size="md"
                   colorScheme="blue"
                   mt={2}
@@ -167,7 +167,6 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
         </Box>
       )}
 
-      {/* Upload button */}
       <Button
         onClick={handleSubmit}
         colorScheme="blue"
@@ -180,4 +179,4 @@ const DragDropComponent = ({ relativePath, refreshPath }) => {
   );
 };
 
-export default DragDropComponent;
+export default DragAndDropComponent;
