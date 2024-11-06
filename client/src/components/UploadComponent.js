@@ -7,7 +7,9 @@ import {
   HStack,
   FormControl,
   useColorModeValue,
-  List, ListItem, Text, 
+  List,
+  ListItem,
+  Text,
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
 function Upload({
@@ -18,7 +20,6 @@ function Upload({
   refreshCallback,
   toast,
 }) {
-  
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
   const additionalData =
@@ -31,7 +32,7 @@ function Upload({
     token: localStorage.getItem("token"),
     additionalData,
   });
-  
+
   const handleFileChange = (event) => {
     setFiles(Array.from(event.target.files));
   };
@@ -48,8 +49,8 @@ function Upload({
       });
       return;
     }
-    await uploadFiles(files, refreshCallback)
-    setFiles([])
+    await uploadFiles(files, refreshCallback);
+    setFiles([]);
     fileInputRef.current.value = null;
   };
   return (
@@ -89,16 +90,27 @@ function Upload({
           </Button>
         </HStack>
         {files.length > 0 && (
-        <List spacing={2} width="100%">
-          {files.map((file, index) => (
-            <ListItem key={index} bg="gray.100" p={2} borderRadius="md" borderWidth="1px">
-              <Text>{file.name}</Text>
-              <Progress align="left" value={progresses[index]} size="md" colorScheme="blue" mt={2} />
-            </ListItem>
-          ))}
-        </List>
-      )}
-       
+          <List spacing={2} width="100%">
+            {files.map((file, index) => (
+              <ListItem
+                key={index}
+                bg="gray.100"
+                p={2}
+                borderRadius="md"
+                borderWidth="1px"
+              >
+                <Text>{file.name}</Text>
+                <Progress
+                  align="left"
+                  value={progresses[index]}
+                  size="md"
+                  colorScheme="blue"
+                  mt={2}
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
       </FormControl>
     </Box>
   );

@@ -27,8 +27,8 @@ const DragAndDropComponent = ({
   const { uploadFiles, progresses } = useFileUpload({
     apiEndpoint,
     token,
-    additionalData
-  })
+    additionalData,
+  });
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
   }, []);
@@ -38,13 +38,13 @@ const DragAndDropComponent = ({
   });
 
   const onFinish = () => {
-    setFiles([])
-    onUploadSuccess()
-  }
+    setFiles([]);
+    onUploadSuccess();
+  };
 
   const handleUpload = () => {
-    uploadFiles(files, onFinish)
-  }
+    uploadFiles(files, onFinish);
+  };
 
   return (
     <VStack spacing={4} width="50%">
@@ -90,7 +90,7 @@ const DragAndDropComponent = ({
               >
                 <Text>{file.name}</Text>
                 <Progress
-                align="left"
+                  align="left"
                   value={progresses[index]}
                   size="md"
                   colorScheme="blue"

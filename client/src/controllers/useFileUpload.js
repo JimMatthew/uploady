@@ -25,7 +25,9 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded * 100) / event.total);
+            const percentComplete = Math.round(
+              (event.loaded * 100) / event.total
+            );
             setProgresses((prevProgresses) => {
               const newProgresses = [...prevProgresses];
               newProgresses[index] = percentComplete;
@@ -47,7 +49,7 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
         };
 
         const formData = new FormData();
-        
+
         for (const key in additionalData) {
           formData.append(key, additionalData[key]);
         }
