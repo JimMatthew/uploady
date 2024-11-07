@@ -9,7 +9,8 @@ const SshConsole = ({ serverId }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
   const [isInit, init] = useState(false);
-  const isHttps = window.location.protocol === 'https';
+  const isHttps = window.location.protocol === 'https:';
+  
   useEffect(() => {
     term.current = new Terminal({
       cursorBlink: true,

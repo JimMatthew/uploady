@@ -8,7 +8,6 @@ import {
   Text,
   VStack,
   useColorModeValue,
-  useToast,
   Progress,
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
@@ -19,7 +18,6 @@ const DragAndDropComponent = ({
   onUploadError,
 }) => {
   const [files, setFiles] = useState([]);
-  const toast = useToast();
   const bgColor = useColorModeValue("white", "gray.300");
   const bgHover = useColorModeValue("gray.500", "gray.400");
   const token = localStorage.getItem("token");
