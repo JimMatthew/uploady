@@ -121,13 +121,14 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
             />
           ) : (
             <Upload
-              postUrl={"/sftp/api/upload"}
-              serverId={serverId}
-              currentDirectory={files.currentDirectory}
-              refreshCallback={() =>
+              apiEndpoint={"/sftp/api/upload"}
+              additionalData={{
+                serverId,
+                currentDirectory: files.currentDirectory,
+              }}
+              onUploadSuccess={() =>
                 changeSftpDirectory(serverId, files.currentDirectory)
               }
-              toast={toast}
             />
           )}
         </Box>

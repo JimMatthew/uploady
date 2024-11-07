@@ -150,14 +150,13 @@ const FileList = ({ setUser, toast }) => {
           {/* Upload Area */}
           <Box mb={8}>
             {isMobile ? (
-              <Upload 
-              postUrl={"/api/upload"}
-              relativePath={fileData.relativePath}
-              refreshCallback={reload}
-              toast={toast}
-            />
+              <Upload
+                apiEndpoint={"/api/upload"}
+                additionalData={{ folderPath: fileData.relativePath }}
+                onUploadSuccess={reload}
+              />
             ) : (
-              <DragAndDropComponent 
+              <DragAndDropComponent
                 apiEndpoint={"/api/upload"}
                 additionalData={{ folderPath: fileData.relativePath }}
                 onUploadSuccess={reload}
@@ -165,7 +164,7 @@ const FileList = ({ setUser, toast }) => {
             )}
           </Box>
         </Box>
-           
+
         {/* Shared Links Section */}
         <Box mb={8} bg={bgg} boxShadow="sm" p={6} borderRadius="md">
           <SharedLinks onReload={fetchLinks} links={links} />

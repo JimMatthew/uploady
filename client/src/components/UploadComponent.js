@@ -13,22 +13,16 @@ import {
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
 function Upload({
-  postUrl,
-  relativePath,
-  serverId,
-  currentDirectory,
-  refreshCallback,
-  toast,
+  apiEndpoint,
+  additionalData = {},
+  onUploadSuccess,
+  onUploadError,
 }) {
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
-  const additionalData =
-    serverId && currentDirectory
-      ? { currentDirectory, serverId }
-      : { folderPath: relativePath };
 
   const { uploadFiles, progresses } = useFileUpload({
-    apiEndpoint: postUrl,
+    apiEndpoint,
     token: localStorage.getItem("token"),
     additionalData,
   });
@@ -37,20 +31,14 @@ function Upload({
     setFiles(Array.from(event.target.files));
   };
 
+  const onFinish = () => {
+    setFiles([]);
+    onUploadSuccess();
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!files) {
-      toast({
-        title: "No File Selected",
-        description: "Please select a file to upload",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
-    }
-    await uploadFiles(files, refreshCallback);
-    setFiles([]);
+    await uploadFiles(files, onFinish);
     fileInputRef.current.value = null;
   };
   return (
