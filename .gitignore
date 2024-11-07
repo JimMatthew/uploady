@@ -14,3 +14,5 @@ temp/oisd.txt
 
 server.cert
 server.key
+certificate.pem
+privatekey.pem
