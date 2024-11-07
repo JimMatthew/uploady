@@ -12,3 +12,5 @@ node_modules/
 temp/cap2.pcap
 temp/oisd.txt
 
+server.cert
+server.key

@@ -7,10 +7,12 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 const http = require("http");
+const https = require('https');
 const JwtStrategy = require("passport-jwt").Strategy;
 const ExtractJwt = require("passport-jwt").ExtractJwt;
 const jwt = require("jsonwebtoken");
 const WebSocket = require("ws");
+const fs = require("fs");
 const sshSessionHandler = require("./controllers/ssh_session");
 require("dotenv").config();
 const users = [
@@ -20,9 +22,20 @@ const users = [
     passwordHash: bcrypt.hashSync(process.env.PASSWORD, 10),
   },
 ];
+const USE_HTTPS = process.env.USE_HTTPS === "true";
 
 const app = express();
-const server = http.createServer(app);
+
+const server = USE_HTTPS
+  ? https.createServer(
+      {
+        key: fs.readFileSync(process.env.HTTPS_KEY),
+        cert: fs.readFileSync(process.env.HTTPS_CERT)
+      },
+      app
+    )
+  : http.createServer(app);
+
 const cors = require("cors");
 const { hostname } = require("os");
 
