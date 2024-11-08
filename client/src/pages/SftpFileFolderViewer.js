@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, Stack, Heading, Spinner, useBreakpointValue } from "@chakra-ui/react";
+import {
+  Box,
+  Text,
+  Stack,
+  Heading,
+  Spinner,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
-import Upload from "../components/Upload";
-import DragDropSftp from "../components/DragDropSftp";
+import Upload from "../components/UploadComponent";
+import DragAndDropComponent from "../components/DragDropComponent";
 import SftpController from "../controllers/SftpController";
-import CreateSftpFolder from "../components/CreateSftpFolder";
+import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
-
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -61,7 +67,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     const folder = `${files.currentDirectory}/${foldername}`;
     fetch(`/sftp/api/download-folder/${serverId}/${folder}`, {
       headers: {
-        Authorization: `Bearer ${token}`, 
+        Authorization: `Bearer ${token}`,
       },
     })
       .then((res) => res.blob())
@@ -76,8 +82,6 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
       })
       .catch((error) => console.error("Download error:", error));
   };
-
-  
 
   if (loading) {
     return (
@@ -102,24 +106,33 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
       mx="auto"
     >
       {/* Heading */}
-      <Box mb={6} >
+      <Box mb={6}>
         <Box align="center">
           {!isMobile ? (
-            <DragDropSftp
-              changeSftpDirectory={changeSftpDirectory}
-              toast={toast}
-              serverId={serverId}
-              currentDirectory={files.currentDirectory}
+            <DragAndDropComponent
+              apiEndpoint={"/sftp/api/upload"}
+              additionalData={{
+                serverId,
+                currentDirectory: files.currentDirectory,
+              }}
+              onUploadSuccess={() =>
+                changeSftpDirectory(serverId, files.currentDirectory)
+              }
             />
           ) : (
             <Upload
-              changeSftpDirectory={changeSftpDirectory}
-              toast={toast}
-              serverId={serverId}
-              currentDirectory={files.currentDirectory}
+              apiEndpoint={"/sftp/api/upload"}
+              additionalData={{
+                serverId,
+                currentDirectory: files.currentDirectory,
+              }}
+              onUploadSuccess={() =>
+                changeSftpDirectory(serverId, files.currentDirectory)
+              }
             />
           )}
         </Box>
+
         <Heading size="lg" mb={4} color="gray.700">
           Files and Folders
         </Heading>
@@ -138,10 +151,11 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           onClick={(directory) => changeSftpDirectory(serverId, directory)}
           color="gray.500"
         />
-        <CreateSftpFolder
-          sftpCreateFolderOnSubmit={(folder) =>
-            createSftpFolder(folder, serverId, files.currentDirectory)
-          }
+
+        <CreateFolderComponent
+          handleCreateFolder={(folder) => {
+            createSftpFolder(folder, serverId, files.currentDirectory);
+          }}
         />
       </Stack>
 
@@ -150,7 +164,9 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         changeDirectory={(folder) =>
           changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
         }
-        deleteFolder={(folder) => deleteSftpFolder(folder, serverId, files.currentDirectory)}
+        deleteFolder={(folder) =>
+          deleteSftpFolder(folder, serverId, files.currentDirectory)
+        }
         downloadFolder={(folder) => downloadFolder(folder)}
       />
 
@@ -158,7 +174,9 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         files={files.files}
         downloadFile={handleDownload}
         deleteFile={handleDelete}
-        openFile={(filename) => openFile(serverId, files.currentDirectory, filename)}
+        openFile={(filename) =>
+          openFile(serverId, files.currentDirectory, filename)
+        }
       />
     </Box>
   );

@@ -8,15 +8,25 @@ import {
   Text,
   VStack,
   useColorModeValue,
-  useToast,
+  Progress,
 } from "@chakra-ui/react";
-
-const DragAndDropUpload = ({ relativePath, refreshPath }) => {
+import useFileUpload from "../controllers/useFileUpload";
+const DragAndDropComponent = ({
+  apiEndpoint,
+  additionalData = {},
+  onUploadSuccess,
+  onUploadError,
+}) => {
   const [files, setFiles] = useState([]);
+  const bgColor = useColorModeValue("white", "gray.300");
+  const bgHover = useColorModeValue("gray.500", "gray.400");
   const token = localStorage.getItem("token");
-  const toast = useToast(); 
-  const bgg = useColorModeValue('white', 'gray.300')
-  const bggover = useColorModeValue('grey.500', 'grey.400' )
+
+  const { uploadFiles, progresses } = useFileUpload({
+    apiEndpoint,
+    token,
+    additionalData,
+  });
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
   }, []);
@@ -25,68 +35,17 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
     onDrop,
   });
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const onFinish = () => {
+    setFiles([]);
+    onUploadSuccess();
+  };
 
-    if (files.length === 0) {
-      toast({
-        title: "No files selected",
-        description: "Please drop or select files to upload",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("folderPath", relativePath);
-    files.forEach((file) => {
-      formData.append("files", file);
-    });
-
-    try {
-      const response = await fetch("/api/upload", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Files Uploaded",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        refreshPath(); // Refresh folder content
-        setFiles([])
-      } else {
-        toast({
-          title: "Upload Failed",
-          description: "Failed to upload files. Try again.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error uploading files:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while uploading files",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+  const handleUpload = () => {
+    uploadFiles(files, onFinish);
   };
 
   return (
     <VStack spacing={4} width="50%">
-      {/* Dropzone area */}
       <Box
         {...getRootProps()}
         border="2px dashed"
@@ -98,7 +57,7 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
         cursor="pointer"
         transition="border-color 0.2s"
         _hover={{ borderColor: "blue.300" }}
-        bg={isDragActive ? bggover : bgg}
+        bg={isDragActive ? bgHover : bgColor}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
@@ -112,7 +71,6 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
         )}
       </Box>
 
-      {/* Display selected files */}
       {files.length > 0 && (
         <Box width="100%">
           <Text fontWeight="bold" mb={2}>
@@ -128,16 +86,22 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
                 borderWidth="1px"
                 borderColor="gray.300"
               >
-                {file.name}
+                <Text>{file.name}</Text>
+                <Progress
+                  align="left"
+                  value={progresses[index]}
+                  size="md"
+                  colorScheme="blue"
+                  mt={2}
+                />
               </ListItem>
             ))}
           </List>
         </Box>
       )}
 
-      {/* Upload button */}
       <Button
-        onClick={handleSubmit}
+        onClick={handleUpload}
         colorScheme="blue"
         isDisabled={files.length === 0}
         width="100%"
@@ -148,4 +112,4 @@ const DragAndDropUpload = ({ relativePath, refreshPath }) => {
   );
 };
 
-export default DragAndDropUpload;
+export default DragAndDropComponent;

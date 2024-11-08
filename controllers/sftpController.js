@@ -5,9 +5,8 @@ const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
 const Busboy = require("busboy");
-//const multer = require("multer");
 const net = require("net");
-const archiver = require('archiver');
+const archiver = require("archiver");
 
 module.exports = () => {
   const sftp_create_folder_json_post = async (req, res) => {
@@ -24,107 +23,69 @@ module.exports = () => {
       await sftp.mkdir(newPath);
     } catch (err) {
       console.log(err);
+      return res.status(404).send("Error creating folder");
     } finally {
       await sftp.end();
     }
     return res.status(200).send("Folder created");
   };
 
-  const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
+  const addFolderToArchive = async (
+    sftp,
+    archive,
+    folderPath,
+    zipFolderPath
+  ) => {
     const folderContents = await sftp.list(folderPath);
 
     for (const item of folderContents) {
       const itemPath = `${folderPath}/${item.name}`;
       const zipPath = `${zipFolderPath}/${item.name}`;
 
-      if (item.type === '-') {
+      if (item.type === "-") {
         const stream = await sftp.get(itemPath);
-        
+
         archive.append(stream || Buffer.alloc(0), { name: zipPath });
         //archive.append(stream, { name: zipPath });
-      } else if (item.type === 'd') {
-        archive.append(null, { name: `${zipPath}/`});
+      } else if (item.type === "d") {
+        archive.append(null, { name: `${zipPath}/` });
         await addFolderToArchive(sftp, archive, itemPath, zipPath);
       }
     }
-  }
+  };
 
   const sftp_get_archive_folder = async (req, res) => {
     const { serverId } = req.params;
     const relativePath = req.params[0] || "";
     const remotePath = relativePath ? `/${relativePath}` : "/";
     try {
-
-      const server = await SftpServer.findById(serverId)
-      if(!server) {
+      const server = await SftpServer.findById(serverId);
+      if (!server) {
         return res.status(404).json({
           error: "Server not found",
         });
       }
       const { host, username, password } = server;
-      const sftp = new SftpClient()
+      const sftp = new SftpClient();
 
       await sftp.connect({
         host,
         username,
         password,
       });
-      
-      res.setHeader('Content-Disposition', 'attachment; filename="folder.zip"');
-      res.setHeader('Content-Type', 'application/zip');
-      const archive = archiver('zip', { slib: { level: 9 }});
+
+      res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
+      res.setHeader("Content-Type", "application/zip");
+      const archive = archiver("zip", { slib: { level: 9 } });
       archive.pipe(res);
 
       await addFolderToArchive(sftp, archive, remotePath, "/");
       archive.finalize();
-  } catch (err) {
-      console.error('Error downloading folder:', err);
-      res.status(500).send('Failed to download folder');
-  }
-}
-
-  const sftp_get_folder_archive = async (req, res) => {
-    const { serverId } = req.params;
-    const relativePath = req.params[0] || "";
-    const remotePath = relativePath ? `/${relativePath}` : "/";
-    try {
-
-      const server = await SftpServer.findById(serverId)
-      if(!server) {
-        return res.status(404).json({
-          error: "Server not found",
-        });
-      }
-      const { host, username, password } = server;
-      const sftp = new SftpClient()
-
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
-      const folderContents = await sftp.list(remotePath);
-      res.setHeader('Content-Disposition', 'attachment; filename="folder.zip"');
-      res.setHeader('Content-Type', 'application/zip');
-      const archive = archiver('zip', { slib: { level: 9 }});
-      archive.pipe(res);
-
-      for (const item of folderContents) {
-        if (item.type === '-') {
-          const filePath = `${remotePath}/${item.name}`;
-          const stream = await sftp.get(filePath);
-          archive.append(stream, { name: item.name });
-        }
-      }
-      archive.finalize();
-
-    }catch (error) {
-      console.log("Error:", error);
-      return res.status(400).json({
-        error: "Error downloading",
-      });
-  }
-}
+    } catch (err) {
+      console.error("Error downloading folder:", err);
+      res.status(500).send("Failed to download folder");
+    }
+  };
 
   const sftp_stream_download_get = async (req, res, next) => {
     const { serverId } = req.params;
@@ -172,68 +133,25 @@ module.exports = () => {
     }
   };
 
-  /*
-    downloads a file from sftp server to node server,
-    then downloads to client. Better to use stream instead
-    so we are not saving anything to node server
-  */
-  const sftp_download_get = async (req, res) => {
-    const { serverId } = req.params;
-    const relativePath = req.params[0] || "";
-    const remotePath = relativePath ? `/${relativePath}` : "/";
-    const fileName = remotePath.split("/").filter(Boolean).pop();
-    const localFilePath = path.join(path.join(__dirname, "temp"), fileName);
-    const sftp = new SftpClient();
-    try {
-      const server = await SftpServer.findById(serverId);
-      if (!server) {
-        return res.status(404).send("server not found");
-      }
-      const { host, username, password } = server;
-      await sftp.connect({ host, username, password });
-      await sftp.fastGet(remotePath, localFilePath); // Download remote file to local path
-      res.download(localFilePath, (err) => {
-        if (err) {
-          return res.status(500).send("File not found");
-        }
-        fs.unlink(localFilePath, (err) => {
-          if (err) {
-            return res.status(500).send("unable to delete file");
-          }
-        });
-      });
-      await sftp.end();
-    } catch (err) {
-      console.error(err);
-      res.render("sftp", { files: null, message: "File download failed" });
-    }
-  };
-
-  //const upload = multer();
-
   const sftp_stream_upload_post = async (req, res, next) => {
     const busboy = Busboy({ headers: req.headers });
     let currentDirectory, serverId, sftp, remotePath;
     let fileUploaded = false;
 
-    // Handle form fields
     busboy.on("field", (fieldname, value) => {
       if (fieldname === "currentDirectory") currentDirectory = value;
       if (fieldname === "serverId") serverId = value;
     });
 
-    // Handle file stream
     busboy.on("file", async (fieldname, file, filename) => {
       try {
         if (!serverId || !currentDirectory) {
           return res.status(400).send("Missing directory or server ID");
         }
 
-        // Fetch server details
         const server = await SftpServer.findById(serverId);
         const { host, username, password } = server;
 
-        // Establish SFTP connection
         sftp = new SftpClient();
         await sftp.connect({
           host,
@@ -243,85 +161,26 @@ module.exports = () => {
 
         remotePath = `${currentDirectory}/${filename.filename}`;
 
-        // Stream file directly to SFTP server
         await sftp.put(file, remotePath);
         fileUploaded = true;
       } catch (error) {
         console.error("Error uploading file:", error);
         res.status(500).send("Error uploading file");
       } finally {
-        if (sftp) sftp.end(); // End the SFTP session
+        if (sftp) sftp.end(); 
       }
     });
 
-    // Handle the close event
     busboy.on("finish", () => {
       res.status(200).send("File uploaded successfully");
     });
 
-    // Error handler
     busboy.on("error", (error) => {
       console.error("Error during file upload:", error);
       res.status(500).send("File upload error");
     });
 
-    // Pipe the request to Busboy
     req.pipe(busboy);
-  };
-
-  /*
-    Stream file upload from client to sftp server
-  */
-  const sftp_stream_upload_post2 = async (req, res, next) => {
-    const { currentDirectory, serverId } = req.body;
-    try {
-      const server = await SftpServer.findById(serverId);
-      const { host, username, password } = server;
-      const sftp = new SftpClient();
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
-      const PassThroughStream = new PassThrough();
-      const fileStream = req.files[0].buffer;
-      PassThroughStream.end(fileStream);
-      const remotePath = `${currentDirectory}/${req.files[0].originalname}`;
-
-      await sftp.put(PassThroughStream, remotePath);
-      res.status(200).send("File uploaded successfully");
-      sftp.end();
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      next(error);
-    }
-  };
-
-  // the file is being uploaded to this server first,
-  //and then uploaded to the sftp server
-  //Use stream method instead
-  const sftp_upload_post = async (req, res) => {
-    const { currentDirectory, serverId } = req.body;
-    const sftp = new SftpClient();
-    const file = req.files[0];
-    try {
-      const server = await SftpServer.findById(serverId);
-      if (!server) {
-        return res.status(404).send("server not found");
-      }
-      const { host, username, password } = server;
-      await sftp.connect({ host, username, password });
-      const tempFilePath = file.path; // Path to the temporarily uploaded file
-      const uploadFileName = file.originalname; // Original filename
-      const sftpUploadPath = path.join(currentDirectory, uploadFileName);
-      await sftp.fastPut(tempFilePath, sftpUploadPath);
-      await sftp.end();
-      fs.unlinkSync(tempFilePath);
-      res.redirect(`/sftp/connect/${serverId}/${currentDirectory}`);
-    } catch (err) {
-      console.error(err);
-      res.redirect("sftp/files");
-    }
   };
 
   const sftp_servers_json_get = async (req, res, next) => {
@@ -467,7 +326,7 @@ module.exports = () => {
       console.log(error);
       return res.status(404).send("Error listing directory");
     } finally {
-      if (sftp) await sftp.end(); // Ensure connection is always closed
+      if (sftp) await sftp.end(); 
     }
   };
 
@@ -519,10 +378,7 @@ module.exports = () => {
   };
 
   return {
-    sftp_upload_post,
-    sftp_download_get,
     sftp_stream_download_get,
-    //upload,
     sftp_stream_upload_post,
     server_status_get,
     sftp_servers_json_get,
@@ -532,7 +388,6 @@ module.exports = () => {
     sftp_delete_file_json_post,
     sftp_delete_folder_json_post,
     sftp_create_folder_json_post,
-    sftp_get_folder_archive,
-    sftp_get_archive_folder
+    sftp_get_archive_folder,
   };
 };

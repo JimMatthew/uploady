@@ -11,7 +11,6 @@ const Header = ({ username, onLogout }) => {
         // Handle successful logout (e.g., redirect to login page)
         window.location.href = '/' // Redirect to home or login page
       } else {
-        // Handle error
         console.error('Logout failed')
       }
     } catch (error) {

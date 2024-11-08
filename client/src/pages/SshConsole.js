@@ -1,18 +1,18 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import "xterm/css/xterm.css";
 import "../xterm.css";
 import { Box } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
-import { FitAddon } from '@xterm/addon-fit';
+import { FitAddon } from "@xterm/addon-fit";
 const SshConsole = ({ serverId }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
-
+  const [isInit, init] = useState(false);
+  const isHttps = window.location.protocol === 'https:';
+  
   useEffect(() => {
     term.current = new Terminal({
-      cols: 100,
-      rows: 50,
       cursorBlink: true,
       theme: {
         background: "#1a1a1a",
@@ -36,23 +36,42 @@ const SshConsole = ({ serverId }) => {
     term.current.open(terminalRef.current);
     term.current.loadAddon(new WebglAddon());
 
-    const socket = new WebSocket(`ws://${window.location.hostname}:3001/ssh`);
+    const wsProtocol = isHttps ? 'wss' : 'ws';
+    const socket = new WebSocket(`${wsProtocol}://${window.location.hostname}:3001/ssh`);
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
     };
-    //term.current.resize(110, 50);
+
     fitAddon.fit();
+
+    const handleResize = () => {
+      fitAddon.fit();
+
+      socket.send(
+        JSON.stringify({
+          event: "resize",
+          rows: term.current.rows,
+          cols: term.current.cols,
+        })
+      );
+    };
+
+    window.addEventListener("resize", handleResize);
+
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.event === "output") {
         term.current.write(message.data);
         terminalContainer.scrollTop = terminalContainer.scrollHeight;
-        //socket.send(JSON.stringify({ event: "up", data: "up" }));
       }
     };
 
     term.current.onData((data) => {
+      if (!isInit) {
+        handleResize();
+        init(true);
+      }
       socket.send(JSON.stringify({ event: "input", data }));
     });
 
