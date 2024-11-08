@@ -6,6 +6,7 @@ There is also a server manager allowing you to add servers. These servers can be
 
 Main page of Uploady
 ![Screenshot 2024-10-14 134508](https://github.com/user-attachments/assets/e23dc828-39f6-489a-a930-b3cf16795a0a)
+<img width="1071" alt="upmain" src="https://github.com/user-attachments/assets/bbafb6da-05da-48ef-8d4f-b55e9284d45b">
 
 Shared Links:
 ![Screenshot 2024-10-14 134546](https://github.com/user-attachments/assets/2795129d-0343-4988-a4fa-383262fd8ce2)
@@ -15,6 +16,9 @@ Server manager and SFTP viewer:
 
 SSH:
 ![Screenshot 2024-10-14 134707](https://github.com/user-attachments/assets/71e06c8c-24d8-445f-95ce-77af5911e92c)
+
+Text viewer / editor:
+<img width="1070" alt="upeditor" src="https://github.com/user-attachments/assets/dc787ffa-bfde-475a-9265-df8df38f0dab">
 
 To use:
 Git clone the repository. 
