@@ -183,7 +183,7 @@ const SFTPApp = ({ toast }) => {
       .then((res) => res.json())
       .then((data) => {
         setSftpServers(data);
-        return data; 
+        return data;
       })
       .then((data) => fetchStatuses(data))
       .then(setLoading(false))
@@ -347,7 +347,9 @@ const SFTPApp = ({ toast }) => {
             <TabPanels>
               {tabs.length > 0 ? (
                 tabs.map((tab) => (
-                  <TabPanel p={{base:1, md: 4}} key={tab.id}>{tab.content}</TabPanel>
+                  <TabPanel p={{ base: 1, md: 4 }} key={tab.id}>
+                    {tab.content}
+                  </TabPanel>
                 ))
               ) : (
                 <Center height="300px">

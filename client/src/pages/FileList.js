@@ -166,12 +166,18 @@ const FileList = ({ setUser, toast }) => {
         </Box>
 
         {/* Shared Links Section */}
-        <Box mb={8} bg={bgg} boxShadow="sm" p={{base: 2, md: 6}} borderRadius="md">
+        <Box
+          mb={8}
+          bg={bgg}
+          boxShadow="sm"
+          p={{ base: 2, md: 6 }}
+          borderRadius="md"
+        >
           <SharedLinks onReload={fetchLinks} links={links} />
         </Box>
 
         {/* File List Pane */}
-        <Box bg={bgg} boxShadow="md" p={{base: 1, md: 6}} borderRadius="md">
+        <Box bg={bgg} boxShadow="md" p={{ base: 1, md: 6 }} borderRadius="md">
           <FileListPane
             data={fileData}
             onFolderClick={handleFolderClick}

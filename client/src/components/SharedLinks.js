@@ -110,7 +110,7 @@ const SharedLinks = ({ onReload, links }) => {
   };
 
   return (
-    <Box >
+    <Box>
       {/* Button to show/hide shared links */}
       <Box align="center">
         <Button
@@ -126,7 +126,7 @@ const SharedLinks = ({ onReload, links }) => {
 
       <Collapse in={isOpen}>
         <Box
-          p={{base: 0, md: 6}}
+          p={{ base: 0, md: 6 }}
           shadow="lg"
           borderWidth="1px"
           borderRadius="lg"

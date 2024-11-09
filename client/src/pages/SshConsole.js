@@ -9,8 +9,8 @@ const SshConsole = ({ serverId }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
   const [isInit, init] = useState(false);
-  const isHttps = window.location.protocol === 'https:';
-  
+  const isHttps = window.location.protocol === "https:";
+
   useEffect(() => {
     term.current = new Terminal({
       cursorBlink: true,
@@ -36,8 +36,10 @@ const SshConsole = ({ serverId }) => {
     term.current.open(terminalRef.current);
     term.current.loadAddon(new WebglAddon());
 
-    const wsProtocol = isHttps ? 'wss' : 'ws';
-    const socket = new WebSocket(`${wsProtocol}://${window.location.hostname}:3001/ssh`);
+    const wsProtocol = isHttps ? "wss" : "ws";
+    const socket = new WebSocket(
+      `${wsProtocol}://${window.location.hostname}:3001/ssh`
+    );
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
