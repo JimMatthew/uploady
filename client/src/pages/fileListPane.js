@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, VStack, Stack, useColorModeValue } from "@chakra-ui/react";
+import { Box, VStack, Stack, useColorModeValue, useBreakpointValue } from "@chakra-ui/react";
 import CreateFolderComponent from "../components/CreateFolderComponent";
 import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
@@ -25,10 +25,11 @@ const FileDisplay = ({
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
+  const isMobile = useBreakpointValue({ base: true, md: false });
   return (
     <Box
-      mt={6}
-      p={6}
+      mt={{ base: 1, md: 6}}
+      p={{base: 3, md: 6}}
       borderWidth="1px"
       borderRadius="lg"
       boxShadow="lg"

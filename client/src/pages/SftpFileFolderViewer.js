@@ -98,7 +98,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
 
   return (
     <Box
-      p={6}
+      p={{base: 2, md: 6}}
       borderWidth="1px"
       borderRadius="md"
       boxShadow="md"

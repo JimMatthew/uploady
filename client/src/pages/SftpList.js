@@ -318,7 +318,7 @@ const SFTPApp = ({ toast }) => {
         {/* Main Panel */}
         <Box
           flex={1}
-          p={4}
+          p={2}
           ml={{ base: 0, lg: "30px" }}
           transition="margin 0.3s ease"
         >
@@ -347,7 +347,7 @@ const SFTPApp = ({ toast }) => {
             <TabPanels>
               {tabs.length > 0 ? (
                 tabs.map((tab) => (
-                  <TabPanel key={tab.id}>{tab.content}</TabPanel>
+                  <TabPanel p={{base:1, md: 4}} key={tab.id}>{tab.content}</TabPanel>
                 ))
               ) : (
                 <Center height="300px">

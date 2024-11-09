@@ -110,7 +110,7 @@ const SharedLinks = ({ onReload, links }) => {
   };
 
   return (
-    <>
+    <Box >
       {/* Button to show/hide shared links */}
       <Box align="center">
         <Button
@@ -126,7 +126,7 @@ const SharedLinks = ({ onReload, links }) => {
 
       <Collapse in={isOpen}>
         <Box
-          p={6}
+          p={{base: 0, md: 6}}
           shadow="lg"
           borderWidth="1px"
           borderRadius="lg"
@@ -155,7 +155,7 @@ const SharedLinks = ({ onReload, links }) => {
           </SimpleGrid>
         </Box>
       </Collapse>
-    </>
+    </Box>
   );
 };
 
