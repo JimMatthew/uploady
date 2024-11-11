@@ -88,7 +88,7 @@ module.exports = () => {
     const relativePath = req.params[0] || "";
     const remotePath = relativePath ? `/${relativePath}` : "/";
     try {
-      const sftp = connectToSftp(serverId)
+      const sftp = connectToSftp(serverId);
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="${remotePath.split("/").pop()}"`
@@ -197,10 +197,7 @@ module.exports = () => {
       await newServer.save();
       res.status(200).send();
     } catch (error) {
-      console.log(error);
-      return res.status(400).json({
-        error: "Cannot save server",
-      });
+      handleError(res, "Cannot save Server", 400);
     }
   };
 
@@ -294,18 +291,8 @@ module.exports = () => {
     const { serverId, currentDirectory, fileName } = req.body;
     if (serverId && currentDirectory && fileName) {
       const fullPath = path.join(currentDirectory, fileName);
-      const server = await SftpServer.findById(serverId);
-      if (!server) {
-        return res.status(404).send("server not found");
-      }
-      const { host, username, password } = server;
-      const sftp = new SftpClient();
       try {
-        await sftp.connect({
-          host,
-          username,
-          password,
-        });
+        const sftp = await connectToSftp(serverId);
         await sftp.delete(fullPath);
         return res.status(200).send("File Deleted");
       } catch (error) {
@@ -318,18 +305,8 @@ module.exports = () => {
   const sftp_delete_folder_json_post = async (req, res, next) => {
     const { serverId, currentDirectory, deleteDir } = req.body;
     const fullPath = path.join(currentDirectory, deleteDir);
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      return res.status(404).send("server not found");
-    }
-    const { host, username, password } = server;
-    const sftp = new SftpClient();
     try {
-      await sftp.connect({
-        host,
-        username,
-        password,
-      });
+      const sftp = await connectToSftp(serverId);
       await sftp.rmdir(fullPath);
       res.status(200).send();
     } catch (error) {
