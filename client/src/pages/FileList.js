@@ -15,50 +15,16 @@ import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
 import { useNavigate } from "react-router-dom";
 
+const cache = {}
+
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
-  const [fileTrie, setFileTrie] = useState({});
   const [currentPath, setCurrentPath] = useState("files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
   const navigate = useNavigate();
-
-  const updateTrie = (path, files, folders) => {
-    setFileData(files);
-    setFileTrie((fileTrie) => {
-      const paths = path.split("/").filter(Boolean);
-      let currentNode = { ...fileTrie };
-
-      let node = currentNode;
-      paths.forEach((segment) => {
-        if (!node[segment]) node[segment] = { files: [], folders: {} };
-        node = node[segment].folders;
-      });
-
-      if (files) node.files = files;
-      if (folders)
-        node.folders = folders.reduce((acc, folder) => {
-          acc[folder.name] = { folders: {} };
-          return acc;
-        }, {});
-      return currentNode;
-    });
-  };
-
-  const getFolderFromTrie = (path) => {
-    const paths = path.split("/").filter(Boolean);
-    let currentNode = fileTrie;
-
-    for (const segment of paths) {
-      if (!currentNode[segment]) {
-        return null;
-      }
-      currentNode = currentNode[segment].folders;
-    }
-    return currentNode;
-  };
 
   useEffect(() => {
     if (token) {
@@ -96,13 +62,12 @@ const FileList = ({ setUser, toast }) => {
 
   const fetchFiles = async (path) => {
     setLoading(true);
-    const existingFolder = getFolderFromTrie(path);
 
-    if (existingFolder) {
-      setFileData(existingFolder.files);
-      setLoading(false);
+    if (cache[path]) {
+      setFileData(cache[path].data)
+      setLoading(false)
     }
-
+   
     try {
       const response = await fetch(`/api/${path}/`, {
         method: "GET",
@@ -118,8 +83,7 @@ const FileList = ({ setUser, toast }) => {
       }
 
       const data = await response.json();
-
-      updateTrie(path, data);
+      cache[path] = {data: data}
     } catch (err) {
       console.error("Error fetching files:", err);
     } finally {
