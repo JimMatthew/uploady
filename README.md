@@ -2,7 +2,7 @@
 
 Uploady file manager is a web based file manager allowing uploading and downloading files, as well as creating shareable links for downloading files. 
 
-There is also a server manager allowing you to add servers. These servers can be managed via SFTP and SSH. 
+There is also a server manager allowing you to add servers to be managed via SFTP and SSH. 
 
 Main page of Uploady
 ![Screenshot 2024-10-14 134508](https://github.com/user-attachments/assets/e23dc828-39f6-489a-a930-b3cf16795a0a)
