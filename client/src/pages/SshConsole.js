@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import "xterm/css/xterm.css";
 import "../xterm.css";
-import { Box } from "@chakra-ui/react";
+import { Box, Button } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
 const SshConsole = ({ serverId }) => {

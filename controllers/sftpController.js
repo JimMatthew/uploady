@@ -88,7 +88,7 @@ module.exports = () => {
     const relativePath = req.params[0] || "";
     const remotePath = relativePath ? `/${relativePath}` : "/";
     try {
-      const sftp = connectToSftp(serverId);
+      const sftp = await connectToSftp(serverId);
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="${remotePath.split("/").pop()}"`
