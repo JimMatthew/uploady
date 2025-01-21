@@ -202,24 +202,6 @@ module.exports = () => {
     }
   };
 
-  const delete_file_jspn_post = async (req, res, next) => {
-    const relativeFilePath = "/" + req.params[0];
-    const filePath = path.join(uploadsDir, relativeFilePath);
-    const fileName = path.basename(filePath);
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        res.status(400).json({
-          message: "file deleted",
-        });
-        return;
-      }
-    });
-    await SharedFile.findOneAndDelete({ filePath, fileName });
-    res.status(200).json({
-      message: "file deleted",
-    });
-  };
-
   const download_file_get = (req, res, next) => {
     const relativeFilePath = req.params[0];
     const filePath = path.join(uploadsDir, relativeFilePath);
@@ -254,7 +236,6 @@ module.exports = () => {
     file_links_json_get,
     generateShareLinkJsonPost,
     stop_sharing_json_post,
-    delete_file_jspn_post,
     create_folder_json_post,
     delete_folder_json_post,
     delete_file_json_post,
