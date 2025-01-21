@@ -216,21 +216,6 @@ module.exports = () => {
     return date.toLocaleString(); // Format to readable date and time
   };
 
-  const generateBreadcrumb = (relativePath, serverId) => {
-    const breadcrumbs = [];
-    let currentPath = `/sftp/connect/${serverId}/`;
-    const pathParts = relativePath.split("/").filter(Boolean);
-    pathParts.forEach((part, index) => {
-      currentPath += `/${part}`;
-      breadcrumbs.push({
-        name: part,
-        path: currentPath,
-      });
-    });
-    breadcrumbs.unshift({ name: "Home", path: `/sftp/connect/${serverId}/` });
-    return breadcrumbs;
-  };
-
   const sftp_id_list_files_json_get = async (req, res, next) => {
     const { serverId } = req.params;
     const currentDirectory = "/" + (req.params[0] || "/");
@@ -270,12 +255,10 @@ module.exports = () => {
         },
         { files: [], folders: [] }
       );
-      const breadcrumb = generateBreadcrumb(currentDirectory, serverId);
       res.json({
         files,
         folders,
         currentDirectory,
-        ...breadcrumb,
         serverId,
         host,
       });
