@@ -106,31 +106,12 @@ module.exports = () => {
     }
   };
 
-  const generateBreadcrumbs = (relativePath) => {
-    const breadcrumbs = [];
-    let currentPath = ""; // Start from the root (/files)
-    const pathParts = relativePath.split("/").filter(Boolean);
-
-    pathParts.forEach((part, index) => {
-      currentPath += `/${part}`;
-      breadcrumbs.push({
-        name: part,
-        path: currentPath,
-      });
-    });
-    breadcrumbs.unshift({ name: "Home", path: "/files" });
-
-    return breadcrumbs;
-  };
-
   const getDirectoryData = (relativePath) => {
     const currentPath = relativePath ? `/files/${relativePath}` : "/files";
     const { files, folders } = getDirectoryContents_get(
       path.join(uploadsDir, relativePath)
     );
-    const breadcrumb = generateBreadcrumbs(currentPath);
-
-    return { files, folders, breadcrumb, currentPath, relativePath };
+    return { files, folders, currentPath, relativePath };
   };
 
   /*

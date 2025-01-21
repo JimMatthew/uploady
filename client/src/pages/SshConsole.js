@@ -48,6 +48,7 @@ const SshConsole = ({ serverId }) => {
     fitAddon.fit();
 
     const handleResize = () => {
+      if (!init) return;
       fitAddon.fit();
 
       socket.send(
@@ -71,8 +72,8 @@ const SshConsole = ({ serverId }) => {
 
     term.current.onData((data) => {
       if (!isInit) {
-        handleResize();
         init(true);
+        handleResize();
       }
       socket.send(JSON.stringify({ event: "input", data }));
     });
