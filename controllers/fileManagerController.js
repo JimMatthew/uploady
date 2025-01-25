@@ -122,7 +122,7 @@ module.exports = () => {
   const list_directory_json_get = (req, res, next) => {
     try {
       const data = getDirectoryData(req.params[0] || "");
-      res.json({ ...data, user: req.user });
+      res.json({ ...data, user: req.user.username });
     } catch (error) {
       next({ message: "Failed to list directory", status: 500 });
     }
