@@ -18,7 +18,7 @@ const FileList = ({
   handleFileDelete,
 }) => {
   return (
-    <>
+    <Box>
       {files &&
         files.length > 0 &&
         files.map((file, index) => (
@@ -69,7 +69,7 @@ const FileList = ({
             </HStack>
           </Box>
         ))}
-    </>
+    </Box>
   );
 };
 

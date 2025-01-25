@@ -63,7 +63,8 @@ const FileDisplay = ({
           }}
         />
       </Stack>
-
+      
+      {/* Folder and File Display */}
       <VStack spacing={6} align="stretch">
         <FolderListFile
           folders={folders}

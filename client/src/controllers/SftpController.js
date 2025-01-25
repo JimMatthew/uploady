@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 const SftpController = ({ toast, setFiles }) => {
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const deleteSftpFile = async (
     filename,
@@ -151,6 +154,10 @@ const SftpController = ({ toast, setFiles }) => {
           },
         }
       );
+      if (response.status === 401) {
+        navigate("/");
+        return;
+      }
       if (!response.ok) {
         toast({
           title: "Error Listing Directory",
