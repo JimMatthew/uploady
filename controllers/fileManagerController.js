@@ -8,11 +8,21 @@ module.exports = () => {
   const tempdir = path.join(__dirname, "../temp");
   const domain = process.env.HOSTNAME;
 
+  const get_performance_stats = (req, res, next) => {
+    const mem = process.memoryUsage();
+    const cpu = process.cpuUsage();
+    const uptime = process.uptime();
+    res.json({
+      memory: mem,
+      cpu: cpu,
+      uptime: uptime,
+    });
+  };
+
   /*
     upload files to directory
     We upload to temp folder and rename to desired directory
   */
-
   const upload_files_post = (req, res, next) => {
     const folderPath = req.body.folderPath || ""; // Default to root if no folder is provided
     const targetFolder = path.join(uploadsDir, folderPath);
@@ -239,5 +249,6 @@ module.exports = () => {
     create_folder_json_post,
     delete_folder_json_post,
     delete_file_json_post,
+    get_performance_stats,
   };
 };

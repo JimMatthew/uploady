@@ -14,7 +14,7 @@ const Footer = () => {
       <Stack spacing={2} align="center">
         <Text>© {new Date().getFullYear()} James Lindstrom. All rights reserved.</Text>
         <Stack direction="row" spacing={4}>
-          <Link href="/privacy" color="teal.300">Privacy Policy</Link>
+          <Link href="/about" color="teal.300">About</Link>
           <Link href="/terms" color="teal.300">Terms Of Service</Link>
         </Stack>
       </Stack>

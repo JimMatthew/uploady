@@ -72,5 +72,11 @@ module.exports = function () {
     filemanagerController.delete_folder_json_post
   )
 
+  router.get(
+    "/api/pstats",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.get_performance_stats
+  )
+
   return router;
 };

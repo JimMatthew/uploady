@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import FileList from "./pages/FileList";
 import AppLayout from "./AppLayout";
 import SftpList from "./pages/SftpList"
+import About from "./pages/About"
 const App = () => {
   const [user, setuser] = useState(null);
   const toast = useToast();
@@ -19,6 +20,7 @@ const App = () => {
           <Route path="/" element={<Login />} />
           <Route path="/app/files" element={<FileList setUser={setuser} toast={toast}/>} />
           <Route path="/api/sftp" element={<SftpList toast={toast}/>} />
+          <Route path="/about" element={<About/>}/>
         </Routes>
       </AppLayout>
     </Router>
