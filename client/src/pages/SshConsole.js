@@ -88,7 +88,7 @@ const SshConsole = ({ serverId }) => {
       <Box
         ref={terminalRef}
         id="terminal"
-        h="920px"
+        h="calc(100vh - 200px)"
         bg="gray.900"
         overflow="hidden"
       />
