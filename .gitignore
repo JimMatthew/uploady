@@ -17,4 +17,4 @@ server.key
 certificate.pem
 privatekey.pem
 dist
-src/
+
