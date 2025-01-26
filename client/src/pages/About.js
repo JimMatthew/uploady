@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Heading, Text, Center, VStack } from "@chakra-ui/react";
+import { Box, Button, Heading, Text, Center, VStack, Table, Tab } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
 const About = () => {
@@ -34,7 +34,7 @@ const About = () => {
   };
 
   return (
-    <Box>
+    <Box paddingTop={8}>
       <Center>
         <VStack>
           <Box>
@@ -49,6 +49,9 @@ const About = () => {
           <Heading size="md">Server Info</Heading>
           {stats.memory && (
             <Box>
+              <Text>
+                Node version: {stats.nodeVersion}
+              </Text>
               <Text>
                 Total Memory: {(stats.memory.rss / 1000 / 1000).toFixed(2)} MB
               </Text>

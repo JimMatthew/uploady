@@ -12,10 +12,12 @@ module.exports = () => {
     const mem = process.memoryUsage();
     const cpu = process.cpuUsage();
     const uptime = process.uptime();
+    const nodeVersion = process.version;
     res.json({
       memory: mem,
       cpu: cpu,
       uptime: uptime,
+      nodeVersion: nodeVersion,
     });
   };
 
