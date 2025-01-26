@@ -72,7 +72,7 @@ const About = () => {
                 External: {(stats.memory.external / 1000 / 1000).toFixed(2)} MB
               </Text>
               <Text>
-                ArrayBuffers: {" "}
+                ArrayBuffers:{" "}
                 {(stats.memory.arrayBuffers / 1000 / 1000).toFixed(2)} MB
               </Text>
               <Text>Node version: {stats.nodeVersion}</Text>
@@ -84,11 +84,6 @@ const About = () => {
             </Box>
           )}
 
-          {stats.uptime && (
-            <Box>
-              
-            </Box>
-          )}
           <Link to="https://github.com/JimMatthew/uploady">
             <Text fontWeight="semibold" color={"blue.600"}>
               Go to Github
