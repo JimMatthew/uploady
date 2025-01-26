@@ -13,11 +13,16 @@ module.exports = () => {
     const cpu = process.cpuUsage();
     const uptime = process.uptime();
     const nodeVersion = process.version;
+    const report = process.report.getReport();
     res.json({
       memory: mem,
       cpu: cpu,
       uptime: uptime,
       nodeVersion: nodeVersion,
+      v8Version: report.header.componentVersions.v8,
+      osName: report.header.osName,
+      osRelease: report.header.osRelease,
+      osVersion: report.header.osVersion,
     });
   };
 

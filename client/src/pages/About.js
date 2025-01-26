@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Heading, Text, Center, VStack, Table, Tab } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Heading,
+  Text,
+  Center,
+  VStack,
+  Table,
+  Tab,
+} from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
 const About = () => {
@@ -50,9 +59,6 @@ const About = () => {
           {stats.memory && (
             <Box>
               <Text>
-                Node version: {stats.nodeVersion}
-              </Text>
-              <Text>
                 Total Memory: {(stats.memory.rss / 1000 / 1000).toFixed(2)} MB
               </Text>
               <Text>
@@ -66,15 +72,21 @@ const About = () => {
                 External: {(stats.memory.external / 1000 / 1000).toFixed(2)} MB
               </Text>
               <Text>
-                ArrayBuffers:{" "}
+                ArrayBuffers: {" "}
                 {(stats.memory.arrayBuffers / 1000 / 1000).toFixed(2)} MB
               </Text>
+              <Text>Node version: {stats.nodeVersion}</Text>
+              <Text>V8 version: {stats.v8Version}</Text>
+              <Text>
+                OS: {stats.osName} {stats.osRelease}
+              </Text>
+              <Text>Uptime: {formatUptime()}</Text>
             </Box>
           )}
 
           {stats.uptime && (
             <Box>
-              <Text>Uptime: {formatUptime()}</Text>
+              
             </Box>
           )}
           <Link to="https://github.com/JimMatthew/uploady">
