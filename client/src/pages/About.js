@@ -6,6 +6,7 @@ import {
   Text,
   Center,
   VStack,
+  Spinner,
   Table,
   Tab,
 } from "@chakra-ui/react";
@@ -55,8 +56,9 @@ const About = () => {
           </Box>
           <Heading mb={5}>Uploady</Heading>
           <Text>v 1.01</Text>
+
           <Heading size="md">Server Info</Heading>
-          {stats.memory && (
+          {stats.memory ? (
             <Box>
               <Text>
                 Total Memory: {(stats.memory.rss / 1000 / 1000).toFixed(2)} MB
@@ -81,6 +83,11 @@ const About = () => {
                 OS: {stats.osName} {stats.osRelease}
               </Text>
               <Text>Uptime: {formatUptime()}</Text>
+            </Box>
+          ) : ( 
+            <Box textAlign="center" py={10}>
+              <Spinner size="lg" />
+              <Text mt={2}>Loading...</Text>
             </Box>
           )}
 
