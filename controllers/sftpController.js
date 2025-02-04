@@ -152,7 +152,7 @@ module.exports = () => {
 
   const sftp_servers_json_get = async (req, res, next) => {
     try {
-      const servers = await SftpServer.find();
+      const servers = await SftpServer.find().select("_id, host");
       return res.json({ servers });
     } catch (error) {
       return res.json({ status: "offline" });
