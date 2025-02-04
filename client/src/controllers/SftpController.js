@@ -144,6 +144,10 @@ const SftpController = ({ toast, setFiles }) => {
 
   const changeSftpDirectory = async (serverId, directory) => {
     try {
+      if (!token) {
+        navigate("/");
+        return;
+      }
       const response = await fetch(
         `/sftp/api/connect/${serverId}//${directory}/`,
         {

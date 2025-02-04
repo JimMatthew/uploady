@@ -238,7 +238,7 @@ module.exports = () => {
       if (fs.existsSync(fullPath)) {
         return next({ message: "Folder already exists", status: 404 });
       }
-      fs.promises.mkdir(fullPath);
+      await fs.promises.mkdir(fullPath);
       res.status(200).json({ message: "Folder created " });
     } catch (err) {
       return next({ message: "Error creating folder", status: 404 });

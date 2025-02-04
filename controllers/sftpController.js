@@ -121,27 +121,35 @@ module.exports = () => {
     let currentDirectory, serverId;
 
     busboy.on("field", (fieldname, value) => {
-      if (fieldname === "currentDirectory") currentDirectory = value;
-      if (fieldname === "serverId") serverId = value;
+        if (fieldname === "currentDirectory") currentDirectory = value;
+        if (fieldname === "serverId") serverId = value;
     });
 
     busboy.on("file", async (fieldname, file, filename) => {
-      try {
         if (!serverId || !currentDirectory) {
-          return res.status(400).send("Missing directory or server ID");
+            file.resume();  
+            return res.status(400).send("Missing directory or server ID");
         }
 
-        const sftp = await connectToSftp(serverId);
-        const remotePath = `${currentDirectory}/${filename.filename}`;
-        await sftp.put(file, remotePath);
-        res.status(200).send("File uploaded successfully");
-      } catch (error) {
-        handleError(res, "Error uploading file");
-      }
+        let sftp;
+        try {
+            sftp = await connectToSftp(serverId);
+            const remotePath = `${currentDirectory}/${filename.filename}`;
+            await sftp.put(file, remotePath);
+            res.status(200).send("File uploaded successfully");
+        } catch (error) {
+            handleError(res, "Error uploading file");
+        } finally {
+            if (sftp) await sftp.end(); 
+        }
+    });
+
+    busboy.on("error", (err) => {
+        handleError(res, "Error processing upload");
     });
 
     req.pipe(busboy);
-  };
+};
 
   const sftp_servers_json_get = async (req, res, next) => {
     try {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -8,14 +9,18 @@ import {
   VStack,
   Spinner,
   Table,
-  Tab,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
 const About = () => {
   const [stats, setStats] = useState([]);
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
   useEffect(() => {
+    if (!token) {
+      navigate("/");
+      return;
+    }
     fetchStats();
   }, []);
 
@@ -27,7 +32,10 @@ const About = () => {
         "Content-Type": "application/json",
       },
     });
-
+    if (response.status === 401) {
+      navigate("/");
+      return;
+    }
     const data = await response.json();
     setStats(data);
   };
