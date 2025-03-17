@@ -4,7 +4,7 @@ const passport = require("passport");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
-const logger = require("morgan");
+//const logger = require("morgan");
 const mongoose = require("mongoose");
 const http = require("http");
 const https = require('https');
@@ -66,7 +66,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use(logger("dev"));
+//app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

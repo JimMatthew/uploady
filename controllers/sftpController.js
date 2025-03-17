@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
-const { PassThrough } = require("stream");
+const { PassThrough, pipeline } = require("stream");
 const Busboy = require("busboy");
 const net = require("net");
 const archiver = require("archiver");
@@ -119,7 +119,7 @@ module.exports = () => {
   const sftp_stream_upload_post = async (req, res, next) => {
     const busboy = Busboy({ headers: req.headers });
     let currentDirectory, serverId;
-
+    let uploadPromises = [];
     busboy.on("field", (fieldname, value) => {
       if (fieldname === "currentDirectory") currentDirectory = value;
       if (fieldname === "serverId") serverId = value;
@@ -134,15 +134,33 @@ module.exports = () => {
       let sftp;
       try {
         sftp = await connectToSftp(serverId);
-        await sftp.put(file, `${currentDirectory}/${filename.filename}`);
-        res.status(200).send("File uploaded successfully");
+        const remotePath = `${currentDirectory}/${filename.filename}`;
+        const writeStream = sftp.createWriteStream(remotePath);
+  
+        const uploadPromise = new Promise((resolve, reject) => {
+          pipeline(file, writeStream, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+  
+        uploadPromises.push(uploadPromise);
       } catch (error) {
-        handleError(res, "Error uploading file");
-      } finally {
-        if (sftp) await sftp.end();
+        console.error("Error uploading file:", error);
+        file.resume();
       }
     });
-
+    busboy.on("finish", async () => {
+      try {
+        await Promise.all(uploadPromises);
+        res.status(200).send("File(s) uploaded successfully");
+      } catch (error) {
+        res.status(500).send("File upload failed");
+      }
+    });
     busboy.on("error", (err) => {
       handleError(res, "Error processing upload");
     });

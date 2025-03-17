@@ -10,6 +10,7 @@ import { java } from "@codemirror/lang-java";
 import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
+import {cpp} from "@codemirror/lang-cpp"
 //import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 //import { languages } from '@codemirror/language-data';
 const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
@@ -56,6 +57,9 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
         return rust();
       case "html":
         return html();
+      case "cpp":
+      case "c":
+        return cpp();
       default:
         return javascript(); // Default to JavaScript
     }
