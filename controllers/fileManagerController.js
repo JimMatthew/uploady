@@ -2,27 +2,23 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
+const os = require("os");
 require("dotenv").config();
 module.exports = () => {
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
   const domain = process.env.HOSTNAME;
 
-  const get_performance_stats = (req, res, next) => {
-    const mem = process.memoryUsage();
-    const cpu = process.cpuUsage();
-    const uptime = process.uptime();
-    const nodeVersion = process.version;
-    const report = process.report.getReport();
+  const get_performance_stats = (req, res) => {
     res.json({
-      memory: mem,
-      cpu: cpu,
-      uptime: uptime,
-      nodeVersion: nodeVersion,
-      v8Version: report.header.componentVersions.v8,
-      osName: report.header.osName,
-      osRelease: report.header.osRelease,
-      osVersion: report.header.osVersion,
+      memory: process.memoryUsage(),
+      cpu: process.cpuUsage(),
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      v8Version: process.versions.v8,
+      osName: process.platform,
+      osRelease: os.release(),
+      osVersion: os.version?.() || "Unknown", 
     });
   };
 

@@ -6,9 +6,10 @@ import {
   Heading,
   HStack,
   useColorModeValue,
+  Icon
 } from "@chakra-ui/react";
 import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
-
+import { FcFile } from "react-icons/fc";
 const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
   const bgg = useColorModeValue("gray.50", "gray.600");
 
@@ -29,7 +30,7 @@ const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
             transition="background-color 0.2s"
           >
             <HStack spacing={2}>
-              <FaFile size={24} />
+            <Icon as={FcFile} boxSize={6} />
               <Text fontWeight="medium">{file.name}</Text>
             </HStack>
             <Text color="gray.500" fontSize="sm">

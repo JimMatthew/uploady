@@ -5,10 +5,11 @@ import {
   IconButton,
   Heading,
   HStack,
-  useColorModeValue
+  useColorModeValue,
+  Icon
 } from "@chakra-ui/react";
 import { FaFolder, FaTrash, FaDownload } from "react-icons/fa";
-
+import { FcFolder } from "react-icons/fc";
 const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder }) =>{
   const bgg = useColorModeValue('gray.50', 'gray.600')
   return (
@@ -28,7 +29,7 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder }) 
             onClick={() => changeDirectory(folder.name)}
           >
             <HStack spacing={2}>
-              <FaFolder size={24} />
+              <Icon as={FcFolder} boxSize={6} />
               <Text fontWeight="medium" >
                 {folder.name}
               </Text>
