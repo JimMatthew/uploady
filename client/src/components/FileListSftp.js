@@ -37,10 +37,7 @@ const FileList = ({ files, downloadFile, deleteFile, openFile, shareFile }) => {
               {file.size} KB
             </Text>
             <HStack spacing={2}>
-              <Button
-                size="sm"
-                onClick={()=> shareFile(file.name)}
-              >
+              <Button size="sm" onClick={() => shareFile(file.name)}>
                 share
               </Button>
               <IconButton

@@ -86,10 +86,13 @@ module.exports = () => {
   /*
     Server a shared file. 
     We use the token to lookup the shared file 
+    A shared file can exist on this server, where we serve the
+    local file, or on a remote server, where we will connect to it via
+    sftp and proxy/stream the file to the client
   */
   const serveSharedFile = async (req, res, next) => {
     const { token, filename } = req.params; // Extract token and file name from the URL
-    
+
     const sharedFile = await SharedFile.findOne({ token });
 
     if (!sharedFile) return res.status(404).send("File not found");
@@ -101,7 +104,9 @@ module.exports = () => {
       }
       sftpController.sftp_download_file(serverId, remotePath, res);
     } else {
-      const filePath = sharedFile ? path.join(uploadsDir, sharedFile.filePath) : null;
+      const filePath = sharedFile
+        ? path.join(uploadsDir, sharedFile.filePath)
+        : null;
       if (!filePath) {
         return next({ message: "File not Found", status: 404 });
       }
@@ -117,12 +122,6 @@ module.exports = () => {
         }
       });
     }
-    
-  };
-
-  const getFilePathFromStorageToken = async (token) => {
-    const sharedFile = await SharedFile.findOne({ token });
-    return sharedFile ? path.join(uploadsDir, sharedFile.filePath) : null;
   };
 
   const delete_folder_json_post = async (req, res, next) => {

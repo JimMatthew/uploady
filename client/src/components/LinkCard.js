@@ -44,7 +44,11 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
         {linkItem.link}
       </Text>
       <Text>
-        {linkItem.isRemote ? <Text color="gray.400"> remote server: {linkItem.serverId}</Text>: <Text> </Text>}
+        {linkItem.isRemote ? (
+          <Text color="gray.400"> remote server: {linkItem.serverId}</Text>
+        ) : (
+          <Text> </Text>
+        )}
       </Text>
 
       <Flex justify="space-between" align="center">

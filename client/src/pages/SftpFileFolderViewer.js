@@ -27,7 +27,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     createSftpFolder,
     generateBreadcrumb,
     changeSftpDirectory,
-    shareSftpFile
+    shareSftpFile,
   } = SftpController({ toast, setFiles });
 
   useEffect(() => {
@@ -66,7 +66,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
 
   const handleShare = (filename) => {
     shareSftpFile(filename, serverId, files.currentDirectory);
-  }
+  };
 
   const downloadFolder = (foldername) => {
     const folder = `${files.currentDirectory}/${foldername}`;
@@ -182,7 +182,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         openFile={(filename) =>
           openFile(serverId, files.currentDirectory, filename)
         }
-        shareFile={(filename)=> handleShare(filename)}
+        shareFile={(filename) => handleShare(filename)}
       />
     </Box>
   );

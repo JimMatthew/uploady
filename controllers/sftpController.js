@@ -85,10 +85,9 @@ module.exports = () => {
     }
   };
 
-  const share_sftp_file = async(req, res, next) => {
-    const {serverId, remotePath, serverName } = req.body;
+  const share_sftp_file = async (req, res, next) => {
+    const { serverId, remotePath, serverName } = req.body;
     const token = crypto.randomBytes(5).toString("hex");
-    console.log(serverId + remotePath);
     const fileName = remotePath.split("/").pop();
     filePath = remotePath ? remotePath : "/";
     const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
@@ -99,16 +98,20 @@ module.exports = () => {
       token,
       isRemote: true,
       serverId,
-    })
+    });
 
     await sharedFile.save();
-    return res.json({ 
+    return res.json({
       link: link,
-     });
-  }
+    });
+  };
 
+  /*
+    This function is called from 2 places, here where we handle sftp
+    functions and from the fileManager code to handle shared links that
+    are located on remote servers
+  */
   const sftp_download_file = async (serverId, remotePath, res) => {
-    
     try {
       const sftp = await connectToSftp(serverId);
       res.setHeader(
@@ -131,7 +134,6 @@ module.exports = () => {
         sftp.end();
       });
     } catch (error) {
-      console.log("Error:", error);
       return res.status(500).json({
         error: "Error downloading",
       });
@@ -345,7 +347,7 @@ module.exports = () => {
     sftp_delete_folder_json_post,
     sftp_create_folder_json_post,
     sftp_get_archive_folder,
-    share_sftp_file, 
-    sftp_download_file
+    share_sftp_file,
+    sftp_download_file,
   };
 };
