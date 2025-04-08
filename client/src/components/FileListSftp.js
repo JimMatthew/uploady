@@ -5,12 +5,12 @@ import {
   IconButton,
   Heading,
   HStack,
+  Button,
   useColorModeValue,
-  Icon
 } from "@chakra-ui/react";
 import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
-import { FcFile } from "react-icons/fc";
-const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
+
+const FileList = ({ files, downloadFile, deleteFile, openFile, shareFile }) => {
   const bgg = useColorModeValue("gray.50", "gray.600");
 
   return (
@@ -30,13 +30,19 @@ const FileList = ({ files, downloadFile, deleteFile, openFile }) => {
             transition="background-color 0.2s"
           >
             <HStack spacing={2}>
-            <Icon as={FcFile} boxSize={6} />
+              <FaFile size={24} />
               <Text fontWeight="medium">{file.name}</Text>
             </HStack>
             <Text color="gray.500" fontSize="sm">
               {file.size} KB
             </Text>
             <HStack spacing={2}>
+              <Button
+                size="sm"
+                onClick={()=> shareFile(file.name)}
+              >
+                share
+              </Button>
               <IconButton
                 size="sm"
                 icon={<FaEdit />}

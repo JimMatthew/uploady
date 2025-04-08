@@ -108,6 +108,35 @@ const SftpController = ({ toast, setFiles }) => {
     });
   };
 
+  const shareSftpFile = async (filename, serverId, filepath) => {
+    const remotePath = `${filepath}/${filename}`;
+    const response = await fetch("/sftp/api/sharefile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        serverId: serverId,
+        remotePath: remotePath,
+      }),
+    });
+    if (!response.ok) {
+      toast({
+        title: "Error Sharing file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    toast({
+      title: "File shared",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
   const downloadSftpFile = (filename, serverId, currentDirectory) => {
     fetch(`/sftp/api/download/${serverId}/${currentDirectory}/${filename}`, {
       headers: {
@@ -190,6 +219,7 @@ const SftpController = ({ toast, setFiles }) => {
     createSftpFolder,
     generateBreadcrumb,
     changeSftpDirectory,
+    shareSftpFile
   };
 };
 

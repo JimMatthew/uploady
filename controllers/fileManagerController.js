@@ -2,23 +2,29 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
-const os = require("os");
+const sftpController = require("../controllers/sftpController")();
+const sftp = require("ssh2-sftp-client");
 require("dotenv").config();
 module.exports = () => {
   const uploadsDir = path.join(__dirname, "../uploads");
   const tempdir = path.join(__dirname, "../temp");
   const domain = process.env.HOSTNAME;
 
-  const get_performance_stats = (req, res) => {
+  const get_performance_stats = (req, res, next) => {
+    const mem = process.memoryUsage();
+    const cpu = process.cpuUsage();
+    const uptime = process.uptime();
+    const nodeVersion = process.version;
+    const report = process.report.getReport();
     res.json({
-      memory: process.memoryUsage(),
-      cpu: process.cpuUsage(),
-      uptime: process.uptime(),
-      nodeVersion: process.version,
-      v8Version: process.versions.v8,
-      osName: process.platform,
-      osRelease: os.release(),
-      osVersion: os.version?.() || "Unknown", 
+      memory: mem,
+      cpu: cpu,
+      uptime: uptime,
+      nodeVersion: nodeVersion,
+      v8Version: report.header.componentVersions.v8,
+      osName: report.header.osName,
+      osRelease: report.header.osRelease,
+      osVersion: report.header.osVersion,
     });
   };
 
@@ -83,21 +89,35 @@ module.exports = () => {
   */
   const serveSharedFile = async (req, res, next) => {
     const { token, filename } = req.params; // Extract token and file name from the URL
-    const filePath = await getFilePathFromStorageToken(token);
-    if (!filePath) {
-      return next({ message: "File not Found", status: 404 });
-    }
+    
+    const sharedFile = await SharedFile.findOne({ token });
 
-    const absoluteFilePath = path.join(path.dirname(filePath), filename);
-    if (!fs.existsSync(absoluteFilePath)) {
-      return res.status(404).send("File not found");
-    }
-
-    res.download(absoluteFilePath, filename, (err) => {
-      if (err) {
-        return res.status(500).send("Error downloading file");
+    if (!sharedFile) return res.status(404).send("File not found");
+    if (sharedFile && sharedFile.isRemote) {
+      const remotePath = sharedFile.filePath;
+      const serverId = sharedFile.serverId;
+      if (!serverId || !remotePath) {
+        return res.status(404).send("File not found");
       }
-    });
+      sftpController.sftp_download_file(serverId, remotePath, res);
+    } else {
+      const filePath = sharedFile ? path.join(uploadsDir, sharedFile.filePath) : null;
+      if (!filePath) {
+        return next({ message: "File not Found", status: 404 });
+      }
+
+      const absoluteFilePath = path.join(path.dirname(filePath), filename);
+      if (!fs.existsSync(absoluteFilePath)) {
+        return res.status(404).send("File not found");
+      }
+
+      res.download(absoluteFilePath, filename, (err) => {
+        if (err) {
+          return res.status(500).send("Error downloading file");
+        }
+      });
+    }
+    
   };
 
   const getFilePathFromStorageToken = async (token) => {

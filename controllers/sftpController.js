@@ -3,11 +3,13 @@ const fs = require("fs");
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
 const mongoose = require("mongoose");
-const { PassThrough, pipeline } = require("stream");
+const { PassThrough } = require("stream");
 const Busboy = require("busboy");
+const crypto = require("crypto");
 const net = require("net");
 const archiver = require("archiver");
-
+const SharedFile = require("../models/SharedFile");
+const domain = process.env.HOSTNAME;
 module.exports = () => {
   const handleError = (res, message, status = 500) => {
     console.error(message);
@@ -83,10 +85,30 @@ module.exports = () => {
     }
   };
 
-  const sftp_stream_download_get = async (req, res, next) => {
-    const { serverId } = req.params;
-    const relativePath = req.params[0] || "";
-    const remotePath = relativePath ? `/${relativePath}` : "/";
+  const share_sftp_file = async(req, res, next) => {
+    const {serverId, remotePath } = req.body;
+    const token = crypto.randomBytes(5).toString("hex");
+    console.log(serverId + remotePath);
+    const fileName = remotePath.split("/").pop();
+    filePath = remotePath ? remotePath : "/";
+    const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
+    const sharedFile = new SharedFile({
+      fileName,
+      filePath,
+      link,
+      token,
+      isRemote: true,
+      serverId
+    })
+
+    await sharedFile.save();
+    return res.json({ 
+      link: link,
+     });
+  }
+
+  const sftp_download_file = async (serverId, remotePath, res) => {
+    
     try {
       const sftp = await connectToSftp(serverId);
       res.setHeader(
@@ -116,10 +138,17 @@ module.exports = () => {
     }
   };
 
+  const sftp_stream_download_get = async (req, res, next) => {
+    const { serverId } = req.params;
+    const relativePath = req.params[0] || "";
+    const remotePath = relativePath ? `/${relativePath}` : "/";
+    await sftp_download_file(serverId, remotePath, res);
+  };
+
   const sftp_stream_upload_post = async (req, res, next) => {
     const busboy = Busboy({ headers: req.headers });
     let currentDirectory, serverId;
-    let uploadPromises = [];
+
     busboy.on("field", (fieldname, value) => {
       if (fieldname === "currentDirectory") currentDirectory = value;
       if (fieldname === "serverId") serverId = value;
@@ -134,33 +163,15 @@ module.exports = () => {
       let sftp;
       try {
         sftp = await connectToSftp(serverId);
-        const remotePath = `${currentDirectory}/${filename.filename}`;
-        const writeStream = sftp.createWriteStream(remotePath);
-  
-        const uploadPromise = new Promise((resolve, reject) => {
-          pipeline(file, writeStream, (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-        });
-  
-        uploadPromises.push(uploadPromise);
+        await sftp.put(file, `${currentDirectory}/${filename.filename}`);
+        res.status(200).send("File uploaded successfully");
       } catch (error) {
-        console.error("Error uploading file:", error);
-        file.resume();
+        handleError(res, "Error uploading file");
+      } finally {
+        if (sftp) await sftp.end();
       }
     });
-    busboy.on("finish", async () => {
-      try {
-        await Promise.all(uploadPromises);
-        res.status(200).send("File(s) uploaded successfully");
-      } catch (error) {
-        res.status(500).send("File upload failed");
-      }
-    });
+
     busboy.on("error", (err) => {
       handleError(res, "Error processing upload");
     });
@@ -334,5 +345,7 @@ module.exports = () => {
     sftp_delete_folder_json_post,
     sftp_create_folder_json_post,
     sftp_get_archive_folder,
+    share_sftp_file, 
+    sftp_download_file
   };
 };

@@ -17,6 +17,11 @@ module.exports = function () {
   );
 
   router.post(
+    "/api/sharefile",
+    sftpController.share_sftp_file
+  )
+
+  router.post(
     "/api/upload",
     passport.authenticate("jwt", { session: false }),
     sftpController.sftp_stream_upload_post
