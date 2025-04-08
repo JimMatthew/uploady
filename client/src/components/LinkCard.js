@@ -40,8 +40,11 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
         </Button>
       </Flex>
 
-      <Text fontSize="sm" color="gray.600" mb={2} noOfLines={2}>
+      <Text fontSize="sm" color="gray.400" mb={2} noOfLines={2}>
         {linkItem.link}
+      </Text>
+      <Text>
+        {linkItem.isRemote ? <Text color="gray.400"> remote server: {linkItem.serverId}</Text>: <Text> </Text>}
       </Text>
 
       <Flex justify="space-between" align="center">

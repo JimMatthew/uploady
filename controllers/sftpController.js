@@ -86,7 +86,7 @@ module.exports = () => {
   };
 
   const share_sftp_file = async(req, res, next) => {
-    const {serverId, remotePath } = req.body;
+    const {serverId, remotePath, serverName } = req.body;
     const token = crypto.randomBytes(5).toString("hex");
     console.log(serverId + remotePath);
     const fileName = remotePath.split("/").pop();
@@ -98,7 +98,7 @@ module.exports = () => {
       link,
       token,
       isRemote: true,
-      serverId
+      serverId,
     })
 
     await sharedFile.save();

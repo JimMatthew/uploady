@@ -7,6 +7,7 @@ const sharedFileSchema = new mongoose.Schema({
   token: { type: String, required: true },
   isRemote: {type: Boolean, required: false },
   serverId: { type: String, required: false }, 
+  serverName: {type: String, required: false }, 
   sharedAt: { type: Date, default: Date.now },
 });
 
