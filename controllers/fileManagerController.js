@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController")();
 const sftp = require("ssh2-sftp-client");
+const { execSync } = require("child_process");
 require("dotenv").config();
 module.exports = () => {
   const uploadsDir = path.join(__dirname, "../uploads");
@@ -25,6 +26,7 @@ module.exports = () => {
       osName: report.header.osName,
       osRelease: report.header.osRelease,
       osVersion: report.header.osVersion,
+      version: execSync("git rev-parse --short HEAD").toString().trim(),
     });
   };
 
