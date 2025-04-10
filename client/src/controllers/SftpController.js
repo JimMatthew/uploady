@@ -28,14 +28,15 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
+    } else {
+      changeSftpDirectory(serverId, cd);
+      toast({
+        title: "File Deleted.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     }
-    changeSftpDirectory(serverId, cd);
-    toast({
-      title: "File Deleted.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
   const deleteSftpFolder = async (
