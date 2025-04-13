@@ -28,17 +28,35 @@ module.exports = () => {
     return sftp;
   };
 
+  const sftp_rename_file_json_post = async (req, res) => {
+    const { currentPath, fileName, newFileName, serverId } = req.body;
+    let sftp;
+    try {
+      sftp = await connectToSftp(serverId);
+
+      const fpath = path.join(currentPath, fileName);
+      const npath = path.join(currentPath, newFileName);
+      res.status(200).send("File Renamed");
+      await sftp.rename(fpath, npath);
+    } catch (err) {
+      return res.status(404).send("Error renaming file");
+    } finally {
+      if (sftp) await sftp.end();
+    }
+  };
+
   const sftp_create_folder_json_post = async (req, res) => {
     const { currentPath, folderName, serverId } = req.body;
     const newPath = path.join(currentPath, folderName);
+    let sftp;
     try {
-      const sftp = await connectToSftp(serverId);
+      sftp = await connectToSftp(serverId);
       await sftp.mkdir(newPath);
       res.status(200).send("Folder Created");
     } catch (err) {
       return res.status(404).send("Error creating folder");
     } finally {
-      await sftp.end();
+      if (sftp) await sftp.end();
     }
   };
 
@@ -86,8 +104,9 @@ module.exports = () => {
   };
 
   const share_sftp_file = async (req, res, next) => {
-    const { serverId, remotePath, serverName } = req.body;
+    const { serverId, remotePath } = req.body;
     const token = crypto.randomBytes(5).toString("hex");
+    console.log(serverId + remotePath);
     const fileName = remotePath.split("/").pop();
     filePath = remotePath ? remotePath : "/";
     const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
@@ -106,11 +125,6 @@ module.exports = () => {
     });
   };
 
-  /*
-    This function is called from 2 places, here where we handle sftp
-    functions and from the fileManager code to handle shared links that
-    are located on remote servers
-  */
   const sftp_download_file = async (serverId, remotePath, res) => {
     try {
       const sftp = await connectToSftp(serverId);
@@ -134,6 +148,7 @@ module.exports = () => {
         sftp.end();
       });
     } catch (error) {
+      console.log("Error:", error);
       return res.status(500).json({
         error: "Error downloading",
       });
@@ -349,5 +364,6 @@ module.exports = () => {
     sftp_get_archive_folder,
     share_sftp_file,
     sftp_download_file,
+    sftp_rename_file_json_post,
   };
 };

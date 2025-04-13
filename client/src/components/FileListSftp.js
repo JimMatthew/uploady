@@ -7,12 +7,32 @@ import {
   HStack,
   Button,
   useColorModeValue,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Input,
 } from "@chakra-ui/react";
 import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 
-const FileList = ({ files, downloadFile, deleteFile, openFile, shareFile }) => {
+const FileList = ({
+  files,
+  downloadFile,
+  deleteFile,
+  openFile,
+  shareFile,
+  renameFile,
+}) => {
+  const [showRenameInput, setShowRenameInput] = useState(false);
+  const [newFilename, setNewFilename] = useState("");
+  const [renameId, setRenameId] = useState("");
   const bgg = useColorModeValue("gray.50", "gray.600");
 
+  const handleRename = (filename) => {
+    renameFile(filename, newFilename);
+    setShowRenameInput(false);
+    setNewFilename("");
+  };
   return (
     <Box>
       <Heading size="md" mb={4} color="gray.600">
@@ -37,33 +57,51 @@ const FileList = ({ files, downloadFile, deleteFile, openFile, shareFile }) => {
               {file.size} KB
             </Text>
             <HStack spacing={2}>
-              <Button size="sm" onClick={() => shareFile(file.name)}>
-                share
-              </Button>
-              <IconButton
-                size="sm"
-                icon={<FaEdit />}
-                aria-label="Download File"
-                onClick={() => openFile(file.name)}
-                variant="outline"
-                colorScheme="blue"
-              />
-              <IconButton
-                size="sm"
-                icon={<FaDownload />}
-                aria-label="Download File"
-                onClick={() => downloadFile(file.name)}
-                variant="outline"
-                colorScheme="blue"
-              />
-              <IconButton
-                size="sm"
-                icon={<FaTrash />}
-                aria-label="Delete File"
-                onClick={() => deleteFile(file.name)}
-                variant="outline"
-                colorScheme="red"
-              />
+              {showRenameInput && renameId && renameId === file.name && (
+                <Box>
+                  <HStack>
+                    <Input
+                      placeholder="New filename"
+                      value={newFilename}
+                      onChange={(e) => setNewFilename(e.target.value)}
+                      size="sm"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(file.name);
+                      }}
+                    />
+                    <Button size="sm" onClick={() => handleRename(file.name)}>
+                      submit
+                    </Button>
+                    <Button size="sm" onClick={() => setShowRenameInput(false)}>
+                      cancel
+                    </Button>
+                  </HStack>
+                </Box>
+              )}
+              <Menu>
+                <MenuButton as={Button}> Actions </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => downloadFile(file.name)}>
+                    Download
+                  </MenuItem>
+                  <MenuItem onClick={() => shareFile(file.name)}>
+                    Share
+                  </MenuItem>
+                  <MenuItem onClick={() => openFile(file.name)}>Open</MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setShowRenameInput(true);
+                      setRenameId(file.name);
+                    }}
+                  >
+                    {" "}
+                    Rename
+                  </MenuItem>
+                  <MenuItem onClick={() => deleteFile(file.name)}>
+                    Delete
+                  </MenuItem>
+                </MenuList>
+              </Menu>
             </HStack>
           </HStack>
         ))}

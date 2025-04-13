@@ -17,6 +17,12 @@ module.exports = function () {
   );
 
   router.post(
+    "/api/renameFile",
+    passport.authenticate("jwt", { session: false }),
+    sftpController.sftp_rename_file_json_post
+  );
+
+  router.post(
     "/api/sharefile",
     passport.authenticate("jwt", { session: false }),
     sftpController.share_sftp_file

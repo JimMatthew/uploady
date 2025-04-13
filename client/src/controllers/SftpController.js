@@ -3,11 +3,7 @@ import { useNavigate } from "react-router-dom";
 const SftpController = ({ toast, setFiles }) => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const deleteSftpFile = async (
-    filename,
-    serverId,
-    currentDirectory,
-  ) => {
+  const deleteSftpFile = async (filename, serverId, currentDirectory) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/delete-file", {
       method: "POST",
@@ -28,22 +24,56 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
-    } else {
-      changeSftpDirectory(serverId, cd);
+    }
+    changeSftpDirectory(serverId, cd);
+    toast({
+      title: "File Deleted.",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  //currentPath, fileName, newFileName, serverId
+
+  const renameSftpFile = async (
+    currentDirectory,
+    serverId,
+    fileName,
+    newFileName
+  ) => {
+    const response = await fetch("/sftp/api/renameFile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        currentPath: currentDirectory,
+        fileName,
+        newFileName,
+        serverId,
+      }),
+    });
+    if (!response.ok) {
       toast({
-        title: "File Deleted.",
-        status: "success",
+        title: "Error Renaming file",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
+      return;
     }
+    changeSftpDirectory(serverId, currentDirectory);
+    toast({
+      title: "File renamed",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
-  const deleteSftpFolder = async (
-    folder,
-    serverId,
-    currentDirectory,
-  ) => {
+  const deleteSftpFolder = async (folder, serverId, currentDirectory) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/delete-folder", {
       method: "POST",
@@ -74,11 +104,7 @@ const SftpController = ({ toast, setFiles }) => {
     });
   };
 
-  const createSftpFolder = async (
-    folder,
-    serverId,
-    currentDirectory,
-  ) => {
+  const createSftpFolder = async (folder, serverId, currentDirectory) => {
     const cd = currentDirectory ? currentDirectory : "/";
     const response = await fetch("/sftp/api/create-folder", {
       method: "POST",
@@ -136,12 +162,12 @@ const SftpController = ({ toast, setFiles }) => {
       duration: 3000,
       isClosable: true,
     });
-  }
+  };
 
   const downloadSftpFile = (filename, serverId, currentDirectory) => {
     fetch(`/sftp/api/download/${serverId}/${currentDirectory}/${filename}`, {
       headers: {
-        Authorization: `Bearer ${token}`, 
+        Authorization: `Bearer ${token}`,
       },
     })
       .then((res) => res.blob())
@@ -210,7 +236,7 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
-    } 
+    }
   };
 
   return {
@@ -220,7 +246,8 @@ const SftpController = ({ toast, setFiles }) => {
     createSftpFolder,
     generateBreadcrumb,
     changeSftpDirectory,
-    shareSftpFile
+    shareSftpFile,
+    renameSftpFile,
   };
 };
 
