@@ -47,7 +47,7 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder }) 
               size="sm"
               icon={<FaTrash />}
               aria-label="Delete Folder"
-              onClick={() => deleteFolder(folder.name)}
+              onClick={(e) => {deleteFolder(folder.name);e.stopPropagation();}}
               variant="ghost"
               colorScheme="red"
             />

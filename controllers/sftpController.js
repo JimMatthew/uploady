@@ -33,7 +33,6 @@ module.exports = () => {
     let sftp;
     try {
       sftp = await connectToSftp(serverId);
-
       const fpath = path.join(currentPath, fileName);
       const npath = path.join(currentPath, newFileName);
       res.status(200).send("File Renamed");

@@ -94,7 +94,6 @@ const FileList = ({
                       setRenameId(file.name);
                     }}
                   >
-                    {" "}
                     Rename
                   </MenuItem>
                   <MenuItem onClick={() => deleteFile(file.name)}>

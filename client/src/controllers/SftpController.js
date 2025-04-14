@@ -24,6 +24,7 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
+      return;
     }
     changeSftpDirectory(serverId, cd);
     toast({
@@ -33,8 +34,6 @@ const SftpController = ({ toast, setFiles }) => {
       isClosable: true,
     });
   };
-
-  //currentPath, fileName, newFileName, serverId
 
   const renameSftpFile = async (
     currentDirectory,
@@ -94,6 +93,7 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
+      return;
     }
     changeSftpDirectory(serverId, cd);
     toast({
@@ -125,6 +125,7 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
+      return;
     }
     changeSftpDirectory(serverId, cd);
     toast({
@@ -155,6 +156,7 @@ const SftpController = ({ toast, setFiles }) => {
         duration: 3000,
         isClosable: true,
       });
+      return;
     }
     toast({
       title: "File shared",
