@@ -262,6 +262,19 @@ module.exports = () => {
     }
   };
 
+  const copy_file_json_post = async (req, res, next) => {
+    try {
+      const { filename, currentPath, newPath } = req.body;
+      const cfpath = path.join(uploadsDir, currentPath, filename);
+      const nfpath = path.join(uploadsDir, newPath, filename);
+
+      await fs.promises.copyFile(cfpath, nfpath);
+      res.status(200).json({message: "File copied"})
+    } catch(err) {
+      return next({ message: "Error copying file", status: 404 });
+    }
+  }
+
   return {
     download_file_get,
     upload_files_post,
@@ -274,5 +287,6 @@ module.exports = () => {
     delete_folder_json_post,
     delete_file_json_post,
     get_performance_stats,
+    copy_file_json_post
   };
 };

@@ -23,17 +23,25 @@ module.exports = function () {
     filemanagerController.list_directory_json_get
   );
 
+  router.post(
+    "/api/copy-file",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.copy_file_json_post
+  );
+
   //download file from public link - not authenticated
   router.get("/share/:token/:filename", filemanagerController.serveSharedFile);
 
   router.get("/api/links",
     passport.authenticate('jwt', { session: false }),
-    filemanagerController.file_links_json_get);
+    filemanagerController.file_links_json_get
+  );
 
   router.post(
     "/api/share", 
     passport.authenticate('jwt', { session: false }),
-    filemanagerController.generateShareLinkJsonPost);
+    filemanagerController.generateShareLinkJsonPost
+  );
 
   router.post(
     "/api/stop-sharing",

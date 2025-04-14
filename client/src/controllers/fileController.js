@@ -1,3 +1,4 @@
+
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
 
@@ -18,6 +19,33 @@ const FileController = ({ toast, onRefresh }) => {
       throw error;
     }
   };
+
+  const handleFileCopy = async(filename, currentPath, newPath) => {
+    try {
+      const response = await apiRequest('/api/copy-file', {
+        method: "Post",
+        body: JSON.stringify({
+          filename, 
+          currentPath,
+          newPath
+        })
+      })
+      onRefresh(newPath);
+      toast({
+        title: "File copied",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch(err) {
+      toast({
+        title: "Error copying file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
 
   const handleFileDownload = async (fileName, path) => {
     try {
@@ -148,6 +176,7 @@ const FileController = ({ toast, onRefresh }) => {
     handleDeleteFolder,
     generateBreadcrumb,
     createFolder,
+    handleFileCopy
   };
 };
 

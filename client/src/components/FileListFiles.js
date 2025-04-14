@@ -7,18 +7,47 @@ import {
   Icon,
   VStack,
   Stack,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Input,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
-
+import { useClipboard } from "../contexts/ClipboardContext";
 const FileList = ({
   files,
   rp,
   handleFileDownload,
   handleFileShareLink,
   handleFileDelete,
+  handleFileCopy
 }) => {
+  const { copyFile, clipboard, clearClipboard } = useClipboard();
+  const handleCopy = (filename) => {
+    copyFile({file: filename, path: rp, source: "local", serverId: null })
+  }
+
+  const handlePaste = () => {
+    const file = clipboard.file;
+    const path = clipboard.path;
+    handleFileCopy(file, path, rp);
+    clearClipboard();
+  }
   return (
     <Box>
+      {clipboard && <Box>
+        <HStack>
+        <Text>Copied: {clipboard.file}</Text>
+        <Button size="sm" onClick={handlePaste}>
+          Paste
+        </Button>
+        <Button size="sm" onClick={clearClipboard}>
+          Clear
+        </Button>
+        </HStack>
+        
+        </Box>}
       {files &&
         files.length > 0 &&
         files.map((file, index) => (
@@ -41,31 +70,23 @@ const FileList = ({
                   {file.size} KB | {file.date}
                 </Text>
               </VStack>
-
-              <Stack direction={{ base: "column", md: "row" }} spacing={2}>
-                <Button
-                  size="sm"
-                  colorScheme="blue"
-                  onClick={() => handleFileDownload(file.name, rp)}
-                >
-                  Download
-                </Button>
-                <Button
-                  size="sm"
-                  colorScheme="blue"
-                  onClick={() => handleFileShareLink(file.name, rp)}
-                >
-                  Share
-                </Button>
-                <Button
-                  size="sm"
-                  colorScheme="red"
-                  variant="ghost"
-                  onClick={() => handleFileDelete(file.name, rp)}
-                >
-                  Delete
-                </Button>
-              </Stack>
+              <Menu>
+                <MenuButton as={Button}> Actions</MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => handleCopy(file.name, rp)}>
+                    Copy
+                  </MenuItem>
+                  <MenuItem onClick={() => handleFileDownload(file.name, rp)}>
+                    Download
+                  </MenuItem>
+                  <MenuItem onClick={() => handleFileShareLink(file.name, rp)}>
+                    Share
+                  </MenuItem>
+                  <MenuItem onClick={() => handleFileDelete(file.name, rp)}>
+                    Delete
+                  </MenuItem>
+                </MenuList>
+              </Menu>
             </HStack>
           </Box>
         ))}
