@@ -35,17 +35,42 @@ const SftpController = ({ toast, setFiles }) => {
     });
   };
 
+  const connectToServer = async (serverId) => {
+    try {
+      const response = await fetch(`/sftp/api/connect/${serverId}/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      setFiles(data);
+    } catch (error) {
+      console.error("Failed to connect to the server:", error);
+    }
+  };
+
   const downloadFolder = async (currentDirectory, foldername, serverId) => {
     try {
       const folder = `${currentDirectory}/${foldername}`;
-      const res = await fetch(`/sftp/api/download-folder/${serverId}/${folder}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      if (!res.ok) throw new Error("Failed to download");
-  
+      const res = await fetch(
+        `/sftp/api/download-folder/${serverId}/${folder}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        toast({
+          title: "Error Downloading folder",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -55,8 +80,19 @@ const SftpController = ({ toast, setFiles }) => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      toast({
+        title: "Folder Downloaded",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (err) {
-      console.error("Download error:", err);
+      toast({
+        title: "Error Downloading folder",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -275,7 +311,8 @@ const SftpController = ({ toast, setFiles }) => {
     changeSftpDirectory,
     shareSftpFile,
     renameSftpFile,
-    downloadFolder
+    downloadFolder,
+    connectToServer,
   };
 };
 

@@ -19,7 +19,6 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const token = localStorage.getItem("token");
   const {
     deleteSftpFile,
     downloadSftpFile,
@@ -29,32 +28,17 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     changeSftpDirectory,
     shareSftpFile,
     renameSftpFile,
-    downloadFolder
+    downloadFolder,
+    connectToServer,
   } = SftpController({ toast, setFiles });
 
   useEffect(() => {
     if (!connected) {
-      const connectToServer = async () => {
-        try {
-          setLoading(true);
-          const response = await fetch(`/sftp/api/connect/${serverId}/`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
-          const data = await response.json();
-          setFiles(data);
-          setConnected(true);
-        } catch (error) {
-          console.error("Failed to connect to the server:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      connectToServer();
+      setLoading(true);
+      connectToServer(serverId).then(() => {
+        setConnected(true);
+        setLoading(false);
+      });
     }
   }, [serverId, connected]);
 
@@ -76,7 +60,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
 
   const handleDownloadFolder = (foldername) => {
     downloadFolder(files.currentDirectory, foldername, serverId);
-  }
+  };
 
   if (loading) {
     return (
