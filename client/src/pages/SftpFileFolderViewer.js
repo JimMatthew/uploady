@@ -29,6 +29,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     changeSftpDirectory,
     shareSftpFile,
     renameSftpFile,
+    downloadFolder
   } = SftpController({ toast, setFiles });
 
   useEffect(() => {
@@ -73,25 +74,9 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     renameSftpFile(files.currentDirectory, serverId, filename, newfilename);
   };
 
-  const downloadFolder = (foldername) => {
-    const folder = `${files.currentDirectory}/${foldername}`;
-    fetch(`/sftp/api/download-folder/${serverId}/${folder}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${foldername}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
-  };
+  const handleDownloadFolder = (foldername) => {
+    downloadFolder(files.currentDirectory, foldername, serverId);
+  }
 
   if (loading) {
     return (
@@ -177,7 +162,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         deleteFolder={(folder) =>
           deleteSftpFolder(folder, serverId, files.currentDirectory)
         }
-        downloadFolder={(folder) => downloadFolder(folder)}
+        downloadFolder={(folder) => handleDownloadFolder(folder)}
       />
 
       <FileListSftp

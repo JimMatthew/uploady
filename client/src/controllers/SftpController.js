@@ -35,6 +35,31 @@ const SftpController = ({ toast, setFiles }) => {
     });
   };
 
+  const downloadFolder = async (currentDirectory, foldername, serverId) => {
+    try {
+      const folder = `${currentDirectory}/${foldername}`;
+      const res = await fetch(`/sftp/api/download-folder/${serverId}/${folder}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!res.ok) throw new Error("Failed to download");
+  
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${foldername}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+    }
+  };
+
   const renameSftpFile = async (
     currentDirectory,
     serverId,
@@ -250,6 +275,7 @@ const SftpController = ({ toast, setFiles }) => {
     changeSftpDirectory,
     shareSftpFile,
     renameSftpFile,
+    downloadFolder
   };
 };
 
