@@ -21,33 +21,46 @@ const FileList = ({
   handleFileDownload,
   handleFileShareLink,
   handleFileDelete,
-  handleFileCopy
+  handleFileCopy,
+  handleFileCut,
 }) => {
-  const { copyFile, clipboard, clearClipboard } = useClipboard();
+  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const handleCopy = (filename) => {
-    copyFile({file: filename, path: rp, source: "local", serverId: null })
-  }
+    copyFile({ file: filename, path: rp, source: "local", serverId: null });
+  };
+
+  const handleCut = (filename) => {
+    cutFile({ file: filename, path: rp, source: "local", serverId: null });
+  };
 
   const handlePaste = () => {
     const file = clipboard.file;
     const path = clipboard.path;
-    handleFileCopy(file, path, rp);
+    if (clipboard.action === "copy") {
+      handleFileCopy(file, path, rp);
+    } else if (clipboard.action === "cut") {
+      handleFileCut(file, path, rp);
+    }
     clearClipboard();
-  }
+  };
   return (
     <Box>
-      {clipboard && <Box>
-        <HStack>
-        <Text>Copied: {clipboard.file}</Text>
-        <Button size="sm" onClick={handlePaste}>
-          Paste
-        </Button>
-        <Button size="sm" onClick={clearClipboard}>
-          Clear
-        </Button>
-        </HStack>
-        
-        </Box>}
+      {clipboard && (
+        <Box marginBottom={"5px"}>
+          <HStack>
+            <Text>
+              {clipboard.action === "copy" && `Copied: ${clipboard.file}`}
+              {clipboard.action === "cut" && `Cut: ${clipboard.file}`}
+            </Text>
+            <Button size="sm" onClick={handlePaste}>
+              Paste
+            </Button>
+            <Button size="sm" onClick={clearClipboard}>
+              Clear
+            </Button>
+          </HStack>
+        </Box>
+      )}
       {files &&
         files.length > 0 &&
         files.map((file, index) => (
@@ -75,6 +88,9 @@ const FileList = ({
                 <MenuList>
                   <MenuItem onClick={() => handleCopy(file.name, rp)}>
                     Copy
+                  </MenuItem>
+                  <MenuItem onClick={() => handleCut(file.name, rp)}>
+                    Cut
                   </MenuItem>
                   <MenuItem onClick={() => handleFileDownload(file.name, rp)}>
                     Download

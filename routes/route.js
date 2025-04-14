@@ -29,6 +29,12 @@ module.exports = function () {
     filemanagerController.copy_file_json_post
   );
 
+  router.post(
+    "/api/cut-file",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.cut_file_json_post
+  );
+
   //download file from public link - not authenticated
   router.get("/share/:token/:filename", filemanagerController.serveSharedFile);
 

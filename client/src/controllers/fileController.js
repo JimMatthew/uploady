@@ -47,6 +47,33 @@ const FileController = ({ toast, onRefresh }) => {
     }
   }
 
+  const handleFileCut = async(filename, currentPath, newPath) => {
+    try {
+      const response = await apiRequest('/api/cut-file', {
+        method: "Post",
+        body: JSON.stringify({
+          filename, 
+          currentPath,
+          newPath
+        })
+      })
+      onRefresh(newPath);
+      toast({
+        title: "File moved",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch(err) {
+      toast({
+        title: "Error moving file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
+
   const handleFileDownload = async (fileName, path) => {
     try {
       const response = await fetch(`/api/download/${path}/${fileName}`, {
@@ -176,7 +203,8 @@ const FileController = ({ toast, onRefresh }) => {
     handleDeleteFolder,
     generateBreadcrumb,
     createFolder,
-    handleFileCopy
+    handleFileCopy, 
+    handleFileCut
   };
 };
 

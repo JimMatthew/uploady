@@ -27,7 +27,8 @@ const FileDisplay = ({
     handleDeleteFolder,
     generateBreadcrumb,
     createFolder,
-    handleFileCopy
+    handleFileCopy,
+    handleFileCut
   } = fileController({ toast, onRefresh });
   const { relativePath } = data;
   const rp = "/" + relativePath;
@@ -81,6 +82,7 @@ const FileDisplay = ({
           handleFileShareLink={handleFileShareLink}
           handleFileDelete={handleFileDelete}
           handleFileCopy={handleFileCopy}
+          handleFileCut={handleFileCut}
         />
       </VStack>
     </Box>
