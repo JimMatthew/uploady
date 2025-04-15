@@ -24,10 +24,10 @@ const FileList = ({
   handleFileDelete,
   handleFileCopy,
   handleFileCut,
-  handleRenameFile
+  handleRenameFile,
 }) => {
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
-const [showRenameInput, setShowRenameInput] = useState(false);
+  const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
   const handleCopy = (filename) => {
@@ -42,7 +42,7 @@ const [showRenameInput, setShowRenameInput] = useState(false);
     handleRenameFile(filename, newFilename, rp);
     setShowRenameInput(false);
     setNewFilename("");
-  }
+  };
 
   const handlePaste = () => {
     const file = clipboard.file;
@@ -56,11 +56,7 @@ const [showRenameInput, setShowRenameInput] = useState(false);
   };
   return (
     <Box>
-      {clipboard && (
-        <ClipboardComponent
-          handlePaste={handlePaste}
-        />
-      )}
+      {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
       {files &&
         files.length > 0 &&
         files.map((file, index) => (
@@ -84,26 +80,26 @@ const [showRenameInput, setShowRenameInput] = useState(false);
                 </Text>
               </VStack>
               {showRenameInput && renameId && renameId === file.name && (
-                              <Box>
-                                <HStack>
-                                  <Input
-                                    placeholder="New filename"
-                                    value={newFilename}
-                                    onChange={(e) => setNewFilename(e.target.value)}
-                                    size="sm"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleRename(file.name);
-                                    }}
-                                  />
-                                  <Button size="sm" onClick={() => handleRename(file.name)}>
-                                    submit
-                                  </Button>
-                                  <Button size="sm" onClick={() => setShowRenameInput(false)}>
-                                    cancel
-                                  </Button>
-                                </HStack>
-                              </Box>
-                            )}
+                <Box>
+                  <HStack>
+                    <Input
+                      placeholder="New filename"
+                      value={newFilename}
+                      onChange={(e) => setNewFilename(e.target.value)}
+                      size="sm"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(file.name);
+                      }}
+                    />
+                    <Button size="sm" onClick={() => handleRename(file.name)}>
+                      submit
+                    </Button>
+                    <Button size="sm" onClick={() => setShowRenameInput(false)}>
+                      cancel
+                    </Button>
+                  </HStack>
+                </Box>
+              )}
               <Menu>
                 <MenuButton as={Button}> Actions</MenuButton>
                 <MenuList>
@@ -119,10 +115,12 @@ const [showRenameInput, setShowRenameInput] = useState(false);
                   <MenuItem onClick={() => handleFileShareLink(file.name, rp)}>
                     Share
                   </MenuItem>
-                  <MenuItem onClick={() => {
+                  <MenuItem
+                    onClick={() => {
                       setShowRenameInput(true);
                       setRenameId(file.name);
-                    }}>
+                    }}
+                  >
                     Rename
                   </MenuItem>
                   <MenuItem onClick={() => handleFileDelete(file.name, rp)}>
