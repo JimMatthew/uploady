@@ -15,6 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
 import { useClipboard } from "../contexts/ClipboardContext";
+import ClipboardComponent from "./ClipboardComponent";
 const FileList = ({
   files,
   rp,
@@ -25,6 +26,7 @@ const FileList = ({
   handleFileCut,
 }) => {
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
+
   const handleCopy = (filename) => {
     copyFile({ file: filename, path: rp, source: "local", serverId: null });
   };
@@ -46,20 +48,9 @@ const FileList = ({
   return (
     <Box>
       {clipboard && (
-        <Box marginBottom={"5px"}>
-          <HStack>
-            <Text>
-              {clipboard.action === "copy" && `Copied: ${clipboard.file}`}
-              {clipboard.action === "cut" && `Cut: ${clipboard.file}`}
-            </Text>
-            <Button size="sm" onClick={handlePaste}>
-              Paste
-            </Button>
-            <Button size="sm" onClick={clearClipboard}>
-              Clear
-            </Button>
-          </HStack>
-        </Box>
+        <ClipboardComponent
+          handlePaste={handlePaste}
+        />
       )}
       {files &&
         files.length > 0 &&
