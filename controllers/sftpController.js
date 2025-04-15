@@ -351,20 +351,7 @@ module.exports = () => {
 
   const progressClients = new Map(); // Map<transferId, res>
 
-app.get("/sftp-progress/:transferId", (req, res) => {
-  const { transferId } = req.params;
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.flushHeaders();
-
-  progressClients.set(transferId, res);
-
-  req.on("close", () => {
-    progressClients.delete(transferId);
-  });
-});
   const progress = require("progress-stream");
 
 const streamFromSftpToSftp = async (sourceId, sourcePath, destId, destPath, onProgress, transferId) => {
@@ -441,7 +428,7 @@ const streamFromSftpToSftp = async (sourceId, sourcePath, destId, destPath, onPr
       }
     } else {
       try {
-        streamFromSftpToSftp(serverId, cfpath, newServerId, nfpath, (p) => console.log(`${Math.round(p.percentage)}% - ${p.transferred} / ${p.length} bytes`), transferId)
+        await streamFromSftpToSftp(serverId, cfpath, newServerId, nfpath, (p) => console.log(`${Math.round(p.percentage)}% - ${p.transferred} / ${p.length} bytes`), transferId)
         //sourceSftp = await connectToSftp(serverId);
         //targetSftp = await connectToSftp(newServerId);
 

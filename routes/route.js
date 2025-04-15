@@ -92,5 +92,11 @@ module.exports = function () {
     filemanagerController.get_performance_stats
   )
 
+  router.post(
+    "/api/rename-file",
+    passport.authenticate('jwt', { session: false }),
+    filemanagerController.rename_file_json_post
+  )
+
   return router;
 };

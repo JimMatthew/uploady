@@ -288,6 +288,21 @@ module.exports = () => {
     }
   }
 
+  const rename_file_json_post = async (req, res, next) => {
+    try {
+      const { filename, newFilename, currentPath } = req.body;
+      if (!filename || !newFilename || !path) {
+        return next({message: "error missing fields", status: 404})
+      }
+      const cfpath = path.join(uploadsDir, currentPath, filename);
+      const nfpath = path.join(uploadsDir, currentPath, newFilename);
+      await fs.promises.rename(cfpath, nfpath)
+      res.status(200).json({message: "file renamed"});
+    } catch(err) {
+      return next({message: `error` , status: 404 });
+    }
+  }
+
   return {
     download_file_get,
     upload_files_post,
@@ -301,6 +316,7 @@ module.exports = () => {
     delete_file_json_post,
     get_performance_stats,
     copy_file_json_post,
-    cut_file_json_post
+    cut_file_json_post,
+    rename_file_json_post
   };
 };

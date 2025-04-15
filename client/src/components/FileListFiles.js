@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   HStack,
@@ -24,9 +24,12 @@ const FileList = ({
   handleFileDelete,
   handleFileCopy,
   handleFileCut,
+  handleRenameFile
 }) => {
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
-
+const [showRenameInput, setShowRenameInput] = useState(false);
+  const [newFilename, setNewFilename] = useState("");
+  const [renameId, setRenameId] = useState("");
   const handleCopy = (filename) => {
     copyFile({ file: filename, path: rp, source: "local", serverId: null });
   };
@@ -34,6 +37,12 @@ const FileList = ({
   const handleCut = (filename) => {
     cutFile({ file: filename, path: rp, source: "local", serverId: null });
   };
+
+  const handleRename = (filename) => {
+    handleRenameFile(filename, newFilename, rp);
+    setShowRenameInput(false);
+    setNewFilename("");
+  }
 
   const handlePaste = () => {
     const file = clipboard.file;
@@ -74,6 +83,27 @@ const FileList = ({
                   {file.size} KB | {file.date}
                 </Text>
               </VStack>
+              {showRenameInput && renameId && renameId === file.name && (
+                              <Box>
+                                <HStack>
+                                  <Input
+                                    placeholder="New filename"
+                                    value={newFilename}
+                                    onChange={(e) => setNewFilename(e.target.value)}
+                                    size="sm"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleRename(file.name);
+                                    }}
+                                  />
+                                  <Button size="sm" onClick={() => handleRename(file.name)}>
+                                    submit
+                                  </Button>
+                                  <Button size="sm" onClick={() => setShowRenameInput(false)}>
+                                    cancel
+                                  </Button>
+                                </HStack>
+                              </Box>
+                            )}
               <Menu>
                 <MenuButton as={Button}> Actions</MenuButton>
                 <MenuList>
@@ -88,6 +118,12 @@ const FileList = ({
                   </MenuItem>
                   <MenuItem onClick={() => handleFileShareLink(file.name, rp)}>
                     Share
+                  </MenuItem>
+                  <MenuItem onClick={() => {
+                      setShowRenameInput(true);
+                      setRenameId(file.name);
+                    }}>
+                    Rename
                   </MenuItem>
                   <MenuItem onClick={() => handleFileDelete(file.name, rp)}>
                     Delete

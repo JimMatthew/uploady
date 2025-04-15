@@ -25,14 +25,14 @@ const FileList = ({
   renameFile,
   handleCopy,
   handleCut,
-  handlePaste
+  handlePaste,
 }) => {
   const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
   const bgg = useColorModeValue("gray.50", "gray.600");
-  const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
-  
+  const { clipboard } = useClipboard();
+
   const handleRename = (filename) => {
     renameFile(filename, newFilename);
     setShowRenameInput(false);
@@ -44,12 +44,8 @@ const FileList = ({
       <Heading size="md" mb={4} color="gray.600">
         Files
       </Heading>
-      
-      {clipboard && (
-        <ClipboardComponent
-          handlePaste={handlePaste}
-        />
-      )}
+
+      {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
       <Box>
         {files.map((file, index) => (
           <HStack
@@ -96,9 +92,7 @@ const FileList = ({
                   <MenuItem onClick={() => handleCopy(file.name)}>
                     Copy
                   </MenuItem>
-                  <MenuItem onClick={() => handleCut(file.name)}>
-                    Cut
-                  </MenuItem>
+                  <MenuItem onClick={() => handleCut(file.name)}>Cut</MenuItem>
                   <MenuItem onClick={() => downloadFile(file.name)}>
                     Download
                   </MenuItem>

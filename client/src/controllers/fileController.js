@@ -196,6 +196,33 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
+  const handleRenameFile = async (filename, newFilename, path) => {
+    try {
+      await apiRequest("/api/rename-file", {
+        method: "POST",
+        body: JSON.stringify({
+          filename,
+          newFilename,
+          currentPath: path
+        })
+      });
+      toast({
+        title: "File renamed",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      onRefresh(path);
+    } catch(err) {
+      toast({
+        title: "Error renaming file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
+
   return {
     handleFileDownload,
     handleFileDelete,
@@ -204,7 +231,8 @@ const FileController = ({ toast, onRefresh }) => {
     generateBreadcrumb,
     createFolder,
     handleFileCopy, 
-    handleFileCut
+    handleFileCut,
+    handleRenameFile
   };
 };
 
