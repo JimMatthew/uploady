@@ -349,6 +349,36 @@ module.exports = () => {
     }
   };
 
+  const sftp_copy_file_json_post = async (req, res, next) => {
+    const { filename, currentPath, newPath, serverId, newServerId } = req.body;
+
+    const cfpath = path.join(currentPath, filename);
+    const nfpath = path.join(newPath, filename);
+    let sftp;
+    let sourceSftp, targetSftp;
+    
+    if (!newServerId) {
+      try {
+        sftp = await connectToSftp(serverId);
+        await sftp.rcopy(cfpath, nfpath);
+        return res.status(200).send();
+      } catch(err) {
+        return res.status(400).send("Error copying file");
+      }
+    } else {
+      try {
+        sourceSftp = await connectToSftp(serverId);
+        targetSftp = await connectToSftp(newServerId);
+
+        const readStream = await sourceSftp.get(cfpath);
+        await targetSftp.put(readStream, nfpath);
+        res.status(200).send("File streamed successfully");
+      } catch(err) {
+        res.status(500).send("Streaming failed");
+      }
+    }
+  }
+
   return {
     sftp_stream_download_get,
     sftp_stream_upload_post,
@@ -364,5 +394,6 @@ module.exports = () => {
     share_sftp_file,
     sftp_download_file,
     sftp_rename_file_json_post,
+    sftp_copy_file_json_post
   };
 };

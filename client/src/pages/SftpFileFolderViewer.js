@@ -14,11 +14,13 @@ import SftpController from "../controllers/SftpController";
 import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
+import { useClipboard } from "../contexts/ClipboardContext";
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
+    const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
   const {
     deleteSftpFile,
     downloadSftpFile,
@@ -30,6 +32,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     renameSftpFile,
     downloadFolder,
     connectToServer,
+    handleSftpFileCopy
   } = SftpController({ toast, setFiles });
 
   useEffect(() => {
@@ -61,6 +64,30 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const handleDownloadFolder = (foldername) => {
     downloadFolder(files.currentDirectory, foldername, serverId);
   };
+
+  const handleCopy = (filename) => {
+    copyFile({ 
+      file: filename,
+      path: files.currentDirectory,
+      source: "sftp",
+      serverId: serverId
+    })
+  }
+
+  const handleCut = (filename) => {
+
+  }
+
+  const handlePaste = () => {
+    console.log("in paste");
+    const file = clipboard.file;
+    const path = clipboard.path;
+    if (clipboard.action === "copy") {
+      //handleSftpFileCopy(file, path, files.currentDirectory, serverId)
+    }
+    handleSftpFileCopy(file, path, files.currentDirectory, clipboard.serverId, serverId)
+    clearClipboard();
+  }
 
   if (loading) {
     return (
@@ -160,6 +187,9 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         renameFile={(filename, newfilename) =>
           handleRename(filename, newfilename)
         }
+        handleCopy={handleCopy}
+        handleCut={handleCut}
+        handlePaste={handlePaste}
       />
     </Box>
   );

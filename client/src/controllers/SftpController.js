@@ -96,6 +96,53 @@ const SftpController = ({ toast, setFiles }) => {
     }
   };
 
+  const handleSftpFileCopy = async(filename, currentPath, newPath, serverId, newServerId) => {
+    const response = serverId === newServerId ? await fetch("/sftp/api/copy-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        filename: filename,
+        currentPath: currentPath,
+        newPath: newPath,
+        serverId
+      }),
+    }) : 
+    await fetch("/sftp/api/copy-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        filename: filename,
+        currentPath: currentPath,
+        newPath: newPath,
+        serverId,
+        newServerId
+      }),
+    });
+    if (!response.ok) {
+      toast({
+        title: "Error copying file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    changeSftpDirectory(newServerId, newPath);
+    
+    toast({
+      title: "File copied",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
   const renameSftpFile = async (
     currentDirectory,
     serverId,
@@ -313,6 +360,7 @@ const SftpController = ({ toast, setFiles }) => {
     renameSftpFile,
     downloadFolder,
     connectToServer,
+    handleSftpFileCopy
   };
 };
 
