@@ -104,53 +104,44 @@ const SftpController = ({ toast, setFiles }) => {
     newServerId,
     transferId
   ) => {
-    const response =
-      serverId === newServerId
-        ? await fetch("/sftp/api/copy-file", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              filename: filename,
-              currentPath: currentPath,
-              newPath: newPath,
-              serverId,
-            }),
-          })
-        : await fetch("/sftp/api/copy-file", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              filename: filename,
-              currentPath: currentPath,
-              newPath: newPath,
-              serverId,
-              newServerId,
-              transferId,
-            }),
-          });
-    if (!response.ok) {
+    const isCrossServer = serverId !== newServerId;
+  
+    const body = {
+      filename,
+      currentPath,
+      newPath,
+      serverId,
+      ...(isCrossServer && { newServerId, transferId }),
+    };
+  
+    try {
+      const response = await fetch("/sftp/api/copy-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(body),
+      });
+  
+      if (!response.ok) throw new Error();
+  
+      changeSftpDirectory(newServerId, newPath);
+  
+      toast({
+        title: "File copied",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
       toast({
         title: "Error copying file",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
-      return;
     }
-    changeSftpDirectory(newServerId, newPath);
-
-    toast({
-      title: "File copied",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
   const renameSftpFile = async (

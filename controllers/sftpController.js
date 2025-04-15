@@ -354,22 +354,18 @@ module.exports = () => {
   const get_transfer_progress = async (req, res) => {
     const { transferId } = req.params;
 
-    // Setup headers for SSE
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    // Send a ping to keep the connection alive (optional)
     res.write("\n");
-
-    // Store the client connection
     progressClients.set(transferId, res);
 
-    // Clean up if connection closes
     req.on("close", () => {
       progressClients.delete(transferId);
     });
   };
+
   const progress = require("progress-stream");
 
   const streamFromSftpToSftp = async (
@@ -453,7 +449,7 @@ module.exports = () => {
           nfpath,
           transferId
         );
-        res.status(202).send("File streamed successfully");
+        res.status(200).send("File streamed successfully");
       } catch (err) {
         res.status(500).send("Streaming failed");
       }
