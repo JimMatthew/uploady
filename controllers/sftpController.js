@@ -349,8 +349,82 @@ module.exports = () => {
     }
   };
 
+  const progressClients = new Map(); // Map<transferId, res>
+
+app.get("/sftp-progress/:transferId", (req, res) => {
+  const { transferId } = req.params;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  progressClients.set(transferId, res);
+
+  req.on("close", () => {
+    progressClients.delete(transferId);
+  });
+});
+  const progress = require("progress-stream");
+
+const streamFromSftpToSftp = async (sourceId, sourcePath, destId, destPath, onProgress, transferId) => {
+  const source = await connectToSftp(sourceId);
+  const dest = await connectToSftp(destId);
+
+  const passthrough = new PassThrough();
+
+  try {
+    const { size: fileSize } = await source.stat(sourcePath);
+
+    const prog = progress({
+      length: fileSize,
+      time: 100, // Emit progress every 100ms
+    });
+
+    prog.on("progress", (p) => {
+      if (onProgress) onProgress(p); // Optional callback
+      const client = progressClients.get(transferId);
+      if (client) {
+        client.write(`data: ${JSON.stringify({ percent: p.percentage })}\n\n`);
+      }
+      else console.log(`Progress: ${Math.round(p.percentage)}%`);
+    });
+
+    const download = source.get(sourcePath, passthrough);
+    const upload = dest.put(passthrough.pipe(prog), destPath);
+
+    await Promise.all([download, upload]);
+    const client = progressClients.get(transferId);
+    if (client) {
+      client.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      client.end();
+      progressClients.delete(transferId);
+    }
+
+    console.log("Transfer complete");
+  } catch (err) {
+    console.error("Error during SFTP stream:", err);
+    throw err;
+  } finally {
+    await source.end();
+    await dest.end();
+  }
+};
+
+  async function streamBetweenSFTPs(sourceSftp, targetSftp, sourcePath, targetPath) {
+    const pass = new PassThrough();
+  
+    // Start piping from source to pass-through
+    const download = sourceSftp.get(sourcePath, pass); // this starts streaming into `pass`
+  
+    // Start uploading from pass-through to target
+    const upload = targetSftp.put(pass, targetPath); // this starts consuming from `pass`
+  
+    await Promise.all([download, upload]);
+  }
+
   const sftp_copy_file_json_post = async (req, res, next) => {
-    const { filename, currentPath, newPath, serverId, newServerId } = req.body;
+    const { filename, currentPath, newPath, serverId, newServerId, transferId } = req.body;
 
     const cfpath = path.join(currentPath, filename);
     const nfpath = path.join(newPath, filename);
@@ -367,12 +441,17 @@ module.exports = () => {
       }
     } else {
       try {
-        sourceSftp = await connectToSftp(serverId);
-        targetSftp = await connectToSftp(newServerId);
+        streamFromSftpToSftp(serverId, cfpath, newServerId, nfpath, (p) => console.log(`${Math.round(p.percentage)}% - ${p.transferred} / ${p.length} bytes`), transferId)
+        //sourceSftp = await connectToSftp(serverId);
+        //targetSftp = await connectToSftp(newServerId);
 
-        const readStream = await sourceSftp.get(cfpath);
-        await targetSftp.put(readStream, nfpath);
-        res.status(200).send("File streamed successfully");
+        //await streamBetweenSFTPs(sourceSftp, targetSftp, cfpath, nfpath);
+        //const stream = new PassThrough();
+        //await sourceSftp.get(cfpath, stream);
+        //await targetSftp.put(stream, nfpath);
+        //const readStream = await sourceSftp.get(cfpath);
+        //await targetSftp.put(readStream, nfpath);
+        res.status(202).send("File streamed successfully");
       } catch(err) {
         res.status(500).send("Streaming failed");
       }

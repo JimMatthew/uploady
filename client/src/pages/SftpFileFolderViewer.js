@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Text,
@@ -6,6 +6,7 @@ import {
   Heading,
   Spinner,
   useBreakpointValue,
+  Progress
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
@@ -15,12 +16,16 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 import { useClipboard } from "../contexts/ClipboardContext";
+import  useSftpTransferProgress from "../components/SftpTransferProgress";
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
-    const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
+  const transferId = useMemo(() => crypto.randomUUID(), []);
+  const [started, setStarted] = useState(false);
+  
+  const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
   const {
     deleteSftpFile,
     downloadSftpFile,
@@ -83,7 +88,8 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     const file = clipboard.file;
     const path = clipboard.path;
     if (clipboard.action === "copy") {
-      //handleSftpFileCopy(file, path, files.currentDirectory, serverId)
+      //handleSftpFileCopy(file, path, files.currentDirectory, serverId, transferId)
+      setStarted(true);
     }
     handleSftpFileCopy(file, path, files.currentDirectory, clipboard.serverId, serverId)
     clearClipboard();

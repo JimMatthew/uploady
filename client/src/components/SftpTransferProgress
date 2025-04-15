@@ -1,0 +1,30 @@
+import { useEffect, useMemo, useState } from "react";
+import { Progress, Box, Text } from "@chakra-ui/react";
+
+
+export const useSftpTransferProgress = (transferId) => {
+  const [progress, setProgress] = useState({ percent: 0, done: false, error: null });
+
+  useEffect(() => {
+    if (!transferId) return;
+
+    const evtSource = new EventSource(`/sftp-progress/${transferId}`);
+
+    evtSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.error) {
+        setProgress({ percent: 0, done: false, error: data.error });
+        evtSource.close();
+      } else if (data.done) {
+        setProgress((prev) => ({ ...prev, done: true }));
+        evtSource.close();
+      } else {
+        setProgress((prev) => ({ ...prev, percent: data.percent }));
+      }
+    };
+
+    return () => evtSource.close();
+  }, [transferId]);
+
+  return progress;
+};
