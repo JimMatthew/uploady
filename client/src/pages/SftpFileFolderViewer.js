@@ -6,7 +6,7 @@ import {
   Heading,
   Spinner,
   useBreakpointValue,
-  Progress
+  Progress,
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
@@ -16,7 +16,7 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderListSftp";
 import FileListSftp from "../components/FileListSftp";
 import { useClipboard } from "../contexts/ClipboardContext";
-import  useSftpTransferProgress from "../components/SftpTransferProgress";
+
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [started, setStarted] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
+  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const {
     deleteSftpFile,
     downloadSftpFile,
@@ -38,7 +38,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     renameSftpFile,
     downloadFolder,
     connectToServer,
-    handleSftpFileCopy
+    handleSftpFileCopy,
   } = SftpController({ toast, setFiles });
 
   useEffect(() => {
@@ -72,17 +72,15 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   };
 
   const handleCopy = (filename) => {
-    copyFile({ 
+    copyFile({
       file: filename,
       path: files.currentDirectory,
       source: "sftp",
-      serverId: serverId
-    })
-  }
+      serverId: serverId,
+    });
+  };
 
-  const handleCut = (filename) => {
-
-  }
+  const handleCut = (filename) => {};
 
   const handlePaste = () => {
     const file = clipboard.file;
@@ -106,12 +104,18 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
       eventSource.close();
     };
     if (clipboard.action === "copy") {
-      handleSftpFileCopy(file, path, files.currentDirectory, clipboard.serverId, serverId, transferId);
+      handleSftpFileCopy(
+        file,
+        path,
+        files.currentDirectory,
+        clipboard.serverId,
+        serverId,
+        transferId
+      );
       setStarted(true);
     }
-    
     clearClipboard();
-  }
+  };
 
   if (loading) {
     return (
@@ -204,7 +208,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           <Progress value={progress} size="md" colorScheme="blue" />
           <Text mt={2}>{progress.toFixed(0)}%</Text>
         </Box>
-        )}
+      )}
       <FileListSftp
         files={files.files}
         downloadFile={handleDownload}
