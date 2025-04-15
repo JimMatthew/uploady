@@ -24,7 +24,8 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const transferId = useMemo(() => crypto.randomUUID(), []);
   const [started, setStarted] = useState(false);
-  
+  const [progress, setProgress] = useState(0);
+
   const { copyFile, cutFile, clipboard, clearClipboard} = useClipboard();
   const {
     deleteSftpFile,
@@ -84,14 +85,31 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   }
 
   const handlePaste = () => {
-    console.log("in paste");
     const file = clipboard.file;
     const path = clipboard.path;
+    const transferId = crypto.randomUUID();
+    setProgress(0);
+    setStarted(true);
+    const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.percent !== undefined) {
+        setProgress(Math.round(data.percent));
+      } else if (data.done) {
+        setProgress(100);
+        eventSource.close();
+        setTimeout(() => setStarted(false), 400);
+      }
+    };
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+      eventSource.close();
+    };
     if (clipboard.action === "copy") {
-      //handleSftpFileCopy(file, path, files.currentDirectory, serverId, transferId)
+      handleSftpFileCopy(file, path, files.currentDirectory, clipboard.serverId, serverId, transferId);
       setStarted(true);
     }
-    handleSftpFileCopy(file, path, files.currentDirectory, clipboard.serverId, serverId)
+    
     clearClipboard();
   }
 
@@ -181,7 +199,12 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         }
         downloadFolder={(folder) => handleDownloadFolder(folder)}
       />
-
+      {started && (
+        <Box mt={4}>
+          <Progress value={progress} size="md" colorScheme="blue" />
+          <Text mt={2}>{progress.toFixed(0)}%</Text>
+        </Box>
+        )}
       <FileListSftp
         files={files.files}
         downloadFile={handleDownload}
