@@ -83,36 +83,49 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const handleCut = (filename) => {};
 
   const handlePaste = () => {
-    const file = clipboard.file;
-    const path = clipboard.path;
-    const transferId = crypto.randomUUID();
-    setProgress(0);
-    setStarted(true);
-    const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.percent !== undefined) {
-        setProgress(Math.round(data.percent));
-      } else if (data.done) {
-        setProgress(100);
-        eventSource.close();
-        setTimeout(() => setStarted(false), 400);
+    const { file, path, serverId: sourceServerId, action } = clipboard;
+
+    const isCrossServer = sourceServerId !== serverId;
+    const isCopy = action === "copy";
+
+    if (isCopy) {
+      if (isCrossServer) {
+        const transferId = crypto.randomUUID();
+        setProgress(0);
+        setStarted(true);
+
+        const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.percent !== undefined) {
+            setProgress(Math.round(data.percent));
+          } else if (data.done) {
+            setProgress(100);
+            eventSource.close();
+            setTimeout(() => setStarted(false), 400);
+          }
+        };
+        eventSource.onerror = (err) => {
+          console.error("SSE error:", err);
+          eventSource.close();
+        };
+        handleSftpFileCopy(
+          file,
+          path,
+          files.currentDirectory,
+          sourceServerId,
+          serverId,
+          transferId
+        );
+      } else {
+        handleSftpFileCopy(
+          file,
+          path,
+          files.currentDirectory,
+          sourceServerId,
+          serverId
+        );
       }
-    };
-    eventSource.onerror = (err) => {
-      console.error("SSE error:", err);
-      eventSource.close();
-    };
-    if (clipboard.action === "copy") {
-      handleSftpFileCopy(
-        file,
-        path,
-        files.currentDirectory,
-        clipboard.serverId,
-        serverId,
-        transferId
-      );
-      setStarted(true);
     }
     clearClipboard();
   };
