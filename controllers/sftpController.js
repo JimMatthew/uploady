@@ -360,7 +360,7 @@ module.exports = () => {
 
     res.write("\n");
     progressClients.set(transferId, res);
-
+    res.write(`data: ${JSON.stringify({ ready: true })}\n\n`);
     req.on("close", () => {
       progressClients.delete(transferId);
     });
@@ -406,6 +406,8 @@ module.exports = () => {
         client.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         client.end();
         progressClients.delete(transferId);
+      } else {
+        console.log("no client")
       }
 
       console.log("Transfer complete");
