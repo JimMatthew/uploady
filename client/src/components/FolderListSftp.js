@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Text,
@@ -10,20 +10,35 @@ import {
 } from "@chakra-ui/react";
 import { FaFolder, FaTrash, FaDownload } from "react-icons/fa";
 import { FcFolder } from "react-icons/fc";
+import SortComponent from "./SortComponent";
 const FolderList = ({
   folders,
   changeDirectory,
   deleteFolder,
   downloadFolder,
 }) => {
+  const [folderSortDirection, setFolderSortDirection] = useState("asc");
   const bgg = useColorModeValue("gray.50", "gray.600");
+
+  const toggleFolderSort = () =>
+    setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+
+  const sortedfolders = useMemo(() => {
+    return [...folders].sort((a, b) =>
+      folderSortDirection === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
+  }, [folders, folderSortDirection]);
   return (
     <Box mb={8}>
-      <Heading size="md" mb={4} color="gray.600">
-        Folders
-      </Heading>
+      <SortComponent
+        header="folders"
+        onToggle={toggleFolderSort}
+        sortDirection={folderSortDirection}
+      />
       <Box>
-        {folders.map((folder, index) => (
+        {sortedfolders.map((folder, index) => (
           <HStack
             key={index}
             justify="space-between"

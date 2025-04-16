@@ -22,7 +22,6 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const transferId = useMemo(() => crypto.randomUUID(), []);
   const [started, setStarted] = useState(false);
   const [progress, setProgress] = useState(0);
 

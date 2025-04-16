@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Text,
@@ -16,6 +16,7 @@ import {
 import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
+import SortComponent from "./SortComponent";
 const FileList = ({
   files,
   downloadFile,
@@ -30,6 +31,7 @@ const FileList = ({
   const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
+  const [fileSortDirection, setFileSortDirection] = useState("asc");
   const bgg = useColorModeValue("gray.50", "gray.600");
   const { clipboard } = useClipboard();
 
@@ -39,15 +41,28 @@ const FileList = ({
     setNewFilename("");
   };
 
+  const toggleFileSort = () =>
+    setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+
+  const sortedfiles = useMemo(() => {
+    console.log(files);
+    return [...files].sort((a, b) =>
+      fileSortDirection === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
+  }, [files, fileSortDirection]);
   return (
     <Box>
-      <Heading size="md" mb={4} color="gray.600">
-        Files
-      </Heading>
-
       {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
+
+      <SortComponent
+        header="files"
+        onToggle={toggleFileSort}
+        sortDirection={fileSortDirection}
+      />
       <Box>
-        {files.map((file, index) => (
+        {sortedfiles.map((file, index) => (
           <HStack
             key={index}
             justify="space-between"
