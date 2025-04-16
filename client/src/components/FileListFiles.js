@@ -16,7 +16,8 @@ import {
 import { FcFile } from "react-icons/fc";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
-import { ChevronUp, ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
+import SortComponent from "./SortComponent";
+
 const FileList = ({
   files,
   rp,
@@ -31,9 +32,7 @@ const FileList = ({
   const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [folderSortDirection, setFolderSortDirection] = useState("asc");
-const [fileSortDirection, setFileSortDirection] = useState("asc");
+  const [fileSortDirection, setFileSortDirection] = useState("asc");
   const handleCopy = (filename) => {
     copyFile({ file: filename, path: rp, source: "local", serverId: null });
   };
@@ -48,13 +47,6 @@ const [fileSortDirection, setFileSortDirection] = useState("asc");
     setNewFilename("");
   };
 
-  const handleToggleSort = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
-
-  const toggleFolderSort = () =>
-    setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-  
   const toggleFileSort = () =>
     setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
 
@@ -69,27 +61,23 @@ const [fileSortDirection, setFileSortDirection] = useState("asc");
     clearClipboard();
   };
 
-  
-  
   const sortedfiles = useMemo(() => {
-    return [...files].sort((a, b) => fileSortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+    return [...files].sort((a, b) =>
+      fileSortDirection === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
   }, [files, fileSortDirection]);
   return (
     <Box>
       {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
-      <HStack mb={2} justify="space-between" align="center">
-      <Text fontSize="lg" fontWeight="bold">
-        Files
-      </Text>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={toggleFileSort}
-        leftIcon={fileSortDirection === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />}
-      >
-        Sort by Name
-      </Button>
-    </HStack>
+
+      <SortComponent
+        header="files"
+        onToggle={toggleFileSort}
+        sortDirection={fileSortDirection}
+      />
+
       {sortedfiles &&
         sortedfiles.length > 0 &&
         sortedfiles.map((file, index) => (
