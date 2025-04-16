@@ -17,7 +17,7 @@ import { FcFile } from "react-icons/fc";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
 import SortComponent from "./SortComponent";
-
+import RenameFileComponent from "./RenameFileComponent";
 const FileList = ({
   files,
   rp,
@@ -101,25 +101,12 @@ const FileList = ({
                 </Text>
               </VStack>
               {showRenameInput && renameId && renameId === file.name && (
-                <Box>
-                  <HStack>
-                    <Input
-                      placeholder="New filename"
-                      value={newFilename}
-                      onChange={(e) => setNewFilename(e.target.value)}
-                      size="sm"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRename(file.name);
-                      }}
-                    />
-                    <Button size="sm" onClick={() => handleRename(file.name)}>
-                      submit
-                    </Button>
-                    <Button size="sm" onClick={() => setShowRenameInput(false)}>
-                      cancel
-                    </Button>
-                  </HStack>
-                </Box>
+                <RenameFileComponent
+                  newFilename={newFilename}
+                  onInput={(input) => setNewFilename(input)}
+                  handleRename={() => handleRename(file.name)}
+                  onCancel={() => setShowRenameInput(false)}
+                />
               )}
               <Menu>
                 <MenuButton as={Button}> Actions</MenuButton>
