@@ -222,6 +222,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           <Text mt={2}>{progress.toFixed(0)}%</Text>
         </Box>
       )}
+      
       <FileListSftp
         files={files.files}
         downloadFile={handleDownload}
