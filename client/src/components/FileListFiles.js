@@ -6,18 +6,17 @@ import {
   Button,
   Icon,
   VStack,
-  Stack,
   Menu,
   MenuButton,
   MenuItem,
   MenuList,
-  Input,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
 import SortComponent from "./SortComponent";
 import RenameFileComponent from "./RenameFileComponent";
+import PickSortComponent from "./PickSortComponent";
 const FileList = ({
   files,
   rp,
@@ -33,6 +32,7 @@ const FileList = ({
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
   const [fileSortDirection, setFileSortDirection] = useState("asc");
+  const [sortField, setSortField] = useState("name");
   const handleCopy = (filename) => {
     copyFile({ file: filename, path: rp, source: "local", serverId: null });
   };
@@ -50,17 +50,6 @@ const FileList = ({
   const toggleFileSort = () =>
     setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  const handlePaste = () => {
-    const file = clipboard[0].file;
-    const path = clipboard[0].path;
-    if (clipboard[0].action === "copy") {
-      handleFileCopy(file, path, rp);
-    } else if (clipboard[0].action === "cut") {
-      handleFileCut(file, path, rp);
-    }
-    clearClipboard();
-  };
-
   const handlePastenum = () => {
     clipboard.forEach(({ file, path, action }) => {
       if (action === "copy") {
@@ -73,20 +62,37 @@ const FileList = ({
   };
 
   const sortedfiles = useMemo(() => {
+    if (sortField === "size") {
+      return [...files].sort((a, b) =>
+        fileSortDirection === "asc"
+          ? a.size - b.size
+          : b.size - a.size
+      );
+    } else if (sortField === "date") {    
+      return [...files].sort((a, b) =>
+        fileSortDirection === "asc"
+          ? new Date(a.date) - new Date(b.date)
+          : new Date(b.date) - new Date(a.date)
+      );
+    }
+    // Default to sorting by name
     return [...files].sort((a, b) =>
       fileSortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name)
     );
-  }, [files, fileSortDirection]);
+  }, [files, fileSortDirection, sortField]);
   return (
     <Box>
       {clipboard[0] && <ClipboardComponent handlePaste={handlePastenum} />}
 
-      <SortComponent
+      <PickSortComponent 
         header="files"
-        onToggle={toggleFileSort}
+        fields={["name", "size", "date"]}
         sortDirection={fileSortDirection}
+        onToggleDirection={toggleFileSort}
+        onFieldChange={(field) => setSortField(field)}
+        selectedField={sortField}
       />
 
       {sortedfiles &&
