@@ -15,20 +15,24 @@ const ClipboardComponent = ({ handlePaste }) => {
       borderColor="gray.200"
       boxShadow="sm"
     >
-      <HStack justify="space-between">
-        <Text color={bgg} fontWeight="medium">
-          {clipboard.action === "copy" && `📄 Copied: ${clipboard.file}`}
-          {clipboard.action === "cut" && `✂️ Cut: ${clipboard.file}`}
+      <HStack justify="space-between" align="start">
+    <Box>
+      {clipboard.map((item, index) => (
+        <Text key={index} color={bgg} fontWeight="medium">
+          {item.action === "copy" && `📄 Copied: ${item.file}`}
+          {item.action === "cut" && `✂️ Cut: ${item.file}`}
         </Text>
-        <HStack spacing={2}>
-          <Button size="sm" colorScheme="blue" onClick={handlePaste}>
-            Paste
-          </Button>
-          <Button size="sm" variant="outline" onClick={clearClipboard}>
-            Clear
-          </Button>
-        </HStack>
-      </HStack>
+      ))}
+    </Box>
+    <HStack spacing={2}>
+      <Button size="sm" colorScheme="blue" onClick={handlePaste}>
+        Paste
+      </Button>
+      <Button size="sm" variant="outline" onClick={clearClipboard}>
+        Clear
+      </Button>
+    </HStack>
+  </HStack>
     </Box>
   );
 };

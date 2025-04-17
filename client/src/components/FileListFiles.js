@@ -51,13 +51,24 @@ const FileList = ({
     setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
 
   const handlePaste = () => {
-    const file = clipboard.file;
-    const path = clipboard.path;
-    if (clipboard.action === "copy") {
+    const file = clipboard[0].file;
+    const path = clipboard[0].path;
+    if (clipboard[0].action === "copy") {
       handleFileCopy(file, path, rp);
-    } else if (clipboard.action === "cut") {
+    } else if (clipboard[0].action === "cut") {
       handleFileCut(file, path, rp);
     }
+    clearClipboard();
+  };
+
+  const handlePastenum = () => {
+    clipboard.forEach(({ file, path, action }) => {
+      if (action === "copy") {
+        handleFileCopy(file, path, rp);
+      } else if (action === "cut") {
+        handleFileCut(file, path, rp);
+      }
+    });
     clearClipboard();
   };
 
@@ -70,7 +81,7 @@ const FileList = ({
   }, [files, fileSortDirection]);
   return (
     <Box>
-      {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={handlePastenum} />}
 
       <SortComponent
         header="files"

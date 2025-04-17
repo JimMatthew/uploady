@@ -24,6 +24,8 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const [started, setStarted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressMap, setProgressMap] = useState({});
+  const [startedTransfers, setStartedTransfers] = useState({});
 
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const {
@@ -82,59 +84,80 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const handleCut = (filename) => {};
 
   const handlePaste = () => {
-    const { file, path, serverId: sourceServerId, action } = clipboard;
-  
-    const isCrossServer = sourceServerId !== serverId;
-    const isCopy = action === "copy";
-  
-    if (isCopy) {
-      if (isCrossServer) {
-        const transferId = crypto.randomUUID();
-        setProgress(0);
-        setStarted(true);
-  
-        const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
-  
-        let transferStarted = false;
-  
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-  
-          // Wait for the 'ready' signal before starting the actual transfer
-          if (data.ready && !transferStarted) {
-            transferStarted = true;
-            handleSftpFileCopy(
-              file,
-              path,
-              files.currentDirectory,
-              sourceServerId,
-              serverId,
-              transferId
-            );
-          } else if (data.percent !== undefined) {
-            setProgress(Math.round(data.percent));
-          } else if (data.done) {
-            setProgress(100);
+    const newStartedTransfers = {};
+
+    clipboard.forEach(({ file, path, serverId: sourceServerId, action }) => {
+      const isCrossServer = sourceServerId !== serverId;
+      const isCopy = action === "copy";
+
+      if (isCopy) {
+        if (isCrossServer) {
+          const transferId = crypto.randomUUID();
+
+          // Mark transfer as started
+          newStartedTransfers[transferId] = { file, progress: 0 };
+
+          const eventSource = new EventSource(
+            `/sftp/api/progress/${transferId}`
+          );
+
+          let transferStarted = false;
+
+          eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.ready && !transferStarted) {
+              transferStarted = true;
+              handleSftpFileCopy(
+                file,
+                path,
+                files.currentDirectory,
+                sourceServerId,
+                serverId,
+                transferId
+              );
+            } else if (data.percent !== undefined) {
+              setProgressMap((prev) => ({
+                ...prev,
+                [transferId]: { file, progress: Math.round(data.percent) },
+              }));
+            } else if (data.done) {
+              setProgressMap((prev) => ({
+                ...prev,
+                [transferId]: { file, progress: 100 },
+              }));
+              eventSource.close();
+
+              setTimeout(() => {
+                setProgressMap((prev) => {
+                  const { [transferId]: _, ...rest } = prev;
+                  return rest;
+                });
+                setStartedTransfers((prev) => {
+                  const { [transferId]: _, ...rest } = prev;
+                  return rest;
+                });
+              }, 1000);
+            }
+          };
+
+          eventSource.onerror = (err) => {
+            console.error("SSE error:", err);
             eventSource.close();
-            setTimeout(() => setStarted(false), 400);
-          }
-        };
-  
-        eventSource.onerror = (err) => {
-          console.error("SSE error:", err);
-          eventSource.close();
-        };
-      } else {
-        handleSftpFileCopy(
-          file,
-          path,
-          files.currentDirectory,
-          sourceServerId,
-          serverId
-        );
+          };
+        } else {
+          handleSftpFileCopy(
+            file,
+            path,
+            files.currentDirectory,
+            sourceServerId,
+            serverId
+          );
+        }
       }
-    }
-  
+    });
+
+    setStartedTransfers((prev) => ({ ...prev, ...newStartedTransfers }));
     clearClipboard();
   };
 
@@ -224,13 +247,15 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         }
         downloadFolder={(folder) => handleDownloadFolder(folder)}
       />
-      {started && (
-        <Box mt={4}>
-          <Progress value={progress} size="md" colorScheme="blue" />
-          <Text mt={2}>{progress.toFixed(0)}%</Text>
+      {Object.entries(progressMap).map(([transferId, { file, progress }]) => (
+        <Box key={transferId} mb={2}>
+          <Text fontSize="sm" mb={1}>
+            {file} - {progress}%
+          </Text>
+          <Progress value={progress} size="sm" colorScheme="blue" />
         </Box>
-      )}
-      
+      ))}
+
       <FileListSftp
         files={files.files}
         downloadFile={handleDownload}

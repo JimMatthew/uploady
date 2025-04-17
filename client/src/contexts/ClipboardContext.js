@@ -3,30 +3,25 @@ import { createContext, useContext, useState } from "react";
 const ClipboardContext = createContext();
 
 export const ClipboardProvider = ({ children }) => {
-  const [clipboard, setClipboard] = useState(null);
+  const [clipboard, setClipboard] = useState([]);
 
-  const copyFile = ({ file, path, source, serverId }) => {
-    setClipboard({
-      file,
-      path,
-      source,
-      serverId: serverId || null,
-      action: "copy",
-    });
+  const addToClipboard = ({ file, path, source, serverId, action }) => {
+    setClipboard((prev) => [
+      ...prev,
+      { file, path, source, serverId: serverId || null, action },
+    ]);
   };
 
-  const cutFile = ({ file, path, source, serverId }) => {
-    setClipboard({
-      file,
-      path,
-      source,
-      serverId: serverId || null,
-      action: "cut",
-    });
+  const copyFile = (params) => {
+    addToClipboard({ ...params, action: "copy" });
+  };
+
+  const cutFile = (params) => {
+    addToClipboard({ ...params, action: "cut" });
   };
 
   const clearClipboard = () => {
-    setClipboard(null);
+    setClipboard([]);
   };
 
   return (

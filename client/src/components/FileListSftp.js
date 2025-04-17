@@ -55,7 +55,7 @@ const FileList = ({
   }, [files, fileSortDirection]);
   return (
     <Box>
-      {clipboard && <ClipboardComponent handlePaste={handlePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
 
       <SortComponent
         header="files"
