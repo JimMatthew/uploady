@@ -4,7 +4,7 @@ import { ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
 
 const PickSortComponent = ({
   header,
-  fields, 
+  fields,
   selectedField,
   sortDirection,
   onFieldChange,

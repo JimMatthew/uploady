@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Text,
   HStack,
+  Icon,
   Button,
   useColorModeValue,
   Menu,
@@ -13,8 +14,8 @@ import {
 import { FaFile } from "react-icons/fa";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
-import SortComponent from "./SortComponent";
 import RenameFileComponent from "./RenameFileComponent";
+import PickSortComponent from "./PickSortComponent";
 const FileList = ({
   files,
   downloadFile,
@@ -30,6 +31,7 @@ const FileList = ({
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
   const [fileSortDirection, setFileSortDirection] = useState("asc");
+  const [sortField, setSortField] = useState("name");
   const bgg = useColorModeValue("gray.50", "gray.600");
   const { clipboard } = useClipboard();
 
@@ -43,21 +45,34 @@ const FileList = ({
     setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
 
   const sortedfiles = useMemo(() => {
-    console.log(files);
+    if (sortField === "size") {
+      return [...files].sort((a, b) =>
+        fileSortDirection === "asc" ? a.size - b.size : b.size - a.size
+      );
+    } else if (sortField === "date") {
+      return [...files].sort((a, b) =>
+        fileSortDirection === "asc"
+          ? new Date(a.date) - new Date(b.date)
+          : new Date(b.date) - new Date(a.date)
+      );
+    }
     return [...files].sort((a, b) =>
       fileSortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name)
     );
-  }, [files, fileSortDirection]);
+  }, [files, fileSortDirection, sortField]);
   return (
     <Box>
       {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
 
-      <SortComponent
+      <PickSortComponent
         header="files"
-        onToggle={toggleFileSort}
+        fields={["name", "size", "date"]}
         sortDirection={fileSortDirection}
+        onToggleDirection={toggleFileSort}
+        onFieldChange={(field) => setSortField(field)}
+        selectedField={sortField}
       />
       <Box>
         {sortedfiles.map((file, index) => (
@@ -71,12 +86,14 @@ const FileList = ({
             transition="background-color 0.2s"
           >
             <HStack spacing={2}>
-              <FaFile size={24} />
-              <Text fontWeight="medium">{file.name}</Text>
+              <HStack align="start" spacing={1}>
+                <Icon as={FaFile} boxSize={6} />
+                <Text fontWeight="semibold" fontSize="lg" isTruncated>
+                  {file.name}
+                </Text>
+              </HStack>
             </HStack>
-            <Text color="gray.500" fontSize="sm">
-              {file.size} KB
-            </Text>
+
             <HStack spacing={2}>
               {showRenameInput && renameId && renameId === file.name && (
                 <RenameFileComponent
@@ -86,6 +103,9 @@ const FileList = ({
                   onCancel={() => setShowRenameInput(false)}
                 />
               )}
+              <Text fontSize="sm" color="gray.500" marginRight="50px">
+                {file.size} KB | {file.date}
+              </Text>
               <Menu>
                 <MenuButton as={Button}> Actions </MenuButton>
                 <MenuList>
