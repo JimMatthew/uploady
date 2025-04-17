@@ -16,8 +16,7 @@ const SortComponent = ({header, onToggle, sortDirection}) => {
         variant="outline"
         onClick={onToggle}
         leftIcon={
-          sortDirection === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />
-        }
+          sortDirection === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />}
       >
         Sort by Name
       </Button>

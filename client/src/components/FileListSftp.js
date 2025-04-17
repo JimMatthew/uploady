@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Text,
-  IconButton,
-  Heading,
   HStack,
   Button,
   useColorModeValue,
@@ -11,9 +9,8 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
-  Input,
 } from "@chakra-ui/react";
-import { FaEdit, FaFolder, FaFile, FaDownload, FaTrash } from "react-icons/fa";
+import { FaFile } from "react-icons/fa";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
 import SortComponent from "./SortComponent";

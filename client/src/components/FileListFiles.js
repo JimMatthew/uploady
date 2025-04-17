@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   HStack,
@@ -14,7 +14,6 @@ import {
 import { FcFile } from "react-icons/fc";
 import { useClipboard } from "../contexts/ClipboardContext";
 import ClipboardComponent from "./ClipboardComponent";
-import SortComponent from "./SortComponent";
 import RenameFileComponent from "./RenameFileComponent";
 import PickSortComponent from "./PickSortComponent";
 const FileList = ({

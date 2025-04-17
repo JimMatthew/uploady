@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Box,
   VStack,
@@ -34,7 +34,7 @@ const FileDisplay = ({
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  //const isMobile = useBreakpointValue({ base: true, md: false });
   return (
     <Box
       mt={{ base: 1, md: 6 }}
