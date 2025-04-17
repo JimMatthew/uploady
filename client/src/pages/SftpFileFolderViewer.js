@@ -22,10 +22,9 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const [started, setStarted] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
+  const [completedTransfers, setCompletedTransfers] = useState({});
 
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const {
@@ -126,18 +125,11 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
                 ...prev,
                 [transferId]: { file, progress: 100 },
               }));
+              setCompletedTransfers((prev) => ({
+                ...prev,
+                [transferId]: true,
+              }));
               eventSource.close();
-
-              setTimeout(() => {
-                setProgressMap((prev) => {
-                  const { [transferId]: _, ...rest } = prev;
-                  return rest;
-                });
-                setStartedTransfers((prev) => {
-                  const { [transferId]: _, ...rest } = prev;
-                  return rest;
-                });
-              }, 1000);
             }
           };
 
@@ -160,6 +152,19 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     setStartedTransfers((prev) => ({ ...prev, ...newStartedTransfers }));
     clearClipboard();
   };
+
+  useEffect(() => {
+    const allIds = Object.keys(progressMap);
+    const doneIds = Object.keys(completedTransfers);
+
+    if (allIds.length > 0 && allIds.length === doneIds.length) {
+      setTimeout(() => {
+        setProgressMap({});
+        setCompletedTransfers({});
+        setStartedTransfers({});
+      }, 400); 
+    }
+  }, [progressMap, completedTransfers]);
 
   if (loading) {
     return (
@@ -247,12 +252,15 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         }
         downloadFolder={(folder) => handleDownloadFolder(folder)}
       />
-      {Object.entries(progressMap).map(([transferId, { file, progress }]) => (
-        <Box key={transferId} mb={2}>
-          <Text fontSize="sm" mb={1}>
-            {file} - {progress}%
-          </Text>
-          <Progress value={progress} size="sm" colorScheme="blue" />
+      {/* Clipboard Copy progress*/}
+      {Object.entries(startedTransfers).map(([id, { file }]) => (
+        <Box key={id} mb={2} p={3} borderRadius="md" borderWidth="1px">
+          <Text>{file}</Text>
+          <Progress
+            value={progressMap[id]?.progress || 0}
+            size="sm"
+            colorScheme="blue"
+          />
         </Box>
       ))}
 
