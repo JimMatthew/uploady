@@ -368,58 +368,6 @@ module.exports = () => {
 
   const progress = require("progress-stream");
 
-  const streamFromSftpToSftp = async (
-    sourceId,
-    sourcePath,
-    destId,
-    destPath,
-    transferId
-  ) => {
-    const source = await connectToSftp(sourceId);
-    const dest = await connectToSftp(destId);
-
-    const passthrough = new PassThrough();
-
-    try {
-      const { size: fileSize } = await source.stat(sourcePath);
-
-      const prog = progress({
-        length: fileSize,
-        time: 100, // Emit progress every 100ms
-      });
-
-      prog.on("progress", (p) => {
-        const client = progressClients.get(transferId);
-        if (client) {
-          client.write(
-            `data: ${JSON.stringify({ percent: p.percentage })}\n\n`
-          );
-        } else console.log(`Progress: ${Math.round(p.percentage)}%`);
-      });
-
-      const download = source.get(sourcePath, passthrough);
-      const upload = dest.put(passthrough.pipe(prog), destPath);
-
-      await Promise.all([download, upload]);
-      const client = progressClients.get(transferId);
-      if (client) {
-        client.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-        client.end();
-        progressClients.delete(transferId);
-      } else {
-        console.log("no client");
-      }
-
-      console.log("Transfer complete");
-    } catch (err) {
-      console.error("Error during SFTP stream:", err);
-      throw err;
-    } finally {
-      await source.end();
-      await dest.end();
-    }
-  };
-
   const streamFileStfpPair = async (
     source,
     dest,

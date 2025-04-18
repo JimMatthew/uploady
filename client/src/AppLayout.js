@@ -8,8 +8,6 @@ const AppLayout = ({ children, username }) => {
       <GlobalStyles />
       <Header username={username} />
       <Box flex="1">
-        {" "}
-        {/* This box will take up available space */}
         {children}
       </Box>
       <Footer />
