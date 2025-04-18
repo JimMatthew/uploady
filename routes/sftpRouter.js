@@ -87,6 +87,11 @@ module.exports = function () {
     sftpController.sftp_copy_file_json_post
   )
 
+  router.post(
+    "/api/copy-files",
+    sftpController.sftp_copy_files_batch_json_post
+  )
+
   router.get(
     "/api/progress/:transferId",
     sftpController.get_transfer_progress

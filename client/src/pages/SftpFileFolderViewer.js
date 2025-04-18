@@ -83,88 +83,76 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const handleCut = (filename) => {};
 
   const handlePaste = () => {
-    const newStartedTransfers = {};
-
-    clipboard.forEach(({ file, path, serverId: sourceServerId, action }) => {
-      const isCrossServer = sourceServerId !== serverId;
-      const isCopy = action === "copy";
-
-      if (isCopy) {
-        if (isCrossServer) {
-          const transferId = crypto.randomUUID();
-
-          // Mark transfer as started
-          newStartedTransfers[transferId] = { file, progress: 0 };
-
-          const eventSource = new EventSource(
-            `/sftp/api/progress/${transferId}`
-          );
-
-          let transferStarted = false;
-
-          eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.ready && !transferStarted) {
-              transferStarted = true;
-              handleSftpFileCopy(
-                file,
-                path,
-                files.currentDirectory,
-                sourceServerId,
-                serverId,
-                transferId
-              );
-            } else if (data.percent !== undefined) {
-              setProgressMap((prev) => ({
-                ...prev,
-                [transferId]: { file, progress: Math.round(data.percent) },
-              }));
-            } else if (data.done) {
-              setProgressMap((prev) => ({
-                ...prev,
-                [transferId]: { file, progress: 100 },
-              }));
-              setCompletedTransfers((prev) => ({
-                ...prev,
-                [transferId]: true,
-              }));
-              eventSource.close();
-            }
-          };
-
-          eventSource.onerror = (err) => {
-            console.error("SSE error:", err);
-            eventSource.close();
-          };
-        } else {
-          handleSftpFileCopy(
-            file,
-            path,
-            files.currentDirectory,
-            sourceServerId,
-            serverId
-          );
-        }
-      }
+    const fileCountsByTransfer = {};
+    const groupedByServer = {};
+    clipboard.forEach((item) => {
+      const key = item.serverId;
+      if (!groupedByServer[key]) groupedByServer[key] = [];
+      groupedByServer[key].push(item);
     });
 
-    setStartedTransfers((prev) => ({ ...prev, ...newStartedTransfers }));
+    Object.entries(groupedByServer).forEach(([sourceServerId, items]) => {
+      const transferId = crypto.randomUUID();
+      const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
+      fileCountsByTransfer[transferId] = items.length;
+      // Mark all as started
+      const batchTransfer = {};
+      items.forEach(({ file }) => {
+        batchTransfer[`${transferId}-${file}`] = { file, progress: 0 };
+      });
+      setStartedTransfers((prev) => ({ ...prev, ...batchTransfer }));
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.ready) {
+          fetch("/sftp/api/copy-files", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              files: items,
+              newPath: files.currentDirectory,
+              newServerId: serverId,
+              transferId,
+            }),
+          });
+        } else if (data.file && data.percent !== undefined) {
+          setProgressMap((prev) => ({
+            ...prev,
+            [`${transferId}-${data.file}`]: {
+              file: data.file,
+              progress: Math.round(data.percent),
+            },
+          }));
+        } else if (data.done && data.file) {
+          setProgressMap((prev) => ({
+            ...prev,
+            [`${transferId}-${data.file}`]: {
+              file: data.file,
+              progress: 100,
+            },
+          }));
+          setCompletedTransfers((prev) => ({
+            ...prev,
+            [`${transferId}-${data.file}`]: true,
+          }));
+        } else if (data.allDone) {
+          eventSource.close();
+          changeSftpDirectory(serverId, files.currentDirectory);
+          setTimeout(() => {
+            setProgressMap({});
+            setCompletedTransfers({});
+            setStartedTransfers({});
+          }, 400);
+        }
+      };
+      eventSource.onerror = (err) => {
+        console.error("SSE error:", err);
+        eventSource.close();
+      };
+    });
     clearClipboard();
   };
-
-  useEffect(() => {
-    const allIds = Object.keys(progressMap);
-    const doneIds = Object.keys(completedTransfers);
-
-    if (allIds.length > 0 && allIds.length === doneIds.length) {
-      setTimeout(() => {
-        setProgressMap({});
-        setCompletedTransfers({});
-        setStartedTransfers({});
-      }, 400); 
-    }
-  }, [progressMap, completedTransfers]);
 
   if (loading) {
     return (

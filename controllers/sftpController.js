@@ -407,7 +407,7 @@ module.exports = () => {
         client.end();
         progressClients.delete(transferId);
       } else {
-        console.log("no client")
+        console.log("no client");
       }
 
       console.log("Transfer complete");
@@ -417,6 +417,53 @@ module.exports = () => {
     } finally {
       await source.end();
       await dest.end();
+    }
+  };
+
+  const streamFileStfpPair = async (
+    source,
+    dest,
+    sourcePath,
+    destPath,
+    filename,
+    transferId
+  ) => {
+    const passthrough = new PassThrough();
+    try {
+      const { size: fileSize } = await source.stat(sourcePath);
+
+      const prog = progress({
+        length: fileSize,
+        time: 100, // Emit progress every 100ms
+      });
+
+      prog.on("progress", (p) => {
+        const client = progressClients.get(transferId);
+        if (client) {
+          client.write(
+            `data: ${JSON.stringify({
+              file: filename,
+              percent: p.percentage,
+            })}\n\n`
+          );
+        } else console.log(`Progress: ${Math.round(p.percentage)}%`);
+      });
+
+      const download = source.get(sourcePath, passthrough);
+      const upload = dest.put(passthrough.pipe(prog), destPath);
+
+      await Promise.all([download, upload]);
+      const client = progressClients.get(transferId);
+      if (client) {
+        client.write(
+          `data: ${JSON.stringify({ file: filename, done: true })}\n\n`
+        );
+      } else {
+        console.log("no client");
+      }
+    } catch (err) {
+      console.error("Error during SFTP stream:", err);
+      throw err;
     }
   };
 
@@ -443,18 +490,80 @@ module.exports = () => {
         return res.status(400).send("Error copying file");
       }
     } else {
+      let source, dest;
       try {
-        await streamFromSftpToSftp(
-          serverId,
-          cfpath,
-          newServerId,
-          nfpath,
-          transferId
-        );
+        source = await connectToSftp(serverId);
+        dest = await connectToSftp(newServerId);
+        await streamFileStfpPair(source, dest, cfpath, nfpath, transferId);
         res.status(200).send("File streamed successfully");
       } catch (err) {
         res.status(500).send("Streaming failed");
+      } finally {
+        if (source) source.end();
+        if (dest) dest.end();
       }
+    }
+  };
+
+  const sftp_copy_files_batch_json_post = async (req, res, next) => {
+    const { files, newPath, newServerId, transferId } = req.body;
+    const client = progressClients.get(transferId);
+    const grouped = {};
+    for (const item of files) {
+      const key = item.serverId;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    }
+
+    try {
+      for (const [serverId, fileGroup] of Object.entries(grouped)) {
+        let sftpSource, sftpDest;
+
+        if (!newServerId || newServerId === serverId) {
+          // Same server copy
+          sftpSource = await connectToSftp(serverId);
+
+          for (const file of fileGroup) {
+            const sourcePath = path.join(file.path, file.file);
+            const destPath = path.join(newPath, file.file);
+
+            await sftpSource.rcopy(sourcePath, destPath);
+          }
+
+          sftpSource.end();
+        } else {
+          // Cross-server copy
+          sftpSource = await connectToSftp(serverId);
+          sftpDest = await connectToSftp(newServerId);
+
+          for (const file of fileGroup) {
+            const sourcePath = path.join(file.path, file.file);
+            const destPath = path.join(newPath, file.file);
+
+            await streamFileStfpPair(
+              sftpSource,
+              sftpDest,
+              sourcePath,
+              destPath,
+              file.file,
+              transferId
+            );
+          }
+
+          sftpSource.end();
+          sftpDest.end();
+        }
+      }
+      if (client) {
+        client.write(`data: ${JSON.stringify({ allDone: true })}\n\n`);
+        client.end();
+        progressClients.delete(transferId);
+      }
+
+      return res.status(200).send("Batch transfer complete");
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send("Batch transfer failed");
     }
   };
 
@@ -475,5 +584,6 @@ module.exports = () => {
     sftp_rename_file_json_post,
     sftp_copy_file_json_post,
     get_transfer_progress,
+    sftp_copy_files_batch_json_post,
   };
 };
