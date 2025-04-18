@@ -24,7 +24,6 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
-  const [completedTransfers, setCompletedTransfers] = useState({});
 
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const {
@@ -83,74 +82,60 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const handleCut = (filename) => {};
 
   const handlePaste = () => {
-    const fileCountsByTransfer = {};
-    const groupedByServer = {};
-    clipboard.forEach((item) => {
-      const key = item.serverId;
-      if (!groupedByServer[key]) groupedByServer[key] = [];
-      groupedByServer[key].push(item);
+    const transferId = crypto.randomUUID();
+    const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
+  
+    const batchTransfer = {};
+    clipboard.forEach(({ file }) => {
+      batchTransfer[`${transferId}-${file}`] = { file, progress: 0 };
     });
-
-    Object.entries(groupedByServer).forEach(([sourceServerId, items]) => {
-      const transferId = crypto.randomUUID();
-      const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
-      fileCountsByTransfer[transferId] = items.length;
-      // Mark all as started
-      const batchTransfer = {};
-      items.forEach(({ file }) => {
-        batchTransfer[`${transferId}-${file}`] = { file, progress: 0 };
-      });
-      setStartedTransfers((prev) => ({ ...prev, ...batchTransfer }));
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.ready) {
-          fetch("/sftp/api/copy-files", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              files: items,
-              newPath: files.currentDirectory,
-              newServerId: serverId,
-              transferId,
-            }),
-          });
-        } else if (data.file && data.percent !== undefined) {
-          setProgressMap((prev) => ({
-            ...prev,
-            [`${transferId}-${data.file}`]: {
-              file: data.file,
-              progress: Math.round(data.percent),
-            },
-          }));
-        } else if (data.done && data.file) {
-          setProgressMap((prev) => ({
-            ...prev,
-            [`${transferId}-${data.file}`]: {
-              file: data.file,
-              progress: 100,
-            },
-          }));
-          setCompletedTransfers((prev) => ({
-            ...prev,
-            [`${transferId}-${data.file}`]: true,
-          }));
-        } else if (data.allDone) {
-          eventSource.close();
-          changeSftpDirectory(serverId, files.currentDirectory);
-          setTimeout(() => {
-            setProgressMap({});
-            setCompletedTransfers({});
-            setStartedTransfers({});
-          }, 400);
-        }
-      };
-      eventSource.onerror = (err) => {
-        console.error("SSE error:", err);
+    //setStartedTransfers((prev) => ({ ...prev, ...batchTransfer }));
+    setStartedTransfers(batchTransfer);
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+  
+      if (data.ready) {
+        fetch("/sftp/api/copy-files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            files: clipboard, 
+            newPath: files.currentDirectory,
+            newServerId: serverId,
+            transferId,
+          }),
+        });
+      } else if (data.file && data.percent !== undefined) {
+        setProgressMap((prev) => ({
+          ...prev,
+          [`${transferId}-${data.file}`]: {
+            file: data.file,
+            progress: Math.round(data.percent),
+          },
+        }));
+      } else if (data.done && data.file) {
+        setProgressMap((prev) => ({
+          ...prev,
+          [`${transferId}-${data.file}`]: {
+            file: data.file,
+            progress: 100,
+          },
+        }));
+      } else if (data.allDone) {
         eventSource.close();
-      };
-    });
+        changeSftpDirectory(serverId, files.currentDirectory);
+        setTimeout(() => {
+          setProgressMap({});
+          setStartedTransfers({});
+        }, 400);
+      }
+    };
+  
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+      eventSource.close();
+    };
+  
     clearClipboard();
   };
 
