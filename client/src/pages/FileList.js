@@ -15,8 +15,6 @@ import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
 import { useNavigate } from "react-router-dom";
 
-const cache = {};
-
 const FileList = ({ setUser, toast }) => {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("files");
@@ -62,12 +60,6 @@ const FileList = ({ setUser, toast }) => {
 
   const fetchFiles = async (path) => {
     setLoading(true);
-
-    if (cache[path]) {
-      setFileData(cache[path].data);
-      setLoading(false);
-    }
-
     try {
       const response = await fetch(`/api/${path}/`, {
         method: "GET",
@@ -81,10 +73,7 @@ const FileList = ({ setUser, toast }) => {
         navigate("/");
         return;
       }
-
       const data = await response.json();
-
-      cache[path] = { data: data };
       setFileData(data);
     } catch (err) {
       console.error("Error fetching files:", err);
