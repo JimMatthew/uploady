@@ -25,9 +25,9 @@ import { Link } from "react-router-dom";
 import SftpFileFolderView from "./SftpFileFolderViewer";
 import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
-import axios from "axios";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 import FileEdit from "./FileEdit";
+import { SaveServer, DeleteServer, fetchServerStatuses } from "../controllers/StoreServer";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,9 @@ const SFTPApp = ({ toast }) => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState([]);
   const [serverStatuses, setServerStatuses] = useState({});
-
+  const isDesktop = useBreakpointValue({ base: false, lg: true });
+  const bgg = useColorModeValue("gray.50", "gray.800");
+  
   const addTab = (server, type) => {
     const newTab = {
       id: `${server ? server._id : "new-server"}-${type}`,
@@ -83,8 +85,7 @@ const SFTPApp = ({ toast }) => {
     addTab(server, "SSH");
   };
 
-  const isDesktop = useBreakpointValue({ base: false, lg: true });
-  const bgg = useColorModeValue("gray.50", "gray.800");
+  
   useEffect(() => {
     if (token) {
       fetchFiles();
@@ -98,77 +99,13 @@ const SFTPApp = ({ toast }) => {
   };
 
   const handleSaveServer = async (host, username, password) => {
-    const response = await fetch("/sftp/api/save-server", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        host: host,
-        username: username,
-        password: password,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Adding Server",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    await SaveServer({host, username, password, toast});
     fetchFiles();
-    toast({
-      title: "Server created",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-  const fetchStatuses = async (data) => {
-    const statuses = {};
-    console.log("insode");
-    await Promise.all(
-      data.servers.map(async (server) => {
-        try {
-          const response = await axios.get(`/sftp/server-status/${server._id}`);
-          statuses[server._id] = response.data.status;
-        } catch (error) {
-          statuses[server._id] = "Error fetching status";
-        }
-      })
-    );
-    setServerStatuses(statuses);
   };
 
   const deleteServer = async (serverId) => {
-    const response = await fetch("/sftp/api/delete-server", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-
-      body: JSON.stringify({
-        serverId: serverId,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Deleting Server",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    await DeleteServer({serverId : serverId, toast :toast})
     fetchFiles();
-    toast({
-      title: "Server Deleted",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
   const fetchFiles = async () => {
@@ -185,7 +122,7 @@ const SFTPApp = ({ toast }) => {
         setSftpServers(data);
         return data;
       })
-      .then((data) => fetchStatuses(data))
+      .then((data) => fetchServerStatuses({data, setServerStatuses}))
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
