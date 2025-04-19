@@ -366,8 +366,6 @@ module.exports = () => {
     });
   };
 
-  const progress = require("progress-stream");
-
   const streamFileStfpPair = async (
     source,
     dest,
@@ -377,79 +375,44 @@ module.exports = () => {
     transferId
   ) => {
     const passthrough = new PassThrough();
+  
     try {
-      const { size: fileSize } = await source.stat(sourcePath);
+      const { size: totalSize } = await source.stat(sourcePath);
+      let transferred = 0;
+      let lastUpdate = Date.now();
+      // Track the number of bytes as they pass through
+      passthrough.on("data", (chunk) => {
+        transferred += chunk.length;
+        const now = Date.now();
 
-      const prog = progress({
-        length: fileSize,
-        time: 100, // Emit progress every 100ms
+        if (now - lastUpdate > 100) { 
+          lastUpdate = now;
+          const percent = Math.min((transferred / totalSize) * 100, 100);
+          const client = progressClients.get(transferId);
+          if (client) {
+            client.write(
+              `data: ${JSON.stringify({
+                file: filename,
+                percent: percent.toFixed(2),
+              })}\n\n`
+            );
+          }
+        }
       });
-
-      prog.on("progress", (p) => {
-        const client = progressClients.get(transferId);
-        if (client) {
-          client.write(
-            `data: ${JSON.stringify({
-              file: filename,
-              percent: p.percentage,
-            })}\n\n`
-          );
-        } else console.log(`Progress: ${Math.round(p.percentage)}%`);
-      });
-
       const download = source.get(sourcePath, passthrough);
-      const upload = dest.put(passthrough.pipe(prog), destPath);
-
+      const upload = dest.put(passthrough, destPath);
+  
       await Promise.all([download, upload]);
+  
       const client = progressClients.get(transferId);
       if (client) {
         client.write(
           `data: ${JSON.stringify({ file: filename, done: true })}\n\n`
         );
-      } else {
-        console.log("no client");
       }
     } catch (err) {
-      console.error("Error during SFTP stream:", err);
+      console.error("Error during transfer:", err);
       throw err;
-    }
-  };
-
-  const sftp_copy_file_json_post = async (req, res, next) => {
-    const {
-      filename,
-      currentPath,
-      newPath,
-      serverId,
-      newServerId,
-      transferId,
-    } = req.body;
-
-    const cfpath = path.join(currentPath, filename);
-    const nfpath = path.join(newPath, filename);
-    let sftp;
-
-    if (!newServerId) {
-      try {
-        sftp = await connectToSftp(serverId);
-        await sftp.rcopy(cfpath, nfpath);
-        return res.status(200).send();
-      } catch (err) {
-        return res.status(400).send("Error copying file");
-      }
-    } else {
-      let source, dest;
-      try {
-        source = await connectToSftp(serverId);
-        dest = await connectToSftp(newServerId);
-        await streamFileStfpPair(source, dest, cfpath, nfpath, transferId);
-        res.status(200).send("File streamed successfully");
-      } catch (err) {
-        res.status(500).send("Streaming failed");
-      } finally {
-        if (source) source.end();
-        if (dest) dest.end();
-      }
     }
   };
 
@@ -462,7 +425,6 @@ module.exports = () => {
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(item);
     }
-
     try {
       for (const [serverId, fileGroup] of Object.entries(grouped)) {
         let sftpSource, sftpDest;
@@ -530,7 +492,6 @@ module.exports = () => {
     share_sftp_file,
     sftp_download_file,
     sftp_rename_file_json_post,
-    sftp_copy_file_json_post,
     get_transfer_progress,
     sftp_copy_files_batch_json_post,
   };

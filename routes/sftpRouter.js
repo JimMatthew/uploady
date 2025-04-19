@@ -82,12 +82,6 @@ module.exports = function () {
   )
 
   router.post(
-    "/api/copy-file",
-    passport.authenticate("jwt", { session: false }),
-    sftpController.sftp_copy_file_json_post
-  )
-
-  router.post(
     "/api/copy-files",
     sftpController.sftp_copy_files_batch_json_post
   )
