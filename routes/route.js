@@ -1,37 +1,37 @@
 const express = require("express");
 const storageController = require("../controllers/storageController");
-const passport = require("passport");
+const authenticateJWT = require("../middlewares/jwtAuth");
 module.exports = function () {
   const filemanagerController = require("../controllers/fileManagerController")()
   const router = express.Router();
   
   router.get(
     "/api/files/*",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     filemanagerController.list_directory_json_get
   );
 
   router.get(
     "/api//files/*",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     filemanagerController.list_directory_json_get
   );
 
   router.get(
     "/api/files",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     filemanagerController.list_directory_json_get
   );
 
   router.post(
     "/api/copy-file",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.copy_file_json_post
   );
 
   router.post(
     "/api/cut-file",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.cut_file_json_post
   );
 
@@ -39,62 +39,62 @@ module.exports = function () {
   router.get("/share/:token/:filename", filemanagerController.serveSharedFile);
 
   router.get("/api/links",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.file_links_json_get
   );
 
   router.post(
     "/api/share", 
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.generateShareLinkJsonPost
   );
 
   router.post(
     "/api/stop-sharing",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.stop_sharing_json_post
   )
 
   router.post(
     "/api/delete/*",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.delete_file_json_post
   )
 
   router.get(
     "/api/download/*",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.download_file_get
   )
 
   router.post(
     "/api/upload",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     storageController.uploadMiddleware,
     filemanagerController.upload_files_post
   )
 
   router.post(
     "/api/create-folder",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.create_folder_json_post
   )
 
   router.post(
     "/api/delete-folder",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.delete_folder_json_post
   )
 
   router.get(
     "/api/pstats",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.get_performance_stats
   )
 
   router.post(
     "/api/rename-file",
-    passport.authenticate('jwt', { session: false }),
+    authenticateJWT,
     filemanagerController.rename_file_json_post
   )
 

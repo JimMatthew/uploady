@@ -1,155 +1,122 @@
-const express = require("express");
-const path = require("path");
-const passport = require("passport");
-const session = require("express-session");
-const bcrypt = require("bcryptjs");
-const cookieParser = require("cookie-parser");
-const mongoose = require("mongoose");
-const http = require("http");
-const https = require('https');
-const JwtStrategy = require("passport-jwt").Strategy;
-const ExtractJwt = require("passport-jwt").ExtractJwt;
-const jwt = require("jsonwebtoken");
-const WebSocket = require("ws");
-const fs = require("fs");
-const sshSessionHandler = require("./controllers/ssh_session");
 require("dotenv").config();
+const fs = require("fs");
+const http = require("http");
+const https = require("https");
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const crypto = require("crypto");
+const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
+const WebSocket = require("ws");
+const sshSessionHandler = require("./controllers/ssh_session");
+const setupRoutes = require("./routes/route");
+const setupSftpRoutes = require("./routes/sftpRouter");
+
+// ─── Config ─────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3001;
+const USE_HTTPS = process.env.USE_HTTPS === "true";
+const MONGO_URI = process.env.DATABASE;
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const UPLOAD_DIR = path.join(__dirname, "uploads");
+
+// ─── Express App ────────────────────────────────────────────────
+const app = express();
+
+// ─── MongoDB ────────────────────────────────────────────────────
+mongoose.set("strictPopulate", false);
+mongoose.connect(MONGO_URI).catch(console.error);
+
+// ─── Middleware ─────────────────────────────────────────────────
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// ─── Static Files ───────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "client/build")));
+
+// ─── Routes ─────────────────────────────────────────────────────
+app.use("/", setupRoutes(UPLOAD_DIR));
+app.use("/sftp", setupSftpRoutes());
+
+// ─── Auth API ───────────────────────────────────────────────────
+const jwt = require("jsonwebtoken");
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto
+    .pbkdf2Sync(password, salt, 10000, 64, "sha512")
+    .toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, storedHash) {
+  const hash = crypto
+    .pbkdf2Sync(password, salt, 10000, 64, "sha512")
+    .toString("hex");
+  return hash === storedHash;
+}
+const { salt, hash } = hashPassword(process.env.PASSWORD);
 const users = [
   {
     id: 1,
     username: process.env.USERNAME,
-    passwordHash: bcrypt.hashSync(process.env.PASSWORD, 10),
+    passwordSalt: salt,
+    passwordHash: hash,
   },
 ];
-const USE_HTTPS = process.env.USE_HTTPS === "true";
 
-const app = express();
-
-const server = USE_HTTPS
-  ? https.createServer(
-      {
-        key: fs.readFileSync(process.env.HTTPS_KEY),
-        cert: fs.readFileSync(process.env.HTTPS_CERT)
-      },
-      app
-    )
-  : http.createServer(app);
-
-const cors = require("cors");
-const { hostname } = require("os");
-
-app.use(cors());
-const wss = new WebSocket.Server({ server });
-wss.on("connection", (socket) => {
-  sshSessionHandler(socket);
-});
-
-mongoose.set("strictPopulate", false);
-const mongoDB = process.env.DATABASE;
-main().catch((err) => console.log(err));
-async function main() {
-  await mongoose.connect(mongoDB);
-}
-const jwtOptions = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: "your_jwt_secret",
-};
-app.use(
-  session({
-    secret: "secret_key",
-    resave: false,
-    saveUninitialized: true,
-  })
-);
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
-
-passport.use(
-  new JwtStrategy(jwtOptions, (jwtPayload, done) => {
-    const user = users.find((user) => user.id === jwtPayload.id);
-    if (user) {
-      return done(null, user);
-    } else {
-      return done(null, false);
-    }
-  })
-);
-
-// Serialize and deserialize user
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser((id, done) => {
-  const user = users.find((user) => user.id === id);
-  done(null, user);
-});
-
-//routes for file manager
-const routes = require("./routes/route")(path.join(__dirname, "uploads"));
-
-//routes for sftp server manager
-const sftpRouter = require("./routes/sftpRouter")();
-
-app.use("/", routes);
-app.use("/sftp", sftpRouter);
-
-app.post("/apilogin", (req, res) => {
+app.post("/apilogin", async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((user) => user.username === username);
-
-  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+  const user = users.find((u) => u.username === username);
+  if (
+    !user ||
+    !verifyPassword(password, user.passwordSalt, user.passwordHash)
+  ) {
     return res.status(401).json({ message: "Invalid username or password" });
   }
-
-  // If the user is found and password matches, generate a JWT
-  const token = jwt.sign({ id: user.id }, "your_jwt_secret", {
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
     expiresIn: "8h",
-  }); 
-  return res.json({ token });
-});
-
-app.get("/apilogout", (req, res) => {
-  req.logout(() => {
-    return res.status(200).json({ message: "Use logged out" });
   });
+
+  res.json({ token });
 });
 
-app.use(express.static(path.join(__dirname, "client/build")));
-
-// The "catchall" handler: for any request that doesn't match one above, send back index.html.
+// ─── Catch-all ────────────────────────────────────────────
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client/build", "index.html"));
 });
 
-// catch 404 and forward to error handler
+// ─── Error Handling ─────────────────────────────────────────────
 app.use((req, res, next) => {
   const err = new Error("Not Found");
   err.status = 404;
   next(err);
 });
 
-// Error handler middleware
 app.use((err, req, res, next) => {
-  console.error("Error:", err.message); 
-
-  const statusCode = err.status || 500;
-  const message = err.message || "Internal Server Error";
-
-  res.status(statusCode).json({
-    error: message,
-  });
+  console.error("Error:", err.message);
+  res.status(err.status || 500).json({ error: err.message });
 });
 
-const PORT = process.env.PORT || 3001;
+// ─── WebSocket + Server Startup ─────────────────────────────────
+const server = USE_HTTPS
+  ? https.createServer(
+      {
+        key: fs.readFileSync(process.env.HTTPS_KEY),
+        cert: fs.readFileSync(process.env.HTTPS_CERT),
+      },
+      app
+    )
+  : http.createServer(app);
+
+const wss = new WebSocket.Server({ server });
+wss.on("connection", sshSessionHandler);
+
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;

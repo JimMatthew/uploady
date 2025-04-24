@@ -1,78 +1,78 @@
 const express = require("express");
-const passport = require("passport");
 const sftpController = require("../controllers/sftpController")();
+const authenticateJWT = require("../middlewares/jwtAuth");
 
 module.exports = function () {
   const router = express.Router();
 
   router.get("/api/",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_servers_json_get
   )
 
   router.get(
     "/api/connect/:serverId/*?",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_id_list_files_json_get
   );
 
   router.post(
     "/api/renameFile",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_rename_file_json_post
   );
 
   router.post(
     "/api/sharefile",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.share_sftp_file
   )
 
   router.post(
     "/api/upload",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_stream_upload_post
   );
 
   router.get(
     "/api/download-folder/:serverId/*",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_get_archive_folder
   );
 
   router.get(
     "/api/download/:serverId/*",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_stream_download_get
   );
 
   router.post(
     "/api/create-folder",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_create_folder_json_post
   );
 
   router.post(
     "/api/save-server",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_save_server_json_post
   );
 
   router.post(
     "/api/delete-server",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_delete_server__json_post
   );
 
   router.post(
     "/api/delete-file",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_delete_file_json_post
   );
 
   router.post(
     "/api/delete-folder",
-    passport.authenticate("jwt", { session: false }),
+    authenticateJWT,
     sftpController.sftp_delete_folder_json_post
   );
 

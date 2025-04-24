@@ -19,7 +19,7 @@ const ClipboardComponent = ({ handlePaste }) => {
     <Box>
       {clipboard.map((item, index) => (
         <Text key={index} color={bgg} fontWeight="medium">
-          {item.action === "copy" && `📄 Copied: ${item.file}`}
+          {item.action === "copy" && item.isDirectory ? `📁 Copied: ${item.file}`:`📄 Copied: ${item.file}`}
           {item.action === "cut" && `✂️ Cut: ${item.file}`}
         </Text>
       ))}
