@@ -436,6 +436,14 @@ module.exports = () => {
           file.name
         );
       } else if (file.type === "d") {
+        await stream_sftp_folder_to_sftp(
+          source,
+          dest,
+          path.join(sourcePath, file.name),
+          path.join(destPath, file.name),
+          foldername,
+          transferId
+        )
       }
     }
   };
