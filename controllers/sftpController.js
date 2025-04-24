@@ -375,7 +375,7 @@ module.exports = () => {
     transferId
   ) => {
     const passthrough = new PassThrough();
-  
+
     try {
       const { size: totalSize } = await source.stat(sourcePath);
       let transferred = 0;
@@ -385,7 +385,7 @@ module.exports = () => {
         transferred += chunk.length;
         const now = Date.now();
 
-        if (now - lastUpdate > 100) { 
+        if (now - lastUpdate > 100) {
           lastUpdate = now;
           const percent = Math.min((transferred / totalSize) * 100, 100);
           const client = progressClients.get(transferId);
@@ -401,9 +401,9 @@ module.exports = () => {
       });
       const download = source.get(sourcePath, passthrough);
       const upload = dest.put(passthrough, destPath);
-  
+
       await Promise.all([download, upload]);
-  
+
       const client = progressClients.get(transferId);
       if (client) {
         client.write(
@@ -413,6 +413,30 @@ module.exports = () => {
     } catch (err) {
       console.error("Error during transfer:", err);
       throw err;
+    }
+  };
+
+  const stream_sftp_folder_to_sftp = async (
+    source,
+    dest,
+    sourcePath,
+    destPath,
+    foldername,
+    transferId
+  ) => {
+    const files = await source.list(sourcePath);
+    await dest.mkdir(destPath, false);
+    for (const file of files) {
+      if (file.type === "-") {
+        await streamFileStfpPair(
+          source,
+          dest,
+          path.join(sourcePath, file.name),
+          path.join(destPath, file.name),
+          file.name
+        );
+      } else if (file.type === "d") {
+      }
     }
   };
 
@@ -449,15 +473,25 @@ module.exports = () => {
           for (const file of fileGroup) {
             const sourcePath = path.join(file.path, file.file);
             const destPath = path.join(newPath, file.file);
-
-            await streamFileStfpPair(
-              sftpSource,
-              sftpDest,
-              sourcePath,
-              destPath,
-              file.file,
-              transferId
-            );
+            if (file.isDirectory) {
+              await stream_sftp_folder_to_sftp(
+                sftpSource,
+                sftpDest,
+                sourcePath,
+                destPath,
+                file.file,
+                transferId
+              );
+            } else {
+              await streamFileStfpPair(
+                sftpSource,
+                sftpDest,
+                sourcePath,
+                destPath,
+                file.file,
+                transferId
+              );
+            }
           }
 
           sftpSource.end();

@@ -6,6 +6,7 @@ import {
   HStack,
   useColorModeValue,
   Icon,
+  Button,
 } from "@chakra-ui/react";
 import { FaFolder, FaTrash, FaDownload } from "react-icons/fa";
 import { FcFolder } from "react-icons/fc";
@@ -15,6 +16,7 @@ const FolderList = ({
   changeDirectory,
   deleteFolder,
   downloadFolder,
+  handleCopy
 }) => {
   const [folderSortDirection, setFolderSortDirection] = useState("asc");
   const bgg = useColorModeValue("gray.50", "gray.600");
@@ -52,6 +54,12 @@ const FolderList = ({
               <Text fontWeight="medium">{folder.name}</Text>
             </HStack>
             <HStack spacing={2}>
+              <Button
+                size="sm"
+                onClick={(e) => {handleCopy(folder.name); e.stopPropagation()}}
+              >
+                copy
+              </Button>
               <IconButton
                 size="sm"
                 icon={<FaDownload />}

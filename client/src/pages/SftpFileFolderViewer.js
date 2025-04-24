@@ -70,13 +70,23 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     downloadFolder(files.currentDirectory, foldername, serverId);
   };
 
-  const handleCopy = (filename) => {
-    copyFile({
-      file: filename,
-      path: files.currentDirectory,
-      source: "sftp",
-      serverId: serverId,
-    });
+  const handleCopy = (filename, isFolder) => {
+    if (isFolder) {
+      copyFile({
+        file: filename,
+        path: files.currentDirectory,
+        source: "sftp",
+        serverId: serverId,
+        isDirectory: true
+      });
+    } else { 
+      copyFile({
+        file: filename,
+        path: files.currentDirectory,
+        source: "sftp",
+        serverId: serverId,
+      });
+    }
   };
 
   const handleCut = (filename) => {};
@@ -224,6 +234,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           deleteSftpFolder(folder, serverId, files.currentDirectory)
         }
         downloadFolder={(folder) => handleDownloadFolder(folder)}
+        handleCopy={(name) => handleCopy(name, true)}
       />
       {/* Clipboard Copy progress*/}
       {Object.entries(startedTransfers).map(([id, { file }]) => (
