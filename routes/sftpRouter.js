@@ -1,8 +1,8 @@
 const express = require("express");
-const sftpController = require("../controllers/sftpController")();
+const sftpController = require("../controllers/sftpController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 
-module.exports = function () {
+
   const router = express.Router();
 
   router.get("/api/",
@@ -91,5 +91,4 @@ module.exports = function () {
     sftpController.get_transfer_progress
   )
 
-  return router;
-};
+ module.exports = router;

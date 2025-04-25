@@ -38,8 +38,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "client/build")));
 
 // ─── Routes ─────────────────────────────────────────────────────
-app.use("/", setupRoutes(UPLOAD_DIR));
-app.use("/sftp", setupSftpRoutes());
+app.use("/", setupRoutes);
+app.use("/sftp", setupSftpRoutes);
 
 // ─── Auth API ───────────────────────────────────────────────────
 const jwt = require("jsonwebtoken");
