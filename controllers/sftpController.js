@@ -442,6 +442,22 @@ const stream_sftp_folder_to_sftp = async (
   }
 };
 
+const copy_sftp_folder = async (sftpServer, sourcePath, destPath) => {
+  const files = await sftpServer.list(sourcePath);
+  await sftpServer.mkdir(destPath, false);
+  for (const file of files) {
+    if (file.type === "-") {
+      await sftpServer.rcopy(path.join(sourcePath, file.name), path.join(destPath, file.name));
+    } else if (file.type === "d") {
+      await copy_sftp_folder(
+        sftpServer,
+        path.join(sourcePath, file.name),
+        path.join(destPath, file.name)
+      );
+    }
+  }
+};
+
 const sftp_copy_files_batch_json_post = async (req, res, next) => {
   const { files, newPath, newServerId, transferId } = req.body;
   const client = progressClients.get(transferId);
@@ -462,8 +478,11 @@ const sftp_copy_files_batch_json_post = async (req, res, next) => {
         for (const file of fileGroup) {
           const sourcePath = path.join(file.path, file.file);
           const destPath = path.join(newPath, file.file);
-
-          await sftpSource.rcopy(sourcePath, destPath);
+          if (file.isDirectory) {
+            await copy_sftp_folder(sftpSource, sourcePath, destPath);
+          } else {
+            await sftpSource.rcopy(sourcePath, destPath);
+          }
         }
 
         sftpSource.end();
@@ -509,6 +528,7 @@ const sftp_copy_files_batch_json_post = async (req, res, next) => {
     return res.status(200).send("Batch transfer complete");
   } catch (err) {
     console.error(err);
+    console.error("YOU FUCKED UP")
     return res.status(500).send("Batch transfer failed");
   }
 };

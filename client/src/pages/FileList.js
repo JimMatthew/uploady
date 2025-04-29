@@ -69,7 +69,7 @@ const FileList = ({ setUser, toast }) => {
         },
       });
 
-      if (response.status === 401) {
+      if (response.status !== 200) {
         navigate("/");
         return;
       }
