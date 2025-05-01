@@ -4,7 +4,6 @@ const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
 const { execSync } = require("child_process");
-require("dotenv").config();
 
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");

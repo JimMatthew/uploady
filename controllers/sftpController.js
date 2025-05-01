@@ -421,20 +421,16 @@ const stream_sftp_folder_to_sftp = async (
   const files = await source.list(sourcePath);
   await dest.mkdir(destPath, false);
   for (const file of files) {
+    const srcFile = path.join(sourcePath, file.name);
+    const dstFile = path.join(destPath, file.name);
     if (file.type === "-") {
-      await streamFileStfpPair(
-        source,
-        dest,
-        path.join(sourcePath, file.name),
-        path.join(destPath, file.name),
-        file.name
-      );
+      await streamFileStfpPair(source, dest, srcFile, dstFile, file.name);
     } else if (file.type === "d") {
       await stream_sftp_folder_to_sftp(
         source,
         dest,
-        path.join(sourcePath, file.name),
-        path.join(destPath, file.name),
+        srcFile,
+        dstFile,
         foldername,
         transferId
       );
@@ -446,14 +442,12 @@ const copy_sftp_folder = async (sftpServer, sourcePath, destPath) => {
   const files = await sftpServer.list(sourcePath);
   await sftpServer.mkdir(destPath, false);
   for (const file of files) {
+    srcFolder = path.join(sourcePath, file.name);
+    dstFolder = path.join(destPath, file.name);
     if (file.type === "-") {
-      await sftpServer.rcopy(path.join(sourcePath, file.name), path.join(destPath, file.name));
+      await sftpServer.rcopy(srcFolder, dstFolder);
     } else if (file.type === "d") {
-      await copy_sftp_folder(
-        sftpServer,
-        path.join(sourcePath, file.name),
-        path.join(destPath, file.name)
-      );
+      await copy_sftp_folder(sftpServer, srcFolder, dstFolder);
     }
   }
 };
@@ -514,7 +508,6 @@ const sftp_copy_files_batch_json_post = async (req, res, next) => {
             );
           }
         }
-
         sftpSource.end();
         sftpDest.end();
       }
@@ -528,7 +521,7 @@ const sftp_copy_files_batch_json_post = async (req, res, next) => {
     return res.status(200).send("Batch transfer complete");
   } catch (err) {
     console.error(err);
-    console.error("YOU FUCKED UP")
+    console.error("YOU FUCKED UP");
     return res.status(500).send("Batch transfer failed");
   }
 };

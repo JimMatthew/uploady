@@ -71,22 +71,13 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   };
 
   const handleCopy = (filename, isFolder) => {
-    if (isFolder) {
-      copyFile({
-        file: filename,
-        path: files.currentDirectory,
-        source: "sftp",
-        serverId: serverId,
-        isDirectory: true
-      });
-    } else { 
-      copyFile({
-        file: filename,
-        path: files.currentDirectory,
-        source: "sftp",
-        serverId: serverId,
-      });
-    }
+    copyFile({
+      file: filename,
+      path: files.currentDirectory,
+      source: "sftp",
+      serverId: serverId,
+      ...(isFolder && { isDirectory: true })
+    });
   };
 
   const handleCut = (filename) => {};
