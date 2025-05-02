@@ -27,7 +27,11 @@ import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 import FileEdit from "./FileEdit";
-import { SaveServer, DeleteServer, fetchServerStatuses } from "../controllers/StoreServer";
+import {
+  SaveServer,
+  DeleteServer,
+  fetchServerStatuses,
+} from "../controllers/StoreServer";
 const SFTPApp = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
@@ -37,24 +41,12 @@ const SFTPApp = ({ toast }) => {
   const [serverStatuses, setServerStatuses] = useState({});
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const bgg = useColorModeValue("gray.50", "gray.800");
-  
-  const addTab = (server, type) => {
+
+  const addTabItem = ({ id, label, item }) => {
     const newTab = {
-      id: `${server ? server._id : "new-server"}-${type}`,
-      label:
-        type === "Add Server" ? "Add New Server" : `${server.host} - ${type}`,
-      content:
-        type === "SFTP" ? (
-          <SftpFileFolderView
-            serverId={server._id}
-            toast={toast}
-            openFile={handleOpenFile}
-          />
-        ) : type === "SSH" ? (
-          <SshConsole serverId={server._id} />
-        ) : (
-          <AddServer handleSaveServer={handleSaveServer} />
-        ),
+      id: id,
+      label: label,
+      content: item,
     };
     setTabs((prevTabs) => [...prevTabs, newTab]);
   };
@@ -66,10 +58,10 @@ const SFTPApp = ({ toast }) => {
   };
 
   const handleOpenFile = async (serverId, currentDirectory, filename) => {
-    const newTab = {
+    addTabItem({
       id: filename,
       label: filename,
-      content: (
+      item: (
         <FileEdit
           serverId={serverId}
           currentDirectory={currentDirectory}
@@ -77,15 +69,25 @@ const SFTPApp = ({ toast }) => {
           toast={toast}
         />
       ),
-    };
-    setTabs((prevTabs) => [...prevTabs, newTab]);
+    });
   };
 
   const handleSshLaunch = (server) => {
-    addTab(server, "SSH");
+    addTabItem({
+      id: server._id,
+      label: `${server.host} - SSH`,
+      item: <SshConsole serverId={server._id} />,
+    });
   };
 
-  
+  const handleNewServer = () => {
+    addTabItem({
+      id: "new",
+      label: "New Server",
+      item: <AddServer handleSaveServer={handleSaveServer} />,
+    });
+  };
+
   useEffect(() => {
     if (token) {
       fetchFiles();
@@ -95,16 +97,26 @@ const SFTPApp = ({ toast }) => {
   }, []);
 
   const handleConnect = async (server) => {
-    addTab(server, "SFTP");
+    addTabItem({
+      id: server._id,
+      label: `${server.host} - SFTP`,
+      item: (
+        <SftpFileFolderView
+          serverId={server._id}
+          toast={toast}
+          openFile={handleOpenFile}
+        />
+      ),
+    });
   };
 
   const handleSaveServer = async (host, username, password) => {
-    await SaveServer({host, username, password, toast});
+    await SaveServer({ host, username, password, toast });
     fetchFiles();
   };
 
   const deleteServer = async (serverId) => {
-    await DeleteServer({serverId : serverId, toast :toast})
+    await DeleteServer({ serverId: serverId, toast: toast });
     fetchFiles();
   };
 
@@ -122,7 +134,7 @@ const SFTPApp = ({ toast }) => {
         setSftpServers(data);
         return data;
       })
-      .then((data) => fetchServerStatuses({data, setServerStatuses}))
+      .then((data) => fetchServerStatuses({ data, setServerStatuses }))
       .then(setLoading(false))
       .catch((err) => console.error("Error fetching files:", err));
   };
@@ -166,7 +178,7 @@ const SFTPApp = ({ toast }) => {
               <Button
                 colorScheme="blue"
                 width="100%"
-                onClick={() => addTab("", "Add Server")}
+                onClick={() => handleNewServer()}
               >
                 Add New Server
               </Button>
