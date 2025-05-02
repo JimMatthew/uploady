@@ -42,11 +42,11 @@ const SFTPApp = ({ toast }) => {
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const bgg = useColorModeValue("gray.50", "gray.800");
 
-  const addTabItem = ({ id, label, item }) => {
+  const addTabItem = ({ id, label, content }) => {
     const newTab = {
-      id: id,
-      label: label,
-      content: item,
+      id,
+      label,
+      content,
     };
     setTabs((prevTabs) => [...prevTabs, newTab]);
   };
@@ -61,7 +61,7 @@ const SFTPApp = ({ toast }) => {
     addTabItem({
       id: filename,
       label: filename,
-      item: (
+      content: (
         <FileEdit
           serverId={serverId}
           currentDirectory={currentDirectory}
@@ -76,7 +76,7 @@ const SFTPApp = ({ toast }) => {
     addTabItem({
       id: server._id,
       label: `${server.host} - SSH`,
-      item: <SshConsole serverId={server._id} />,
+      content: <SshConsole serverId={server._id} />,
     });
   };
 
@@ -84,7 +84,7 @@ const SFTPApp = ({ toast }) => {
     addTabItem({
       id: "new",
       label: "New Server",
-      item: <AddServer handleSaveServer={handleSaveServer} />,
+      content: <AddServer handleSaveServer={handleSaveServer} />,
     });
   };
 
@@ -100,7 +100,7 @@ const SFTPApp = ({ toast }) => {
     addTabItem({
       id: server._id,
       label: `${server.host} - SFTP`,
-      item: (
+      content: (
         <SftpFileFolderView
           serverId={server._id}
           toast={toast}
