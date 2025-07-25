@@ -99,7 +99,6 @@ const sftp_get_archive_folder = async (req, res) => {
 const share_sftp_file = async (req, res, next) => {
   const { serverId, remotePath } = req.body;
   const token = crypto.randomBytes(5).toString("hex");
-  console.log(serverId + remotePath);
   const fileName = remotePath.split("/").pop();
   const filePath = remotePath ? remotePath : "/";
   const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
