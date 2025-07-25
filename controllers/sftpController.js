@@ -101,7 +101,7 @@ const share_sftp_file = async (req, res, next) => {
   const token = crypto.randomBytes(5).toString("hex");
   console.log(serverId + remotePath);
   const fileName = remotePath.split("/").pop();
-  filePath = remotePath ? remotePath : "/";
+  const filePath = remotePath ? remotePath : "/";
   const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
   const sharedFile = new SharedFile({
     fileName,
