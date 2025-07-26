@@ -96,7 +96,7 @@ const serveSharedFile = async (req, res, next) => {
   const sharedFile = await SharedFile.findOne({ token });
 
   if (!sharedFile) return res.status(404).send("File not found");
-  if (sharedFile && sharedFile.isRemote) {
+  if (sharedFile.isRemote) {
     const remotePath = sharedFile.filePath;
     const serverId = sharedFile.serverId;
     if (!serverId || !remotePath) {
@@ -104,13 +104,7 @@ const serveSharedFile = async (req, res, next) => {
     }
     sftpController.sftp_download_file(serverId, remotePath, res);
   } else {
-    const filePath = sharedFile
-      ? path.join(uploadsDir, sharedFile.filePath)
-      : null;
-    if (!filePath) {
-      return next({ message: "File not Found", status: 404 });
-    }
-
+    const filePath = path.join(uploadsDir, sharedFile.filePath);
     const absoluteFilePath = path.join(path.dirname(filePath), filename);
     if (!fs.existsSync(absoluteFilePath)) {
       return res.status(404).send("File not found");
