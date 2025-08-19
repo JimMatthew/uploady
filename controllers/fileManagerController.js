@@ -3,6 +3,7 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
+const SftpServer = require("../models/SftpServer");
 const { execSync } = require("child_process");
 
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -181,9 +182,32 @@ const getDirectoryContents_get = (dirPath) => {
   return { files, folders };
 };
 
+/*
+  Returns a list of all shared links
+*/
 const file_links_json_get = async (req, res) => {
-  const links = await SharedFile.find();
-  res.json({ links });
+  try {
+    const links = await SharedFile.find();
+    const servers = await SftpServer.find().select("_id host"); 
+
+    const serverMap = servers.reduce((acc, server) => {
+      acc[server._id.toString()] = server.host;
+      return acc;
+    }, {});
+
+    const linksWithNames = links.map(link => {
+      const linkObj = link.toObject(); 
+      if (link.serverId && serverMap[link.serverId.toString()]) {
+        linkObj.servername = serverMap[link.serverId.toString()];
+      }
+      return linkObj;
+    });
+
+    res.json({ links: linksWithNames });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 };
 
 /*
