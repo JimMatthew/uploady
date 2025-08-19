@@ -27,6 +27,7 @@ import SshConsole from "./SshConsole";
 import AddServer from "../components/AddServer";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 import FileEdit from "./FileEdit";
+import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
   DeleteServer,
@@ -41,7 +42,7 @@ const SFTPApp = ({ toast }) => {
   const [serverStatuses, setServerStatuses] = useState({});
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const bgg = useColorModeValue("gray.50", "gray.800");
-
+  const navigate = useNavigate();
   const addTabItem = ({ id, label, content }) => {
     const newTab = {
       id,
@@ -92,6 +93,7 @@ const SFTPApp = ({ toast }) => {
     if (token) {
       fetchFiles();
     } else {
+      navigate("/");
       console.error("No token found");
     }
   }, []);
