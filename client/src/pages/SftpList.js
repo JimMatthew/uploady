@@ -123,22 +123,31 @@ const SFTPApp = ({ toast }) => {
   };
 
   const fetchFiles = async () => {
-    setLoading(true);
-    fetch("/sftp/api/", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setSftpServers(data);
-        return data;
-      })
-      .then((data) => fetchServerStatuses({ data, setServerStatuses }))
-      .then(setLoading(false))
-      .catch((err) => console.error("Error fetching files:", err));
+    try {
+      setLoading(true);
+
+      const res = await fetch("/sftp/api/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.status !== 200) {
+        navigate("/");
+        return;
+      }
+
+      const data = await res.json();
+      setSftpServers(data);
+
+      await fetchServerStatuses({ data, setServerStatuses });
+    } catch (err) {
+      console.error("Error fetching files:", err);
+    } finally {
+      setLoading(false);
+    }
   };
   if (loading || !sftpServers) return <div>Loading...</div>;
 
