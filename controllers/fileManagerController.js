@@ -188,22 +188,7 @@ const getDirectoryContents_get = (dirPath) => {
 const file_links_json_get = async (req, res) => {
   try {
     const links = await SharedFile.find();
-    const servers = await SftpServer.find().select("_id host"); 
-
-    const serverMap = servers.reduce((acc, server) => {
-      acc[server._id.toString()] = server.host;
-      return acc;
-    }, {});
-
-    const linksWithNames = links.map(link => {
-      const linkObj = link.toObject(); 
-      if (link.serverId && serverMap[link.serverId.toString()]) {
-        linkObj.servername = serverMap[link.serverId.toString()];
-      }
-      return linkObj;
-    });
-
-    res.json({ links: linksWithNames });
+    res.json({ links });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

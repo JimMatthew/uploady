@@ -102,6 +102,8 @@ const share_sftp_file = async (req, res, next) => {
   const fileName = remotePath.split("/").pop();
   const filePath = remotePath ? remotePath : "/";
   const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
+  const server = await SftpServer.findById(serverId);
+
   const sharedFile = new SharedFile({
     fileName,
     filePath,
@@ -109,6 +111,7 @@ const share_sftp_file = async (req, res, next) => {
     token,
     isRemote: true,
     serverId,
+    ... (server && { serverName: server.host })
   });
 
   await sharedFile.save();
