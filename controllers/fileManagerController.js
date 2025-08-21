@@ -3,6 +3,7 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
+const SftpServer = require("../models/SftpServer");
 const { execSync } = require("child_process");
 
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -182,8 +183,14 @@ const getDirectoryContents_get = (dirPath) => {
 };
 
 const file_links_json_get = async (req, res) => {
-  const links = await SharedFile.find();
-  res.json({ links });
+  try {
+    const links = await SharedFile.find();
+
+    res.json({ links });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 };
 
 /*

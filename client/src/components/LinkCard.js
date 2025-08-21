@@ -45,7 +45,7 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
       </Text>
       <Text>
         {linkItem.isRemote && (
-          <Text color="gray.400"> remote server: {linkItem.serverId}</Text>
+          <Text color="gray.400"> remote server: {linkItem.serverName}</Text>
         )}
       </Text>
 
