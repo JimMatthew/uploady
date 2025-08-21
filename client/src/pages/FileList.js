@@ -13,74 +13,21 @@ import SharedLinks from "../components/SharedLinks";
 import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
-import { useNavigate } from "react-router-dom";
+import { useFileListPane } from "../hooks/useFileList";
 
 const FileList = ({ setUser, toast }) => {
-  const [fileData, setFileData] = useState(null);
-  const [currentPath, setCurrentPath] = useState("files");
-  const token = localStorage.getItem("token");
-  const [loading, setLoading] = useState(true);
-  const [links, setLinks] = useState([]);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (token) {
-      fetchFiles(currentPath);
-      setLoading(false);
-    } else {
-      navigate("/");
-      console.error("No token found");
-    }
-  }, [currentPath, token]);
+  const {
+    fileData,
+    setCurrentPath,
+    loading,
+    links,
+    handleFolderClick,
+    reload,
+    fetchLinks
+  } = useFileListPane();
 
-  const handleFolderClick = (folderName) => {
-    setCurrentPath((prevPath) => `${prevPath}/${folderName}`);
-  };
-
-  const reload = () => {
-    fetchLinks();
-    fetchFiles(currentPath);
-  };
-
-  const fetchLinks = () => {
-    fetch("/api/links", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setLinks(data.links);
-      })
-      .catch((err) => {
-        console.error("Error fetching shared links", err);
-      });
-  };
-
-  const fetchFiles = async (path) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/${path}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status !== 200) {
-        navigate("/");
-        return;
-      }
-      const data = await response.json();
-      setFileData(data);
-    } catch (err) {
-      console.error("Error fetching files:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
   const bgg = useColorModeValue("white", "gray.700");
   if (loading || !fileData)
     return (
