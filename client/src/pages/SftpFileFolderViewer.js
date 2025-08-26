@@ -12,7 +12,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
 import CreateFolderComponent from "../components/CreateFolderComponent";
-import FolderListSftp from "../components/FolderListSftp";
+import FolderListSftp from "../components/FolderList";
 import FileListSftp from "../components/FileListSftp";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 

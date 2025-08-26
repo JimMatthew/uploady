@@ -10,7 +10,7 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
 import FileListFile from "../components/FileListFiles";
-import FolderListFile from "../components/FolderListFiles";
+import FolderList from "../components/FolderList";
 const FileDisplay = ({
   data,
   onFolderClick,
@@ -69,13 +69,12 @@ const FileDisplay = ({
 
       {/* Folder and File Display */}
       <VStack spacing={6} align="stretch">
-        <FolderListFile
-          folders={folders}
-          rp={rp}
-          onFolderClick={onFolderClick}
-          handleDeleteFolder={handleDeleteFolder}
+        <FolderList 
+        folders={folders}
+        changeDirectory={onFolderClick}
+        deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
         />
-
+        
         <FileListFile
           files={files}
           rp={rp}

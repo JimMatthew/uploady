@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   useColorModeValue,
 } from "@chakra-ui/react";
 import SortComponent from "./SortComponent";
 import FolderItem from "./FolderItem";
-const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
-  const bgg = useColorModeValue("white", "gray.800");
+const FolderList = ({
+  folders,
+  changeDirectory,
+  deleteFolder,
+  downloadFolder,
+  handleCopy
+}) => {
   const [folderSortDirection, setFolderSortDirection] = useState("asc");
+  const bgg = useColorModeValue("gray.50", "gray.600");
 
   const toggleFolderSort = () =>
     setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -19,23 +25,24 @@ const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
         : b.name.localeCompare(a.name)
     );
   }, [folders, folderSortDirection]);
-
   return (
-    <Box bg={bgg}>
+    <Box mb={8}>
       <SortComponent
         header="folders"
         onToggle={toggleFolderSort}
         sortDirection={folderSortDirection}
       />
-      {sortedfolders &&
-        sortedfolders.length > 0 &&
-        sortedfolders.map((folder, index) => (
-           <FolderItem 
-           folder={folder}
-           changeDirectory={() => onFolderClick(folder.name)}
-           deleteFolder={() => handleDeleteFolder(folder.name, rp)}
-           />
+      <Box>
+        {sortedfolders.map((folder, index) => (
+          <FolderItem 
+            folder={folder}
+            changeDirectory={() => changeDirectory(folder.name)}
+            {...(handleCopy && { handleCopy: () => handleCopy(folder.name) })}
+            {...(downloadFolder && { downloadFolder : () => downloadFolder(folder.name)})}
+            deleteFolder={() => deleteFolder(folder.name)}
+          />
         ))}
+      </Box>
     </Box>
   );
 };
