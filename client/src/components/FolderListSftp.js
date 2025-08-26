@@ -1,16 +1,10 @@
 import React, { useState, useMemo } from "react";
 import {
   Box,
-  Text,
-  IconButton,
-  HStack,
   useColorModeValue,
-  Icon,
-  Button,
 } from "@chakra-ui/react";
-import { FaFolder, FaTrash, FaDownload } from "react-icons/fa";
-import { FcFolder } from "react-icons/fc";
 import SortComponent from "./SortComponent";
+import FolderItem from "./FolderItem";
 const FolderList = ({
   folders,
   changeDirectory,
@@ -40,50 +34,13 @@ const FolderList = ({
       />
       <Box>
         {sortedfolders.map((folder, index) => (
-          <HStack
-            key={index}
-            justify="space-between"
-            p={4}
-            borderWidth="1px"
-            borderRadius="md"
-            _hover={{ bg: bgg, cursor: "pointer" }}
-            onClick={() => changeDirectory(folder.name)}
-          >
-            <HStack spacing={2}>
-              <Icon as={FcFolder} boxSize={6} />
-              <Text fontWeight="medium">{folder.name}</Text>
-            </HStack>
-            <HStack spacing={2}>
-              <Button
-                size="sm"
-                onClick={(e) => {handleCopy(folder.name); e.stopPropagation()}}
-              >
-                copy
-              </Button>
-              <IconButton
-                size="sm"
-                icon={<FaDownload />}
-                aria-label="download Folder"
-                onClick={(e) => {
-                  downloadFolder(folder.name);
-                  e.stopPropagation();
-                }}
-                variant="ghost"
-                colorScheme="blue"
-              />
-              <IconButton
-                size="sm"
-                icon={<FaTrash />}
-                aria-label="Delete Folder"
-                onClick={(e) => {
-                  deleteFolder(folder.name);
-                  e.stopPropagation();
-                }}
-                variant="ghost"
-                colorScheme="red"
-              />
-            </HStack>
-          </HStack>
+          <FolderItem 
+            folder={folder}
+            changeDirectory={changeDirectory}
+            handleCopy={handleCopy}
+            downloadFolder={downloadFolder}
+            deleteFolder={deleteFolder}
+          />
         ))}
       </Box>
     </Box>
