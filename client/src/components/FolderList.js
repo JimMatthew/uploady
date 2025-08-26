@@ -1,8 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Box,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import SortComponent from "./SortComponent";
 import FolderItem from "./FolderItem";
 const FolderList = ({
@@ -13,7 +10,6 @@ const FolderList = ({
   handleCopy
 }) => {
   const [folderSortDirection, setFolderSortDirection] = useState("asc");
-  const bgg = useColorModeValue("gray.50", "gray.600");
 
   const toggleFolderSort = () =>
     setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
