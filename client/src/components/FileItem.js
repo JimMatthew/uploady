@@ -15,6 +15,7 @@ export default function FileItem({
   onShare,
   onDelete,
   onStartRename,
+  onOpenFile
 }) {
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg" transition="all 0.2s">
@@ -48,6 +49,7 @@ export default function FileItem({
               <MenuItem onClick={onShare}>Share</MenuItem>
               <MenuItem onClick={onStartRename}>Rename</MenuItem>
               <MenuItem onClick={onDelete}>Delete</MenuItem>
+              {onOpenFile && <MenuItem onClick={onOpenFile}> Open File</MenuItem>}
             </MenuList>
           </Menu>
         )}
