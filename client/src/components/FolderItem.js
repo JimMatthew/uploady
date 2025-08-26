@@ -25,7 +25,7 @@ export default function FolderItem({
             borderWidth="1px"
             borderRadius="md"
             _hover={{ bg: bgg, cursor: "pointer" }}
-            onClick={() => changeDirectory(folder.name)}
+            onClick={() => changeDirectory()}
         >
             <HStack spacing={2}>
                 <Icon as={FcFolder} boxSize={6} />
@@ -35,7 +35,7 @@ export default function FolderItem({
                 {handleCopy &&
                     <Button
                         size="sm"
-                        onClick={(e) => { handleCopy(folder.name); e.stopPropagation() }}
+                        onClick={(e) => { handleCopy(); e.stopPropagation() }}
                     >
                         copy
                     </Button>}
@@ -45,7 +45,7 @@ export default function FolderItem({
                         icon={<FaDownload />}
                         aria-label="download Folder"
                         onClick={(e) => {
-                            downloadFolder(folder.name);
+                            downloadFolder();
                             e.stopPropagation();
                         }}
                         variant="ghost"
@@ -57,7 +57,7 @@ export default function FolderItem({
                     icon={<FaTrash />}
                     aria-label="Delete Folder"
                     onClick={(e) => {
-                        deleteFolder(folder.name);
+                        deleteFolder();
                         e.stopPropagation();
                     }}
                     variant="ghost"

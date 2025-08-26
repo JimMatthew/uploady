@@ -36,10 +36,10 @@ const FolderList = ({
         {sortedfolders.map((folder, index) => (
           <FolderItem 
             folder={folder}
-            changeDirectory={changeDirectory}
-            handleCopy={handleCopy}
-            downloadFolder={downloadFolder}
-            deleteFolder={deleteFolder}
+            changeDirectory={() => changeDirectory(folder.name)}
+            handleCopy={() => handleCopy(folder.name)}
+            downloadFolder={() => downloadFolder(folder.name)}
+            deleteFolder={() => deleteFolder(folder.name)}
           />
         ))}
       </Box>
