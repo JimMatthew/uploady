@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
-  HStack,
-  Text,
-  Button,
-  Icon,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { FcFolder } from "react-icons/fc";
 import SortComponent from "./SortComponent";
 import FolderItem from "./FolderItem";
 const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
   const bgg = useColorModeValue("white", "gray.800");
-  const hvr = useColorModeValue("gray.50", "gray.700");
   const [folderSortDirection, setFolderSortDirection] = useState("asc");
 
   const toggleFolderSort = () =>
@@ -36,13 +30,11 @@ const FolderList = ({ folders, rp, onFolderClick, handleDeleteFolder }) => {
       {sortedfolders &&
         sortedfolders.length > 0 &&
         sortedfolders.map((folder, index) => (
-          
            <FolderItem 
            folder={folder}
            changeDirectory={() => onFolderClick(folder.name)}
            deleteFolder={() => handleDeleteFolder(folder.name, rp)}
            />
-          
         ))}
     </Box>
   );
