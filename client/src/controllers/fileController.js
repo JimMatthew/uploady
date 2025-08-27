@@ -47,6 +47,33 @@ const FileController = ({ toast, onRefresh }) => {
     }
   }
 
+  const handleFolderCopy = async(folderName, currentPath, newPath) => {
+    try {
+      const response = await apiRequest('/api/copy-folder', {
+        method: "Post",
+        body: JSON.stringify({ 
+          folderName,
+          currentPath,
+          newPath
+        })
+      })
+      onRefresh(newPath);
+      toast({
+        title: "File copied",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch(err) {
+      toast({
+        title: "Error copying file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
+
   const handleFileCut = async(filename, currentPath, newPath) => {
     try {
       const response = await apiRequest('/api/cut-file', {
@@ -232,7 +259,8 @@ const FileController = ({ toast, onRefresh }) => {
     createFolder,
     handleFileCopy, 
     handleFileCut,
-    handleRenameFile
+    handleRenameFile,
+    handleFolderCopy
   };
 };
 

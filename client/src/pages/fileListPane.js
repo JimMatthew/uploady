@@ -11,6 +11,7 @@ import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
 import FileListFile from "../components/FileListFiles";
 import FolderList from "../components/FolderList";
+import { useClipboard } from "../contexts/ClipboardContext";
 const FileDisplay = ({
   data,
   onFolderClick,
@@ -29,11 +30,22 @@ const FileDisplay = ({
     createFolder,
     handleFileCopy,
     handleFileCut,
-    handleRenameFile
+    handleRenameFile,
+    handleFolderCopy
   } = fileController({ toast, onRefresh });
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
+
+  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
+  const handleCopy = (filename, isFolder) => {
+        copyFile({
+            file: filename,
+            path: rp,
+            source: "local",
+            ...(isFolder && { isDirectory: true })
+        });
+    };
   //const isMobile = useBreakpointValue({ base: true, md: false });
   return (
     <Box
@@ -73,6 +85,7 @@ const FileDisplay = ({
         folders={folders}
         changeDirectory={onFolderClick}
         deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
+        handleCopy={(folder) => handleCopy(folder, true)}
         />
         
         <FileListFile
@@ -84,6 +97,7 @@ const FileDisplay = ({
           handleFileCopy={handleFileCopy}
           handleFileCut={handleFileCut}
           handleRenameFile={handleRenameFile}
+          handleFolderCopy={handleFolderCopy}
         />
       </VStack>
     </Box>

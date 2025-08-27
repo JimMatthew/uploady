@@ -5,6 +5,7 @@ export function useFileList(files, rp, {
   handleFileCopy,
   handleFileCut,
   handleRenameFile,
+  handleFolderCopy
 }) {
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const [showRenameInput, setShowRenameInput] = useState(false);
@@ -49,8 +50,14 @@ export function useFileList(files, rp, {
   }
 
   function handlePaste() {
-    clipboard.forEach(({ file, path, action }) => {
-      if (action === "copy") handleFileCopy(file, path, rp);
+    clipboard.forEach(({ file, path, action, isDirectory }) => {
+      if (action === "copy") {
+        if (isDirectory) {
+          handleFolderCopy(file, path, rp)
+        } else {
+        handleFileCopy(file, path, rp);
+        }
+      }
       else if (action === "cut") handleFileCut(file, path, rp);
     });
     clearClipboard();

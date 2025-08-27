@@ -30,6 +30,12 @@ router.post(
 );
 
 router.post(
+  "/api/copy-folder",
+  authenticateJWT,
+  filemanagerController.copy_folder_json_post
+)
+
+router.post(
   "/api/cut-file",
   authenticateJWT,
   filemanagerController.cut_file_json_post
