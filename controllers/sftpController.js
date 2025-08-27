@@ -64,10 +64,12 @@ const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
   for (const item of folderContents) {
     const itemPath = `${folderPath}/${item.name}`;
     const zipPath = `${zipFolderPath}/${item.name}`;
-
+    
     if (item.type === "-") {
+      if (item.size == 0) {
+        continue;
+      }
       const stream = await sftp.get(itemPath);
-
       archive.append(stream || Buffer.alloc(0), { name: zipPath });
       //archive.append(stream, { name: zipPath });
     } else if (item.type === "d") {
