@@ -274,6 +274,24 @@ const copy_file_json_post = async (req, res, next) => {
   }
 };
 
+const copy_folder_json_post = async (req, res, next) => {
+  try {
+    const { currentPath, newPath } = req.body;
+    const { files, folders } = getDirectoryContents_get(currentPath);
+    files.forEach(async (file) => {
+      
+      const cfpath = path.join(uploadsDir, currentPath, filename);
+      const nfpath = path.join(uploadsDir, newPath, filename);
+
+
+      await fs.promises.copyFile(cfpath, nfpath);
+      const nfoldpath = path.join(uploadsDir, newPath, )
+    })
+  } catch (err) {
+    return next({ message: "Error copying folder", status: 404 })
+  }
+}
+
 const cut_file_json_post = async (req, res, next) => {
   try {
     const { filename, currentPath, newPath } = req.body;
