@@ -41,7 +41,6 @@ const SFTPApp = ({ toast }) => {
   } = useSftpList({ toast });
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const bgg = useColorModeValue("gray.50", "gray.800");
-
   if (loading || !sftpServers) return <div>Loading...</div>;
 
   return (

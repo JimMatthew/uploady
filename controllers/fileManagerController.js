@@ -182,10 +182,12 @@ const getDirectoryContents_get = (dirPath) => {
   return { files, folders };
 };
 
+/*
+  Returns a list of all shared links
+*/
 const file_links_json_get = async (req, res) => {
   try {
     const links = await SharedFile.find();
-
     res.json({ links });
   } catch (err) {
     console.error(err);
