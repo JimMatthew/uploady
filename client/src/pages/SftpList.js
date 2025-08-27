@@ -20,7 +20,6 @@ import { Link } from "react-router-dom";
 import { useSftpList } from "../hooks/useSftpList";
 import ServerCard from "../components/ServerCard";
 const SFTPApp = ({ toast }) => {
-
   const {
     loading,
     sftpServers,
@@ -32,7 +31,7 @@ const SFTPApp = ({ toast }) => {
     handleNewServer,
     handleSshLaunch,
     deleteServer,
-    handleConnect
+    handleConnect,
   } = useSftpList({ toast });
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const bgg = useColorModeValue("gray.50", "gray.800");
@@ -84,13 +83,13 @@ const SFTPApp = ({ toast }) => {
               {/* List of Servers */}
               {sftpServers.servers.length > 0 ? (
                 sftpServers.servers.map((server) => (
-                 <ServerCard 
-                  server={server}
-                  serverStatuses={serverStatuses}
-                  handleConnect={handleConnect}
-                  handleSshLaunch={handleSshLaunch}
-                  deleteServer={deleteServer}
-                 />
+                  <ServerCard
+                    server={server}
+                    serverStatuses={serverStatuses}
+                    handleConnect={handleConnect}
+                    handleSshLaunch={handleSshLaunch}
+                    deleteServer={deleteServer}
+                  />
                 ))
               ) : (
                 <Text color="gray.500">No servers available.</Text>

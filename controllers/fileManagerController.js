@@ -280,24 +280,30 @@ const copy_file_json_post = async (req, res, next) => {
   Recursively copies folderName from currentPath to newPath
 */
 const copy_folder = async (folderName, currentPath, newPath) => {
-  const { files, folders } = getDirectoryContents_get(path.join(uploadsDir, currentPath, folderName));
-  const newp = path.join(uploadsDir, newPath, folderName)
+  const { files, folders } = getDirectoryContents_get(
+    path.join(uploadsDir, currentPath, folderName)
+  );
+  const newp = path.join(uploadsDir, newPath, folderName);
 
   await fs.promises.mkdir(newp);
-  
+
   files.forEach(async (file) => {
-    const cfpath = path.join(uploadsDir, path.join(currentPath, folderName), file.name);
+    const cfpath = path.join(
+      uploadsDir,
+      path.join(currentPath, folderName),
+      file.name
+    );
     const nfpath = path.join(newp, file.name);
     await fs.promises.copyFile(cfpath, nfpath);
-  })
-  folders.forEach(async folder => {
+  });
+  folders.forEach(async (folder) => {
     copy_folder(
       folder.name,
       path.join(currentPath, folderName),
       path.join(newPath, folderName)
-    )
-  })
-}
+    );
+  });
+};
 
 const copy_folder_json_post = async (req, res, next) => {
   try {
@@ -305,9 +311,9 @@ const copy_folder_json_post = async (req, res, next) => {
     await copy_folder(folderName, currentPath, newPath);
     res.status(200).json({ message: "File moved" });
   } catch (err) {
-    return next({ message: "Error copying folder", status: 404 })
+    return next({ message: "Error copying folder", status: 404 });
   }
-}
+};
 
 const cut_file_json_post = async (req, res, next) => {
   try {
@@ -352,5 +358,5 @@ module.exports = {
   copy_file_json_post,
   cut_file_json_post,
   rename_file_json_post,
-  copy_folder_json_post
+  copy_folder_json_post,
 };

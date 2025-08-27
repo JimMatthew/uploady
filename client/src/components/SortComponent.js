@@ -1,11 +1,7 @@
 import React from "react";
-import {
-  HStack,
-  Text,
-  Button,
-} from "@chakra-ui/react";
+import { HStack, Text, Button } from "@chakra-ui/react";
 import { ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
-const SortComponent = ({header, onToggle, sortDirection}) => {
+const SortComponent = ({ header, onToggle, sortDirection }) => {
   return (
     <HStack mb={2} justify="space-between" align="center">
       <Text fontSize="lg" fontWeight="bold">
@@ -16,7 +12,8 @@ const SortComponent = ({header, onToggle, sortDirection}) => {
         variant="outline"
         onClick={onToggle}
         leftIcon={
-          sortDirection === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          sortDirection === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />
+        }
       >
         Sort by Name
       </Button>

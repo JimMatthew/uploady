@@ -13,7 +13,7 @@ export default function FileList({
   handleFolderCopy,
   handleFileDownload,
   handleFileShareLink,
-  handleFileDelete
+  handleFileDelete,
 }) {
   const {
     sortedFiles,
@@ -32,14 +32,12 @@ export default function FileList({
     handleCut,
     handleRename,
     handlePaste,
-  } = useFileList(files, rp,
-    {
-      handleFileCopy,
-      handleFileCut,
-      handleRenameFile,
-      handleFolderCopy
-    }
-  );
+  } = useFileList(files, rp, {
+    handleFileCopy,
+    handleFileCut,
+    handleRenameFile,
+    handleFolderCopy,
+  });
 
   return (
     <Box>

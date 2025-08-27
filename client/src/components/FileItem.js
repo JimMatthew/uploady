@@ -1,4 +1,15 @@
-import { Box, HStack, VStack, Text, Button, Icon, Menu, MenuButton, MenuItem, MenuList } from "@chakra-ui/react";
+import {
+  Box,
+  HStack,
+  VStack,
+  Text,
+  Button,
+  Icon,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+} from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
 import RenameFileComponent from "./RenameFileComponent";
 
@@ -15,7 +26,7 @@ export default function FileItem({
   onShare,
   onDelete,
   onStartRename,
-  onOpenFile
+  onOpenFile,
 }) {
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg" transition="all 0.2s">
@@ -49,7 +60,9 @@ export default function FileItem({
               <MenuItem onClick={onShare}>Share</MenuItem>
               <MenuItem onClick={onStartRename}>Rename</MenuItem>
               <MenuItem onClick={onDelete}>Delete</MenuItem>
-              {onOpenFile && <MenuItem onClick={onOpenFile}> Open File</MenuItem>}
+              {onOpenFile && (
+                <MenuItem onClick={onOpenFile}> Open File</MenuItem>
+              )}
             </MenuList>
           </Menu>
         )}

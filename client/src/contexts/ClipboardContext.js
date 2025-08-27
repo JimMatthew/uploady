@@ -5,10 +5,24 @@ const ClipboardContext = createContext();
 export const ClipboardProvider = ({ children }) => {
   const [clipboard, setClipboard] = useState([]);
 
-  const addToClipboard = ({ file, path, source, serverId, action, isDirectory }) => {
+  const addToClipboard = ({
+    file,
+    path,
+    source,
+    serverId,
+    action,
+    isDirectory,
+  }) => {
     setClipboard((prev) => [
       ...prev,
-      { file, path, source, serverId: serverId || null, action, isDirectory: isDirectory || false },
+      {
+        file,
+        path,
+        source,
+        serverId: serverId || null,
+        action,
+        isDirectory: isDirectory || false,
+      },
     ]);
   };
 

@@ -17,7 +17,6 @@ import FileListSftp from "../components/FileListSftp";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
-
   const isMobile = useBreakpointValue({ base: true, md: false });
   const {
     files,
@@ -36,8 +35,8 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     generateBreadcrumb,
     changeSftpDirectory,
   } = useSftpFileFolderViewer({ serverId, toast });
-  
-  const handleCut = (filename) => { };
+
+  const handleCut = (filename) => {};
 
   if (loading) {
     return (

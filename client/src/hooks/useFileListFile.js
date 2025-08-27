@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
 import { useClipboard } from "../contexts/ClipboardContext";
 
-export function useFileList(files, rp, {
-  handleFileCopy,
-  handleFileCut,
-  handleRenameFile,
-  handleFolderCopy
-}) {
+export function useFileList(
+  files,
+  rp,
+  { handleFileCopy, handleFileCut, handleRenameFile, handleFolderCopy }
+) {
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
@@ -53,12 +52,11 @@ export function useFileList(files, rp, {
     clipboard.forEach(({ file, path, action, isDirectory }) => {
       if (action === "copy") {
         if (isDirectory) {
-          handleFolderCopy(file, path, rp)
+          handleFolderCopy(file, path, rp);
         } else {
-        handleFileCopy(file, path, rp);
+          handleFileCopy(file, path, rp);
         }
-      }
-      else if (action === "cut") handleFileCut(file, path, rp);
+      } else if (action === "cut") handleFileCut(file, path, rp);
     });
     clearClipboard();
   }

@@ -31,21 +31,21 @@ const FileDisplay = ({
     handleFileCopy,
     handleFileCut,
     handleRenameFile,
-    handleFolderCopy
+    handleFolderCopy,
   } = fileController({ toast, onRefresh });
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
   const { copyFile } = useClipboard();
   const handleCopy = (filename, isFolder) => {
-        copyFile({
-            file: filename,
-            path: rp,
-            source: "local",
-            ...(isFolder && { isDirectory: true })
-        });
-    };
-  
+    copyFile({
+      file: filename,
+      path: rp,
+      source: "local",
+      ...(isFolder && { isDirectory: true }),
+    });
+  };
+
   return (
     <Box
       mt={{ base: 1, md: 6 }}
@@ -80,13 +80,13 @@ const FileDisplay = ({
 
       {/* Folder and File Display */}
       <VStack spacing={6} align="stretch">
-        <FolderList 
-        folders={folders}
-        changeDirectory={onFolderClick}
-        deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
-        handleCopy={(folder) => handleCopy(folder, true)}
+        <FolderList
+          folders={folders}
+          changeDirectory={onFolderClick}
+          deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
+          handleCopy={(folder) => handleCopy(folder, true)}
         />
-        
+
         <FileListFile
           files={files}
           rp={rp}

@@ -25,7 +25,7 @@ const FileList = ({ setUser, toast }) => {
     links,
     handleFolderClick,
     reload,
-    fetchLinks
+    fetchLinks,
   } = useFileListPane();
 
   const bgg = useColorModeValue("white", "gray.700");

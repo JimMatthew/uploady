@@ -1,12 +1,12 @@
 import React from "react";
-import {
-  Box,
-  HStack,
-  Button,
-  Input,
-} from "@chakra-ui/react";
+import { Box, HStack, Button, Input } from "@chakra-ui/react";
 
-const RenameFileComponent = ({newFilename, onInput, handleRename, onCancel }) => {
+const RenameFileComponent = ({
+  newFilename,
+  onInput,
+  handleRename,
+  onCancel,
+}) => {
   return (
     <Box>
       <HStack>

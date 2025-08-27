@@ -7,7 +7,7 @@ const FolderList = ({
   changeDirectory,
   deleteFolder,
   downloadFolder,
-  handleCopy
+  handleCopy,
 }) => {
   const [folderSortDirection, setFolderSortDirection] = useState("asc");
 
@@ -30,11 +30,13 @@ const FolderList = ({
       />
       <Box>
         {sortedfolders.map((folder, index) => (
-          <FolderItem 
+          <FolderItem
             folder={folder}
             changeDirectory={() => changeDirectory(folder.name)}
             {...(handleCopy && { handleCopy: () => handleCopy(folder.name) })}
-            {...(downloadFolder && { downloadFolder : () => downloadFolder(folder.name)})}
+            {...(downloadFolder && {
+              downloadFolder: () => downloadFolder(folder.name),
+            })}
             deleteFolder={() => deleteFolder(folder.name)}
           />
         ))}

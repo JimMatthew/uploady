@@ -1,8 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Box,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Box, useColorModeValue } from "@chakra-ui/react";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import { useSftpFileList } from "../hooks/useSftpFileList";
@@ -31,7 +28,7 @@ const FileList = ({
     clipboard,
     toggleFileSort,
     handleRename,
-    sortedfiles
+    sortedfiles,
   } = useSftpFileList({ files, renameFile });
   const bgg = useColorModeValue("gray.50", "gray.600");
 
