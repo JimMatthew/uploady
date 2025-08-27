@@ -36,8 +36,7 @@ const FileDisplay = ({
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
-
-  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
+  const { copyFile } = useClipboard();
   const handleCopy = (filename, isFolder) => {
         copyFile({
             file: filename,
@@ -46,7 +45,7 @@ const FileDisplay = ({
             ...(isFolder && { isDirectory: true })
         });
     };
-  //const isMobile = useBreakpointValue({ base: true, md: false });
+  
   return (
     <Box
       mt={{ base: 1, md: 6 }}
