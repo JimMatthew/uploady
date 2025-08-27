@@ -274,18 +274,19 @@ const copy_file_json_post = async (req, res, next) => {
   }
 };
 
+/*
+  Recursively copies folderName from currentPath to newPath
+*/
 const copy_folder = async (folderName, currentPath, newPath) => {
   const { files, folders } = getDirectoryContents_get(path.join(uploadsDir, currentPath, folderName));
   const newp = path.join(uploadsDir, newPath, folderName)
-  
+
   await fs.promises.mkdir(newp);
   
   files.forEach(async (file) => {
     const cfpath = path.join(uploadsDir, path.join(currentPath, folderName), file.name);
     const nfpath = path.join(newp, file.name);
-
     await fs.promises.copyFile(cfpath, nfpath);
-
   })
   folders.forEach(async folder => {
     copy_folder(
