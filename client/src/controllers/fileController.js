@@ -1,8 +1,10 @@
-
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
 
-  const apiRequest = async (url, options = {}) => {
+  /**
+   * Generic API request wrapper
+   */
+  const apiRequest = async (url, options = {}, expectBlob = false) => {
     try {
       const response = await fetch(url, {
         ...options,
@@ -12,101 +14,81 @@ const FileController = ({ toast, onRefresh }) => {
           ...options.headers,
         },
       });
-      if (!response.ok) throw new Error("Request failed");
-      return response.json();
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Request failed");
+      }
+
+      return expectBlob ? response.blob() : response.json();
     } catch (error) {
       console.error("API error:", error);
       throw error;
     }
   };
 
-  const handleFileCopy = async(filename, currentPath, newPath) => {
-    try {
-      const response = await apiRequest('/api/copy-file', {
-        method: "Post",
-        body: JSON.stringify({
-          filename, 
-          currentPath,
-          newPath
-        })
-      })
-      onRefresh(newPath);
-      toast({
-        title: "File copied",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch(err) {
-      toast({
-        title: "Error copying file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  }
+  /**
+   * Utility to show toast notifications
+   */
+  const showToast = (title, status, description = null) => {
+    toast({
+      title,
+      description,
+      status,
+      duration: 3000,
+      isClosable: true,
+    });
+  };
 
-  const handleFolderCopy = async(folderName, currentPath, newPath) => {
+  /**
+   * File operations
+   */
+  const handleFileCopy = async (filename, currentPath, newPath) => {
     try {
-      const response = await apiRequest('/api/copy-folder', {
-        method: "Post",
-        body: JSON.stringify({ 
-          folderName,
-          currentPath,
-          newPath
-        })
-      })
+      await apiRequest("/api/copy-file", {
+        method: "POST",
+        body: JSON.stringify({ filename, currentPath, newPath }),
+      });
       onRefresh(newPath);
-      toast({
-        title: "File copied",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch(err) {
-      toast({
-        title: "Error copying file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("File copied", "success");
+    } catch {
+      showToast("Error copying file", "error");
     }
-  }
+  };
 
-  const handleFileCut = async(filename, currentPath, newPath) => {
+  const handleFolderCopy = async (folderName, currentPath, newPath) => {
     try {
-      const response = await apiRequest('/api/cut-file', {
-        method: "Post",
-        body: JSON.stringify({
-          filename, 
-          currentPath,
-          newPath
-        })
-      })
+      await apiRequest("/api/copy-folder", {
+        method: "POST",
+        body: JSON.stringify({ folderName, currentPath, newPath }),
+      });
       onRefresh(newPath);
-      toast({
-        title: "File moved",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch(err) {
-      toast({
-        title: "Error moving file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Folder copied", "success");
+    } catch {
+      showToast("Error copying folder", "error");
     }
-  }
+  };
+
+  const handleFileCut = async (filename, currentPath, newPath) => {
+    try {
+      await apiRequest("/api/cut-file", {
+        method: "POST",
+        body: JSON.stringify({ filename, currentPath, newPath }),
+      });
+      onRefresh(newPath);
+      showToast("File moved", "success");
+    } catch {
+      showToast("Error moving file", "error");
+    }
+  };
 
   const handleFileDownload = async (fileName, path) => {
     try {
-      const response = await fetch(`/api/download/${path}/${fileName}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await response.blob();
+      const blob = await apiRequest(
+        `/api/download/${path}/${fileName}`,
+        {},
+        true
+      );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -114,8 +96,9 @@ const FileController = ({ toast, onRefresh }) => {
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } catch (error) {
-      console.error("Download error:", error);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast("Error downloading file", "error");
     }
   };
 
@@ -126,78 +109,44 @@ const FileController = ({ toast, onRefresh }) => {
         body: JSON.stringify({ fileName }),
       });
       onRefresh(path);
-      toast({
-        title: "File Deleted",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("File deleted", "success");
     } catch {
-      toast({
-        title: "Error deleting file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Error deleting file", "error");
     }
   };
 
   const handleFileShareLink = async (fileName, filePath) => {
     try {
-      await apiRequest(`/api/share`, {
+      await apiRequest("/api/share", {
         method: "POST",
         body: JSON.stringify({ fileName, filePath }),
       });
       onRefresh();
-      toast({
-        title: "Link generated",
-        description: `Share link created for ${fileName}`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast(
+        "Link generated",
+        "success",
+        `Share link created for ${fileName}`
+      );
     } catch {
-      toast({
-        title: "Error generating link",
-        description: `Failed to generate link for ${fileName}`,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast(
+        "Error generating link",
+        "error",
+        `Failed to generate link for ${fileName}`
+      );
     }
   };
 
   const handleDeleteFolder = async (folderName, path) => {
     try {
-      await apiRequest(`/api/delete-folder`, {
+      await apiRequest("/api/delete-folder", {
         method: "POST",
         body: JSON.stringify({ folderName, folderPath: path }),
       });
       onRefresh(path);
-      toast({
-        title: "Folder Deleted",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Folder deleted", "success");
     } catch {
-      toast({
-        title: "Error deleting folder",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Error deleting folder", "error");
     }
-  };
-
-  const generateBreadcrumb = (path) => {
-    const breadcrumbs = [{ name: "Home", path: "files" }];
-    let currentPath = "files";
-    path.split("/").filter(Boolean).forEach((part) => {
-      currentPath += `/${part}`;
-      breadcrumbs.push({ name: part, path: currentPath });
-    });
-    return breadcrumbs;
   };
 
   const createFolder = async (folderName, currentPath) => {
@@ -206,20 +155,10 @@ const FileController = ({ toast, onRefresh }) => {
         method: "POST",
         body: JSON.stringify({ folderName, currentPath }),
       });
-      toast({
-        title: "Folder Created",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
       onRefresh(currentPath);
+      showToast("Folder created", "success");
     } catch {
-      toast({
-        title: "Error creating folder",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Error creating folder", "error");
     }
   };
 
@@ -227,40 +166,44 @@ const FileController = ({ toast, onRefresh }) => {
     try {
       await apiRequest("/api/rename-file", {
         method: "POST",
-        body: JSON.stringify({
-          filename,
-          newFilename,
-          currentPath: path
-        })
-      });
-      toast({
-        title: "File renamed",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+        body: JSON.stringify({ filename, newFilename, currentPath: path }),
       });
       onRefresh(path);
-    } catch(err) {
-      toast({
-        title: "Error renaming file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("File renamed", "success");
+    } catch {
+      showToast("Error renaming file", "error");
     }
-  }
+  };
+
+  /**
+   * Breadcrumb generator
+   */
+  const generateBreadcrumb = (path) => {
+    const breadcrumbs = [{ name: "Home", path: "files" }];
+    let currentPath = "files";
+
+    path
+      .split("/")
+      .filter(Boolean)
+      .forEach((part) => {
+        currentPath += `/${part}`;
+        breadcrumbs.push({ name: part, path: currentPath });
+      });
+
+    return breadcrumbs;
+  };
 
   return {
+    handleFileCopy,
+    handleFolderCopy,
+    handleFileCut,
     handleFileDownload,
     handleFileDelete,
     handleFileShareLink,
     handleDeleteFolder,
-    generateBreadcrumb,
     createFolder,
-    handleFileCopy, 
-    handleFileCut,
     handleRenameFile,
-    handleFolderCopy
+    generateBreadcrumb,
   };
 };
 
