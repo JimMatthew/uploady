@@ -4,7 +4,17 @@ import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 
-export default function FileList(props) {
+export default function FileList({
+  files,
+  rp,
+  handleFileCopy,
+  handleFileCut,
+  handleRenameFile,
+  handleFolderCopy,
+  handleFileDownload,
+  handleFileShareLink,
+  handleFileDelete
+}) {
   const {
     sortedFiles,
     clipboard,
@@ -22,7 +32,14 @@ export default function FileList(props) {
     handleCut,
     handleRename,
     handlePaste,
-  } = useFileList(props.files, props.rp, props);
+  } = useFileList(files, rp,
+    {
+      handleFileCopy,
+      handleFileCut,
+      handleRenameFile,
+      handleFolderCopy
+    }
+  );
 
   return (
     <Box>
@@ -50,9 +67,9 @@ export default function FileList(props) {
           onRenameCancel={() => setShowRenameInput(false)}
           onCopy={() => handleCopy(file.name)}
           onCut={() => handleCut(file.name)}
-          onDownload={() => props.handleFileDownload(file.name, props.rp)}
-          onShare={() => props.handleFileShareLink(file.name, props.rp)}
-          onDelete={() => props.handleFileDelete(file.name, props.rp)}
+          onDownload={() => handleFileDownload(file.name, rp)}
+          onShare={() => handleFileShareLink(file.name, rp)}
+          onDelete={() => handleFileDelete(file.name, rp)}
           onStartRename={() => {
             setShowRenameInput(true);
             setRenameId(file.name);
