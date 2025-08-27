@@ -3,96 +3,134 @@ import { useNavigate } from "react-router-dom";
 const SftpController = ({ toast, setFiles }) => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const deleteSftpFile = async (filename, serverId, currentDirectory) => {
-    const cd = currentDirectory ? currentDirectory : "/";
-    const response = await fetch("/sftp/api/delete-file", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        currentDirectory: cd,
-        serverId: serverId,
-        fileName: filename,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Deleting File",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
+
+  /**
+   * API request wrapper
+   */
+  const apiRequest = async (url, options = {}, expectBlob = false) => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
       });
-      return;
+
+      if (response.status === 401) {
+        navigate("/");
+        throw new Error("Unauthorized");
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Request failed");
+      }
+
+      return expectBlob ? response.blob() : response.json();
+    } catch (error) {
+      console.error("API error:", error);
+      throw error;
     }
-    changeSftpDirectory(serverId, cd);
+  };
+
+  /**
+   * Toast helper
+   */
+  const showToast = (title, status, description = null) => {
     toast({
-      title: "File Deleted.",
-      status: "success",
+      title,
+      description,
+      status,
       duration: 3000,
       isClosable: true,
     });
   };
 
-  const connectToServer = async (serverId) => {
+  /**
+   * SFTP operations
+   */
+  const deleteSftpFile = async (filename, serverId, currentDirectory = "/") => {
     try {
-      const response = await fetch(`/sftp/api/connect/${serverId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      await apiRequest("/sftp/api/delete-file", {
+        method: "POST",
+        body: JSON.stringify({
+          currentDirectory,
+          serverId,
+          fileName: filename,
+        }),
       });
-      const data = await response.json();
-      setFiles(data);
-    } catch (error) {
-      console.error("Failed to connect to the server:", error);
+      await changeSftpDirectory(serverId, currentDirectory);
+      showToast("File deleted", "success");
+    } catch {
+      showToast("Error deleting file", "error");
     }
   };
 
-  const downloadFolder = async (currentDirectory, foldername, serverId) => {
+  const deleteSftpFolder = async (folder, serverId, currentDirectory = "/") => {
     try {
-      const folder = `${currentDirectory}/${foldername}`;
-      const res = await fetch(
-        `/sftp/api/download-folder/${serverId}/${folder}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!res.ok) {
-        toast({
-          title: "Error Downloading folder",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${foldername}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast({
-        title: "Folder Downloaded",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+      await apiRequest("/sftp/api/delete-folder", {
+        method: "POST",
+        body: JSON.stringify({ currentDirectory, serverId, deleteDir: folder }),
       });
-    } catch (err) {
-      toast({
-        title: "Error Downloading folder",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
+      await changeSftpDirectory(serverId, currentDirectory);
+      showToast("Folder deleted", "success");
+    } catch {
+      showToast("Error deleting folder", "error");
+    }
+  };
+
+  const createSftpFolder = async (folder, serverId, currentDirectory = "/") => {
+    try {
+      await apiRequest("/sftp/api/create-folder", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPath: currentDirectory,
+          serverId,
+          folderName: folder,
+        }),
       });
+      await changeSftpDirectory(serverId, currentDirectory);
+      showToast("Folder created", "success");
+    } catch {
+      showToast("Error creating folder", "error");
+    }
+  };
+
+  const renameSftpFile = async (
+    currentDirectory,
+    serverId,
+    fileName,
+    newFileName
+  ) => {
+    try {
+      await apiRequest("/sftp/api/renameFile", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPath: currentDirectory,
+          fileName,
+          newFileName,
+          serverId,
+        }),
+      });
+      await changeSftpDirectory(serverId, currentDirectory);
+      showToast("File renamed", "success");
+    } catch {
+      showToast("Error renaming file", "error");
+    }
+  };
+
+  const shareSftpFile = async (filename, serverId, filepath) => {
+    const remotePath = `${filepath}/${filename}`;
+    try {
+      await apiRequest("/sftp/api/sharefile", {
+        method: "POST",
+        body: JSON.stringify({ serverId, remotePath }),
+      });
+      showToast("File shared", "success");
+    } catch {
+      showToast("Error sharing file", "error");
     }
   };
 
@@ -105,7 +143,6 @@ const SftpController = ({ toast, setFiles }) => {
     transferId
   ) => {
     const isCrossServer = serverId !== newServerId;
-  
     const body = {
       filename,
       currentPath,
@@ -113,255 +150,108 @@ const SftpController = ({ toast, setFiles }) => {
       serverId,
       ...(isCrossServer && { newServerId, transferId }),
     };
-  
+
     try {
-      const response = await fetch("/sftp/api/copy-file", {
+      await apiRequest("/sftp/api/copy-file", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
         body: JSON.stringify(body),
       });
-  
-      if (!response.ok) throw new Error();
-  
-      changeSftpDirectory(newServerId, newPath);
-  
-      toast({
-        title: "File copied",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      toast({
-        title: "Error copying file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      await changeSftpDirectory(newServerId, newPath);
+      showToast("File copied", "success");
+    } catch {
+      showToast("Error copying file", "error");
     }
   };
 
-  const renameSftpFile = async (
-    currentDirectory,
-    serverId,
-    fileName,
-    newFileName
-  ) => {
-    const response = await fetch("/sftp/api/renameFile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        currentPath: currentDirectory,
-        fileName,
-        newFileName,
-        serverId,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Renaming file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+  const downloadSftpFile = async (filename, serverId, currentDirectory) => {
+    try {
+      const blob = await apiRequest(
+        `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
+        {},
+        true
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast("Error downloading file", "error");
     }
-    changeSftpDirectory(serverId, currentDirectory);
-    toast({
-      title: "File renamed",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
-  const deleteSftpFolder = async (folder, serverId, currentDirectory) => {
-    const cd = currentDirectory ? currentDirectory : "/";
-    const response = await fetch("/sftp/api/delete-folder", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        currentDirectory: cd,
-        serverId: serverId,
-        deleteDir: folder,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Deleting File",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+  const downloadFolder = async (currentDirectory, foldername, serverId) => {
+    try {
+      const folder = `${currentDirectory}/${foldername}`;
+      const blob = await apiRequest(
+        `/sftp/api/download-folder/${serverId}/${folder}`,
+        {},
+        true
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${foldername}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast("Folder downloaded", "success");
+    } catch {
+      showToast("Error downloading folder", "error");
     }
-    changeSftpDirectory(serverId, cd);
-    toast({
-      title: "Folder Deleted.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
-  const createSftpFolder = async (folder, serverId, currentDirectory) => {
-    const cd = currentDirectory ? currentDirectory : "/";
-    const response = await fetch("/sftp/api/create-folder", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        currentPath: cd,
-        serverId: serverId,
-        folderName: folder,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Creating Folder",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+  const connectToServer = async (serverId) => {
+    try {
+      const data = await apiRequest(`/sftp/api/connect/${serverId}/`);
+      setFiles(data);
+    } catch {
+      showToast("Error connecting to server", "error");
     }
-    changeSftpDirectory(serverId, cd);
-    toast({
-      title: "Folder Created.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
-  const shareSftpFile = async (filename, serverId, filepath) => {
-    const remotePath = `${filepath}/${filename}`;
-    const response = await fetch("/sftp/api/sharefile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        serverId: serverId,
-        remotePath: remotePath,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        title: "Error Sharing file",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    toast({
-      title: "File shared",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
-  const downloadSftpFile = (filename, serverId, currentDirectory) => {
-    fetch(`/sftp/api/download/${serverId}/${currentDirectory}/${filename}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
-  };
-
-  const generateBreadcrumb = (path) => {
-    const breadcrumbs = [];
-    let currentPath = ``;
-    const pathParts = path.split("/").filter(Boolean);
-    pathParts.forEach((part, index) => {
-      currentPath += `/${part}`;
-      breadcrumbs.push({
-        name: part,
-        path: currentPath,
-      });
-    });
-    breadcrumbs.unshift({ name: "Home", path: `/` });
-    return breadcrumbs;
   };
 
   const changeSftpDirectory = async (serverId, directory) => {
     try {
-      if (!token) {
-        navigate("/");
-        return;
-      }
-      const response = await fetch(
-        `/sftp/api/connect/${serverId}//${directory}/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      const data = await apiRequest(
+        `/sftp/api/connect/${serverId}//${directory}/`
       );
-      if (response.status === 401) {
-        navigate("/");
-        return;
-      }
-      if (!response.ok) {
-        toast({
-          title: "Error Listing Directory",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-      const data = await response.json();
       setFiles(data);
-    } catch (error) {
-      toast({
-        title: "Error Listing Directory",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+    } catch {
+      showToast("Error listing directory", "error");
     }
+  };
+
+  /**
+   * Breadcrumbs
+   */
+  const generateBreadcrumb = (path) => {
+    const parts = path.split("/").filter(Boolean);
+    let currentPath = "";
+    const breadcrumbs = parts.map((part) => {
+      currentPath += `/${part}`;
+      return { name: part, path: currentPath };
+    });
+    return [{ name: "Home", path: "/" }, ...breadcrumbs];
   };
 
   return {
     deleteSftpFile,
-    downloadSftpFile,
     deleteSftpFolder,
     createSftpFolder,
-    generateBreadcrumb,
-    changeSftpDirectory,
-    shareSftpFile,
     renameSftpFile,
+    shareSftpFile,
+    handleSftpFileCopy,
+    downloadSftpFile,
     downloadFolder,
     connectToServer,
-    handleSftpFileCopy,
+    changeSftpDirectory,
+    generateBreadcrumb,
   };
 };
 
