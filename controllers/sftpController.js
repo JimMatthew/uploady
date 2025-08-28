@@ -34,10 +34,10 @@ const sftp_rename_file_json_post = async (req, res) => {
     sftp = await connectToSftp(serverId);
     const fpath = path.join(currentPath, fileName);
     const npath = path.join(currentPath, newFileName);
-    res.status(200).send("File Renamed");
+    res.status(200).send(JSON.stringify("message: File renamed"));
     await sftp.rename(fpath, npath);
   } catch (err) {
-    return res.status(404).send("Error renaming file");
+    return res.status(404).send(JSON.stringify("Error: Error creating folder"));
   } finally {
     if (sftp) await sftp.end();
   }
@@ -50,9 +50,9 @@ const sftp_create_folder_json_post = async (req, res) => {
   try {
     sftp = await connectToSftp(serverId);
     await sftp.mkdir(newPath);
-    res.status(200).send("Folder Created");
+    res.status(200).send(JSON.stringify("message: Folder Created"));
   } catch (err) {
-    return res.status(404).send("Error creating folder");
+    return res.status(404).send(JSON.stringify("Error: Error creating folder"));
   } finally {
     if (sftp) await sftp.end();
   }
@@ -341,9 +341,9 @@ const sftp_delete_folder_json_post = async (req, res, next) => {
   try {
     const sftp = await connectToSftp(serverId);
     await sftp.rmdir(fullPath);
-    res.status(200).send();
+    res.status(200).send(JSON.stringify("message: Folder Deleted"));
   } catch (error) {
-    res.status(400).send();
+    res.status(400).send(JSON.stringify("Error: Failed to delete folder"));
   }
 };
 
