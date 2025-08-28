@@ -327,7 +327,7 @@ const sftp_delete_file_json_post = async (req, res, next) => {
     try {
       const sftp = await connectToSftp(serverId);
       await sftp.delete(fullPath);
-      return res.status(200).send("File Deleted");
+      return res.status(200).send(JSON.stringify("message: File Deleted"));
     } catch (error) {
       return res.status(400).send("Error deleting file");
     }
