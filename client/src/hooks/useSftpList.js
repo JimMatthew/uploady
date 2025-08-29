@@ -77,6 +77,7 @@ export function useSftpList({ toast }) {
     if (token) {
       fetchFiles();
     } else {
+      navigate("/");
       console.error("No token found");
     }
   }, []);

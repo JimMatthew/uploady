@@ -11,6 +11,7 @@ export function useFileListPane() {
 
   useEffect(() => {
     if (token) {
+      setLoading(true);
       fetchFiles(currentPath);
       setLoading(false);
     } else {
@@ -44,7 +45,6 @@ export function useFileListPane() {
   };
 
   const fetchFiles = async (path) => {
-    setLoading(true);
     try {
       const response = await fetch(`/api/${path}/`, {
         method: "GET",
@@ -62,9 +62,7 @@ export function useFileListPane() {
       setFileData(data);
     } catch (err) {
       console.error("Error fetching files:", err);
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
   return {
     fileData,
