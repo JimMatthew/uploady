@@ -155,7 +155,3 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
 };
 
 export default FileFolderViewer;
-
-/*
-
-*/
