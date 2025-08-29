@@ -46,10 +46,6 @@ const FileDisplay = ({
     });
   };
 
-  function handlefileCopy(filename) {
-    copyFile({ file: filename, path: rp, source: "local", serverId: null });
-  }
-
   function handleCut(filename) {
     cutFile({ file: filename, path: rp, source: "local", serverId: null });
   }
@@ -113,7 +109,7 @@ const FileDisplay = ({
           handleFileDownload={(name) => handleFileDownload(name, rp)}
           handleFileShareLink={(name) => handleFileShareLink(name, rp)}
           handleFileDelete={(name) => handleFileDelete(name, rp)}
-          handleFileCopy={(name) => handlefileCopy(name)}
+          handleFileCopy={(name) => handleCopy(name, false)}
           handleFileCut={(name) => handleCut(name)}
           handleRenameFile={(name, newname) => handleRenameFile(name, newname, rp)}
           handleFolderCopy={(name) => handleFolderCopy(name)}
