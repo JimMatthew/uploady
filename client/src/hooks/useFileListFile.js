@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
-import { useClipboard } from "../contexts/ClipboardContext";
 
 export function useFileList({ files }) {
-  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
   const [showRenameInput, setShowRenameInput] = useState(false);
   const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
@@ -32,7 +30,6 @@ export function useFileList({ files }) {
 
   return {
     sortedFiles,
-    clipboard,
     showRenameInput,
     setShowRenameInput,
     newFilename,

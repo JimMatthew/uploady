@@ -3,7 +3,7 @@ import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
-
+import { useClipboard } from "../contexts/ClipboardContext";
 export default function FileList({
   files,
   handleFileDownload,
@@ -13,11 +13,10 @@ export default function FileList({
   handleFileCopy,
   handleFileCut,
   handleFilePaste,
-  handleOpenFile
+  handleOpenFile,
 }) {
   const {
     sortedFiles,
-    clipboard,
     showRenameInput,
     setShowRenameInput,
     newFilename,
@@ -30,6 +29,7 @@ export default function FileList({
     setSortField,
   } = useFileList({ files });
 
+  const { clipboard } = useClipboard();
   return (
     <Box>
       {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
@@ -52,10 +52,10 @@ export default function FileList({
           isRenaming={showRenameInput && renameId === file.name}
           newFilename={newFilename}
           onRenameInput={setNewFilename}
-          onRenameConfirm={() =>{
-             handleRenameFile(file.name, newFilename);
-              setShowRenameInput(false);
-              setNewFilename("");
+          onRenameConfirm={() => {
+            handleRenameFile(file.name, newFilename);
+            setShowRenameInput(false);
+            setNewFilename("");
           }}
           onRenameCancel={() => setShowRenameInput(false)}
           onCopy={() => handleFileCopy(file.name)}
@@ -67,7 +67,9 @@ export default function FileList({
             setShowRenameInput(true);
             setRenameId(file.name);
           }}
-           {...(handleOpenFile && { onOpenFile: () => handleOpenFile(file.name) })}
+          {...(handleOpenFile && {
+            onOpenFile: () => handleOpenFile(file.name),
+          })}
         />
       ))}
     </Box>
