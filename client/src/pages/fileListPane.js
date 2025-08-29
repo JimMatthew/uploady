@@ -36,7 +36,7 @@ const FileDisplay = ({
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
-  const { copyFile } = useClipboard();
+  const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
   const handleCopy = (filename, isFolder) => {
     copyFile({
       file: filename,
@@ -45,6 +45,27 @@ const FileDisplay = ({
       ...(isFolder && { isDirectory: true }),
     });
   };
+
+  function handlefileCopy(filename) {
+    copyFile({ file: filename, path: rp, source: "local", serverId: null });
+  }
+
+  function handleCut(filename) {
+    cutFile({ file: filename, path: rp, source: "local", serverId: null });
+  }
+
+  function handlePaste() {
+    clipboard.forEach(({ file, path, action, isDirectory }) => {
+      if (action === "copy") {
+        if (isDirectory) {
+          handleFolderCopy(file, path, rp);
+        } else {
+          handleFileCopy(file, path, rp);
+        }
+      } else if (action === "cut") handleFileCut(file, path, rp);
+    });
+    clearClipboard();
+  }
 
   return (
     <Box
@@ -89,14 +110,14 @@ const FileDisplay = ({
 
         <FileListFile
           files={files}
-          rp={rp}
-          handleFileDownload={handleFileDownload}
-          handleFileShareLink={handleFileShareLink}
-          handleFileDelete={handleFileDelete}
-          handleFileCopy={handleFileCopy}
-          handleFileCut={handleFileCut}
-          handleRenameFile={handleRenameFile}
-          handleFolderCopy={handleFolderCopy}
+          handleFileDownload={(name) => handleFileDownload(name, rp)}
+          handleFileShareLink={(name) => handleFileShareLink(name, rp)}
+          handleFileDelete={(name) => handleFileDelete(name, rp)}
+          handleFileCopy={(name) => handlefileCopy(name)}
+          handleFileCut={(name) => handleCut(name)}
+          handleRenameFile={(name, newname) => handleRenameFile(name, newname, rp)}
+          handleFolderCopy={(name) => handleFolderCopy(name)}
+          handleFilePaste={(name) => handlePaste(name)}
         />
       </VStack>
     </Box>

@@ -6,14 +6,14 @@ import PickSortComponent from "./PickSortComponent";
 
 export default function FileList({
   files,
-  rp,
+  handleFileDownload,
+  handleFileDelete,
+  handleFileShareLink,
+  handleRenameFile,
   handleFileCopy,
   handleFileCut,
-  handleRenameFile,
-  handleFolderCopy,
-  handleFileDownload,
-  handleFileShareLink,
-  handleFileDelete,
+  handleFilePaste,
+  handleOpenFile
 }) {
   const {
     sortedFiles,
@@ -28,20 +28,11 @@ export default function FileList({
     setFileSortDirection,
     sortField,
     setSortField,
-    handleCopy,
-    handleCut,
-    handleRename,
-    handlePaste,
-  } = useFileList(files, rp, {
-    handleFileCopy,
-    handleFileCut,
-    handleRenameFile,
-    handleFolderCopy,
-  });
+  } = useFileList({ files });
 
   return (
     <Box>
-      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       <PickSortComponent
         header="files"
@@ -61,17 +52,22 @@ export default function FileList({
           isRenaming={showRenameInput && renameId === file.name}
           newFilename={newFilename}
           onRenameInput={setNewFilename}
-          onRenameConfirm={() => handleRename(file.name)}
+          onRenameConfirm={() =>{
+             handleRenameFile(file.name, newFilename);
+              setShowRenameInput(false);
+              setNewFilename("");
+          }}
           onRenameCancel={() => setShowRenameInput(false)}
-          onCopy={() => handleCopy(file.name)}
-          onCut={() => handleCut(file.name)}
-          onDownload={() => handleFileDownload(file.name, rp)}
-          onShare={() => handleFileShareLink(file.name, rp)}
-          onDelete={() => handleFileDelete(file.name, rp)}
+          onCopy={() => handleFileCopy(file.name)}
+          onCut={() => handleFileCut(file.name)}
+          onDownload={() => handleFileDownload(file.name)}
+          onShare={() => handleFileShareLink(file.name)}
+          onDelete={() => handleFileDelete(file.name)}
           onStartRename={() => {
             setShowRenameInput(true);
             setRenameId(file.name);
           }}
+          
         />
       ))}
     </Box>

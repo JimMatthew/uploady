@@ -13,7 +13,7 @@ import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
 import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderList";
-import FileListSftp from "../components/FileListSftp";
+import FileListFile from "../components/FileListFiles";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
@@ -137,23 +137,23 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         </Box>
       ))}
 
-      <FileListSftp
+      <FileListFile 
         files={files.files}
-        downloadFile={handleDownload}
-        deleteFile={handleDelete}
-        openFile={(filename) =>
-          openFile(serverId, files.currentDirectory, filename)
-        }
-        shareFile={(filename) => handleShare(filename)}
-        renameFile={(filename, newfilename) =>
-          handleRename(filename, newfilename)
-        }
-        handleCopy={handleCopy}
-        handleCut={handleCut}
-        handlePaste={handlePaste}
+        handleFileDownload={(filename) => handleDownload(filename)}
+        handleFileDelete={(filename) => handleDelete(filename)}
+        handleFileShareLink={(filename) => handleShare(filename)}
+        handleRenameFile={(filename, newfilename) =>
+          handleRename(filename, newfilename)}
+        handleFileCopy={(filename) => handleCopy(filename, false)}
+        handleFileCut={handleCut}
+        handleFilePaste={() => handlePaste()}
       />
     </Box>
   );
 };
 
 export default FileFolderViewer;
+
+/*
+
+*/
