@@ -59,11 +59,32 @@ const SFTPApp = ({ toast }) => {
             borderRight="1px solid"
             borderColor="gray.200"
             minHeight="100vh"
+            maxHeight="100vh"
+            overflowY="auto"
             position={{ base: "absolute", lg: "relative" }}
             zIndex={{ base: 10, lg: 1 }}
             top={0}
             left={0}
             transition="all 0.3s ease"
+            sx={{
+              /* For Webkit browsers (Chrome, Edge, Safari) */
+              "::-webkit-scrollbar": {
+                width: "6px",
+              },
+              "::-webkit-scrollbar-thumb": {
+                background: "rgba(100, 100, 100, 0.3)",
+                borderRadius: "3px",
+              },
+              "::-webkit-scrollbar-thumb:hover": {
+                background: "rgba(100, 100, 100, 0.5)",
+              },
+              "::-webkit-scrollbar-track": {
+                background: "transparent",
+              },
+              /* For Firefox */
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(100, 100, 100, 0.3) transparent",
+            }}
           >
             <VStack spacing={6}>
               <Link to="/app/files">
