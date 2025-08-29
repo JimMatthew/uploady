@@ -67,7 +67,7 @@ export default function FileList({
             setShowRenameInput(true);
             setRenameId(file.name);
           }}
-          
+           {...(handleOpenFile && { onOpenFile: () => handleOpenFile(file.name) })}
         />
       ))}
     </Box>

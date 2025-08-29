@@ -147,6 +147,8 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         handleFileCopy={(filename) => handleCopy(filename, false)}
         handleFileCut={handleCut}
         handleFilePaste={() => handlePaste()}
+        handleOpenFile={(filename) =>
+          openFile(serverId, files.currentDirectory, filename)}
       />
     </Box>
   );
