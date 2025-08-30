@@ -7,7 +7,7 @@ import {
   FormLabel,
   Heading,
 } from "@chakra-ui/react";
-import axios from "axios";
+
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
@@ -19,17 +19,19 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        "/apilogin",
-        { username, password },
-        {
-          headers: {
-            "Content-Type": "application/json", 
-          },
-        }
-      );
-      localStorage.setItem("token", response.data.token); 
-      navigate("/app/files"); 
+      const response = await fetch("/apilogin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) {
+        throw new Error("Invalid credentials");
+      }
+      const data = await response.json();
+      localStorage.setItem("token", data.token);
+      navigate("/app/files");
     } catch (err) {
       setError("Invalid credentials");
     }

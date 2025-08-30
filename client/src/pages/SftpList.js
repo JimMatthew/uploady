@@ -41,7 +41,7 @@ const SFTPApp = ({ toast }) => {
   if (loading || !sftpServers) return <div>Loading...</div>;
 
   return (
-    <Flex flex={1} minHeight="100%" direction="column">
+    <Flex flex={1}  direction="column">
       {!isDesktop && !showSidebar && (
         <Box width="100%" mb={2} textAlign="center">
           <Button colorScheme="blue" onClick={() => setShowSidebar(true)}>
