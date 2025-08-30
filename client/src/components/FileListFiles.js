@@ -51,7 +51,7 @@ export default function FileList({
           file={file}
           isRenaming={showRenameInput && renameId === file.name}
           newFilename={newFilename}
-          onRenameInput={setNewFilename}
+          onRenameInput={(name) => setNewFilename(name)}
           onRenameConfirm={() => {
             handleRenameFile(file.name, newFilename);
             setShowRenameInput(false);

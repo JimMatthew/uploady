@@ -19,10 +19,10 @@ const RenameFileComponent = ({
             if (e.key === "Enter") handleRename();
           }}
         />
-        <Button size="sm" onClick={() => handleRename()}>
+        <Button size="sm" onClick={handleRename}>
           submit
         </Button>
-        <Button size="sm" onClick={() => onCancel()}>
+        <Button size="sm" onClick={onCancel}>
           cancel
         </Button>
       </HStack>

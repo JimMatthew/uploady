@@ -86,7 +86,7 @@ const DragAndDropComponent = ({
                 borderWidth="1px"
                 borderColor="gray.300"
               >
-                <Text color={"blue"}>{file.name}</Text>
+                <Text color={"blue.700"}>{file.name}</Text>
                 <Progress
                   align="left"
                   value={progresses[index]}

@@ -8,8 +8,9 @@ import {
 } from "@chakra-ui/react";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 
-export default function ServerCard({ 
-  server, 
+export default function ServerCard({  
+  serverId,
+  serverName,
   serverStatuses, 
   handleConnect, 
   handleSshLaunch, 
@@ -17,7 +18,7 @@ export default function ServerCard({
 }) {
   return (
     <Card
-      key={server._id}
+      key={serverId}
       border="1px solid"
       borderColor="gray.300"
     >
@@ -26,21 +27,21 @@ export default function ServerCard({
           <Text fontWeight="bold">
             Host:{" "}
             <span style={{ color: "gray.600" }}>
-              {server.host}
+              {serverName}
             </span>
           </Text>
           <Text fontWeight="bold">
             <strong>Status:</strong>{" "}
-            {serverStatuses[server._id] ? (
+            {serverStatuses[serverId] ? (
               <Text
                 as="span"
                 color={
-                  serverStatuses[server._id] === "online"
+                  serverStatuses[serverId] === "online"
                     ? "green.500"
                     : "red.500"
                 }
               >
-                {serverStatuses[server._id]}
+                {serverStatuses[serverId]}
               </Text>
             ) : (
               <Spinner size="sm" />
@@ -55,19 +56,19 @@ export default function ServerCard({
               aria-label="SFTP"
               icon={<FaFileAlt />}
               colorScheme="green"
-              onClick={() => handleConnect(server)}
+              onClick={handleConnect}
             />
             <IconButton
               aria-label="SSH"
               icon={<FaTerminal />}
               colorScheme="blue"
-              onClick={() => handleSshLaunch(server)}
+              onClick={handleSshLaunch}
             />
             <IconButton
               aria-label="Delete"
               icon={<FaTrash />}
               colorScheme="red"
-              onClick={() => deleteServer(server._id)}
+              onClick={deleteServer}
             />
           </Stack>
         </Stack>

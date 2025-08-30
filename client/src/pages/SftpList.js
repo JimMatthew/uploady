@@ -114,11 +114,12 @@ const SFTPApp = ({ toast }) => {
                 sftpServers.servers.map((server) => (
                   <ServerCard
                     key={server.id}
-                    server={server}
+                    serverId={server._id}
+                    serverName={server.host}
                     serverStatuses={serverStatuses}
-                    handleConnect={handleConnect}
-                    handleSshLaunch={handleSshLaunch}
-                    deleteServer={deleteServer}
+                    handleConnect={() => handleConnect(server)}
+                    handleSshLaunch={() => handleSshLaunch(server)}
+                    deleteServer={() => deleteServer(server._id)}
                   />
                 ))
               ) : (
