@@ -3,6 +3,7 @@ import SftpFileFolderView from "../pages/SftpFileFolderViewer";
 import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
+import FileList from "../pages/FileList";
 import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
@@ -47,6 +48,8 @@ export function useSftpList({ toast }) {
     });
   };
 
+  const setuser = (user) => {};
+
   const handleSshLaunch = (server) => {
     addTabItem({
       id: server._id,
@@ -63,19 +66,27 @@ export function useSftpList({ toast }) {
     });
   };
 
+  const handleLocalTab = () => {
+    addTabItem({
+      id: "Local",
+      label: "Local",
+      content: <FileList setUser={setuser} toast={toast} />,
+    });
+  };
+
   const handleSaveServer = async (host, username, password) => {
     await SaveServer({ host, username, password, toast });
-    fetchFiles();
+    fetchServers();
   };
 
   const deleteServer = async (serverId) => {
     await DeleteServer({ serverId: serverId, toast: toast });
-    fetchFiles();
+    fetchServers();
   };
 
   useEffect(() => {
     if (token) {
-      fetchFiles();
+      fetchServers();
     } else {
       navigate("/");
       console.error("No token found");
@@ -96,10 +107,9 @@ export function useSftpList({ toast }) {
     });
   };
 
-  const fetchFiles = async () => {
+  const fetchServers = async () => {
     try {
       setLoading(true);
-
       const res = await fetch("/sftp/api/", {
         method: "GET",
         headers: {
@@ -107,15 +117,12 @@ export function useSftpList({ toast }) {
           "Content-Type": "application/json",
         },
       });
-
       if (res.status !== 200) {
         navigate("/");
         return;
       }
-
       const data = await res.json();
       setSftpServers(data);
-
       await fetchServerStatuses({ data, setServerStatuses });
     } catch (err) {
       console.error("Error fetching files:", err);
@@ -135,5 +142,6 @@ export function useSftpList({ toast }) {
     handleSshLaunch,
     deleteServer,
     handleConnect,
+    handleLocalTab,
   };
 }

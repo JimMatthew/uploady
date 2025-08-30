@@ -33,6 +33,7 @@ const SFTPApp = ({ toast }) => {
     handleSshLaunch,
     deleteServer,
     handleConnect,
+    handleLocalTab
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -100,6 +101,13 @@ const SFTPApp = ({ toast }) => {
                 onClick={() => handleNewServer()}
               >
                 Add New Server
+              </Button>
+              <Button
+                colorScheme="blue"
+                width="100%"
+                onClick={() => handleLocalTab()}
+              >
+                Local
               </Button>
 
               {sftpServers.servers.length > 0 ? (

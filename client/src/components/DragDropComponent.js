@@ -28,8 +28,8 @@ const DragAndDropComponent = ({
     additionalData,
   });
   const onDrop = useCallback((acceptedFiles) => {
-    setFiles(acceptedFiles);
-  }, []);
+  setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
+}, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -73,7 +73,7 @@ const DragAndDropComponent = ({
 
       {files.length > 0 && (
         <Box width="100%">
-          <Text fontWeight="bold" mb={2}>
+          <Text color={"blue"} fontWeight="bold" mb={2}>
             Selected Files:
           </Text>
           <List spacing={2}>
@@ -86,7 +86,7 @@ const DragAndDropComponent = ({
                 borderWidth="1px"
                 borderColor="gray.300"
               >
-                <Text>{file.name}</Text>
+                <Text color={"blue"}>{file.name}</Text>
                 <Progress
                   align="left"
                   value={progresses[index]}
