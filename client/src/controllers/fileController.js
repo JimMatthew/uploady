@@ -1,6 +1,7 @@
+import { useClipboard } from "../contexts/ClipboardContext";
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
-
+  const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
   /**
    * Generic API request wrapper
    */
@@ -193,10 +194,34 @@ const FileController = ({ toast, onRefresh }) => {
     return breadcrumbs;
   };
 
+  const handleCopy = (filename, rp, isFolder) => {
+    copyFile({
+      file: filename,
+      path: rp,
+      source: "local",
+      ...(isFolder && { isDirectory: true }),
+    });
+  };
+
+  function handleCut(filename, rp) {
+    cutFile({ file: filename, path: rp, source: "local", serverId: null });
+  }
+
+  function handlePaste(rp) {
+    clipboard.forEach(({ file, path, action, isDirectory }) => {
+      if (action === "copy") {
+        if (isDirectory) {
+          handleFolderCopy(file, path, rp);
+        } else {
+          handleFileCopy(file, path, rp);
+        }
+      } else if (action === "cut") handleFileCut(file, path, rp);
+    });
+    clearClipboard();
+  }
+
   return {
-    handleFileCopy,
     handleFolderCopy,
-    handleFileCut,
     handleFileDownload,
     handleFileDelete,
     handleFileShareLink,
@@ -204,6 +229,9 @@ const FileController = ({ toast, onRefresh }) => {
     createFolder,
     handleRenameFile,
     generateBreadcrumb,
+    handleCopy,
+    handleCut,
+    handlePaste
   };
 };
 

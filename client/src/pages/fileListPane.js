@@ -11,7 +11,6 @@ import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
 import FileListFile from "../components/FileListFiles";
 import FolderList from "../components/FolderList";
-import { useClipboard } from "../contexts/ClipboardContext";
 const FileDisplay = ({
   data,
   onFolderClick,
@@ -28,41 +27,16 @@ const FileDisplay = ({
     handleDeleteFolder,
     generateBreadcrumb,
     createFolder,
-    handleFileCopy,
-    handleFileCut,
     handleRenameFile,
     handleFolderCopy,
+    handleCopy,
+    handleCut,
+    handlePaste
   } = fileController({ toast, onRefresh });
   const { relativePath } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
-  const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
-  const handleCopy = (filename, isFolder) => {
-    copyFile({
-      file: filename,
-      path: rp,
-      source: "local",
-      ...(isFolder && { isDirectory: true }),
-    });
-  };
-
-  function handleCut(filename) {
-    cutFile({ file: filename, path: rp, source: "local", serverId: null });
-  }
-
-  function handlePaste() {
-    clipboard.forEach(({ file, path, action, isDirectory }) => {
-      if (action === "copy") {
-        if (isDirectory) {
-          handleFolderCopy(file, path, rp);
-        } else {
-          handleFileCopy(file, path, rp);
-        }
-      } else if (action === "cut") handleFileCut(file, path, rp);
-    });
-    clearClipboard();
-  }
-
+  
   return (
     <Box
       mt={{ base: 1, md: 6 }}
@@ -109,11 +83,11 @@ const FileDisplay = ({
           handleFileDownload={(name) => handleFileDownload(name, rp)}
           handleFileShareLink={(name) => handleFileShareLink(name, rp)}
           handleFileDelete={(name) => handleFileDelete(name, rp)}
-          handleFileCopy={(name) => handleCopy(name, false)}
-          handleFileCut={(name) => handleCut(name)}
+          handleFileCopy={(name) => handleCopy(name, rp, false)}
+          handleFileCut={(name) => handleCut(name, rp)}
           handleRenameFile={(name, newname) => handleRenameFile(name, newname, rp)}
           handleFolderCopy={(name) => handleFolderCopy(name)}
-          handleFilePaste={(name) => handlePaste(name)}
+          handleFilePaste={() => handlePaste(rp)}
         />
       </VStack>
     </Box>

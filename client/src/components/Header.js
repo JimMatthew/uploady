@@ -42,9 +42,7 @@ const Header = ({ username, onLogout }) => {
       <Heading as="h1" size={headingSize}>
         Uploady File Manager
       </Heading>
-
       <Spacer />
-
       <Box>
         <DarkModeToggle />
       </Box>

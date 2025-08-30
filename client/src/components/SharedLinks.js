@@ -10,9 +10,7 @@ import { FiLink, FiTrash } from "react-icons/fi";
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 const SharedLinks = ({ onReload, links }) => {
-
   const bgg = useColorModeValue("white", "gray.700");
-
   const {
     clickLink,
     handleShowLinks,
@@ -20,7 +18,6 @@ const SharedLinks = ({ onReload, links }) => {
     copyToClip,
     isOpen,
   } = useSharedLinks({ onReload });
-
   return (
     <Box>
       {/* Button to show/hide shared links */}
