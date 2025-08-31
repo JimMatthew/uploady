@@ -33,7 +33,9 @@ const SFTPApp = ({ toast }) => {
     handleSshLaunch,
     deleteServer,
     handleConnect,
-    handleLocalTab
+    handleLocalTab,
+    activeTabIndex,
+    setActiveTabIndex
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -42,7 +44,7 @@ const SFTPApp = ({ toast }) => {
   if (loading || !sftpServers) return <div>Loading...</div>;
 
   return (
-    <Flex flex={1}  direction="column">
+    <Flex flex={1} direction="column">
       {!isDesktop && !showSidebar && (
         <Box width="100%" mb={2} textAlign="center">
           <Button colorScheme="blue" onClick={() => setShowSidebar(true)}>
@@ -89,27 +91,32 @@ const SFTPApp = ({ toast }) => {
             }}
           >
             <VStack spacing={6} align="stretch">
-              <Link to="/app/files">
-                <Button colorScheme="teal" width="100%">
-                  Go to Files
+              <Box>
+                <Link to="/app/files">
+                  <Button 
+                  marginBottom={"10px"} 
+                  colorScheme="teal" 
+                  width="100%">
+                    Go to Files
+                  </Button>
+                </Link>
+
+                <Button
+                  marginBottom={"10px"}
+                  colorScheme="blue"
+                  width="100%"
+                  onClick={() => handleNewServer()}
+                >
+                  Add New Server
                 </Button>
-              </Link>
-
-              <Button
-                colorScheme="blue"
-                width="100%"
-                onClick={() => handleNewServer()}
-              >
-                Add New Server
-              </Button>
-              <Button
-                colorScheme="blue"
-                width="100%"
-                onClick={() => handleLocalTab()}
-              >
-                Local
-              </Button>
-
+                <Button
+                  colorScheme="blue"
+                  width="100%"
+                  onClick={() => handleLocalTab()}
+                >
+                  Local
+                </Button>
+              </Box>
               {sftpServers.servers.length > 0 ? (
                 sftpServers.servers.map((server) => (
                   <ServerCard
@@ -143,7 +150,7 @@ const SFTPApp = ({ toast }) => {
 
         {/* Main Panel */}
         <Box flex={1} p={2} transition="margin 0.3s ease">
-          <Tabs>
+          <Tabs index={activeTabIndex} onChange={(i) => setActiveTabIndex(i)} > 
             <TabList>
               {tabs.length > 0 ? (
                 tabs.map((tab, index) => (

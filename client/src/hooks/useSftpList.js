@@ -16,21 +16,28 @@ export function useSftpList({ toast }) {
   const [sftpServers, setSftpServers] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState([]);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [serverStatuses, setServerStatuses] = useState({});
   const navigate = useNavigate();
+
   const addTabItem = ({ id, label, content }) => {
-    const newTab = {
-      id,
-      label,
-      content,
-    };
-    setTabs((prevTabs) => [...prevTabs, newTab]);
+    setTabs((prev) => {
+      const newTabs = [...prev, { id, label, content }];
+      setActiveTabIndex(newTabs.length - 1);
+      return newTabs;
+    });
   };
 
   const closeTab = (indexToRemove) => {
-    setTabs((prevTabs) =>
-      prevTabs.filter((_, index) => index !== indexToRemove)
-    );
+    setTabs((prevTabs) => {
+      const newTabs = prevTabs.filter((_, i) => i !== indexToRemove);
+      if (indexToRemove === activeTabIndex) {
+        setActiveTabIndex(Math.max(0, indexToRemove - 1));
+      } else if (indexToRemove < activeTabIndex) {
+        setActiveTabIndex((prev) => prev - 1);
+      }
+      return newTabs;
+    });
   };
 
   const handleOpenFile = async (serverId, currentDirectory, filename) => {
@@ -47,8 +54,6 @@ export function useSftpList({ toast }) {
       ),
     });
   };
-
-  const setuser = (user) => {};
 
   const handleSshLaunch = (server) => {
     addTabItem({
@@ -70,7 +75,7 @@ export function useSftpList({ toast }) {
     addTabItem({
       id: "Local",
       label: "Local",
-      content: <FileList setUser={setuser} toast={toast} />,
+      content: <FileList toast={toast} />,
     });
   };
 
@@ -143,5 +148,7 @@ export function useSftpList({ toast }) {
     deleteServer,
     handleConnect,
     handleLocalTab,
+    activeTabIndex,
+    setActiveTabIndex,
   };
 }

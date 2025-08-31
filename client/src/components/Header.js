@@ -11,15 +11,14 @@ import {
 } from "@chakra-ui/react";
 import { FaSignOutAlt } from "react-icons/fa";
 import DarkModeToggle from "./DarkModeToggle";
-const Header = ({ username, onLogout }) => {
+const Header = () => {
   const headingSize = useBreakpointValue({ base: "md", md: "lg" });
   const showLogoutText = useBreakpointValue({ base: false, md: true });
   const handleLogout = async () => {
     try {
       const response = await fetch("/apilogout", { method: "GET" });
       if (response.ok) {
-        // Handle successful logout (e.g., redirect to login page)
-        window.location.href = "/"; // Redirect to home or login page
+        window.location.href = "/"; 
       } else {
         console.error("Logout failed");
       }
@@ -43,15 +42,10 @@ const Header = ({ username, onLogout }) => {
         Uploady File Manager
       </Heading>
       <Spacer />
-      <Box>
+      <Box paddingRight={"5px"}                                                                                                                   >
         <DarkModeToggle />
       </Box>
-      <Box>
-        <Text fontSize={{ base: "sm", md: "md" }} mr={4} fontWeight="semibold">
-          Logged in as: {username}
-        </Text>
-      </Box>
-
+      
       {showLogoutText ? (
         <Button
           leftIcon={<FaSignOutAlt />}

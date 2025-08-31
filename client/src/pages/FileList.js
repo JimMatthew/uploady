@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
 import { useFileListPane } from "../hooks/useFileList";
 
-const FileList = ({ setUser, toast }) => {
+const FileList = ({ toast }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const {

@@ -47,9 +47,15 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
     );
   }
 
-  if (!files) {
-    return <Text>No files found or failed to connect to the server.</Text>;
-  }
+  if (!files || !Array.isArray(files.folders) || !Array.isArray(files.files)) {
+  return (
+    <Box textAlign="center" py={10}>
+      <Text fontSize="lg" color="red.500">
+        Failed to connect to the server or no files available.
+      </Text>
+    </Box>
+  );
+}
 
   return (
     <Box

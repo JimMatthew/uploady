@@ -2,11 +2,11 @@ import { Box, Flex } from "@chakra-ui/react";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import { Global } from "@emotion/react";
-const AppLayout = ({ children, username }) => {
+const AppLayout = ({ children }) => {
   return (
     <Flex direction="column" minHeight="100vh">
       <GlobalStyles />
-      <Header username={username} />
+      <Header />
       <Box flex="1">
         {children}
       </Box>
