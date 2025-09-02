@@ -5,7 +5,6 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
-
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
@@ -20,7 +19,6 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     renameSftpFile,
     downloadFolder,
     connectToServer,
-    handleSftpFileCopy,
   } = SftpController({ toast, setFiles });
 
   const handleDownload = (filename) => {

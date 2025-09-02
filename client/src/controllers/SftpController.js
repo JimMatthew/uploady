@@ -4,10 +4,7 @@ const SftpController = ({ toast, setFiles }) => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  /**
-   * API request wrapper
-   */
-  const apiRequest = async (url, options = {}, expectBlob = false) => {
+  async function apiRequest(url, options = {}, expectBlob = false) {
     try {
       const response = await fetch(url, {
         ...options,
@@ -33,7 +30,7 @@ const SftpController = ({ toast, setFiles }) => {
       console.error("API error:", error);
       throw error;
     }
-  };
+  }
 
   /**
    * Toast helper

@@ -6,7 +6,6 @@ import {
   Heading,
   Spinner,
   useBreakpointValue,
-  Progress,
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
@@ -15,6 +14,7 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderListSftp from "../components/FolderList";
 import FileListFile from "../components/FileListFiles";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
+import TransferProgress from "../components/TransferProgress";
 
 const FileFolderViewer = ({ serverId, toast, openFile }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -38,6 +38,12 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
 
   const handleCut = (filename) => {};
 
+  const onUploadSuccess = () =>
+    changeSftpDirectory(serverId, files.currentDirectory);
+
+  const onCreateFolder = (folder) =>
+    createSftpFolder(folder, serverId, files.currentDirectory);
+
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -48,14 +54,14 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
   }
 
   if (!files || !Array.isArray(files.folders) || !Array.isArray(files.files)) {
-  return (
-    <Box textAlign="center" py={10}>
-      <Text fontSize="lg" color="red.500">
-        Failed to connect to the server or no files available.
-      </Text>
-    </Box>
-  );
-}
+    return (
+      <Box textAlign="center" py={10}>
+        <Text fontSize="lg" color="red.500">
+          Failed to connect to the server or no files available.
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -76,9 +82,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
                 serverId,
                 currentDirectory: files.currentDirectory,
               }}
-              onUploadSuccess={() =>
-                changeSftpDirectory(serverId, files.currentDirectory)
-              }
+              onUploadSuccess={onUploadSuccess}
             />
           ) : (
             <Upload
@@ -87,9 +91,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
                 serverId,
                 currentDirectory: files.currentDirectory,
               }}
-              onUploadSuccess={() =>
-                changeSftpDirectory(serverId, files.currentDirectory)
-              }
+              onUploadSuccess={onUploadSuccess}
             />
           )}
         </Box>
@@ -113,11 +115,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
           color="gray.500"
         />
 
-        <CreateFolderComponent
-          handleCreateFolder={(folder) => {
-            createSftpFolder(folder, serverId, files.currentDirectory);
-          }}
-        />
+        <CreateFolderComponent handleCreateFolder={onCreateFolder} />
       </Stack>
 
       <FolderListSftp
@@ -132,29 +130,23 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         handleCopy={(name) => handleCopy(name, true)}
       />
       {/* Clipboard Copy progress*/}
-      {Object.entries(startedTransfers).map(([id, { file }]) => (
-        <Box key={id} mb={2} p={3} borderRadius="md" borderWidth="1px">
-          <Text>{file}</Text>
-          <Progress
-            value={progressMap[id]?.progress || 0}
-            size="sm"
-            colorScheme="blue"
-          />
-        </Box>
-      ))}
+      <TransferProgress 
+        transfers={startedTransfers}
+        progressMap={progressMap}
+      />
 
-      <FileListFile 
+      <FileListFile
         files={files.files}
-        handleFileDownload={(filename) => handleDownload(filename)}
-        handleFileDelete={(filename) => handleDelete(filename)}
-        handleFileShareLink={(filename) => handleShare(filename)}
-        handleRenameFile={(filename, newfilename) =>
-          handleRename(filename, newfilename)}
+        handleFileDownload={handleDownload}
+        handleFileDelete={handleDelete}
+        handleFileShareLink={handleShare}
+        handleRenameFile={handleRename}
         handleFileCopy={(filename) => handleCopy(filename, false)}
         handleFileCut={handleCut}
-        handleFilePaste={() => handlePaste()}
+        handleFilePaste={handlePaste}
         handleOpenFile={(filename) =>
-          openFile(serverId, files.currentDirectory, filename)}
+          openFile(serverId, files.currentDirectory, filename)
+        }
       />
     </Box>
   );

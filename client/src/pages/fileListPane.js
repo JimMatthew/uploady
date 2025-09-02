@@ -58,7 +58,7 @@ const FileDisplay = ({
       >
         <Breadcrum
           breadcrumb={generateBreadcrumb(rp)}
-          onClick={(path) => handleBreadcrumbClick(path)}
+          onClick={handleBreadcrumbClick}
           color="gray.600"
         />
 
