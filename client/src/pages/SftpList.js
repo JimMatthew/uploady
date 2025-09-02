@@ -150,16 +150,21 @@ const SFTPApp = ({ toast }) => {
 
         {/* Main Panel */}
         <Box flex={1} p={2} transition="margin 0.3s ease">
-          <Tabs index={activeTabIndex} onChange={(i) => setActiveTabIndex(i)} > 
-            <TabList>
+          <Tabs 
+          index={activeTabIndex} onChange={(i) => setActiveTabIndex(i)}
+          isLazy
+            lazyBehavior="keepMounted" 
+          > 
+
+            <TabList >
               {tabs.length > 0 ? (
-                tabs.map((tab, index) => (
-                  <HStack key={index} spacing={2}>
-                    <Tab>{tab.label}</Tab>
+                tabs.map((tab) => (
+                  <HStack spacing={2}>
+                    <Tab key={tab.id}>{tab.label}</Tab>
                     <Button
                       size="xs"
                       colorScheme="red"
-                      onClick={() => closeTab(index)}
+                      onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                     >
                       ✕
                     </Button>

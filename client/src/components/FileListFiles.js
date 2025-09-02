@@ -19,8 +19,6 @@ export default function FileList({
     sortedFiles,
     showRenameInput,
     setShowRenameInput,
-    newFilename,
-    setNewFilename,
     renameId,
     setRenameId,
     fileSortDirection,
@@ -50,12 +48,9 @@ export default function FileList({
           key={file.name}
           file={file}
           isRenaming={showRenameInput && renameId === file.name}
-          newFilename={newFilename}
-          onRenameInput={(name) => setNewFilename(name)}
-          onRenameConfirm={() => {
-            handleRenameFile(file.name, newFilename);
+          onRenameConfirm={(newName) => {
+            handleRenameFile(file.name, newName);
             setShowRenameInput(false);
-            setNewFilename("");
           }}
           onRenameCancel={() => setShowRenameInput(false)}
           onCopy={() => handleFileCopy(file.name)}

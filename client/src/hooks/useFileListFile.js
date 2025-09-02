@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 
 export function useFileList({ files }) {
   const [showRenameInput, setShowRenameInput] = useState(false);
-  const [newFilename, setNewFilename] = useState("");
   const [renameId, setRenameId] = useState("");
   const [fileSortDirection, setFileSortDirection] = useState("asc");
   const [sortField, setSortField] = useState("name");
@@ -32,8 +31,6 @@ export function useFileList({ files }) {
     sortedFiles,
     showRenameInput,
     setShowRenameInput,
-    newFilename,
-    setNewFilename,
     renameId,
     setRenameId,
     fileSortDirection,

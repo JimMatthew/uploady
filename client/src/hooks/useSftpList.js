@@ -4,12 +4,14 @@ import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
 import FileList from "../pages/FileList";
+import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
   DeleteServer,
   fetchServerStatuses,
 } from "../controllers/StoreServer";
+let nextId = 0;
 export function useSftpList({ toast }) {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
@@ -22,21 +24,27 @@ export function useSftpList({ toast }) {
 
   const addTabItem = ({ id, label, content }) => {
     setTabs((prev) => {
-      const newTabs = [...prev, { id, label, content }];
+      const newTabs = [...prev, { id: nextId++ , label, content }];
       setActiveTabIndex(newTabs.length - 1);
       return newTabs;
     });
   };
 
-  const closeTab = (indexToRemove) => {
-    setTabs((prevTabs) => {
-      const newTabs = prevTabs.filter((_, i) => i !== indexToRemove);
-      if (indexToRemove === activeTabIndex) {
-        setActiveTabIndex(Math.max(0, indexToRemove - 1));
-      } else if (indexToRemove < activeTabIndex) {
-        setActiveTabIndex((prev) => prev - 1);
-      }
-      return newTabs;
+    const closeTab = (keyToRemove) => {
+    setTabs(prevTabs => {
+      const idx = prevTabs.findIndex(t => t.id === keyToRemove);
+      if (idx === -1) return prevTabs;
+
+      const next = prevTabs.filter(t => t.id !== keyToRemove);
+
+      // adjust active index using previous value safely
+      setActiveTabIndex(prevActive => {
+        if (idx === prevActive) return Math.max(0, prevActive - 1);
+        if (idx < prevActive) return prevActive - 1;
+        return prevActive;
+      });
+
+      return next;
     });
   };
 

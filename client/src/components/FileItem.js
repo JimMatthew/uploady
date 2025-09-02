@@ -11,13 +11,11 @@ import {
   MenuList,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
-import RenameFileComponent from "./RenameFileComponent";
+import RenameComponent from "./RenameComponent";
 
 export default function FileItem({
   file,
   isRenaming,
-  newFilename,
-  onRenameInput,
   onRenameConfirm,
   onRenameCancel,
   onCopy,
@@ -44,12 +42,11 @@ export default function FileItem({
         </VStack>
 
         {isRenaming ? (
-          <RenameFileComponent
-            newFilename={newFilename}
-            onInput={onRenameInput}
-            handleRename={onRenameConfirm}
+          <RenameComponent 
+            handleRename={(name) => onRenameConfirm(name)}
             onCancel={onRenameCancel}
           />
+          
         ) : (
           <Menu>
             <MenuButton as={Button}>Actions</MenuButton>
