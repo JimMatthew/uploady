@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-export function useFileListPane() {
+export function useFileList() {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("files");
   const token = localStorage.getItem("token");

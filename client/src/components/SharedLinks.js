@@ -29,7 +29,7 @@ const SharedLinks = ({ onReload, links }) => {
           onClick={handleShowLinks}
           margin="5px"
         >
-          Show Shared Links
+          {isOpen ? "Hide Shared Links" : "Show Shared Links"}
         </Button>
       </Box>
 

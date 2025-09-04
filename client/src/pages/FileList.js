@@ -13,7 +13,7 @@ import SharedLinks from "../components/SharedLinks";
 import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
-import { useFileListPane } from "../hooks/useFileList";
+import { useFileList } from "../hooks/useFileList";
 
 const FileList = ({ toast }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -26,7 +26,7 @@ const FileList = ({ toast }) => {
     handleFolderClick,
     reload,
     fetchLinks,
-  } = useFileListPane();
+  } = useFileList();
 
   const bgg = useColorModeValue("white", "gray.700");
   if (loading || !fileData)
@@ -85,8 +85,6 @@ const FileList = ({ toast }) => {
             onFolderClick={handleFolderClick}
             onRefresh={reload}
             toast={toast}
-            files={fileData.files}
-            folders={fileData.folders}
             handleBreadcrumbClick={setCurrentPath}
           />
         </Box>

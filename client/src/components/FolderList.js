@@ -14,13 +14,13 @@ const FolderList = ({
   const toggleFolderSort = () =>
     setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
 
+  const asc = (a, b) => a.name.localeCompare(b.name);
+  const desc = (a, b) => b.name.localeCompare(a.name);
+
   const sortedfolders = useMemo(() => {
-    return [...folders].sort((a, b) =>
-      folderSortDirection === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
-    );
+    return [...folders].sort(folderSortDirection === "asc" ? asc : desc);
   }, [folders, folderSortDirection]);
+
   return (
     <Box mb={8}>
       <SortComponent

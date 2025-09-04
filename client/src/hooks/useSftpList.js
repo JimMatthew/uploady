@@ -37,7 +37,6 @@ export function useSftpList({ toast }) {
 
       const next = prevTabs.filter(t => t.id !== keyToRemove);
 
-      // adjust active index using previous value safely
       setActiveTabIndex(prevActive => {
         if (idx === prevActive) return Math.max(0, prevActive - 1);
         if (idx < prevActive) return prevActive - 1;

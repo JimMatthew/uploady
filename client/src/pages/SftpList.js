@@ -120,7 +120,7 @@ const SFTPApp = ({ toast }) => {
               {sftpServers.servers.length > 0 ? (
                 sftpServers.servers.map((server) => (
                   <ServerCard
-                    key={server.id}
+                    key={server._id}
                     serverId={server._id}
                     serverName={server.host}
                     serverStatuses={serverStatuses}
@@ -155,7 +155,6 @@ const SFTPApp = ({ toast }) => {
           isLazy
             lazyBehavior="keepMounted" 
           > 
-
             <TabList >
               {tabs.length > 0 ? (
                 tabs.map((tab) => (
@@ -176,7 +175,7 @@ const SFTPApp = ({ toast }) => {
                 </Text>
               )}
             </TabList>
-
+            
             <TabPanels>
               {tabs.length > 0 ? (
                 tabs.map((tab) => (

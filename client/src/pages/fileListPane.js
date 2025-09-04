@@ -16,8 +16,6 @@ const FileDisplay = ({
   onFolderClick,
   onRefresh,
   toast,
-  files,
-  folders,
   handleBreadcrumbClick,
 }) => {
   const {
@@ -33,7 +31,7 @@ const FileDisplay = ({
     handleCut,
     handlePaste
   } = fileController({ toast, onRefresh });
-  const { relativePath } = data;
+  const { relativePath, files, folders } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
   
