@@ -1,4 +1,4 @@
-export const SaveServer = async ({ host, username, password, toast }) => {
+export const SaveServer = async ({ host, username, password,authMethod, toast,  }) => {
   const response = await fetch("/sftp/api/save-server", {
     method: "POST",
     headers: {
@@ -8,7 +8,9 @@ export const SaveServer = async ({ host, username, password, toast }) => {
     body: JSON.stringify({
       host: host,
       username: username,
-      password: password,
+      authType: authMethod,
+      password: authMethod === "password" ? password : undefined,
+      key: authMethod === "key" ? password: undefined
     }),
   });
   if (!response.ok) {

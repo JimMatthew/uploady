@@ -19,17 +19,28 @@ const handleError = (res, message, status = 500) => {
 const connectToSftp = async (serverId) => {
   const server = await SftpServer.findById(serverId);
   if (!server) throw new Error("Server not found");
-  //console.log(server)
-  if (server.authType !== "password") {
-    throw new Error("Only password authentication supported for now");
-  }
-  const decryptedPassword = decrypt(server.credentials.password);
+
   const sftp = new SftpClient();
-  await sftp.connect({
-    host: server.host,
-    username: server.username,
-    password: decryptedPassword,
-  });
+  if (server.authType === "password") {
+    const decryptedPassword = decrypt(server.credentials.password);
+    await sftp.connect({
+      host: server.host,
+      username: server.username,
+      password: decryptedPassword,
+    });
+  } else if (server.authType === "key") {
+    let privateKey = decrypt(server.credentials.privateKey).trim();
+
+    if (privateKey.includes("\\n")) {
+      privateKey = privateKey.replace(/\\n/g, "\n");
+    }
+
+    await sftp.connect({
+      host: server.host,
+      username: server.username,
+      privateKey,
+    });
+  }
   return sftp;
 };
 
@@ -243,19 +254,34 @@ const checkServerStatus = (host, port = 22) => {
 };
 
 const sftp_save_server_json_post = async (req, res, next) => {
-  const { host, username, password } = req.body;
-  const encrypted = encrypt(password);
-  
-  const newServer = new SftpServer({
+  const {
     host,
     username,
-    authType: "password",
-    credentials: {
-      password: encrypted
+    password,
+    authType = "password",
+    key,
+    passphrase,
+  } = req.body;
+
+  const server = {
+    host,
+    username,
+    authType,
+    credentials: {},
+  };
+
+  if (authType === "password") {
+    server.credentials.password = encrypt(password);
+  } else if (authType === "key") {
+    server.credentials.privateKey = encrypt(key);
+    if (passphrase) {
+      server.credentials.passphrase = encrypt(passphrase);
     }
-  });
+  }
+
+  const serverDoc = new SftpServer(server);
   try {
-    await newServer.save();
+    await serverDoc.save();
     res.status(200).send();
   } catch (error) {
     handleError(res, "Cannot save Server", 400);

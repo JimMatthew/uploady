@@ -86,8 +86,8 @@ export function useSftpList({ toast }) {
     });
   };
 
-  const handleSaveServer = async (host, username, password) => {
-    await SaveServer({ host, username, password, toast });
+  const handleSaveServer = async (host, username, password, authMethod) => {
+    await SaveServer({ host, username, password,authMethod, toast,  });
     fetchServers();
   };
 

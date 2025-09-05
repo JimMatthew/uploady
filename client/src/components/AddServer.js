@@ -7,20 +7,26 @@ import {
   Input,
   FormControl,
   FormLabel,
+  Select,
   useColorModeValue,
+  Textarea,
 } from "@chakra-ui/react";
 
 const AddServer = ({ handleSaveServer }) => {
   const [newServerDetails, setNewServerDetails] = useState({
     host: "",
     username: "",
+    authMethod: "password", // new field
     password: "",
+    privateKey: "",
   });
+
   const boxBg = useColorModeValue("white", "gray.700");
   const inputBg = useColorModeValue("gray.50", "gray.800");
   const borderColor = useColorModeValue("gray.300", "gray.600");
   const labelColor = useColorModeValue("gray.600", "gray.300");
   const headingColor = useColorModeValue("gray.800", "white");
+
   const handleInputChange = (e) => {
     setNewServerDetails({
       ...newServerDetails,
@@ -33,9 +39,18 @@ const AddServer = ({ handleSaveServer }) => {
     handleSaveServer(
       newServerDetails.host,
       newServerDetails.username,
-      newServerDetails.password
+      newServerDetails.authMethod === "password"
+        ? newServerDetails.password
+        : newServerDetails.privateKey,
+      newServerDetails.authMethod
     );
-    setNewServerDetails({ host: "", username: "", password: "" });
+    setNewServerDetails({
+      host: "",
+      username: "",
+      authMethod: "password",
+      password: "",
+      privateKey: "",
+    });
   };
 
   return (
@@ -55,6 +70,7 @@ const AddServer = ({ handleSaveServer }) => {
           Add New Server
         </Heading>
 
+        {/* Host */}
         <FormControl id="host" isRequired>
           <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
             Host
@@ -73,10 +89,10 @@ const AddServer = ({ handleSaveServer }) => {
               borderColor: "blue.500",
               boxShadow: "0 0 0 1px blue.500",
             }}
-            transition="border-color 0.2s ease, box-shadow 0.2s ease"
           />
         </FormControl>
 
+        {/* Username */}
         <FormControl id="username" isRequired>
           <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
             Username
@@ -95,43 +111,79 @@ const AddServer = ({ handleSaveServer }) => {
               borderColor: "blue.500",
               boxShadow: "0 0 0 1px blue.500",
             }}
-            transition="border-color 0.2s ease, box-shadow 0.2s ease"
           />
         </FormControl>
 
-        <FormControl id="password" isRequired>
+        {/* Auth Method */}
+        <FormControl id="authMethod" isRequired>
           <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-            Password
+            Authentication Method
           </FormLabel>
-          <Input
-            name="password"
-            type="password"
-            placeholder="Enter password"
-            value={newServerDetails.password}
+          <Select
+            name="authMethod"
+            value={newServerDetails.authMethod}
             onChange={handleInputChange}
             bg={inputBg}
             border="1px solid"
             borderColor={borderColor}
             borderRadius="md"
-            _hover={{ borderColor: "blue.400" }}
-            _focus={{
-              borderColor: "blue.500",
-              boxShadow: "0 0 0 1px blue.500",
-            }}
-            transition="border-color 0.2s ease, box-shadow 0.2s ease"
-          />
+          >
+            <option value="password">Password</option>
+            <option value="key">SSH Key</option>
+          </Select>
         </FormControl>
 
-        <Button
-          colorScheme="blue"
-          type="submit"
-          width="full"
-          bg="blue.500"
-          borderRadius="md"
-          _hover={{ bg: "blue.600" }}
-          _focus={{ boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
-          transition="background-color 0.2s ease, box-shadow 0.2s ease"
-        >
+        {/* Password (only if password auth) */}
+        {newServerDetails.authMethod === "password" && (
+          <FormControl id="password" isRequired>
+            <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
+              Password
+            </FormLabel>
+            <Input
+              name="password"
+              type="password"
+              placeholder="Enter password"
+              value={newServerDetails.password}
+              onChange={handleInputChange}
+              bg={inputBg}
+              border="1px solid"
+              borderColor={borderColor}
+              borderRadius="md"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{
+                borderColor: "blue.500",
+                boxShadow: "0 0 0 1px blue.500",
+              }}
+            />
+          </FormControl>
+        )}
+
+        {/* Private Key (only if key auth) */}
+        {newServerDetails.authMethod === "key" && (
+          <FormControl id="privateKey" isRequired>
+            <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
+              Private Key
+            </FormLabel>
+            <Textarea
+              name="privateKey"
+              placeholder="Paste private key here"
+              value={newServerDetails.privateKey}
+              onChange={handleInputChange}
+              bg={inputBg}
+              border="1px solid"
+              borderColor={borderColor}
+              borderRadius="md"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{
+                borderColor: "blue.500",
+                boxShadow: "0 0 0 1px blue.500",
+              }}
+              rows={8} // give some space
+            />
+          </FormControl>
+        )}
+
+        <Button colorScheme="blue" type="submit" width="full" borderRadius="md">
           Save Server
         </Button>
       </VStack>
