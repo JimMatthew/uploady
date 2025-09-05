@@ -245,7 +245,7 @@ const checkServerStatus = (host, port = 22) => {
 const sftp_save_server_json_post = async (req, res, next) => {
   const { host, username, password } = req.body;
   const encrypted = encrypt(password);
-  console.log(encrypted);
+  
   const newServer = new SftpServer({
     host,
     username,
