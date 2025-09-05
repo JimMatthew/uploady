@@ -16,7 +16,7 @@ const AddServer = ({ handleSaveServer }) => {
   const [newServerDetails, setNewServerDetails] = useState({
     host: "",
     username: "",
-    authMethod: "password", // new field
+    authMethod: "password", 
     password: "",
     privateKey: "",
   });
@@ -178,7 +178,7 @@ const AddServer = ({ handleSaveServer }) => {
                 borderColor: "blue.500",
                 boxShadow: "0 0 0 1px blue.500",
               }}
-              rows={8} // give some space
+              rows={8} 
             />
           </FormControl>
         )}
