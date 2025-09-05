@@ -1,6 +1,6 @@
 const { Client } = require("ssh2");
 const SftpServer = require("../models/SftpServer");
-
+const { decrypt } = require("./encryption");
 const ssh_session = (socket) => {
   let sshClient = new Client();
 
@@ -11,7 +11,8 @@ const ssh_session = (socket) => {
       const serverInfo = await SftpServer.findById(serverId);
       if (!serverInfo) return;
 
-      const { host, username, password } = serverInfo;
+      const { host, username } = serverInfo;
+      const password = decrypt(serverInfo.credentials.password);
 
       sshClient
         .on("ready", () => {

@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const net = require("net");
 const archiver = require("archiver");
 const SharedFile = require("../models/SharedFile");
+const { encrypt, decrypt } = require("./encryption");
 const domain = process.env.HOSTNAME;
 
 const handleError = (res, message, status = 500) => {
@@ -18,11 +19,16 @@ const handleError = (res, message, status = 500) => {
 const connectToSftp = async (serverId) => {
   const server = await SftpServer.findById(serverId);
   if (!server) throw new Error("Server not found");
+  //console.log(server)
+  if (server.authType !== "password") {
+    throw new Error("Only password authentication supported for now");
+  }
+  const decryptedPassword = decrypt(server.credentials.password);
   const sftp = new SftpClient();
   await sftp.connect({
     host: server.host,
     username: server.username,
-    password: server.password,
+    password: decryptedPassword,
   });
   return sftp;
 };
@@ -64,7 +70,7 @@ const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
   for (const item of folderContents) {
     const itemPath = `${folderPath}/${item.name}`;
     const zipPath = `${zipFolderPath}/${item.name}`;
-    
+
     if (item.type === "-") {
       if (item.size == 0) {
         continue;
@@ -113,7 +119,7 @@ const share_sftp_file = async (req, res, next) => {
     token,
     isRemote: true,
     serverId,
-    ... (server && { serverName: server.host })
+    ...(server && { serverName: server.host }),
   });
 
   await sharedFile.save();
@@ -238,10 +244,15 @@ const checkServerStatus = (host, port = 22) => {
 
 const sftp_save_server_json_post = async (req, res, next) => {
   const { host, username, password } = req.body;
+  const encrypted = encrypt(password);
+  console.log(encrypted);
   const newServer = new SftpServer({
     host,
     username,
-    password,
+    authType: "password",
+    credentials: {
+      password: encrypted
+    }
   });
   try {
     await newServer.save();
@@ -282,13 +293,8 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
         error: "Server not found",
       });
     }
-    const { host, username, password } = server;
-    sftp = new SftpClient();
-    await sftp.connect({
-      host,
-      username,
-      password,
-    });
+    const { host } = server;
+    sftp = await connectToSftp(serverId);
     const contents = await sftp.list(currentDirectory);
     const { files, folders } = contents.reduce(
       (acc, item) => {
