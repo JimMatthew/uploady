@@ -4,6 +4,7 @@ export const SaveServer = async ({
   password,
   authMethod,
   toast,
+  passphrase,
 }) => {
   const response = await fetch("/sftp/api/save-server", {
     method: "POST",
@@ -17,6 +18,12 @@ export const SaveServer = async ({
       authType: authMethod,
       password: authMethod === "password" ? password : undefined,
       key: authMethod === "key" ? password : undefined,
+      passphrase:
+        authMethod === "key"
+          ? passphrase
+            ? passphrase
+            : undefined
+          : undefined,
     }),
   });
   if (!response.ok) {

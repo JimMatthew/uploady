@@ -36,9 +36,7 @@ const connectToSftp = async (serverId) => {
     }
 
     const hasPassphrase =
-      server.credentials.passphrase &&
-      typeof server.credentials.passphrase === "string" &&
-      server.credentials.passphrase.length > 0;
+      server.credentials.passphrase && server.credentials.passphrase.iv;
 
     let passphrase;
     if (hasPassphrase) {

@@ -4,7 +4,6 @@ import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
 import FileList from "../pages/FileList";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
@@ -24,20 +23,20 @@ export function useSftpList({ toast }) {
 
   const addTabItem = ({ id, label, content }) => {
     setTabs((prev) => {
-      const newTabs = [...prev, { id: nextId++ , label, content }];
+      const newTabs = [...prev, { id: nextId++, label, content }];
       setActiveTabIndex(newTabs.length - 1);
       return newTabs;
     });
   };
 
-    const closeTab = (keyToRemove) => {
-    setTabs(prevTabs => {
-      const idx = prevTabs.findIndex(t => t.id === keyToRemove);
+  const closeTab = (keyToRemove) => {
+    setTabs((prevTabs) => {
+      const idx = prevTabs.findIndex((t) => t.id === keyToRemove);
       if (idx === -1) return prevTabs;
 
-      const next = prevTabs.filter(t => t.id !== keyToRemove);
+      const next = prevTabs.filter((t) => t.id !== keyToRemove);
 
-      setActiveTabIndex(prevActive => {
+      setActiveTabIndex((prevActive) => {
         if (idx === prevActive) return Math.max(0, prevActive - 1);
         if (idx < prevActive) return prevActive - 1;
         return prevActive;
@@ -86,8 +85,21 @@ export function useSftpList({ toast }) {
     });
   };
 
-  const handleSaveServer = async (host, username, password, authMethod) => {
-    await SaveServer({ host, username, password,authMethod, toast,  });
+  const handleSaveServer = async (
+    host,
+    username,
+    password,
+    authMethod,
+    passphrase
+  ) => {
+    await SaveServer({
+      host,
+      username,
+      password,
+      authMethod,
+      toast,
+      passphrase,
+    });
     fetchServers();
   };
 

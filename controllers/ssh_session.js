@@ -24,21 +24,15 @@ const ssh_session = (socket) => {
         connectConfig.password = decrypt(serverInfo.credentials.password);
       } else if (authType === "key") {
         let privateKey = decrypt(serverInfo.credentials.privateKey);
-
         if (privateKey.includes("\\n")) {
           privateKey = privateKey.replace(/\\n/g, "\n");
         }
-
         connectConfig.privateKey = privateKey;
-        const hasPassphrase =
+        if (
           serverInfo.credentials.passphrase &&
-          typeof serverInfo.credentials.passphrase === "string" &&
-          serverInfo.credentials.passphrase.length > 0;
-
-        let passphrase;
-        if (hasPassphrase) {
-          passphrase = decrypt(serverInfo.credentials.passphrase);
-          connectConfig.passphrase = passphrase;
+          serverInfo.credentials.passphrase.iv
+        ) {
+          connectConfig.passphrase = decrypt(serverInfo.credentials.passphrase);
         }
       }
 

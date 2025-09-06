@@ -16,9 +16,10 @@ const AddServer = ({ handleSaveServer }) => {
   const [newServerDetails, setNewServerDetails] = useState({
     host: "",
     username: "",
-    authMethod: "password", 
+    authMethod: "password",
     password: "",
     privateKey: "",
+    passphrase: "",
   });
 
   const boxBg = useColorModeValue("white", "gray.700");
@@ -42,7 +43,8 @@ const AddServer = ({ handleSaveServer }) => {
       newServerDetails.authMethod === "password"
         ? newServerDetails.password
         : newServerDetails.privateKey,
-      newServerDetails.authMethod
+      newServerDetails.authMethod,
+      newServerDetails.passphrase
     );
     setNewServerDetails({
       host: "",
@@ -50,6 +52,7 @@ const AddServer = ({ handleSaveServer }) => {
       authMethod: "password",
       password: "",
       privateKey: "",
+      passphrase: "",
     });
   };
 
@@ -160,27 +163,50 @@ const AddServer = ({ handleSaveServer }) => {
 
         {/* Private Key (only if key auth) */}
         {newServerDetails.authMethod === "key" && (
-          <FormControl id="privateKey" isRequired>
-            <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-              Private Key
-            </FormLabel>
-            <Textarea
-              name="privateKey"
-              placeholder="Paste private key here"
-              value={newServerDetails.privateKey}
-              onChange={handleInputChange}
-              bg={inputBg}
-              border="1px solid"
-              borderColor={borderColor}
-              borderRadius="md"
-              _hover={{ borderColor: "blue.400" }}
-              _focus={{
-                borderColor: "blue.500",
-                boxShadow: "0 0 0 1px blue.500",
-              }}
-              rows={8} 
-            />
-          </FormControl>
+          <>
+            <FormControl id="privateKey" isRequired>
+              <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
+                Private Key
+              </FormLabel>
+              <Textarea
+                name="privateKey"
+                placeholder="Paste private key here"
+                value={newServerDetails.privateKey}
+                onChange={handleInputChange}
+                bg={inputBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="md"
+                _hover={{ borderColor: "blue.400" }}
+                _focus={{
+                  borderColor: "blue.500",
+                  boxShadow: "0 0 0 1px blue.500",
+                }}
+                rows={8}
+              />
+            </FormControl>
+            <FormControl id="passphrase">
+              <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
+                Passphrase (optional)
+              </FormLabel>
+              <Input
+                name="passphrase"
+                type="password"
+                placeholder="Enter passphrase if your key has one"
+                value={newServerDetails.passphrase}
+                onChange={handleInputChange}
+                bg={inputBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="md"
+                _hover={{ borderColor: "blue.400" }}
+                _focus={{
+                  borderColor: "blue.500",
+                  boxShadow: "0 0 0 1px blue.500",
+                }}
+              />
+            </FormControl>
+          </>
         )}
 
         <Button colorScheme="blue" type="submit" width="full" borderRadius="md">
