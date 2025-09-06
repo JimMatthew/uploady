@@ -35,10 +35,20 @@ const connectToSftp = async (serverId) => {
       privateKey = privateKey.replace(/\\n/g, "\n");
     }
 
+    const hasPassphrase =
+      server.credentials.passphrase &&
+      typeof server.credentials.passphrase === "string" &&
+      server.credentials.passphrase.length > 0;
+
+    let passphrase;
+    if (hasPassphrase) {
+      passphrase = decrypt(server.credentials.passphrase);
+    }
     await sftp.connect({
       host: server.host,
       username: server.username,
       privateKey,
+      ...(passphrase ? { passphrase } : {}),
     });
   }
   return sftp;

@@ -30,9 +30,15 @@ const ssh_session = (socket) => {
         }
 
         connectConfig.privateKey = privateKey;
+        const hasPassphrase =
+          serverInfo.credentials.passphrase &&
+          typeof serverInfo.credentials.passphrase === "string" &&
+          serverInfo.credentials.passphrase.length > 0;
 
-        if (serverInfo.credentials.passphrase) {
-          //connectConfig.passphrase = decrypt(serverInfo.credentials.passphrase);
+        let passphrase;
+        if (hasPassphrase) {
+          passphrase = decrypt(serverInfo.credentials.passphrase);
+          connectConfig.passphrase = passphrase;
         }
       }
 
