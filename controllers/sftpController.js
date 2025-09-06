@@ -21,34 +21,31 @@ const connectToSftp = async (serverId) => {
   if (!server) throw new Error("Server not found");
 
   const sftp = new SftpClient();
+
+  const options = {
+    host: server.host,
+    port: 22,
+    username: server.username,
+  };
+
   if (server.authType === "password") {
-    const decryptedPassword = decrypt(server.credentials.password);
-    await sftp.connect({
-      host: server.host,
-      username: server.username,
-      password: decryptedPassword,
-    });
+    options.password = decrypt(server.credentials.password);
   } else if (server.authType === "key") {
     let privateKey = decrypt(server.credentials.privateKey).trim();
 
     if (privateKey.includes("\\n")) {
       privateKey = privateKey.replace(/\\n/g, "\n");
     }
+    options.privateKey = privateKey;
 
-    const hasPassphrase =
-      server.credentials.passphrase && server.credentials.passphrase.iv;
+    const passphrase =
+      server.credentials.passphrase && server.credentials.passphrase.iv
+        ? decrypt(server.credentials.passphrase)
+        : undefined;
 
-    let passphrase;
-    if (hasPassphrase) {
-      passphrase = decrypt(server.credentials.passphrase);
-    }
-    await sftp.connect({
-      host: server.host,
-      username: server.username,
-      privateKey,
-      ...(passphrase ? { passphrase } : {}),
-    });
+    if (passphrase) options.passphrase = passphrase;
   }
+  await sftp.connect(options);
   return sftp;
 };
 
