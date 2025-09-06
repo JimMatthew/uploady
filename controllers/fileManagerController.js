@@ -3,7 +3,6 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
-const SftpServer = require("../models/SftpServer");
 const { execSync } = require("child_process");
 
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -85,7 +84,7 @@ const generateShareLinkJsonPost = async (req, res, next) => {
 };
 
 /*
-    Server a shared file. 
+    Serve a shared file. 
     We use the token to lookup the shared file 
     A shared file can exist on this server, where we serve the
     local file, or on a remote server, where we will connect to it via

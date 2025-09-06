@@ -271,6 +271,10 @@ const sftp_save_server_json_post = async (req, res, next) => {
     passphrase,
   } = req.body;
 
+  if (!host || !username || !authType) {
+    return handleError(res, "Host, username, and AuthType required", 400);
+  }
+
   const server = {
     host,
     username,
@@ -279,20 +283,26 @@ const sftp_save_server_json_post = async (req, res, next) => {
   };
 
   if (authType === "password") {
+    if (!password) {
+      return handleError(res, "Password required for password auth", 400);
+    }
     server.credentials.password = encrypt(password);
   } else if (authType === "key") {
+    if (!key) {
+      return handleError(res, "Key required for key Auth", 400);
+    }
     server.credentials.privateKey = encrypt(key);
     if (passphrase) {
       server.credentials.passphrase = encrypt(passphrase);
     }
   }
 
-  const serverDoc = new SftpServer(server);
+  const newServer = new SftpServer(server);
   try {
-    await serverDoc.save();
+    await newServer.save();
     res.status(200).send();
   } catch (error) {
-    handleError(res, "Cannot save Server", 400);
+    return handleError(res, "Cannot save Server", 400);
   }
 };
 
@@ -306,9 +316,10 @@ const sftp_delete_server__json_post = async (req, res, next) => {
     return res.status(404).send("Error deleting server");
   }
 };
+
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString(); // Format to readable date and time
+  return date.toLocaleString();
 };
 
 const sftp_id_list_files_json_get = async (req, res, next) => {
