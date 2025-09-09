@@ -9,6 +9,7 @@ const net = require("net");
 const archiver = require("archiver");
 const SharedFile = require("../models/SharedFile");
 const { encrypt, decrypt } = require("./encryption");
+const sftpService = require("../services/sftpService");
 const domain = process.env.HOSTNAME;
 
 const handleError = (res, message, status = 500) => {
@@ -51,63 +52,66 @@ const connectToSftp = async (serverId) => {
 
 const sftp_rename_file_json_post = async (req, res) => {
   const { currentPath, fileName, newFileName, serverId } = req.body;
-  if (!currentPath || !fileName || !newFileName || serverId) {
-    return res
-      .status(400)
-      .send(JSON.stringify("Error: Missing required fields"));
+
+  if (!currentPath || !fileName || !newFileName || !serverId) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
-  let sftp;
   try {
-    sftp = await connectToSftp(serverId);
-    await sftp.rename(
-      path.join(currentPath, fileName),
-      path.join(currentPath, newFileName)
-    );
-    res.status(200).send(JSON.stringify("message: File renamed"));
+    await sftpService.renameFile(serverId, currentPath, fileName, newFileName);
+    res.status(200).json({ message: "File renamed" });
   } catch (err) {
-    return res.status(404).send(JSON.stringify("Error: Error creating folder"));
-  } finally {
-    if (sftp) await sftp.end();
+    return res.status(400).json({ error: "Missing required fields" });
   }
 };
 
-const sftp_create_folder_json_post = async (req, res) => {
+async function sftp_create_folder_json_post(req, res) {
   const { currentPath, folderName, serverId } = req.body;
+
   if (!currentPath || !folderName || !serverId) {
-    return res
-      .status(400)
-      .send(JSON.stringify("Error: Missng required fields"));
+    return res.status(400).json({ error: "Missing required fields" });
   }
-  let sftp;
+
   try {
-    sftp = await connectToSftp(serverId);
-    await sftp.mkdir(path.join(currentPath, folderName));
-    res.status(200).send(JSON.stringify("message: Folder Created"));
+    const result = await sftpService.createFolder(
+      currentPath,
+      folderName,
+      serverId
+    );
+    res.status(200).json({ message: "Folder created", path: result.path });
   } catch (err) {
-    return res.status(404).send(JSON.stringify("Error: Error creating folder"));
-  } finally {
-    if (sftp) await sftp.end();
+    res.status(500).json({
+      error: "Error creating folder",
+      details: err.message,
+    });
   }
+}
+
+const sftp_delete_file_json_post = async (req, res, next) => {
+  const { serverId, currentDirectory, fileName } = req.body;
+  if (serverId && currentDirectory && fileName) {
+    try {
+      await sftpService.deleteFile(
+        serverId,
+        path.join(currentDirectory, fileName)
+      );
+      return res.status(200).send(JSON.stringify("message: File Deleted"));
+    } catch (error) {
+      return res.status(400).send("Error deleting file");
+    }
+  }
+  return res.status(404).send("server not found");
 };
 
-const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
-  const folderContents = await sftp.list(folderPath);
-
-  for (const item of folderContents) {
-    const itemPath = `${folderPath}/${item.name}`;
-    const zipPath = `${zipFolderPath}/${item.name}`;
-
-    if (item.type === "-") {
-      if (item.size == 0) {
-        continue;
-      }
-      const stream = await sftp.get(itemPath);
-      archive.append(stream || Buffer.alloc(0), { name: zipPath });
-      //archive.append(stream, { name: zipPath });
-    } else if (item.type === "d") {
-      archive.append(null, { name: `${zipPath}/` });
-      await addFolderToArchive(sftp, archive, itemPath, zipPath);
-    }
+const sftp_delete_folder_json_post = async (req, res, next) => {
+  const { serverId, currentDirectory, deleteDir } = req.body;
+  try {
+    await sftpService.deleteFolder(
+      serverId,
+      path.join(currentDirectory, deleteDir)
+    );
+    res.status(200).send(JSON.stringify("message: Folder Deleted"));
+  } catch (error) {
+    res.status(400).send(JSON.stringify("Error: Failed to delete folder"));
   }
 };
 
@@ -116,47 +120,13 @@ const sftp_get_archive_folder = async (req, res) => {
   const relativePath = req.params[0] || "";
   const remotePath = relativePath ? `/${relativePath}` : "/";
   try {
-    const sftp = await connectToSftp(serverId);
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
     res.setHeader("Content-Type", "application/zip");
 
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    archive.pipe(res);
-
-    await addFolderToArchive(sftp, archive, remotePath, "/");
-    archive.finalize();
+    await sftpService.archiveFolder(serverId, remotePath, res);
   } catch (err) {
     handleError(res, "Failed to download folder");
   }
-};
-
-const share_sftp_file = async (req, res, next) => {
-  const { serverId, remotePath } = req.body;
-  if (!serverId || !remotePath) {
-    return res
-      .status(400)
-      .send(JSON.stringify("Error: Missing required fields"));
-  }
-  const token = crypto.randomBytes(5).toString("hex");
-  const fileName = remotePath.split("/").pop();
-  const filePath = remotePath ? remotePath : "/";
-  const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
-  const server = await SftpServer.findById(serverId);
-
-  const sharedFile = new SharedFile({
-    fileName,
-    filePath,
-    link,
-    token,
-    isRemote: true,
-    serverId,
-    ...(server && { serverName: server.host }),
-  });
-
-  await sharedFile.save();
-  return res.json({
-    link: link,
-  });
 };
 
 const sftp_download_file = async (serverId, remotePath, res) => {
@@ -189,11 +159,55 @@ const sftp_download_file = async (serverId, remotePath, res) => {
   }
 };
 
-const sftp_stream_download_get = async (req, res, next) => {
+async function sftp_stream_download_get(req, res) {
   const { serverId } = req.params;
   const relativePath = req.params[0] || "";
   const remotePath = relativePath ? `/${relativePath}` : "/";
-  await sftp_download_file(serverId, remotePath, res);
+
+  try {
+    const { stream, filename, cleanup } = await sftpService.downloadFile(serverId, remotePath);
+
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+
+    stream.pipe(res);
+
+    res.on("close", cleanup);
+    res.on("finish", cleanup);
+  } catch (err) {
+    console.error("Download error:", err);
+    res.status(500).json({ error: "Error downloading file" });
+  }
+}
+
+
+const share_sftp_file = async (req, res, next) => {
+  const { serverId, remotePath } = req.body;
+  if (!serverId || !remotePath) {
+    return res
+      .status(400)
+      .send(JSON.stringify("Error: Missing required fields"));
+  }
+  const token = crypto.randomBytes(5).toString("hex");
+  const fileName = remotePath.split("/").pop();
+  const filePath = remotePath ? remotePath : "/";
+  const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
+  const server = await SftpServer.findById(serverId);
+
+  const sharedFile = new SharedFile({
+    fileName,
+    filePath,
+    link,
+    token,
+    isRemote: true,
+    serverId,
+    ...(server && { serverName: server.host }),
+  });
+
+  await sharedFile.save();
+  return res.json({
+    link: link,
+  });
 };
 
 const sftp_stream_upload_post = async (req, res, next) => {
@@ -342,7 +356,6 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
     err.status = 400;
     return next(err);
   }
-  let sftp;
   try {
     const server = await SftpServer.findById(serverId);
     if (!server) {
@@ -351,22 +364,9 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
       });
     }
     const { host } = server;
-    sftp = await connectToSftp(serverId);
-    const contents = await sftp.list(currentDirectory);
-    const { files, folders } = contents.reduce(
-      (acc, item) => {
-        if (item.type === "d") {
-          acc.folders.push({ name: item.name });
-        } else {
-          acc.files.push({
-            name: item.name,
-            size: (item.size / 1024).toFixed(2),
-            date: formatDate(item.modifyTime),
-          });
-        }
-        return acc;
-      },
-      { files: [], folders: [] }
+    const { files, folders } = await sftpService.listDirectory(
+      serverId,
+      currentDirectory
     );
     res.json({
       files,
@@ -378,33 +378,6 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
   } catch (error) {
     console.log(error);
     return res.status(404).send("Error listing directory");
-  } finally {
-    if (sftp) await sftp.end();
-  }
-};
-
-const sftp_delete_file_json_post = async (req, res, next) => {
-  const { serverId, currentDirectory, fileName } = req.body;
-  if (serverId && currentDirectory && fileName) {
-    try {
-      const sftp = await connectToSftp(serverId);
-      await sftp.delete(path.join(currentDirectory, fileName));
-      return res.status(200).send(JSON.stringify("message: File Deleted"));
-    } catch (error) {
-      return res.status(400).send("Error deleting file");
-    }
-  }
-  return res.status(404).send("server not found");
-};
-
-const sftp_delete_folder_json_post = async (req, res, next) => {
-  const { serverId, currentDirectory, deleteDir } = req.body;
-  try {
-    const sftp = await connectToSftp(serverId);
-    await sftp.rmdir(path.join(currentDirectory, deleteDir));
-    res.status(200).send(JSON.stringify("message: Folder Deleted"));
-  } catch (error) {
-    res.status(400).send(JSON.stringify("Error: Failed to delete folder"));
   }
 };
 
