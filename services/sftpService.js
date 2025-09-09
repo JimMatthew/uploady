@@ -167,7 +167,6 @@ async function listDirectory(serverId, currentDirectory) {
 async function downloadFile(serverId, remotePath) {
   const sftp = await connectToSftp(serverId);
   const stream = new PassThrough();
-
   try {
     await sftp.get(remotePath, stream);
 
@@ -189,12 +188,6 @@ async function downloadFile(serverId, remotePath) {
     throw new SftpError("Error downloading file", err.code, err.message);
   }
 }
-
-
-
-module.exports = {
-  downloadFile,
-};
 
 module.exports = {
   createFolder,

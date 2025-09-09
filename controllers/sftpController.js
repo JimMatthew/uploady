@@ -165,7 +165,10 @@ async function sftp_stream_download_get(req, res) {
   const remotePath = relativePath ? `/${relativePath}` : "/";
 
   try {
-    const { stream, filename, cleanup } = await sftpService.downloadFile(serverId, remotePath);
+    const { stream, filename, cleanup } = await sftpService.downloadFile(
+      serverId,
+      remotePath
+    );
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
@@ -179,7 +182,6 @@ async function sftp_stream_download_get(req, res) {
     res.status(500).json({ error: "Error downloading file" });
   }
 }
-
 
 const share_sftp_file = async (req, res, next) => {
   const { serverId, remotePath } = req.body;
