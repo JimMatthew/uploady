@@ -129,41 +129,7 @@ const sftp_get_archive_folder = async (req, res) => {
   }
 };
 
-const sftp_download_file = async (serverId, remotePath, res) => {
-  try {
-    const sftp = await connectToSftp(serverId);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${remotePath.split("/").pop()}"`
-    );
-    res.setHeader("Content-Type", "application/octet-stream");
-    const stream = new PassThrough();
-    sftp
-      .get(remotePath, stream)
-      .then(() => sftp.end())
-      .catch((err) => {
-        sftp.end();
-        return res.status(500).json({
-          error: "Error downloading file",
-        });
-      });
-    stream.pipe(res);
-    res.on("close", () => {
-      sftp.end();
-    });
-  } catch (error) {
-    console.log("Error:", error);
-    return res.status(500).json({
-      error: "Error downloading",
-    });
-  }
-};
-
-async function sftp_stream_download_get(req, res) {
-  const { serverId } = req.params;
-  const relativePath = req.params[0] || "";
-  const remotePath = relativePath ? `/${relativePath}` : "/";
-
+async function sftp_download_file(serverId, remotePath, res) {
   try {
     const { stream, filename, cleanup } = await sftpService.downloadFile(
       serverId,
@@ -181,6 +147,14 @@ async function sftp_stream_download_get(req, res) {
     console.error("Download error:", err);
     res.status(500).json({ error: "Error downloading file" });
   }
+}
+
+async function sftp_stream_download_get(req, res) {
+  const { serverId } = req.params;
+  const relativePath = req.params[0] || "";
+  const remotePath = relativePath ? `/${relativePath}` : "/";
+
+  await sftp_download_file(serverId, remotePath, res);
 }
 
 const share_sftp_file = async (req, res, next) => {
@@ -212,7 +186,7 @@ const share_sftp_file = async (req, res, next) => {
   });
 };
 
-const sftp_stream_upload_post = async (req, res, next) => {
+async function sftp_stream_upload_post(req, res) {
   const busboy = Busboy({ headers: req.headers });
   let currentDirectory, serverId;
 
@@ -227,24 +201,29 @@ const sftp_stream_upload_post = async (req, res, next) => {
       return res.status(400).send("Missing directory or server ID");
     }
 
-    let sftp;
     try {
-      sftp = await connectToSftp(serverId);
-      await sftp.put(file, `${currentDirectory}/${filename.filename}`);
+      const remotePath = `${currentDirectory}/${filename.filename}`;
+      const { close } = await sftpService.uploadFile(
+        serverId,
+        file,
+        remotePath
+      );
+
+      await close();
       res.status(200).send("File uploaded successfully");
-    } catch (error) {
-      handleError(res, "Error uploading file");
-    } finally {
-      if (sftp) await sftp.end();
+    } catch (err) {
+      console.error("Upload error:", err);
+      res.status(500).send("Error uploading file");
     }
   });
 
   busboy.on("error", (err) => {
-    handleError(res, "Error processing upload");
+    console.error("Busboy error:", err);
+    res.status(500).send("Error processing upload");
   });
 
   req.pipe(busboy);
-};
+}
 
 const sftp_servers_json_get = async (req, res, next) => {
   try {
@@ -492,79 +471,21 @@ const copy_sftp_folder = async (sftpServer, sourcePath, destPath) => {
   }
 };
 
-const sftp_copy_files_batch_json_post = async (req, res, next) => {
+const { sftpCopyFilesBatch } = require("../services/sftpService");
+const { complete } = require("../services/progressService");
+
+async function sftp_copy_files_batch_json_post(req, res) {
   const { files, newPath, newServerId, transferId } = req.body;
-  const client = progressClients.get(transferId);
-  const grouped = {};
-  for (const item of files) {
-    const key = item.serverId;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(item);
-  }
+
   try {
-    for (const [serverId, fileGroup] of Object.entries(grouped)) {
-      let sftpSource, sftpDest;
-
-      if (!newServerId || newServerId === serverId) {
-        // Same server copy
-        sftpSource = await connectToSftp(serverId);
-
-        for (const file of fileGroup) {
-          const sourcePath = path.join(file.path, file.file);
-          const destPath = path.join(newPath, file.file);
-          if (file.isDirectory) {
-            await copy_sftp_folder(sftpSource, sourcePath, destPath);
-          } else {
-            await sftpSource.rcopy(sourcePath, destPath);
-          }
-        }
-
-        sftpSource.end();
-      } else {
-        // Cross-server copy
-        sftpSource = await connectToSftp(serverId);
-        sftpDest = await connectToSftp(newServerId);
-
-        for (const file of fileGroup) {
-          const sourcePath = path.join(file.path, file.file);
-          const destPath = path.join(newPath, file.file);
-          if (file.isDirectory) {
-            await stream_sftp_folder_to_sftp(
-              sftpSource,
-              sftpDest,
-              sourcePath,
-              destPath,
-              file.file,
-              transferId
-            );
-          } else {
-            await streamFileStfpPair(
-              sftpSource,
-              sftpDest,
-              sourcePath,
-              destPath,
-              file.file,
-              transferId
-            );
-          }
-        }
-        sftpSource.end();
-        sftpDest.end();
-      }
-    }
-    if (client) {
-      client.write(`data: ${JSON.stringify({ allDone: true })}\n\n`);
-      client.end();
-      progressClients.delete(transferId);
-    }
-
-    return res.status(200).send("Batch transfer complete");
+    await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
+    complete(transferId);
+    res.status(200).send("Batch transfer complete");
   } catch (err) {
-    console.error(err);
-    console.error("YOU FUCKED UP");
-    return res.status(500).send("Batch transfer failed");
+    console.error("Transfer failed:", err);
+    res.status(500).send("Batch transfer failed");
   }
-};
+}
 
 module.exports = {
   sftp_stream_download_get,
