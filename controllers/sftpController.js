@@ -10,44 +10,13 @@ const archiver = require("archiver");
 const SharedFile = require("../models/SharedFile");
 const { encrypt, decrypt } = require("./encryption");
 const sftpService = require("../services/sftpService");
+const { sftpCopyFilesBatch } = require("../services/sftpService");
+const { complete } = require("../services/progressService");
 const domain = process.env.HOSTNAME;
 
 const handleError = (res, message, status = 500) => {
   console.error(message);
   res.status(status).json({ error: message });
-};
-
-const connectToSftp = async (serverId) => {
-  const server = await SftpServer.findById(serverId);
-  if (!server) throw new Error("Server not found");
-
-  const sftp = new SftpClient();
-
-  const options = {
-    host: server.host,
-    port: 22,
-    username: server.username,
-  };
-
-  if (server.authType === "password") {
-    options.password = decrypt(server.credentials.password);
-  } else if (server.authType === "key") {
-    let privateKey = decrypt(server.credentials.privateKey).trim();
-
-    if (privateKey.includes("\\n")) {
-      privateKey = privateKey.replace(/\\n/g, "\n");
-    }
-    options.privateKey = privateKey;
-
-    const passphrase =
-      server.credentials.passphrase && server.credentials.passphrase.iv
-        ? decrypt(server.credentials.passphrase)
-        : undefined;
-
-    if (passphrase) options.passphrase = passphrase;
-  }
-  await sftp.connect(options);
-  return sftp;
 };
 
 const sftp_rename_file_json_post = async (req, res) => {
@@ -157,35 +126,6 @@ async function sftp_stream_download_get(req, res) {
   await sftp_download_file(serverId, remotePath, res);
 }
 
-const share_sftp_file = async (req, res, next) => {
-  const { serverId, remotePath } = req.body;
-  if (!serverId || !remotePath) {
-    return res
-      .status(400)
-      .send(JSON.stringify("Error: Missing required fields"));
-  }
-  const token = crypto.randomBytes(5).toString("hex");
-  const fileName = remotePath.split("/").pop();
-  const filePath = remotePath ? remotePath : "/";
-  const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
-  const server = await SftpServer.findById(serverId);
-
-  const sharedFile = new SharedFile({
-    fileName,
-    filePath,
-    link,
-    token,
-    isRemote: true,
-    serverId,
-    ...(server && { serverName: server.host }),
-  });
-
-  await sharedFile.save();
-  return res.json({
-    link: link,
-  });
-};
-
 async function sftp_stream_upload_post(req, res) {
   const busboy = Busboy({ headers: req.headers });
   let currentDirectory, serverId;
@@ -224,6 +164,75 @@ async function sftp_stream_upload_post(req, res) {
 
   req.pipe(busboy);
 }
+
+const sftp_id_list_files_json_get = async (req, res, next) => {
+  const { serverId } = req.params;
+  const currentDirectory = "/" + (req.params[0] || "/");
+  try {
+    const server = await SftpServer.findById(serverId);
+    if (!server) {
+      return res.status(404).json({
+        error: "Server not found",
+      });
+    }
+    const { files, folders } = await sftpService.listDirectory(
+      serverId,
+      currentDirectory
+    );
+    res.json({
+      files,
+      folders,
+      currentDirectory,
+      serverId,
+      host: server.host,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(404).send("Error listing directory");
+  }
+};
+
+async function sftp_copy_files_batch_json_post(req, res) {
+  const { files, newPath, newServerId, transferId } = req.body;
+
+  try {
+    await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
+    complete(transferId);
+    res.status(200).send("Batch transfer complete");
+  } catch (err) {
+    console.error("Transfer failed:", err);
+    res.status(500).send("Batch transfer failed");
+  }
+}
+
+const share_sftp_file = async (req, res, next) => {
+  const { serverId, remotePath } = req.body;
+  if (!serverId || !remotePath) {
+    return res
+      .status(400)
+      .send(JSON.stringify("Error: Missing required fields"));
+  }
+  const token = crypto.randomBytes(5).toString("hex");
+  const fileName = remotePath.split("/").pop();
+  const filePath = remotePath ? remotePath : "/";
+  const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
+  const server = await SftpServer.findById(serverId);
+
+  const sharedFile = new SharedFile({
+    fileName,
+    filePath,
+    link,
+    token,
+    isRemote: true,
+    serverId,
+    ...(server && { serverName: server.host }),
+  });
+
+  await sharedFile.save();
+  return res.json({
+    link: link,
+  });
+};
 
 const sftp_servers_json_get = async (req, res, next) => {
   try {
@@ -324,54 +333,7 @@ const sftp_delete_server__json_post = async (req, res, next) => {
   }
 };
 
-const sftp_id_list_files_json_get = async (req, res, next) => {
-  const { serverId } = req.params;
-  const currentDirectory = "/" + (req.params[0] || "/");
-  if (!mongoose.Types.ObjectId.isValid(serverId)) {
-    const err = new Error("Invalid server ID");
-    err.status = 400;
-    return next(err);
-  }
-  try {
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      return res.status(404).json({
-        error: "Server not found",
-      });
-    }
-    const { host } = server;
-    const { files, folders } = await sftpService.listDirectory(
-      serverId,
-      currentDirectory
-    );
-    res.json({
-      files,
-      folders,
-      currentDirectory,
-      serverId,
-      host,
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(404).send("Error listing directory");
-  }
-};
 
-const { sftpCopyFilesBatch } = require("../services/sftpService");
-const { complete } = require("../services/progressService");
-
-async function sftp_copy_files_batch_json_post(req, res) {
-  const { files, newPath, newServerId, transferId } = req.body;
-
-  try {
-    await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
-    complete(transferId);
-    res.status(200).send("Batch transfer complete");
-  } catch (err) {
-    console.error("Transfer failed:", err);
-    res.status(500).send("Batch transfer failed");
-  }
-}
 
 module.exports = {
   sftp_stream_download_get,
