@@ -324,11 +324,6 @@ const sftp_delete_server__json_post = async (req, res, next) => {
   }
 };
 
-const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
-};
-
 const sftp_id_list_files_json_get = async (req, res, next) => {
   const { serverId } = req.params;
   const currentDirectory = "/" + (req.params[0] || "/");
@@ -359,115 +354,6 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
   } catch (error) {
     console.log(error);
     return res.status(404).send("Error listing directory");
-  }
-};
-
-const progressClients = new Map(); // Map<transferId, res>
-
-const get_transfer_progress = async (req, res) => {
-  const { transferId } = req.params;
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  res.write("\n");
-  progressClients.set(transferId, res);
-  res.write(`data: ${JSON.stringify({ ready: true })}\n\n`);
-  req.on("close", () => {
-    progressClients.delete(transferId);
-  });
-};
-
-const streamFileStfpPair = async (
-  source,
-  dest,
-  sourcePath,
-  destPath,
-  filename,
-  transferId
-) => {
-  const passthrough = new PassThrough();
-
-  try {
-    const { size: totalSize } = await source.stat(sourcePath);
-    let transferred = 0;
-    let lastUpdate = Date.now();
-    // Track the number of bytes as they pass through
-    passthrough.on("data", (chunk) => {
-      transferred += chunk.length;
-      const now = Date.now();
-
-      if (now - lastUpdate > 100) {
-        lastUpdate = now;
-        const percent = Math.min((transferred / totalSize) * 100, 100);
-        const client = progressClients.get(transferId);
-        if (client) {
-          client.write(
-            `data: ${JSON.stringify({
-              file: filename,
-              percent: percent.toFixed(2),
-            })}\n\n`
-          );
-        }
-      }
-    });
-    const download = source.get(sourcePath, passthrough);
-    const upload = dest.put(passthrough, destPath);
-
-    await Promise.all([download, upload]);
-
-    const client = progressClients.get(transferId);
-    if (client) {
-      client.write(
-        `data: ${JSON.stringify({ file: filename, done: true })}\n\n`
-      );
-    }
-  } catch (err) {
-    console.error("Error during transfer:", err);
-    throw err;
-  }
-};
-
-const stream_sftp_folder_to_sftp = async (
-  source,
-  dest,
-  sourcePath,
-  destPath,
-  foldername,
-  transferId
-) => {
-  const files = await source.list(sourcePath);
-  await dest.mkdir(destPath, false);
-  for (const file of files) {
-    const srcFile = path.join(sourcePath, file.name);
-    const dstFile = path.join(destPath, file.name);
-    if (file.type === "-") {
-      await streamFileStfpPair(source, dest, srcFile, dstFile, file.name);
-    } else if (file.type === "d") {
-      await stream_sftp_folder_to_sftp(
-        source,
-        dest,
-        srcFile,
-        dstFile,
-        foldername,
-        transferId
-      );
-    }
-  }
-};
-
-const copy_sftp_folder = async (sftpServer, sourcePath, destPath) => {
-  const files = await sftpServer.list(sourcePath);
-  await sftpServer.mkdir(destPath, false);
-  for (const file of files) {
-    srcFolder = path.join(sourcePath, file.name);
-    dstFolder = path.join(destPath, file.name);
-    if (file.type === "-") {
-      await sftpServer.rcopy(srcFolder, dstFolder);
-    } else if (file.type === "d") {
-      await copy_sftp_folder(sftpServer, srcFolder, dstFolder);
-    }
   }
 };
 
@@ -502,6 +388,5 @@ module.exports = {
   share_sftp_file,
   sftp_download_file,
   sftp_rename_file_json_post,
-  get_transfer_progress,
   sftp_copy_files_batch_json_post,
 };
