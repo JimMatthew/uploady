@@ -212,7 +212,6 @@ const share_sftp_file = async (req, res, next) => {
     serverId,
     ...(server && { serverName: server.host }),
   });
-
   await sharedFile.save();
   return res.json({
     link: link,
@@ -230,11 +229,9 @@ const sftp_servers_json_get = async (req, res, next) => {
 
 const server_status_get = async (req, res) => {
   const { serverId } = req.params;
-
   try {
     const server = await SftpServer.findById(serverId);
     if (!server) return res.json({ status: "offline" });
-
     const status = await checkServerStatus(server.host);
     return res.json({ status });
   } catch (error) {
@@ -245,7 +242,6 @@ const server_status_get = async (req, res) => {
 const checkServerStatus = (host, port = 22) => {
   return new Promise((resolve) => {
     const socket = new net.Socket();
-
     socket.setTimeout(5000); // Set timeout to 5 seconds
     socket
       .connect(port, host, () => {
@@ -271,7 +267,6 @@ const sftp_save_server_json_post = async (req, res, next) => {
     key,
     passphrase,
   } = req.body;
-
   if (!host || !username || !authType) {
     return handleError(res, "Host, username, and AuthType required", 400);
   }
@@ -297,7 +292,6 @@ const sftp_save_server_json_post = async (req, res, next) => {
       server.credentials.passphrase = encrypt(passphrase);
     }
   }
-
   const newServer = new SftpServer(server);
   try {
     await newServer.save();
@@ -310,7 +304,6 @@ const sftp_save_server_json_post = async (req, res, next) => {
 const sftp_delete_server__json_post = async (req, res, next) => {
   const { serverId } = req.body;
   try {
-    console.log("del serv " + serverId);
     await SftpServer.findByIdAndDelete(serverId);
     res.status(200).send("server dlelered");
   } catch (error) {

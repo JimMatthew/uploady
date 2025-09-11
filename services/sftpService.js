@@ -1,15 +1,9 @@
 const SftpClient = require("ssh2-sftp-client");
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
-const mongoose = require("mongoose");
 const { PassThrough } = require("stream");
-const Busboy = require("busboy");
-const crypto = require("crypto");
-const net = require("net");
 const archiver = require("archiver");
-const SharedFile = require("../models/SharedFile");
-const { encrypt, decrypt } = require("../controllers/encryption");
-//const { connectToSftp } = require("../lib/sftp");
+const { decrypt } = require("../controllers/encryption");
 const {
   copySftpFolder,
   streamFolderSftpToSftp,
@@ -19,8 +13,8 @@ class SftpError extends Error {
   constructor(message, code, details) {
     super(message);
     this.name = "SftpError";
-    this.code = code || "SFTP_ERROR"; // your own codes
-    this.details = details; // raw error if needed
+    this.code = code || "SFTP_ERROR"; 
+    this.details = details; 
   }
 }
 
@@ -30,14 +24,12 @@ async function withSftp(serverId, fn) {
     sftp = await connectToSftp(serverId);
     return await fn(sftp);
   } catch (err) {
-    // Wrap any library error in your own standardized error
     throw new SftpError("SFTP operation failed", err.code, err.message);
   } finally {
     if (sftp) {
       try {
         await sftp.end();
       } catch (_) {
-        // swallow cleanup errors
       }
     }
   }
@@ -213,6 +205,12 @@ async function uploadFile(serverId, stream, remotePath) {
   }
 }
 
+/*
+  Copy files to newPath
+  If copying files to same sftp server, leave newServerId undefined
+  If copying to another server, provide newServerId and files will be
+  copied to newPath and newServerId
+*/
 async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
   const grouped = {};
   for (const item of files) {
@@ -220,10 +218,8 @@ async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(item);
   }
-
   for (const [serverId, fileGroup] of Object.entries(grouped)) {
     let sftpSource, sftpDest;
-
     if (!newServerId || newServerId === serverId) {
       // same server copy
       sftpSource = await connectToSftp(serverId);
@@ -241,7 +237,6 @@ async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
       // cross-server copy
       sftpSource = await connectToSftp(serverId);
       sftpDest = await connectToSftp(newServerId);
-
       for (const file of fileGroup) {
         const sourcePath = path.join(file.path, file.file);
         const destPath = path.join(newPath, file.file);
