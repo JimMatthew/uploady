@@ -1,14 +1,10 @@
-const SftpClient = require("ssh2-sftp-client");
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
-const mongoose = require("mongoose");
-const { PassThrough } = require("stream");
 const Busboy = require("busboy");
 const crypto = require("crypto");
 const net = require("net");
-const archiver = require("archiver");
 const SharedFile = require("../models/SharedFile");
-const { encrypt, decrypt } = require("./encryption");
+const { encrypt } = require("./encryption");
 const sftpService = require("../services/sftpService");
 const { sftpCopyFilesBatch } = require("../services/sftpService");
 const { complete } = require("../services/progressService");
@@ -21,7 +17,6 @@ const handleError = (res, message, status = 500) => {
 
 const sftp_rename_file_json_post = async (req, res) => {
   const { currentPath, fileName, newFileName, serverId } = req.body;
-
   if (!currentPath || !fileName || !newFileName || !serverId) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -35,11 +30,9 @@ const sftp_rename_file_json_post = async (req, res) => {
 
 async function sftp_create_folder_json_post(req, res) {
   const { currentPath, folderName, serverId } = req.body;
-
   if (!currentPath || !folderName || !serverId) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-
   try {
     const result = await sftpService.createFolder(
       currentPath,
@@ -91,7 +84,6 @@ const sftp_get_archive_folder = async (req, res) => {
   try {
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
     res.setHeader("Content-Type", "application/zip");
-
     await sftpService.archiveFolder(serverId, remotePath, res);
   } catch (err) {
     handleError(res, "Failed to download folder");
@@ -104,7 +96,6 @@ async function sftp_download_file(serverId, remotePath, res) {
       serverId,
       remotePath
     );
-
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
 
@@ -122,7 +113,6 @@ async function sftp_stream_download_get(req, res) {
   const { serverId } = req.params;
   const relativePath = req.params[0] || "";
   const remotePath = relativePath ? `/${relativePath}` : "/";
-
   await sftp_download_file(serverId, remotePath, res);
 }
 
@@ -140,7 +130,6 @@ async function sftp_stream_upload_post(req, res) {
       file.resume();
       return res.status(400).send("Missing directory or server ID");
     }
-
     try {
       const remotePath = `${currentDirectory}/${filename.filename}`;
       const { close } = await sftpService.uploadFile(
@@ -148,7 +137,6 @@ async function sftp_stream_upload_post(req, res) {
         file,
         remotePath
       );
-
       await close();
       res.status(200).send("File uploaded successfully");
     } catch (err) {
@@ -156,12 +144,10 @@ async function sftp_stream_upload_post(req, res) {
       res.status(500).send("Error uploading file");
     }
   });
-
   busboy.on("error", (err) => {
     console.error("Busboy error:", err);
     res.status(500).send("Error processing upload");
   });
-
   req.pipe(busboy);
 }
 
@@ -194,7 +180,6 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
 
 async function sftp_copy_files_batch_json_post(req, res) {
   const { files, newPath, newServerId, transferId } = req.body;
-
   try {
     await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
     complete(transferId);
@@ -332,8 +317,6 @@ const sftp_delete_server__json_post = async (req, res, next) => {
     return res.status(404).send("Error deleting server");
   }
 };
-
-
 
 module.exports = {
   sftp_stream_download_get,
