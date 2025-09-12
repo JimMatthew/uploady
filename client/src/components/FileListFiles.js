@@ -1,9 +1,10 @@
-import { Box } from "@chakra-ui/react";
+import { Box, Button, Text, HStack } from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import { useClipboard } from "../contexts/ClipboardContext";
+import { useState } from "react";
 export default function FileList({
   files,
   handleFileDownload,
@@ -26,10 +27,61 @@ export default function FileList({
     sortField,
     setSortField,
   } = useFileList({ files });
+  const [selected, setSelected] = useState(new Set());
+
+  const toggleSelect = (fileName) => {
+    setSelected((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileName)) {
+        newSet.delete(fileName);
+      } else {
+        newSet.add(fileName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCopy = () => {
+    selected.forEach((file) => {
+      handleFileCopy(file);
+    });
+    setSelected(new Set());
+  };
+
+  const handleDelete = () => {
+    selected.forEach((file) => {
+      handleFileDelete(file);
+    });
+    setSelected(new Set());
+  };
 
   const { clipboard } = useClipboard();
   return (
-    <Box>
+    <Box p={1}>
+      <HStack spacing={2} mb={2}>
+        <Button
+          size="sm"
+          colorScheme="blue"
+          isDisabled={selected.size === 0}
+          onClick={handleCopy}
+        >
+          Copy
+        </Button>
+        <Button
+          size="sm"
+          colorScheme="red"
+          isDisabled={selected.size === 0}
+          onClick={handleDelete}
+        >
+          Delete
+        </Button>
+
+        {selected.size > 0 && (
+          <Text fontSize="sm" color="gray.500">
+            {selected.size} item(s) selected
+          </Text>
+        )}
+      </HStack>
       {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       <PickSortComponent
@@ -65,6 +117,8 @@ export default function FileList({
           {...(handleOpenFile && {
             onOpenFile: () => handleOpenFile(file.name),
           })}
+          isSelected={selected.has(file.name)}
+          onSelect={() => toggleSelect(file.name)}
         />
       ))}
     </Box>

@@ -9,6 +9,7 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
 import RenameComponent from "./RenameComponent";
@@ -25,9 +26,22 @@ export default function FileItem({
   onDelete,
   onStartRename,
   onOpenFile,
+  isSelected,
+  onSelect,
 }) {
+  const bg = useColorModeValue("gray.50", "gray.800");
+  const hoverBg = useColorModeValue("gray.100", "gray.600");
+  const selectedBg = useColorModeValue("blue.100", "gray.700");
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" transition="all 0.2s">
+    <Box
+      p={3}
+      borderWidth="1px"
+      borderRadius="lg"
+      transition="all 0.2s"
+      bg={isSelected ? selectedBg : bg}
+      cursor="pointer"
+      onClick={onSelect}
+    >
       <HStack justify="space-between" align="center">
         <VStack align="start" spacing={1}>
           <HStack>
@@ -42,11 +56,10 @@ export default function FileItem({
         </VStack>
 
         {isRenaming ? (
-          <RenameComponent 
+          <RenameComponent
             handleRename={(name) => onRenameConfirm(name)}
             onCancel={onRenameCancel}
           />
-          
         ) : (
           <Menu>
             <MenuButton as={Button}>Actions</MenuButton>
