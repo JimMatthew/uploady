@@ -57,7 +57,7 @@ export default function FileList({
   };
 
   const handleClear = () => {
-    selected(new Set())
+    setSelected(new Set())
   }
 
   const { clipboard } = useClipboard();
