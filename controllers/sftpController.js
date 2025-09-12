@@ -116,12 +116,10 @@ async function sftp_stream_download_get(req, res) {
 async function sftp_stream_upload_post(req, res) {
   const busboy = Busboy({ headers: req.headers });
   let currentDirectory, serverId;
-
   busboy.on("field", (fieldname, value) => {
     if (fieldname === "currentDirectory") currentDirectory = value;
     if (fieldname === "serverId") serverId = value;
   });
-
   busboy.on("file", async (fieldname, file, filename) => {
     if (!serverId || !currentDirectory) {
       file.resume();

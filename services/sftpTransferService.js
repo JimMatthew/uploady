@@ -11,11 +11,9 @@ async function streamFileSftpPair(
   transferId
 ) {
   const passthrough = new PassThrough();
-
   const { size: totalSize } = await source.stat(sourcePath);
   let transferred = 0;
   let lastUpdate = Date.now();
-
   passthrough.on("data", (chunk) => {
     transferred += chunk.length;
     const now = Date.now();
@@ -25,12 +23,10 @@ async function streamFileSftpPair(
       sendProgress(transferId, { file: filename, percent: percent.toFixed(2) });
     }
   });
-
   await Promise.all([
     source.get(sourcePath, passthrough),
     dest.put(passthrough, destPath),
   ]);
-
   sendProgress(transferId, { file: filename, done: true });
 }
 

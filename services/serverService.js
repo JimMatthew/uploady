@@ -10,7 +10,6 @@ async function share_file(fileName, filePath, serverId) {
   const token = crypto.randomBytes(5).toString("hex");
   const link = `https://${domain}/share/${token}/${fileName}`;
   const server = await SftpServer.findById(serverId);
-
   const sharedFile = new SharedFile({
     fileName,
     filePath,
@@ -38,7 +37,6 @@ async function save_server(
     authType,
     credentials: {},
   };
-
   if (authType === "password") {
     if (!password) {
       return handleError(res, "Password required for password auth", 400);
