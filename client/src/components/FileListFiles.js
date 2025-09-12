@@ -3,6 +3,7 @@ import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
+import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useState } from "react";
 export default function FileList({
@@ -58,30 +59,12 @@ export default function FileList({
   const { clipboard } = useClipboard();
   return (
     <Box p={1}>
-      <HStack spacing={2} mb={2}>
-        <Button
-          size="sm"
-          colorScheme="blue"
-          isDisabled={selected.size === 0}
-          onClick={handleCopy}
-        >
-          Copy
-        </Button>
-        <Button
-          size="sm"
-          colorScheme="red"
-          isDisabled={selected.size === 0}
-          onClick={handleDelete}
-        >
-          Delete
-        </Button>
+      <Toolbar
+        selected={selected}
+        handleCopy={handleCopy}
+        handleDelete={handleDelete}
+      />
 
-        {selected.size > 0 && (
-          <Text fontSize="sm" color="gray.500">
-            {selected.size} item(s) selected
-          </Text>
-        )}
-      </HStack>
       {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       <PickSortComponent
