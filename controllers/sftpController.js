@@ -6,6 +6,7 @@ const net = require("net");
 const SharedFile = require("../models/SharedFile");
 const { encrypt } = require("./encryption");
 const sftpService = require("../services/sftpService");
+const serverService = require("../services/serverService");
 const { sftpCopyFilesBatch } = require("../services/sftpService");
 const { complete } = require("../services/progressService");
 const domain = process.env.HOSTNAME;
@@ -197,22 +198,9 @@ const share_sftp_file = async (req, res, next) => {
       .status(400)
       .send(JSON.stringify("Error: Missing required fields"));
   }
-  const token = crypto.randomBytes(5).toString("hex");
   const fileName = remotePath.split("/").pop();
   const filePath = remotePath ? remotePath : "/";
-  const link = `${req.protocol}://${domain}/share/${token}/${fileName}`;
-  const server = await SftpServer.findById(serverId);
-
-  const sharedFile = new SharedFile({
-    fileName,
-    filePath,
-    link,
-    token,
-    isRemote: true,
-    serverId,
-    ...(server && { serverName: server.host }),
-  });
-  await sharedFile.save();
+  const { link } = await serverService.share_file(fileName, filePath, serverId);
   return res.json({
     link: link,
   });

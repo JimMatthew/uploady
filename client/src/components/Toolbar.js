@@ -1,6 +1,6 @@
 import { Box, Button, Text, HStack } from "@chakra-ui/react";
 
-const Toolbar = ({ selected, handleCopy, handleDelete }) => {
+const Toolbar = ({ selected, handleCopy, handleDelete, handleClear }) => {
   return (
     <HStack spacing={2} mb={2}>
       <Button
@@ -18,6 +18,15 @@ const Toolbar = ({ selected, handleCopy, handleDelete }) => {
         onClick={handleDelete}
       >
         Delete
+      </Button>
+
+      <Button
+        size="sm"
+        colorScheme="gray"
+        isDisabled={selected.size === 0}
+        onClick={handleClear}
+      >
+        Clear
       </Button>
 
       {selected.size > 0 && (
