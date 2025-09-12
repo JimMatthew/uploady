@@ -56,10 +56,6 @@ export default function FileList({
     setSelected(new Set());
   };
 
-  const handleClear = () => {
-    setSelected(new Set())
-  }
-
   const { clipboard } = useClipboard();
   return (
     <Box p={1}>
@@ -68,7 +64,7 @@ export default function FileList({
         selected={selected}
         handleCopy={handleCopy}
         handleDelete={handleDelete}
-        handleClear={handleClear}
+        handleClear={() => setSelected(new Set())}
       />
 
       {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
