@@ -1,10 +1,6 @@
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
 const Busboy = require("busboy");
-const crypto = require("crypto");
-const net = require("net");
-const SharedFile = require("../models/SharedFile");
-const { encrypt } = require("./encryption");
 const sftpService = require("../services/sftpService");
 const serverService = require("../services/serverService");
 const { sftpCopyFilesBatch } = require("../services/sftpService");
@@ -220,30 +216,11 @@ const server_status_get = async (req, res) => {
   try {
     const server = await SftpServer.findById(serverId);
     if (!server) return res.json({ status: "offline" });
-    const status = await checkServerStatus(server.host);
+    const status = await serverService.checkServerStatus(server.host);
     return res.json({ status });
   } catch (error) {
     return res.json({ status: "offline" });
   }
-};
-
-const checkServerStatus = (host, port = 22) => {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    socket.setTimeout(5000); // Set timeout to 5 seconds
-    socket
-      .connect(port, host, () => {
-        socket.end();
-        resolve("online");
-      })
-      .on("error", () => {
-        resolve("offline");
-      })
-      .on("timeout", () => {
-        socket.destroy();
-        resolve("offline");
-      });
-  });
 };
 
 const sftp_save_server_json_post = async (req, res, next) => {
@@ -258,31 +235,15 @@ const sftp_save_server_json_post = async (req, res, next) => {
   if (!host || !username || !authType) {
     return handleError(res, "Host, username, and AuthType required", 400);
   }
-
-  const server = {
-    host,
-    username,
-    authType,
-    credentials: {},
-  };
-
-  if (authType === "password") {
-    if (!password) {
-      return handleError(res, "Password required for password auth", 400);
-    }
-    server.credentials.password = encrypt(password);
-  } else if (authType === "key") {
-    if (!key) {
-      return handleError(res, "Key required for key Auth", 400);
-    }
-    server.credentials.privateKey = encrypt(key);
-    if (passphrase) {
-      server.credentials.passphrase = encrypt(passphrase);
-    }
-  }
-  const newServer = new SftpServer(server);
   try {
-    await newServer.save();
+    await serverService.save_server(
+      host,
+      username,
+      password,
+      authType,
+      key,
+      passphrase
+    );
     res.status(200).send();
   } catch (error) {
     return handleError(res, "Cannot save Server", 400);

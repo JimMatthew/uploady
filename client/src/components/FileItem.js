@@ -34,7 +34,7 @@ export default function FileItem({
   const selectedBg = useColorModeValue("blue.100", "gray.700");
   return (
     <Box
-      p={3}
+      p={2}
       borderWidth="1px"
       borderRadius="lg"
       transition="all 0.2s"
