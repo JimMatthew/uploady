@@ -55,12 +55,14 @@ async function save_server(
   await newServer.save();
 }
 
-const checkServerStatus = (host, port = 22) => {
+const checkServerStatus = async (serverId, port = 22) => {
+  const server = await SftpServer.findById(serverId);
   return new Promise((resolve) => {
+    if (!server) resolve("offline")
     const socket = new net.Socket();
     socket.setTimeout(5000); // Set timeout to 5 seconds
     socket
-      .connect(port, host, () => {
+      .connect(port, server.host, () => {
         socket.end();
         resolve("online");
       })

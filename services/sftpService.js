@@ -34,6 +34,7 @@ async function withSftp(serverId, fn) {
     }
   }
 }
+
 const connectToSftp = async (serverId) => {
   const server = await SftpServer.findById(serverId);
   if (!server) throw new Error("Server not found");
@@ -101,11 +102,9 @@ async function deleteFolder(serverId, folder) {
 
 const addFolderToArchive = async (sftp, archive, folderPath, zipFolderPath) => {
   const folderContents = await sftp.list(folderPath);
-
   for (const item of folderContents) {
     const itemPath = `${folderPath}/${item.name}`;
     const zipPath = `${zipFolderPath}/${item.name}`;
-
     if (item.type === "-") {
       if (item.size == 0) {
         continue;
@@ -129,6 +128,7 @@ async function archiveFolder(serverId, remotePath, res) {
     archive.finalize();
   });
 }
+
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
   return date.toLocaleString();
@@ -167,7 +167,6 @@ async function downloadFile(serverId, remotePath) {
   const stream = new PassThrough();
   try {
     await sftp.get(remotePath, stream);
-
     const cleanup = async () => {
       try {
         await sftp.end();
@@ -175,7 +174,6 @@ async function downloadFile(serverId, remotePath) {
         console.error("Error closing SFTP:", err);
       }
     };
-
     return {
       stream,
       filename: remotePath.split("/").pop(),

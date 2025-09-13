@@ -212,9 +212,7 @@ const sftp_servers_json_get = async (req, res, next) => {
 const server_status_get = async (req, res) => {
   const { serverId } = req.params;
   try {
-    const server = await SftpServer.findById(serverId);
-    if (!server) return res.json({ status: "offline" });
-    const status = await serverService.checkServerStatus(server.host);
+    const status = await serverService.checkServerStatus(serverId);
     return res.json({ status });
   } catch (error) {
     return res.json({ status: "offline" });
