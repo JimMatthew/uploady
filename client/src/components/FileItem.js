@@ -12,19 +12,17 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
+import { useState } from "react";
 import RenameComponent from "./RenameComponent";
 
 export default function FileItem({
   file,
-  isRenaming,
   onRenameConfirm,
-  onRenameCancel,
   onCopy,
   onCut,
   onDownload,
   onShare,
   onDelete,
-  onStartRename,
   onOpenFile,
   isSelected,
   onSelect,
@@ -32,6 +30,19 @@ export default function FileItem({
   const bg = useColorModeValue("gray.50", "gray.800");
   const hoverBg = useColorModeValue("gray.100", "gray.600");
   const selectedBg = useColorModeValue("blue.100", "gray.700");
+  const [showRenameInput, setShowRenameInput] = useState(false);
+
+  const StopPropMenuItem = ({ onClick, children, ...props }) => (
+    <MenuItem
+      {...props}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+    >
+      {children}
+    </MenuItem>
+  );
   return (
     <Box
       p={2}
@@ -55,23 +66,32 @@ export default function FileItem({
           </Text>
         </VStack>
 
-        {isRenaming ? (
+        {showRenameInput ? (
           <RenameComponent
-            handleRename={(name) => onRenameConfirm(name)}
-            onCancel={onRenameCancel}
+            handleRename={(name) => {
+              onRenameConfirm(name);
+              setShowRenameInput(false);
+            }}
+            onCancel={() => setShowRenameInput(false)}
           />
         ) : (
           <Menu>
-            <MenuButton as={Button}>Actions</MenuButton>
+            <MenuButton as={Button} onClick={(e) => e.stopPropagation()}>
+              Actions
+            </MenuButton>
             <MenuList>
-              <MenuItem onClick={onCopy}>Copy</MenuItem>
-              <MenuItem onClick={onCut}>Cut</MenuItem>
-              <MenuItem onClick={onDownload}>Download</MenuItem>
-              <MenuItem onClick={onShare}>Share</MenuItem>
-              <MenuItem onClick={onStartRename}>Rename</MenuItem>
-              <MenuItem onClick={onDelete}>Delete</MenuItem>
+              <StopPropMenuItem onClick={onCopy}>Copy</StopPropMenuItem>
+              <StopPropMenuItem onClick={onCut}>Cut</StopPropMenuItem>
+              <StopPropMenuItem onClick={onDownload}>Download</StopPropMenuItem>
+              <StopPropMenuItem onClick={onShare}>Share</StopPropMenuItem>
+              <StopPropMenuItem onClick={() => setShowRenameInput(true)}>
+                Rename
+              </StopPropMenuItem>
+              <StopPropMenuItem onClick={onDelete}>Delete</StopPropMenuItem>
               {onOpenFile && (
-                <MenuItem onClick={onOpenFile}> Open File</MenuItem>
+                <StopPropMenuItem onClick={onOpenFile}>
+                  Open File
+                </StopPropMenuItem>
               )}
             </MenuList>
           </Menu>

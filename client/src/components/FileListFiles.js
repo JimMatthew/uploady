@@ -19,10 +19,6 @@ export default function FileList({
 }) {
   const {
     sortedFiles,
-    showRenameInput,
-    setShowRenameInput,
-    renameId,
-    setRenameId,
     fileSortDirection,
     setFileSortDirection,
     sortField,
@@ -84,21 +80,14 @@ export default function FileList({
         <FileItem
           key={file.name}
           file={file}
-          isRenaming={showRenameInput && renameId === file.name}
           onRenameConfirm={(newName) => {
             handleRenameFile(file.name, newName);
-            setShowRenameInput(false);
           }}
-          onRenameCancel={() => setShowRenameInput(false)}
           onCopy={() => handleFileCopy(file.name)}
           onCut={() => handleFileCut(file.name)}
           onDownload={() => handleFileDownload(file.name)}
           onShare={() => handleFileShareLink(file.name)}
           onDelete={() => handleFileDelete(file.name)}
-          onStartRename={() => {
-            setShowRenameInput(true);
-            setRenameId(file.name);
-          }}
           {...(handleOpenFile && {
             onOpenFile: () => handleOpenFile(file.name),
           })}
