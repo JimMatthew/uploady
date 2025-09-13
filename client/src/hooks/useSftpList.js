@@ -10,7 +10,7 @@ import {
   DeleteServer,
   fetchServerStatuses,
 } from "../controllers/StoreServer";
-let nextId = 0;
+let nextId = 1;
 export function useSftpList({ toast }) {
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);

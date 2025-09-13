@@ -1,4 +1,4 @@
-import { Box, Button, Text, HStack } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";

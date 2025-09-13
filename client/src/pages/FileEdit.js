@@ -11,8 +11,7 @@ import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import {cpp} from "@codemirror/lang-cpp"
-//import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
-//import { languages } from '@codemirror/language-data';
+
 const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
@@ -72,11 +71,9 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
   const saveFile = async () => {
     const formData = new FormData();
     formData.append("currentDirectory", currentDirectory);
-
     formData.append("serverId", serverId);
     const fileBlob = new Blob([text], { type: "text/plain" });
     formData.append("files", fileBlob, filename);
-
     try {
       const response = await fetch("/sftp/api/upload", {
         headers: {
@@ -85,7 +82,6 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
         method: "POST",
         body: formData,
       });
-
       if (response.ok) {
         toast({
           title: "File Saved",
@@ -115,10 +111,11 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
       <Button
         onClick={saveFile}
         colorScheme="blue"
-        size="md"
-        mt={4}
+        size="sm"
+        mt={2}
         _hover={{ bg: "green.500" }}
         _active={{ bg: "green.600" }}
+        mb={2}
       >
         Save
       </Button>
