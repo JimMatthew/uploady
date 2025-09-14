@@ -5,6 +5,7 @@ import {
   SimpleGrid,
   useColorModeValue,
   Spinner,
+  Heading,
 } from "@chakra-ui/react";
 import React, { useState, useEffect } from "react";
 import { FiLink, FiTrash } from "react-icons/fi";
@@ -12,37 +13,28 @@ import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 
 const SharedLinks = () => {
-  const [loading, setLoading] = useState(true);
   const bgg = useColorModeValue("white", "gray.700");
-  const { clickLink, deleteLink, copyToClip, links, fetchLinks } =
+  const { clickLink, deleteLink, copyToClip, links, loading, loadLinks } =
     useSharedLinks();
 
   useEffect(() => {
     loadLinks();
   }, []);
 
-  const loadLinks = async () => {
-    setLoading(true);
-    try {
-      await fetchLinks();
-    } catch (err) {
-      console.error("Error loading links", err);
-    } finally {
-      setLoading(false);
-    }
-  };
   return (
     <Box>
       {/* Button to refresh */}
-      <Box >
+      <Heading>Active Shared Files</Heading>
+      <Box>
         <Button
           leftIcon={<FiLink />}
           colorScheme="blue"
           mb={4}
           onClick={loadLinks}
-          margin="5px"
+          m={4}
+          size={"md"}
         >
-          refresh
+          Refresh
         </Button>
       </Box>
 

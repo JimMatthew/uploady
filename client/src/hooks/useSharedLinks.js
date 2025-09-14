@@ -2,6 +2,7 @@ import { useDisclosure, useToast } from "@chakra-ui/react";
 import React, { useState, useEffect } from "react";
 export function useSharedLinks() {
   const [links, setLinks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
   const toast = useToast();
 
@@ -100,11 +101,23 @@ export function useSharedLinks() {
     setLinks(data.links);
   };
 
+  const loadLinks = async () => {
+    setLoading(true);
+    try {
+      await fetchLinks();
+    } catch (err) {
+      console.error("Error loading links", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     clickLink,
     deleteLink,
     copyToClip,
-    fetchLinks,
     links,
+    loading,
+    loadLinks,
   };
 }
