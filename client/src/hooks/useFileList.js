@@ -5,7 +5,6 @@ export function useFileList() {
   const [currentPath, setCurrentPath] = useState("files");
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(true);
-  const [links, setLinks] = useState([]);
 
   const navigate = useNavigate();
 
@@ -25,23 +24,7 @@ export function useFileList() {
   };
 
   const reload = () => {
-    fetchLinks();
     fetchFiles(currentPath);
-  };
-
-  const fetchLinks = () => {
-    fetch("/api/links", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setLinks(data.links);
-      })
-      .catch((err) => {
-        console.error("Error fetching shared links", err);
-      });
   };
 
   const fetchFiles = async (path) => {
@@ -68,9 +51,7 @@ export function useFileList() {
     fileData,
     setCurrentPath,
     loading,
-    links,
     handleFolderClick,
     reload,
-    fetchLinks,
   };
 }

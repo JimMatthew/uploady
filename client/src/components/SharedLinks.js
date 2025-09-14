@@ -2,45 +2,57 @@ import {
   Button,
   Box,
   Text,
-  Collapse,
   SimpleGrid,
   useColorModeValue,
+  Spinner,
 } from "@chakra-ui/react";
+import React, { useState, useEffect } from "react";
 import { FiLink, FiTrash } from "react-icons/fi";
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
-const SharedLinks = ({ onReload, links }) => {
+
+const SharedLinks = () => {
+  const [loading, setLoading] = useState(true);
   const bgg = useColorModeValue("white", "gray.700");
-  const {
-    clickLink,
-    handleShowLinks,
-    deleteLink,
-    copyToClip,
-    isOpen,
-  } = useSharedLinks({ onReload });
+  const { clickLink, deleteLink, copyToClip, links, fetchLinks } =
+    useSharedLinks();
+
+  useEffect(() => {
+    loadLinks();
+  }, []);
+
+  const loadLinks = async () => {
+    setLoading(true);
+    try {
+      await fetchLinks();
+    } catch (err) {
+      console.error("Error loading links", err);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <Box>
-      {/* Button to show/hide shared links */}
-      <Box align="center">
+      {/* Button to refresh */}
+      <Box >
         <Button
           leftIcon={<FiLink />}
           colorScheme="blue"
           mb={4}
-          onClick={handleShowLinks}
+          onClick={loadLinks}
           margin="5px"
         >
-          {isOpen ? "Hide Shared Links" : "Show Shared Links"}
+          refresh
         </Button>
       </Box>
 
-      <Collapse in={isOpen}>
+      {!loading ? (
         <Box
           p={{ base: 0, md: 6 }}
           shadow="lg"
           borderWidth="1px"
           borderRadius="lg"
           background="white"
-          transition="0.3s ease"
           _hover={{ shadow: "xl" }}
           bg={bgg}
         >
@@ -63,7 +75,12 @@ const SharedLinks = ({ onReload, links }) => {
             )}
           </SimpleGrid>
         </Box>
-      </Collapse>
+      ) : (
+        <Box textAlign="center" py={10}>
+          <Spinner size="lg" />
+          <Text mt={2}>Loading...</Text>
+        </Box>
+      )}
     </Box>
   );
 };

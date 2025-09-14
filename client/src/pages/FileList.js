@@ -9,7 +9,6 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import FileListPane from "./fileListPane";
-import SharedLinks from "../components/SharedLinks";
 import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
 import DragAndDropComponent from "../components/DragDropComponent";
@@ -17,15 +16,12 @@ import { useFileList } from "../hooks/useFileList";
 
 const FileList = ({ toast }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
-
   const {
     fileData,
     setCurrentPath,
     loading,
-    links,
     handleFolderClick,
     reload,
-    fetchLinks,
   } = useFileList();
 
   const bgg = useColorModeValue("white", "gray.700");
@@ -65,17 +61,6 @@ const FileList = ({ toast }) => {
               />
             )}
           </Box>
-        </Box>
-
-        {/* Shared Links Section */}
-        <Box
-          mb={8}
-          bg={bgg}
-          boxShadow="sm"
-          p={{ base: 2, md: 6 }}
-          borderRadius="md"
-        >
-          <SharedLinks onReload={fetchLinks} links={links} />
         </Box>
 
         {/* File List Pane */}

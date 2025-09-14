@@ -35,7 +35,8 @@ const SFTPApp = ({ toast }) => {
     handleConnect,
     handleLocalTab,
     activeTabIndex,
-    setActiveTabIndex
+    setActiveTabIndex,
+    handleSharedLinks
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -110,11 +111,19 @@ const SFTPApp = ({ toast }) => {
                   Add New Server
                 </Button>
                 <Button
+                marginBottom={"10px"}
                   colorScheme="blue"
                   width="100%"
                   onClick={() => handleLocalTab()}
                 >
                   Local
+                </Button>
+                 <Button
+                  colorScheme="blue"
+                  width="100%"
+                  onClick={() => handleSharedLinks()}
+                >
+                  Links
                 </Button>
               </Box>
               {sftpServers.servers.length > 0 ? (

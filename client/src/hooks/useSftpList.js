@@ -4,6 +4,7 @@ import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
 import FileList from "../pages/FileList";
+import SharedLinks from "../components/SharedLinks";
 import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
@@ -85,6 +86,14 @@ export function useSftpList({ toast }) {
     });
   };
 
+  const handleSharedLinks = () => {
+    addTabItem({
+      id: "links",
+      label: "Links",
+      content: <SharedLinks />,
+    });
+  };
+
   const handleSaveServer = async (
     host,
     username,
@@ -154,6 +163,7 @@ export function useSftpList({ toast }) {
       setLoading(false);
     }
   };
+
   return {
     loading,
     sftpServers,
@@ -169,5 +179,6 @@ export function useSftpList({ toast }) {
     handleLocalTab,
     activeTabIndex,
     setActiveTabIndex,
+    handleSharedLinks,
   };
 }

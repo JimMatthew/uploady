@@ -1,18 +1,9 @@
 import { useDisclosure, useToast } from "@chakra-ui/react";
-
-export function useSharedLinks({ onReload }) {
-  const { isOpen, onToggle } = useDisclosure();
+import React, { useState, useEffect } from "react";
+export function useSharedLinks() {
+  const [links, setLinks] = useState([]);
   const token = localStorage.getItem("token");
   const toast = useToast();
-
-  const handleShowLinks = () => {
-    if (isOpen) {
-      onToggle();
-      return;
-    }
-    onToggle();
-    onReload();
-  };
 
   const deleteLink = (linkToken) => {
     fetch(`/api/stop-sharing`, {
@@ -24,7 +15,7 @@ export function useSharedLinks({ onReload }) {
       body: JSON.stringify({ token: linkToken }),
     })
       .then((res) => res.json())
-      .then(onReload())
+      .then(fetchLinks())
       .catch((err) => {
         toast({
           title: "Error",
@@ -99,11 +90,21 @@ export function useSharedLinks({ onReload }) {
       .catch((error) => console.error("Download error:", error));
   };
 
+  const fetchLinks = async () => {
+    const res = await fetch("/api/links", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    setLinks(data.links);
+  };
+
   return {
     clickLink,
-    handleShowLinks,
     deleteLink,
     copyToClip,
-    isOpen,
+    fetchLinks,
+    links,
   };
 }
