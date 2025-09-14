@@ -38,7 +38,12 @@ const SharedLinks = () => {
         </Button>
       </Box>
 
-      {!loading ? (
+      {loading ? (
+        <Box textAlign="center" py={10}>
+          <Spinner size="lg" />
+          <Text mt={2}>Loading...</Text>
+        </Box>
+      ) : (
         <Box
           p={{ base: 0, md: 6 }}
           shadow="lg"
@@ -66,11 +71,6 @@ const SharedLinks = () => {
               <Text>No shared links available</Text>
             )}
           </SimpleGrid>
-        </Box>
-      ) : (
-        <Box textAlign="center" py={10}>
-          <Spinner size="lg" />
-          <Text mt={2}>Loading...</Text>
         </Box>
       )}
     </Box>
