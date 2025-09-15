@@ -16,7 +16,7 @@ import FileListFile from "../components/FileListFiles";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import TransferProgress from "../components/TransferProgress";
 
-const FileFolderViewer = ({ serverId, toast, openFile }) => {
+const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const {
     files,
@@ -145,7 +145,7 @@ const FileFolderViewer = ({ serverId, toast, openFile }) => {
         handleFileCut={handleCut}
         handleFilePaste={handlePaste}
         handleOpenFile={(filename) =>
-          openFile(serverId, files.currentDirectory, filename)
+          openFile(serverId, files.currentDirectory, filename, host)
         }
       />
     </Box>

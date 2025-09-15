@@ -1,6 +1,16 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { useEffect, useState } from "react";
-import { Button, useColorModeValue } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Text,
+  Button,
+  Card,
+  CardHeader,
+  CardBody,
+  Spacer,
+  useColorModeValue,
+} from "@chakra-ui/react";
 import { githubDark } from "@uiw/codemirror-theme-github";
 import { githubLight } from "@uiw/codemirror-theme-github";
 import { materialDark } from "@uiw/codemirror-theme-material";
@@ -10,9 +20,9 @@ import { java } from "@codemirror/lang-java";
 import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
-import {cpp} from "@codemirror/lang-cpp"
+import { cpp } from "@codemirror/lang-cpp";
 
-const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
+const FileEdit = ({ serverId, currentDirectory, filename, toast, host }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
   const cm = useColorModeValue(githubLight, githubDark);
@@ -107,25 +117,54 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast }) => {
   };
 
   return (
-    <div>
-      <Button
-        onClick={saveFile}
-        colorScheme="blue"
-        size="sm"
-        mt={2}
-        _hover={{ bg: "green.500" }}
-        _active={{ bg: "green.600" }}
-        mb={2}
-      >
-        Save
-      </Button>
-      <CodeMirror
-        value={text}
-        onChange={updateContent}
-        theme={cm}
-        extensions={getExtension(filename)}
-      />
-    </div>
+    <Card
+      variant="outline"
+      borderRadius="xl"
+      boxShadow="md"
+      p={4}
+      bg={useColorModeValue("gray.50", "gray.800")}
+    >
+      <CardHeader p={0} mb={3}>
+        <Flex align="center">
+          <Box>
+            <Text fontSize="sm" color="gray.400">
+              Host
+            </Text>
+            <Text fontWeight="semibold">{host}</Text>
+            <Text fontSize="sm" color="gray.400" mt={1}>
+              File
+            </Text>
+            <Text fontWeight="semibold">{currentDirectory + filename}</Text>
+          </Box>
+          <Spacer />
+          <Button
+            onClick={saveFile}
+            colorScheme="blue"
+            size="sm"
+            _hover={{ bg: "blue.500" }}
+            _active={{ bg: "blue.600" }}
+          >
+            Save
+          </Button>
+        </Flex>
+      </CardHeader>
+
+      <CardBody p={0}>
+        <Box
+          border="1px solid"
+          borderColor="gray.600"
+          borderRadius="md"
+          overflow="hidden"
+        >
+          <CodeMirror
+            value={text}
+            onChange={updateContent}
+            theme={cm}
+            extensions={getExtension(filename)}
+          />
+        </Box>
+      </CardBody>
+    </Card>
   );
 };
 

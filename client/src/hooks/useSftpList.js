@@ -47,7 +47,7 @@ export function useSftpList({ toast }) {
     });
   };
 
-  const handleOpenFile = async (serverId, currentDirectory, filename) => {
+  const handleOpenFile = async (serverId, currentDirectory, filename, host) => {
     addTabItem({
       id: filename,
       label: filename,
@@ -57,6 +57,7 @@ export function useSftpList({ toast }) {
           currentDirectory={currentDirectory}
           filename={filename}
           toast={toast}
+          host={host}
         />
       ),
     });
@@ -135,6 +136,7 @@ export function useSftpList({ toast }) {
           serverId={server._id}
           toast={toast}
           openFile={handleOpenFile}
+          host={server.host}
         />
       ),
     });
