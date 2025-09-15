@@ -1,5 +1,5 @@
 import {
- Card,
+  Card,
   CardBody,
   Stack,
   Heading,
@@ -10,6 +10,8 @@ import {
   HStack,
   Tooltip,
   useColorModeValue,
+  VStack,
+  Box
 } from "@chakra-ui/react";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 
@@ -21,77 +23,75 @@ export default function ServerCard({
   handleSshLaunch,
   deleteServer,
 }) {
-  const bga = useColorModeValue("white", "gray.800")
-  const bgh = useColorModeValue("gray.700", "gray.200")
+  const bga = useColorModeValue("white", "gray.800");
+  const bgh = useColorModeValue("gray.700", "gray.200");
   return (
-    <Card
+    <Box
       key={serverId}
+      p={3}
       borderWidth="1px"
-      borderRadius="lg"
-      shadow="md"
-      bg={bga}
-      transition="all 0.2s"
-      
+      borderRadius="md"
+      bg={useColorModeValue("gray.50", "gray.700")}
+      _hover={{ bg: useColorModeValue("white", "gray.600") }}
+      transition="all 0.2s ease"
+      mb={2}
     >
-      <CardBody>
-        <Stack spacing={4} align="stretch">
-          {/* Host */}
-          <Heading size="sm" color={bgh}>
-            {serverName}
-          </Heading>
+      <VStack align="start" spacing={2}>
+        {/* Host name */}
+        <Text fontWeight="semibold" fontSize="sm" isTruncated maxW="180px">
+          {serverName}
+        </Text>
 
-          {/* Status */}
-          {serverStatuses[serverId] ? (
-            <Badge
-              alignSelf="start"
-              colorScheme={
-                serverStatuses[serverId] === "online" ? "green" : "red"
-              }
-              px={3}
-              py={1}
-              borderRadius="full"
-              fontSize="0.8rem"
-              fontWeight="bold"
-              textTransform="capitalize"
-            >
-              {serverStatuses[serverId]}
-            </Badge>
-          ) : (
-            <Spinner size="md" />
-          )}
+        {/* Status */}
+        {serverStatuses[serverId] ? (
+          <Badge
+            colorScheme={
+              serverStatuses[serverId] === "online" ? "green" : "red"
+            }
+            size="sm"
+            borderRadius="full"
+            px={2}
+          >
+            {serverStatuses[serverId]}
+          </Badge>
+        ) : (
+          <Spinner size="sm" />
+        )}
 
-          {/* Actions */}
-          <HStack spacing={3} pt={2} justify="flex-start">
-            <Tooltip label="Open SFTP" hasArrow>
-              <IconButton
-                aria-label="SFTP"
-                icon={<FaFileAlt />}
-                colorScheme="green"
-                variant="solid"
-                onClick={handleConnect}
-              />
-            </Tooltip>
-            <Tooltip label="Open SSH Terminal" hasArrow>
-              <IconButton
-                aria-label="SSH"
-                icon={<FaTerminal />}
-                colorScheme="blue"
-                variant="solid"
-                onClick={handleSshLaunch}
-              />
-            </Tooltip>
-            <Tooltip label="Delete Server" hasArrow>
-              <IconButton
-                aria-label="Delete"
-                icon={<FaTrash />}
-                colorScheme="red"
-                variant="ghost"
-                onClick={deleteServer}
-              />
-            </Tooltip>
-          </HStack>
-        </Stack>
-      </CardBody>
-    </Card>
+        {/* Actions */}
+        <HStack spacing={1}>
+          <Tooltip label="SFTP" hasArrow>
+            <IconButton
+              aria-label="SFTP"
+              icon={<FaFileAlt />}
+              colorScheme="green"
+              size="sm"
+              variant="ghost"
+              onClick={handleConnect}
+            />
+          </Tooltip>
+          <Tooltip label="SSH" hasArrow>
+            <IconButton
+              aria-label="SSH"
+              icon={<FaTerminal />}
+              colorScheme="blue"
+              size="sm"
+              variant="ghost"
+              onClick={handleSshLaunch}
+            />
+          </Tooltip>
+          <Tooltip label="Delete" hasArrow>
+            <IconButton
+              aria-label="Delete"
+              icon={<FaTrash />}
+              colorScheme="red"
+              size="sm"
+              variant="ghost"
+              onClick={deleteServer}
+            />
+          </Tooltip>
+        </HStack>
+      </VStack>
+    </Box>
   );
 }

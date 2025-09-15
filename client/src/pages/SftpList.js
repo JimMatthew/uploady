@@ -91,7 +91,7 @@ const SFTPApp = ({ toast }) => {
               scrollbarColor: "rgba(100, 100, 100, 0.3) transparent",
             }}
           >
-            <VStack spacing={6} align="stretch">
+            <VStack spacing={4} align="stretch">
               <Box>
                 <Link to="/app/files">
                   <Button 
