@@ -52,6 +52,13 @@ export default function FileList({
     setSelected(new Set());
   };
 
+  const handleShare = () => {
+    selected.forEach((file) => {
+      handleFileShareLink(file)
+    })
+    setSelected(new Set())
+  }
+
   const { clipboard } = useClipboard();
   return (
     <Box p={1}>
@@ -61,6 +68,7 @@ export default function FileList({
         handleCopy={handleCopy}
         handleDelete={handleDelete}
         handleClear={() => setSelected(new Set())}
+        handleShare={handleShare}
       />
 
       {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
