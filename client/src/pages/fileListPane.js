@@ -73,7 +73,7 @@ const FileDisplay = ({
           folders={folders}
           changeDirectory={onFolderClick}
           deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
-          handleCopy={(folder) => handleCopy(folder, true)}
+          handleCopy={(folder) => handleCopy(folder,rp, true)}
         />
 
         <FileListFile

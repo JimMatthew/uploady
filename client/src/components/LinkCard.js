@@ -28,7 +28,6 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
       borderWidth="1px"
       bg={useColorModeValue("white", "gray.800")}
       transition="all 0.2s ease"
-      
     >
       <CardHeader pb={2}>
         <Flex align="center">
