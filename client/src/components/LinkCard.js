@@ -12,6 +12,7 @@ import {
   PopoverHeader,
   PopoverBody,
   useColorModeValue,
+  Badge,
 } from "@chakra-ui/react";
 import QRCode from "react-qr-code";
 const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
@@ -27,6 +28,7 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
       transition="0.3s ease"
       _hover={{ shadow: "lg", background: hvr }}
     >
+      {/* Header */}
       <Flex justify="space-between" align="center" mb={3}>
         <Heading size="sm" isTruncated maxW="200px">
           {linkItem.fileName}
@@ -34,88 +36,76 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => {
         <Button
           size="xs"
           colorScheme="red"
+          variant="ghost"
           onClick={() => stopSharing(linkItem.token)}
         >
-          Stop Sharing
+          Stop
         </Button>
       </Flex>
 
-      <Text fontSize="sm" color="gray.400" mb={2} noOfLines={2}>
+      {/* Link */}
+      <Text
+        fontSize="sm"
+        color={useColorModeValue("gray.600", "gray.400")}
+        mb={2}
+        noOfLines={2}
+      >
         {linkItem.link}
       </Text>
-      <Text>
-        {linkItem.isRemote && (
-          <Text color="gray.400"> remote server: {linkItem.serverName}</Text>
-        )}
-      </Text>
 
-      <Flex justify="space-between" align="center">
+      {/* Remote server info */}
+      {linkItem.isRemote && (
+        <Badge colorScheme="purple" mb={3}>
+          Remote: {linkItem.serverName}
+        </Badge>
+      )}
+
+      {/* Actions */}
+      <Flex justify="space-between" align="center" mt={2} gap={2}>
         <Button
           size="sm"
           colorScheme="blue"
-          variant="outline"
           onClick={() => clickLink(linkItem.link, linkItem.fileName)}
         >
           Download
         </Button>
         <Button
           size="sm"
+          variant="outline"
           colorScheme="green"
           onClick={() => copyToClipboard(linkItem.link)}
         >
-          Copy Link
+          Copy
         </Button>
         <Popover>
           <PopoverTrigger>
-            <Button size="sm" colorScheme="teal">
-              QR Code
+            <Button size="sm" variant="outline" colorScheme="teal">
+              QR
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            borderRadius="lg"
-            shadow="xl"
-            maxW={{ base: "90vw", md: "350px" }}
-            _focus={{ outline: "none" }}
+            borderRadius="md"
+            shadow="lg"
+            maxW={{ base: "90vw", md: "300px" }}
           >
             <PopoverArrow />
             <PopoverCloseButton />
-
             <PopoverHeader
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
+              fontWeight="bold"
               bg="teal.500"
               color="white"
-              fontWeight="bold"
-              borderRadius="lg"
               textAlign="center"
-              px={4}
-              py={2}
             >
-              <Box as="span" mr={2}>
-                📲
-              </Box>
-              Scan QR Code
+              📲 Scan QR Code
             </PopoverHeader>
-
-            {/* Body with QR code */}
-            <PopoverBody
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              p={6}
-              bg="gray.50"
-              borderRadius="lg"
-              _hover={{ bg: "gray.100" }}
-              transition="background-color 0.3s"
-            >
+            <PopoverBody display="flex" justifyContent="center" p={6}>
               <QRCode
                 value={linkItem.link}
-                size={150}
+                size={160}
                 level="H"
                 bgColor="white"
                 fgColor="black"
-                style={{ width: "100%", height: "auto", maxWidth: "200px" }}
+                style={{ width: "100%", height: "auto" }}
               />
             </PopoverBody>
           </PopoverContent>

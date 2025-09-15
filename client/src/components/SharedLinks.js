@@ -6,6 +6,8 @@ import {
   useColorModeValue,
   Spinner,
   Heading,
+  HStack,
+  VStack
 } from "@chakra-ui/react";
 import React, { useState, useEffect } from "react";
 import { FiLink, FiTrash } from "react-icons/fi";
@@ -23,35 +25,34 @@ const SharedLinks = () => {
 
   return (
     <Box>
-      {/* Button to refresh */}
-      <Heading>Active Shared Files</Heading>
-      <Box>
+      <HStack justify="space-between" align="center" mb={4}>
+        <Heading size="lg">Active Shared Files</Heading>
         <Button
           leftIcon={<FiLink />}
           colorScheme="blue"
-          mb={4}
           onClick={loadLinks}
-          m={4}
-          size={"md"}
+          size="sm"
         >
           Refresh
         </Button>
-      </Box>
+      </HStack>
 
       {loading ? (
-        <Box textAlign="center" py={10}>
+        <VStack py={10} spacing={3}>
           <Spinner size="lg" />
-          <Text mt={2}>Loading...</Text>
-        </Box>
+          <Text fontSize="md" color="gray.500">
+            Loading shared links...
+          </Text>
+        </VStack>
       ) : (
         <Box
-          p={{ base: 0, md: 6 }}
+          p={{ base: 4, md: 6 }}
           shadow="lg"
           borderWidth="1px"
           borderRadius="lg"
-          background="white"
-          _hover={{ shadow: "xl" }}
           bg={bgg}
+          transition="all 0.2s"
+          _hover={{ shadow: "xl" }}
         >
           <SimpleGrid
             spacing={6}
@@ -68,7 +69,11 @@ const SharedLinks = () => {
                 />
               ))
             ) : (
-              <Text>No shared links available</Text>
+              <Box textAlign="center" py={6}>
+                <Text fontSize="md" color="gray.500">
+                  No shared links available
+                </Text>
+              </Box>
             )}
           </SimpleGrid>
         </Box>

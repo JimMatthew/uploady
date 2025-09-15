@@ -5,53 +5,45 @@ import {
   Text,
   IconButton,
   Spinner,
+  Badge,
+  Spacer,
+  Box,
 } from "@chakra-ui/react";
 import { FaFileAlt, FaTerminal, FaTrash } from "react-icons/fa";
 
-export default function ServerCard({  
+export default function ServerCard({
   serverId,
   serverName,
-  serverStatuses, 
-  handleConnect, 
-  handleSshLaunch, 
-  deleteServer 
+  serverStatuses,
+  handleConnect,
+  handleSshLaunch,
+  deleteServer,
 }) {
   return (
-    <Card
-      key={serverId}
-      border="1px solid"
-      borderColor="gray.300"
-    >
+    <Card key={serverId} border="1px solid" borderColor="gray.300">
       <CardBody>
         <Stack spacing={3}>
           <Text fontWeight="bold">
-            Host:{" "}
-            <span style={{ color: "gray.600" }}>
-              {serverName}
-            </span>
+            Host: <span style={{ color: "gray.600" }}>{serverName}</span>
           </Text>
-          <Text fontWeight="bold">
-            <strong>Status:</strong>{" "}
-            {serverStatuses[serverId] ? (
-              <Text
-                as="span"
-                color={
-                  serverStatuses[serverId] === "online"
-                    ? "green.500"
-                    : "red.500"
+          {serverStatuses[serverId] ? (
+            <Box>
+              <Badge
+                colorScheme={
+                  serverStatuses[serverId] === "online" ? "green" : "red"
                 }
+                px={3}
+                py={1}
+                borderRadius="md"
               >
                 {serverStatuses[serverId]}
-              </Text>
-            ) : (
-              <Spinner size="sm" />
-            )}
-          </Text>
-          <Stack
-            direction="row"
-            justify="space-between"
-            spacing={3}
-          >
+              </Badge>
+              <Spacer />
+            </Box>
+          ) : (
+            <Spinner size="md" />
+          )}
+          <Stack direction="row" justify="space-between" spacing={3}>
             <IconButton
               aria-label="SFTP"
               icon={<FaFileAlt />}
@@ -74,5 +66,5 @@ export default function ServerCard({
         </Stack>
       </CardBody>
     </Card>
-  )
+  );
 }
