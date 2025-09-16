@@ -29,15 +29,16 @@ const FolderList = ({
         sortDirection={folderSortDirection}
       />
       <Box>
-        {sortedfolders.map((folder, index) => (
+        {sortedfolders.map((folder) => (
           <FolderItem
-            folder={folder}
-            changeDirectory={() => changeDirectory(folder.name)}
-            {...(handleCopy && { handleCopy: () => handleCopy(folder.name) })}
+            key={folder.name}
+            folder={folder.name}
+            changeDirectory={changeDirectory}
+            {...(handleCopy && { handleCopy: handleCopy })}
             {...(downloadFolder && {
-              downloadFolder: () => downloadFolder(folder.name),
+              downloadFolder: downloadFolder,
             })}
-            deleteFolder={() => deleteFolder(folder.name)}
+            deleteFolder={deleteFolder}
           />
         ))}
       </Box>

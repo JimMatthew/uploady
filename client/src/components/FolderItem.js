@@ -10,7 +10,7 @@ import {
 import { FaTrash, FaDownload } from "react-icons/fa";
 import { FcFolder } from "react-icons/fc";
 
-export default function FolderItem({
+const FolderItem = React.memo(function FolderItem({
   folder,
   changeDirectory,
   handleCopy,
@@ -25,18 +25,18 @@ export default function FolderItem({
       borderWidth="1px"
       borderRadius="md"
       _hover={{ bg: bgg, cursor: "pointer" }}
-      onClick={() => changeDirectory()}
+      onClick={() => changeDirectory(folder)}
     >
       <HStack spacing={2}>
         <Icon as={FcFolder} boxSize={6} />
-        <Text fontWeight="medium">{folder.name}</Text>
+        <Text fontWeight="medium">{folder}</Text>
       </HStack>
       <HStack spacing={2}>
         {handleCopy && (
           <Button
             size="sm"
             onClick={(e) => {
-              handleCopy();
+              handleCopy(folder);
               e.stopPropagation();
             }}
           >
@@ -49,7 +49,7 @@ export default function FolderItem({
             icon={<FaDownload />}
             aria-label="download Folder"
             onClick={(e) => {
-              downloadFolder();
+              downloadFolder(folder);
               e.stopPropagation();
             }}
             variant="ghost"
@@ -62,7 +62,7 @@ export default function FolderItem({
           icon={<FaTrash />}
           aria-label="Delete Folder"
           onClick={(e) => {
-            deleteFolder();
+            deleteFolder(folder);
             e.stopPropagation();
           }}
           variant="ghost"
@@ -71,4 +71,6 @@ export default function FolderItem({
       </HStack>
     </HStack>
   );
-}
+})
+
+export default FolderItem
