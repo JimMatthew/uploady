@@ -5,7 +5,8 @@ import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+
 export default function FileList({
   files,
   handleFileDownload,
@@ -26,17 +27,17 @@ export default function FileList({
   } = useFileList({ files });
   const [selected, setSelected] = useState(new Set());
 
-  const toggleSelect = (fileName) => {
+  const toggleSelect = useCallback((fileName) => {
     setSelected((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(fileName)) {
-        newSet.delete(fileName);
+      const next = new Set(prev);
+      if (next.has(fileName)) {
+        next.delete(fileName);
       } else {
-        newSet.add(fileName);
+        next.add(fileName);
       }
-      return newSet;
+      return next;
     });
-  };
+  }, []);
 
   const handleCopy = () => {
     selected.forEach((file) => {
@@ -54,20 +55,24 @@ export default function FileList({
 
   const handleShare = () => {
     selected.forEach((file) => {
-      handleFileShareLink(file)
-    })
-    setSelected(new Set())
-  }
+      handleFileShareLink(file);
+    });
+    setSelected(new Set());
+  };
+
+  const isSelected = (fileName) => selected.has(fileName);
+
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
 
   const { clipboard } = useClipboard();
+
   return (
     <Box p={1}>
-      
       <Toolbar
         selected={selected}
         handleCopy={handleCopy}
         handleDelete={handleDelete}
-        handleClear={() => setSelected(new Set())}
+        handleClear={clearSelection}
         handleShare={handleShare}
       />
 
@@ -87,20 +92,18 @@ export default function FileList({
       {sortedFiles.map((file) => (
         <FileItem
           key={file.name}
-          file={file}
-          onRenameConfirm={(newName) => {
-            handleRenameFile(file.name, newName);
-          }}
-          onCopy={() => handleFileCopy(file.name)}
-          onCut={() => handleFileCut(file.name)}
-          onDownload={() => handleFileDownload(file.name)}
-          onShare={() => handleFileShareLink(file.name)}
-          onDelete={() => handleFileDelete(file.name)}
-          {...(handleOpenFile && {
-            onOpenFile: () => handleOpenFile(file.name),
-          })}
-          isSelected={selected.has(file.name)}
-          onSelect={() => toggleSelect(file.name)}
+          name={file.name}
+          size={file.size}
+          date={file.date}
+          onRenameConfirm={handleRenameFile}
+          onCopy={handleFileCopy}
+          onCut={handleFileCut}
+          onDownload={handleFileDownload}
+          onShare={handleFileShareLink}
+          onDelete={handleFileDelete}
+          onOpenFile={handleOpenFile ? handleOpenFile : undefined}
+          isSelected={isSelected(file.name)}
+          onSelect={toggleSelect}
         />
       ))}
     </Box>

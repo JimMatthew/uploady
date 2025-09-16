@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Box,
   HStack,
@@ -12,11 +13,12 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
-import { useState } from "react";
 import RenameComponent from "./RenameComponent";
 
-export default function FileItem({
-  file,
+const FileItem = React.memo(function FileItem({
+  name,
+  size,
+  date,
   onRenameConfirm,
   onCopy,
   onCut,
@@ -43,6 +45,7 @@ export default function FileItem({
       {children}
     </MenuItem>
   );
+
   return (
     <Box
       p={2}
@@ -51,25 +54,25 @@ export default function FileItem({
       transition="all 0.2s"
       bg={isSelected ? selectedBg : bg}
       cursor="pointer"
-      onClick={onSelect}
+      onClick={() => onSelect(name)}
     >
       <HStack justify="space-between" align="center">
         <VStack align="start" spacing={1}>
           <HStack>
             <Icon as={FcFile} boxSize={6} />
             <Text fontWeight="semibold" fontSize="lg" isTruncated>
-              {file.name}
+              {name}
             </Text>
           </HStack>
           <Text fontSize="sm" color="gray.500">
-            {file.size} KB | {file.date}
+            {size} KB | {date}
           </Text>
         </VStack>
 
         {showRenameInput ? (
           <RenameComponent
-            handleRename={(name) => {
-              onRenameConfirm(name);
+            handleRename={(newname) => {
+              onRenameConfirm(name, newname);
               setShowRenameInput(false);
             }}
             onCancel={() => setShowRenameInput(false)}
@@ -80,16 +83,26 @@ export default function FileItem({
               Actions
             </MenuButton>
             <MenuList>
-              <StopPropMenuItem onClick={onCopy}>Copy</StopPropMenuItem>
-              <StopPropMenuItem onClick={onCut}>Cut</StopPropMenuItem>
-              <StopPropMenuItem onClick={onDownload}>Download</StopPropMenuItem>
-              <StopPropMenuItem onClick={onShare}>Share</StopPropMenuItem>
+              <StopPropMenuItem onClick={() => onCopy(name)}>
+                Copy
+              </StopPropMenuItem>
+              <StopPropMenuItem onClick={() => onCut(name)}>
+                Cut
+              </StopPropMenuItem>
+              <StopPropMenuItem onClick={() => onDownload(name)}>
+                Download
+              </StopPropMenuItem>
+              <StopPropMenuItem onClick={() => onShare(name)}>
+                Share
+              </StopPropMenuItem>
               <StopPropMenuItem onClick={() => setShowRenameInput(true)}>
                 Rename
               </StopPropMenuItem>
-              <StopPropMenuItem onClick={onDelete}>Delete</StopPropMenuItem>
+              <StopPropMenuItem onClick={() => onDelete(name)}>
+                Delete
+              </StopPropMenuItem>
               {onOpenFile && (
-                <StopPropMenuItem onClick={onOpenFile}>
+                <StopPropMenuItem onClick={() => onOpenFile(name)}>
                   Open File
                 </StopPropMenuItem>
               )}
@@ -99,4 +112,6 @@ export default function FileItem({
       </HStack>
     </Box>
   );
-}
+});
+
+export default FileItem;
