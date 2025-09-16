@@ -141,8 +141,6 @@ const SFTPApp = ({ toast }) => {
               ) : (
                 <Text color="gray.500">No servers available.</Text>
               )}
-
-              <Spacer />
             </VStack>
 
             {!isDesktop && (

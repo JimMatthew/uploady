@@ -38,7 +38,7 @@ export default function ServerCard({
     >
       <VStack align="start" spacing={2}>
         {/* Host name */}
-        <Text fontWeight="semibold" fontSize="sm" isTruncated maxW="180px">
+        <Text fontWeight="semibold" fontSize="md" isTruncated maxW="180px">
           {serverName}
         </Text>
 
@@ -48,7 +48,7 @@ export default function ServerCard({
             colorScheme={
               serverStatuses[serverId] === "online" ? "green" : "red"
             }
-            size="sm"
+            size="mf"
             borderRadius="full"
             px={2}
           >
@@ -65,7 +65,7 @@ export default function ServerCard({
               aria-label="SFTP"
               icon={<FaFileAlt />}
               colorScheme="green"
-              size="sm"
+              size="md"
               variant="ghost"
               onClick={handleConnect}
             />
@@ -75,7 +75,7 @@ export default function ServerCard({
               aria-label="SSH"
               icon={<FaTerminal />}
               colorScheme="blue"
-              size="sm"
+              size="md"
               variant="ghost"
               onClick={handleSshLaunch}
             />
@@ -85,7 +85,7 @@ export default function ServerCard({
               aria-label="Delete"
               icon={<FaTrash />}
               colorScheme="red"
-              size="sm"
+              size="md"
               variant="ghost"
               onClick={deleteServer}
             />
