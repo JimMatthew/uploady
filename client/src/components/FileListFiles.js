@@ -21,48 +21,22 @@ export default function FileList({
   const {
     sortedFiles,
     fileSortDirection,
-    setFileSortDirection,
     sortField,
     setSortField,
-  } = useFileList({ files });
-  const [selected, setSelected] = useState(new Set());
-
-  const toggleSelect = useCallback((fileName) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(fileName)) {
-        next.delete(fileName);
-      } else {
-        next.add(fileName);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleCopy = () => {
-    selected.forEach((file) => {
-      handleFileCopy(file);
-    });
-    setSelected(new Set());
-  };
-
-  const handleDelete = () => {
-    selected.forEach((file) => {
-      handleFileDelete(file);
-    });
-    setSelected(new Set());
-  };
-
-  const handleShare = () => {
-    selected.forEach((file) => {
-      handleFileShareLink(file);
-    });
-    setSelected(new Set());
-  };
-
-  const isSelected = (fileName) => selected.has(fileName);
-
-  const clearSelection = useCallback(() => setSelected(new Set()), []);
+    selected,
+    toggleSelect,
+    handleCopy,
+    handleDelete,
+    handleShare,
+    isSelected,
+    clearSelection,
+    toggleFileSort
+  } = useFileList({
+    files,
+    handleFileCopy,
+    handleFileDelete,
+    handleFileShareLink,
+  });
 
   const { clipboard } = useClipboard();
 
@@ -82,9 +56,7 @@ export default function FileList({
         header="files"
         fields={["name", "size", "date"]}
         sortDirection={fileSortDirection}
-        onToggleDirection={() =>
-          setFileSortDirection((d) => (d === "asc" ? "desc" : "asc"))
-        }
+        onToggleDirection={toggleFileSort}
         onFieldChange={setSortField}
         selectedField={sortField}
       />
