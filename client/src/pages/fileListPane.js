@@ -11,6 +11,8 @@ import fileController from "../controllers/fileController";
 import Breadcrum from "../components/Breadcrumbs";
 import FileListFile from "../components/FileListFiles";
 import FolderList from "../components/FolderList";
+import { useState, useMemo, useCallback } from "react";
+import ClipboardComponent from "../components/ClipboardComponent";
 const FileDisplay = ({
   data,
   onFolderClick,
@@ -29,12 +31,50 @@ const FileDisplay = ({
     handleFolderCopy,
     handleCopy,
     handleCut,
-    handlePaste
+    handlePaste,
   } = fileController({ toast, onRefresh });
   const { relativePath, files, folders } = data;
   const rp = "/" + relativePath;
   const bgg = useColorModeValue("white", "gray.800");
-  
+
+  const onFileDownload = useCallback(
+    (name) => handleFileDownload(name, rp),
+    [handleFileDownload, rp]
+  );
+
+  const onFileDelete = useCallback(
+    (name) => handleFileDelete(name, rp),
+    [handleFileDelete, rp]
+  );
+
+  const onFileShare = useCallback(
+    (name) => handleFileShareLink(name, rp),
+    [handleFileShareLink, rp]
+  );
+  const onFileCopy = useCallback(
+    (name) => handleCopy(name, rp, false),
+    [handleCopy, rp]
+  );
+
+  const onFileCut = useCallback((name) => handleCut(name, rp), [handleCut, rp]);
+
+  const onFileRename = useCallback(
+    (name, newName) => handleRenameFile(name, newName, rp),
+    [handleRenameFile, rp]
+  );
+
+  const onFolderDelete = useCallback(
+    (folder) => handleDeleteFolder(folder, rp),
+    [handleDeleteFolder, rp]
+  )
+
+  const onFolderCopy = useCallback(
+    (folder) => handleCopy(folder, rp, true),
+    [handleCopy, rp]
+  )
+
+  const onPaste = useCallback(() => handlePaste(rp), [handlePaste, rp]);
+
   return (
     <Box
       mt={{ base: 1, md: 6 }}
@@ -72,20 +112,20 @@ const FileDisplay = ({
         <FolderList
           folders={folders}
           changeDirectory={onFolderClick}
-          deleteFolder={(folder) => handleDeleteFolder(folder, rp)}
-          handleCopy={(folder) => handleCopy(folder,rp, true)}
+          deleteFolder={onFolderDelete}
+          handleCopy={onFolderCopy}
         />
 
         <FileListFile
           files={files}
-          handleFileDownload={(name) => handleFileDownload(name, rp)}
-          handleFileShareLink={(name) => handleFileShareLink(name, rp)}
-          handleFileDelete={(name) => handleFileDelete(name, rp)}
-          handleFileCopy={(name) => handleCopy(name, rp, false)}
-          handleFileCut={(name) => handleCut(name, rp)}
-          handleRenameFile={(name, newname) => handleRenameFile(name, newname, rp)}
-          handleFolderCopy={(name) => handleFolderCopy(name)}
-          handleFilePaste={() => handlePaste(rp)}
+          handleFileDownload={onFileDownload}
+          handleFileShareLink={onFileShare}
+          handleFileDelete={onFileDelete}
+          handleFileCopy={onFileCopy}
+          handleFileCut={onFileCut}
+          handleRenameFile={onFileRename}
+          handleFolderCopy={handleFolderCopy}
+          handleFilePaste={onPaste}
         />
       </VStack>
     </Box>

@@ -5,8 +5,7 @@ import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
-import { useState, useCallback } from "react";
-
+import { useState, useMemo, useCallback } from "react";
 export default function FileList({
   files,
   handleFileDownload,
@@ -39,6 +38,9 @@ export default function FileList({
   });
 
   const { clipboard } = useClipboard();
+  const handlePaste = useCallback(() => {
+  handleFilePaste();
+}, [handleFilePaste]);
 
   return (
     <Box p={1}>
@@ -50,7 +52,7 @@ export default function FileList({
         handleShare={handleShare}
       />
 
-      {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
 
       <PickSortComponent
         header="files"

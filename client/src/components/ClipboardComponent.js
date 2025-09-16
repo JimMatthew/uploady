@@ -9,9 +9,10 @@ import {
   Divider,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { useState, useMemo, useCallback } from "react";
 import { FiCopy, FiScissors, FiFolder, FiFile } from "react-icons/fi";
 import { useClipboard } from "../contexts/ClipboardContext";
-const ClipboardComponent = ({ handlePaste }) => {
+const ClipboardComponent = React.memo(function ClipboardComponent({ handlePaste }) {
   const { clipboard, clearClipboard } = useClipboard();
   //const bgi = useColorModeValue("gray.50", "gray.700");
   //const bgg = useColorModeValue("gray.700", "gray.200");
@@ -75,6 +76,6 @@ const ClipboardComponent = ({ handlePaste }) => {
       </HStack>
     </Box>
   );
-};
+});
 
 export default ClipboardComponent;

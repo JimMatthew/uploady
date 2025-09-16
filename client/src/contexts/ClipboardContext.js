@@ -5,33 +5,32 @@ const ClipboardContext = createContext();
 export const ClipboardProvider = ({ children }) => {
   const [clipboard, setClipboard] = useState([]);
 
-  const addToClipboard = ({
-    file,
-    path,
-    source,
-    serverId,
-    action,
-    isDirectory,
-  }) => {
-    setClipboard((prev) => [
-      ...prev,
-      {
-        file,
-        path,
-        source,
-        serverId: serverId || null,
-        action,
-        isDirectory: isDirectory || false,
-      },
-    ]);
+  // Add one or multiple files to the clipboard
+  const addToClipboard = (items) => {
+    const newItems = Array.isArray(items) ? items : [items];
+    setClipboard((prev) => [...prev, ...newItems]);
   };
 
-  const copyFile = (params) => {
-    addToClipboard({ ...params, action: "copy" });
+  // Copy multiple files
+  const copyFile = (files) => {
+    const items = (Array.isArray(files) ? files : [files]).map((f) => ({
+      ...f,
+      action: "copy",
+      isDirectory: f.isDirectory || false,
+      serverId: f.serverId || null,
+    }));
+    addToClipboard(items);
   };
 
-  const cutFile = (params) => {
-    addToClipboard({ ...params, action: "cut" });
+  // Cut multiple files
+  const cutFile = (files) => {
+    const items = (Array.isArray(files) ? files : [files]).map((f) => ({
+      ...f,
+      action: "cut",
+      isDirectory: f.isDirectory || false,
+      serverId: f.serverId || null,
+    }));
+    addToClipboard(items);
   };
 
   const clearClipboard = () => {

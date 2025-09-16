@@ -44,6 +44,22 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
   const onCreateFolder = (folder) =>
     createSftpFolder(folder, serverId, files.currentDirectory);
 
+  const onOpenFile = (filename) => {
+    openFile(serverId, files.currentDirectory, filename, host)
+  }
+
+  const onChangeDirectory = (folder) => {
+    changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
+  }
+
+  const onDeleteFolder = (folder) => {
+    deleteSftpFolder(folder, serverId, files.currentDirectory)
+  }
+
+  const onFolderCopy = (folder) => {
+    handleCopy(folder, true)
+  }
+
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -120,14 +136,10 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
 
       <FolderListSftp
         folders={files.folders}
-        changeDirectory={(folder) =>
-          changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
-        }
-        deleteFolder={(folder) =>
-          deleteSftpFolder(folder, serverId, files.currentDirectory)
-        }
-        downloadFolder={(folder) => handleDownloadFolder(folder)}
-        handleCopy={(name) => handleCopy(name, true)}
+        changeDirectory={onChangeDirectory}
+        deleteFolder={onDeleteFolder}
+        downloadFolder={handleDownloadFolder}
+        handleCopy={onFolderCopy}
       />
       {/* Clipboard Copy progress*/}
       <TransferProgress 
@@ -141,12 +153,10 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
         handleFileDelete={handleDelete}
         handleFileShareLink={handleShare}
         handleRenameFile={handleRename}
-        handleFileCopy={(filename) => handleCopy(filename, false)}
+        handleFileCopy={handleCopy}
         handleFileCut={handleCut}
         handleFilePaste={handlePaste}
-        handleOpenFile={(filename) =>
-          openFile(serverId, files.currentDirectory, filename, host)
-        }
+        handleOpenFile={onOpenFile}
       />
     </Box>
   );
