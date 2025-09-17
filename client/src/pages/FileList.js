@@ -16,13 +16,8 @@ import { useFileList } from "../hooks/useFileList";
 
 const FileList = ({ toast }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const {
-    fileData,
-    setCurrentPath,
-    loading,
-    handleFolderClick,
-    reload,
-  } = useFileList();
+  const { fileData, setCurrentPath, loading, handleFolderClick, reload } =
+    useFileList();
 
   const bgg = useColorModeValue("white", "gray.700");
   if (loading || !fileData)
