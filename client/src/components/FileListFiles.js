@@ -1,7 +1,4 @@
-import {
-  Box,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Button } from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
@@ -9,6 +6,7 @@ import PickSortComponent from "./PickSortComponent";
 import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useState, useMemo, useCallback } from "react";
+import FileMenu from "./FileMenu";
 export default function FileList({
   files,
   handleFileDownload,
@@ -39,9 +37,8 @@ export default function FileList({
     handleFileDelete,
     handleFileShareLink,
   });
-  const [renamingFile, setRenamingFile] = useState(null);
   const { clipboard } = useClipboard();
-  
+  const [renamingFile, setRenamingFile] = useState(null);
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
@@ -103,74 +100,19 @@ export default function FileList({
       ))}
 
       {contextMenu.visible && (
-        <Box
-          position="fixed"
+        <FileMenu
+          file={contextMenu.file}
           top={contextMenu.y}
           left={contextMenu.x}
-          bg="grey.700"
-          borderWidth="1px"
-          borderRadius="md"
-          shadow="lg"
-          zIndex={9999}
-          onMouseLeave={closeContextMenu}
-        >
-          <Button
-            onClick={() => {
-              handleFileCopy(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Copy
-          </Button>
-          <Button
-            onClick={() => {
-              handleFileCut(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Cut
-          </Button>
-          <Button
-            onClick={() => {
-              handleFileDelete(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Delete
-          </Button>
-          <Button
-            onClick={() => {
-              handleFileDownload(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Download
-          </Button>
-          <Button
-            onClick={() => {
-              handleFileShareLink(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Share
-          </Button>
-          <Button
-            onClick={() => {
-              setRenamingFile(contextMenu.file);
-              closeContextMenu();
-            }}
-          >
-            Rename
-          </Button>
-          {handleOpenFile && (
-            <Button 
-              onClick={() => {
-                handleOpenFile(contextMenu.file);
-                closeContextMenu()
-              }}
-            >Open</Button>
-          )}
-        </Box>
+          closeMenu={closeContextMenu}
+          handleFileCopy={handleFileCopy}
+          handleFileCut={handleFileCut}
+          handleFileDelete={handleFileDelete}
+          handleFileDownload={handleFileDownload}
+          handleFileShareLink={handleFileShareLink}
+          handleOpenFile={handleOpenFile}
+          setRenamingFile={setRenamingFile}
+        />
       )}
     </Box>
   );
