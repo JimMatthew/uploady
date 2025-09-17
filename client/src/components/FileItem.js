@@ -6,7 +6,6 @@ import {
   VStack,
   Text,
   Icon,
-  Button,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
@@ -53,13 +52,11 @@ const FileItem = React.memo(function FileItem({
           </Text>
         </VStack>
 
-        {isRenaming ? (
+        {isRenaming && (
           <RenameComponent
             handleRename={(newname) => onRename(name, newname)}
             onCancel={onRenameClose}
           />
-        ) : (
-          <></>
         )}
       </HStack>
     </Box>
