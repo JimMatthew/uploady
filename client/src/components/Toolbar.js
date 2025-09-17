@@ -1,6 +1,18 @@
-import { Box, Button, Text, HStack } from "@chakra-ui/react";
+import {
+  Button,
+  Text,
+  HStack,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 
-const Toolbar = ({ selected, handleCopy, handleShare, handleDelete, handleClear }) => {
+const Toolbar = ({
+  selected,
+  handleCopy,
+  handleShare,
+  handleDelete,
+  handleClear,
+}) => {
+  const isDesktop = useBreakpointValue({ base: false, lg: true });
   return (
     <HStack spacing={2} mb={2}>
       <Button
@@ -37,7 +49,7 @@ const Toolbar = ({ selected, handleCopy, handleShare, handleDelete, handleClear 
         Clear
       </Button>
 
-      {selected.size > 0 && (
+      {selected.size > 0 && isDesktop && (
         <Text fontSize="sm" color="gray.500">
           {selected.size} item(s) selected
         </Text>

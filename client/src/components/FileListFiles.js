@@ -1,11 +1,11 @@
-import { Box, Button } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
-import { useState, useMemo, useCallback } from "react";
+import { useState } from "react";
 import FileMenu from "./FileMenu";
 export default function FileList({
   files,

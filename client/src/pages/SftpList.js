@@ -36,7 +36,7 @@ const SFTPApp = ({ toast }) => {
     handleLocalTab,
     activeTabIndex,
     setActiveTabIndex,
-    handleSharedLinks
+    handleSharedLinks,
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -93,11 +93,18 @@ const SFTPApp = ({ toast }) => {
           >
             <VStack spacing={4} align="stretch">
               <Box>
+                {!isDesktop && (
+                  <Button
+                    mt={4}
+                    mb={4}
+                    colorScheme="red"
+                    onClick={() => setShowSidebar(false)}
+                  >
+                    Close Sidebar
+                  </Button>
+                )}
                 <Link to="/app/files">
-                  <Button 
-                  marginBottom={"10px"} 
-                  colorScheme="teal" 
-                  width="100%">
+                  <Button marginBottom={"10px"} colorScheme="teal" width="100%">
                     Go to Files
                   </Button>
                 </Link>
@@ -111,14 +118,14 @@ const SFTPApp = ({ toast }) => {
                   Add New Server
                 </Button>
                 <Button
-                marginBottom={"10px"}
+                  marginBottom={"10px"}
                   colorScheme="blue"
                   width="100%"
                   onClick={() => handleLocalTab()}
                 >
                   Local
                 </Button>
-                 <Button
+                <Button
                   colorScheme="blue"
                   width="100%"
                   onClick={() => handleSharedLinks()}
@@ -157,12 +164,13 @@ const SFTPApp = ({ toast }) => {
 
         {/* Main Panel */}
         <Box flex={1} p={2} transition="margin 0.3s ease">
-          <Tabs 
-          index={activeTabIndex} onChange={(i) => setActiveTabIndex(i)}
-          isLazy
-            lazyBehavior="keepMounted" 
-          > 
-            <TabList >
+          <Tabs
+            index={activeTabIndex}
+            onChange={(i) => setActiveTabIndex(i)}
+            isLazy
+            lazyBehavior="keepMounted"
+          >
+            <TabList>
               {tabs.length > 0 ? (
                 tabs.map((tab) => (
                   <HStack spacing={2}>
@@ -170,7 +178,10 @@ const SFTPApp = ({ toast }) => {
                     <Button
                       size="xs"
                       colorScheme="red"
-                      onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                      }}
                     >
                       ✕
                     </Button>
@@ -182,7 +193,7 @@ const SFTPApp = ({ toast }) => {
                 </Text>
               )}
             </TabList>
-            
+
             <TabPanels>
               {tabs.length > 0 ? (
                 tabs.map((tab) => (
