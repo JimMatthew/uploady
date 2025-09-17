@@ -1,4 +1,7 @@
-import { Box } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+} from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
@@ -29,18 +32,36 @@ export default function FileList({
     handleShare,
     isSelected,
     clearSelection,
-    toggleFileSort
+    toggleFileSort,
   } = useFileList({
     files,
     handleFileCopy,
     handleFileDelete,
     handleFileShareLink,
   });
-
+  const [renamingFile, setRenamingFile] = useState(null);
   const { clipboard } = useClipboard();
-  const handlePaste = useCallback(() => {
-  handleFilePaste();
-}, [handleFilePaste]);
+  
+  const [contextMenu, setContextMenu] = useState({
+    x: 0,
+    y: 0,
+    file: null,
+    visible: false,
+  });
+
+  const openMenu = (e, fileName) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      file: fileName,
+      visible: true,
+    });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu({ ...contextMenu, visible: false });
+  };
 
   return (
     <Box p={1}>
@@ -52,7 +73,7 @@ export default function FileList({
         handleShare={handleShare}
       />
 
-      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       <PickSortComponent
         header="files"
@@ -69,17 +90,88 @@ export default function FileList({
           name={file.name}
           size={file.size}
           date={file.date}
-          onRenameConfirm={handleRenameFile}
-          onCopy={handleFileCopy}
-          onCut={handleFileCut}
-          onDownload={handleFileDownload}
-          onShare={handleFileShareLink}
-          onDelete={handleFileDelete}
-          onOpenFile={handleOpenFile ? handleOpenFile : undefined}
           isSelected={isSelected(file.name)}
           onSelect={toggleSelect}
+          onOpenMenu={openMenu}
+          isRenaming={renamingFile === file.name}
+          onRename={(name, newName) => {
+            handleRenameFile(name, newName);
+            setRenamingFile(null);
+          }}
+          onRenameClose={() => setRenamingFile(null)}
         />
       ))}
+
+      {contextMenu.visible && (
+        <Box
+          position="fixed"
+          top={contextMenu.y}
+          left={contextMenu.x}
+          bg="grey.700"
+          borderWidth="1px"
+          borderRadius="md"
+          shadow="lg"
+          zIndex={9999}
+          onMouseLeave={closeContextMenu}
+        >
+          <Button
+            onClick={() => {
+              handleFileCopy(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Copy
+          </Button>
+          <Button
+            onClick={() => {
+              handleFileCut(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Cut
+          </Button>
+          <Button
+            onClick={() => {
+              handleFileDelete(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Delete
+          </Button>
+          <Button
+            onClick={() => {
+              handleFileDownload(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Download
+          </Button>
+          <Button
+            onClick={() => {
+              handleFileShareLink(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Share
+          </Button>
+          <Button
+            onClick={() => {
+              setRenamingFile(contextMenu.file);
+              closeContextMenu();
+            }}
+          >
+            Rename
+          </Button>
+          {handleOpenFile && (
+            <Button 
+              onClick={() => {
+                handleOpenFile(contextMenu.file);
+                closeContextMenu()
+              }}
+            >Open</Button>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

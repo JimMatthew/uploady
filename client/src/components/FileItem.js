@@ -1,15 +1,12 @@
-import React, { useState } from "react";
+// FileItem.js
+import React from "react";
 import {
   Box,
   HStack,
   VStack,
   Text,
-  Button,
   Icon,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
+  Button,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
@@ -19,32 +16,15 @@ const FileItem = React.memo(function FileItem({
   name,
   size,
   date,
-  onRenameConfirm,
-  onCopy,
-  onCut,
-  onDownload,
-  onShare,
-  onDelete,
-  onOpenFile,
   isSelected,
   onSelect,
+  onOpenMenu,
+  isRenaming,
+  onRename,
+  onRenameClose,
 }) {
   const bg = useColorModeValue("gray.50", "gray.800");
-  const hoverBg = useColorModeValue("gray.100", "gray.600");
   const selectedBg = useColorModeValue("blue.100", "gray.700");
-  const [showRenameInput, setShowRenameInput] = useState(false);
-
-  const StopPropMenuItem = ({ onClick, children, ...props }) => (
-    <MenuItem
-      {...props}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.(e);
-      }}
-    >
-      {children}
-    </MenuItem>
-  );
 
   return (
     <Box
@@ -55,6 +35,10 @@ const FileItem = React.memo(function FileItem({
       bg={isSelected ? selectedBg : bg}
       cursor="pointer"
       onClick={() => onSelect(name)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onOpenMenu(e, name);
+      }}
     >
       <HStack justify="space-between" align="center">
         <VStack align="start" spacing={1}>
@@ -69,45 +53,13 @@ const FileItem = React.memo(function FileItem({
           </Text>
         </VStack>
 
-        {showRenameInput ? (
+        {isRenaming ? (
           <RenameComponent
-            handleRename={(newname) => {
-              onRenameConfirm(name, newname);
-              setShowRenameInput(false);
-            }}
-            onCancel={() => setShowRenameInput(false)}
+            handleRename={(newname) => onRename(name, newname)}
+            onCancel={onRenameClose}
           />
         ) : (
-          <Menu>
-            <MenuButton as={Button} onClick={(e) => e.stopPropagation()}>
-              Actions
-            </MenuButton>
-            <MenuList>
-              <StopPropMenuItem onClick={() => onCopy(name)}>
-                Copy
-              </StopPropMenuItem>
-              <StopPropMenuItem onClick={() => onCut(name)}>
-                Cut
-              </StopPropMenuItem>
-              <StopPropMenuItem onClick={() => onDownload(name)}>
-                Download
-              </StopPropMenuItem>
-              <StopPropMenuItem onClick={() => onShare(name)}>
-                Share
-              </StopPropMenuItem>
-              <StopPropMenuItem onClick={() => setShowRenameInput(true)}>
-                Rename
-              </StopPropMenuItem>
-              <StopPropMenuItem onClick={() => onDelete(name)}>
-                Delete
-              </StopPropMenuItem>
-              {onOpenFile && (
-                <StopPropMenuItem onClick={() => onOpenFile(name)}>
-                  Open File
-                </StopPropMenuItem>
-              )}
-            </MenuList>
-          </Menu>
+          <></>
         )}
       </HStack>
     </Box>
