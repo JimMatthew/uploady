@@ -1,86 +1,44 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Container,
-  useBreakpointValue,
   Spinner,
   Text,
   Button,
-  useColorModeValue,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
-import fileController from "../controllers/fileController";
+
 const FileList = ({ toast }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
-  const { fileData, setCurrentPath, loading, handleFolderClick, reload } =
-    useFileList();
   const {
-    handleFileDownload,
-    handleFileDelete,
-    handleFileShareLink,
-    handleDeleteFolder,
-    generateBreadcrumb,
-    createFolder,
-    handleRenameFile,
-    handleFolderCopy,
-    handleCopy,
-    handleCut,
-    handlePaste,
-  } = fileController({ toast, onRefresh: reload });
+    fileData,
+    setCurrentPath,
+    loading,
+    handleFolderClick,
+    reload,
+    onCreateFolder,
+    onFileCopy,
+    onFileCut,
+    onFileDelete,
+    onFileDownload,
+    onFileRename,
+    onFileShare,
+    onFolderCopy,
+    onFolderDelete,
+    onPaste,
+    onGenerateBreadcrumb,
+  } = useFileList({ toast });
 
-  const onFileDownload = useCallback(
-    (name) => handleFileDownload(name, fileData.relativePath),
-    [handleFileDownload, fileData]
+  const fileUploadProps = useMemo(
+    () => ({
+      apiEndpoint: "/api/upload",
+      additionalData: { folderPath: fileData?.relativePath },
+      onUploadSuccess: reload,
+    }),
+    [fileData?.relativePath, reload]
   );
 
-  const onFileDelete = useCallback(
-    (name) => handleFileDelete(name, fileData.relativePath),
-    [handleFileDelete, fileData]
-  );
-
-  const onFileShare = useCallback(
-    (name) => handleFileShareLink(name, fileData.relativePath),
-    [handleFileShareLink, fileData]
-  );
-
-  const onFileCopy = useCallback(
-    (name) => handleCopy(name, fileData.relativePath, false),
-    [handleCopy, fileData]
-  );
-
-  const onFileCut = useCallback(
-    (name) => handleCut(name, fileData.relativePath),
-    [handleCut, fileData]
-  );
-
-  const onFileRename = useCallback(
-    (name, newName) => handleRenameFile(name, newName, fileData.relativePath),
-    [handleRenameFile, fileData]
-  );
-
-  const onFolderDelete = useCallback(
-    (folder) => handleDeleteFolder(folder, fileData.relativePath),
-    [handleDeleteFolder, fileData]
-  );
-
-  const onFolderCopy = useCallback(
-    (folder) => handleCopy(folder, fileData.relativePath, true),
-    [handleCopy, fileData]
-  );
-
-  const onPaste = useCallback(
-    () => handlePaste(fileData.relativePath),
-    [handlePaste, fileData]
-  );
-
-  const onCreateFolder = useCallback(
-    (folder) => createFolder(folder, fileData.relativePath),
-    [handleCopy, fileData]
-  );
-
-  const bgg = useColorModeValue("white", "gray.700");
   if (loading || !fileData)
     return (
       <Box textAlign="center" py={10}>
@@ -115,13 +73,9 @@ const FileList = ({ toast }) => {
           handlePaste={onPaste}
           changeDirectory={setCurrentPath}
           onCreateFolder={onCreateFolder}
-          generateBreadcrumb={() => generateBreadcrumb(fileData.relativePath)}
+          generateBreadcrumb={onGenerateBreadcrumb}
           onFolderCopy={onFolderCopy}
-          fileUploadProps={{
-            apiEndpoint: "/api/upload",
-            additionalData: { folderPath: fileData.relativePath },
-            onUploadSuccess: reload,
-          }}
+          fileUploadProps={fileUploadProps}
         />
       </Container>
     </Box>
