@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -8,16 +8,77 @@ import {
   Button,
   useColorModeValue,
 } from "@chakra-ui/react";
-import FileListPane from "./fileListPane";
-import Upload from "../components/UploadComponent";
 import { Link } from "react-router-dom";
-import DragAndDropComponent from "../components/DragDropComponent";
 import { useFileList } from "../hooks/useFileList";
-
+import FilePanel from "./FilePanel";
+import fileController from "../controllers/fileController";
 const FileList = ({ toast }) => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { fileData, setCurrentPath, loading, handleFolderClick, reload } =
     useFileList();
+  const {
+    handleFileDownload,
+    handleFileDelete,
+    handleFileShareLink,
+    handleDeleteFolder,
+    generateBreadcrumb,
+    createFolder,
+    handleRenameFile,
+    handleFolderCopy,
+    handleCopy,
+    handleCut,
+    handlePaste,
+  } = fileController({ toast, onRefresh: reload });
+
+  const onFileDownload = useCallback(
+    (name) => handleFileDownload(name, fileData.relativePath),
+    [handleFileDownload, fileData]
+  );
+
+  const onFileDelete = useCallback(
+    (name) => handleFileDelete(name, fileData.relativePath),
+    [handleFileDelete, fileData]
+  );
+
+  const onFileShare = useCallback(
+    (name) => handleFileShareLink(name, fileData.relativePath),
+    [handleFileShareLink, fileData]
+  );
+
+  const onFileCopy = useCallback(
+    (name) => handleCopy(name, fileData.relativePath, false),
+    [handleCopy, fileData]
+  );
+
+  const onFileCut = useCallback(
+    (name) => handleCut(name, fileData.relativePath),
+    [handleCut, fileData]
+  );
+
+  const onFileRename = useCallback(
+    (name, newName) => handleRenameFile(name, newName, fileData.relativePath),
+    [handleRenameFile, fileData]
+  );
+
+  const onFolderDelete = useCallback(
+    (folder) => handleDeleteFolder(folder, fileData.relativePath),
+    [handleDeleteFolder, fileData]
+  );
+
+  const onFolderCopy = useCallback(
+    (folder) => handleCopy(folder, fileData.relativePath, true),
+    [handleCopy, fileData]
+  );
+
+  const onPaste = useCallback(
+    () => handlePaste(fileData.relativePath),
+    [handlePaste, fileData]
+  );
+
+  const onCreateFolder = useCallback(
+    (folder) => createFolder(folder, fileData.relativePath),
+    [handleCopy, fileData]
+  );
 
   const bgg = useColorModeValue("white", "gray.700");
   if (loading || !fileData)
@@ -39,35 +100,29 @@ const FileList = ({ toast }) => {
               Go to SFTP Servers
             </Button>
           </Link>
-
-          {/* Upload Area */}
-          <Box mb={8}>
-            {isMobile ? (
-              <Upload
-                apiEndpoint={"/api/upload"}
-                additionalData={{ folderPath: fileData.relativePath }}
-                onUploadSuccess={reload}
-              />
-            ) : (
-              <DragAndDropComponent
-                apiEndpoint={"/api/upload"}
-                additionalData={{ folderPath: fileData.relativePath }}
-                onUploadSuccess={reload}
-              />
-            )}
-          </Box>
         </Box>
 
-        {/* File List Pane */}
-        <Box bg={bgg} boxShadow="md" p={{ base: 1, md: 6 }} borderRadius="md">
-          <FileListPane
-            data={fileData}
-            onFolderClick={handleFolderClick}
-            onRefresh={reload}
-            toast={toast}
-            handleBreadcrumbClick={setCurrentPath}
-          />
-        </Box>
+        <FilePanel
+          files={fileData}
+          handleDownload={onFileDownload}
+          onChangeDirectory={handleFolderClick}
+          onDeleteFolder={onFolderDelete}
+          handleDelete={onFileDelete}
+          handleShare={onFileShare}
+          handleRename={onFileRename}
+          handleCopy={onFileCopy}
+          handleCut={onFileCut}
+          handlePaste={onPaste}
+          changeDirectory={setCurrentPath}
+          onCreateFolder={onCreateFolder}
+          generateBreadcrumb={() => generateBreadcrumb(fileData.relativePath)}
+          onFolderCopy={onFolderCopy}
+          fileUploadProps={{
+            apiEndpoint: "/api/upload",
+            additionalData: { folderPath: fileData.relativePath },
+            onUploadSuccess: reload,
+          }}
+        />
       </Container>
     </Box>
   );

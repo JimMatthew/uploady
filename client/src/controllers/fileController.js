@@ -109,7 +109,7 @@ const FileController = ({ toast, onRefresh }) => {
         method: "POST",
         body: JSON.stringify({ fileName }),
       });
-      onRefresh(path);
+      onRefresh();
       showToast("File deleted", "success");
     } catch {
       showToast("Error deleting file", "error");
