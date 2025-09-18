@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Text,
@@ -14,20 +14,20 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
     progressMap,
     startedTransfers,
     handleCopy,
+    onFolderCopy,
+    handleDownload,
     handleDownloadFolder,
     handleRename,
     handleShare,
     handleDelete,
-    handleDownload,
     handlePaste,
     generateBreadcrumb,
     onChangeDirectory,
     onCreateFolder,
     onDeleteFolder,
-    onFolderCopy,
     onUploadSuccess,
     handleCut,
-    onChangeDir
+    changeSftpDirectory
   } = useSftpFileFolderViewer({ serverId, toast });
 
   const fileUploadProps = useMemo(
@@ -80,7 +80,7 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
       handleCut={handleCut}
       handlePaste={handlePaste}
       onOpenFile={onOpenFile}
-      changeDirectory={onChangeDir}
+      changeDirectory={changeSftpDirectory}
       onCreateFolder={onCreateFolder}
       startedTransfers={startedTransfers}
       progressMap={progressMap}
