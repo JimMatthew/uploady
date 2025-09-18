@@ -18,7 +18,13 @@ const RenameComponent = ({ handleRename, onCancel }) => {
         <Button size="sm" onClick={() => handleRename(newFilename)}>
           submit
         </Button>
-        <Button size="sm" onClick={onCancel}>
+        <Button
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
+        >
           cancel
         </Button>
       </HStack>
