@@ -3,13 +3,11 @@ import {
   Box,
   Text,
   Spinner,
-  useBreakpointValue,
 } from "@chakra-ui/react";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
 const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
   const {
     files,
     loading,
