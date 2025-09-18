@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Text,
-  Stack,
-  Heading,
   Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
@@ -24,34 +22,30 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
     handleDelete,
     handleDownload,
     handlePaste,
-    deleteSftpFolder,
-    createSftpFolder,
     generateBreadcrumb,
-    changeSftpDirectory,
+    onChangeDirectory,
+    onCreateFolder,
+    onDeleteFolder,
+    onFolderCopy,
+    onUploadSuccess,
+    handleCut,
+    onChangeDir
   } = useSftpFileFolderViewer({ serverId, toast });
 
-  const handleCut = (filename) => {};
+  const fileUploadProps = useMemo(
+    () => ({
+      apiEndpoint: "/sftp/api/upload",
+      additionalData: {
+        serverId,
+        currentDirectory: files.currentDirectory,
+      },
+      onUploadSuccess: onUploadSuccess,
+    }),
+    [files?.currentDirectory, serverId, onUploadSuccess]
+  );
 
-  const onUploadSuccess = () =>
-    changeSftpDirectory(serverId, files.currentDirectory);
-
-  const onCreateFolder = (folder) =>
-    createSftpFolder(folder, serverId, files.currentDirectory);
-
-  const onOpenFile = (filename) => {
+   const onOpenFile = (filename) => {
     openFile(serverId, files.currentDirectory, filename, host);
-  };
-
-  const onChangeDirectory = (folder) => {
-    changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`);
-  };
-
-  const onDeleteFolder = (folder) => {
-    deleteSftpFolder(folder, serverId, files.currentDirectory);
-  };
-
-  const onFolderCopy = (folder) => {
-    handleCopy(folder, true);
   };
 
   if (loading) {
@@ -74,34 +68,27 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
   }
 
   return (
-      <FilePanel
-        files={files}
-        handleDownload={handleDownload}
-        onChangeDirectory={onChangeDirectory}
-        onDeleteFolder={onDeleteFolder}
-        handleDownloadFolder={handleDownloadFolder}
-        onFolderCopy={onFolderCopy}
-        handleDelete={handleDelete}
-        handleShare={handleShare}
-        handleRename={handleRename}
-        handleCopy={handleCopy}
-        handleCut={handleCut}
-        handlePaste={handlePaste}
-        onOpenFile={onOpenFile}
-        changeDirectory={(dir) => changeSftpDirectory(serverId, dir)}
-        onCreateFolder={onCreateFolder}
-        startedTransfers={startedTransfers}
-        progressMap={progressMap}
-        generateBreadcrumb={generateBreadcrumb}
-        fileUploadProps={{
-          apiEndpoint: "/sftp/api/upload",
-          additionalData: {
-            serverId,
-            currentDirectory: files.currentDirectory,
-          },
-          onUploadSuccess: onUploadSuccess,
-        }}
-      />
+    <FilePanel
+      files={files}
+      handleDownload={handleDownload}
+      onChangeDirectory={onChangeDirectory}
+      onDeleteFolder={onDeleteFolder}
+      handleDownloadFolder={handleDownloadFolder}
+      onFolderCopy={onFolderCopy}
+      handleDelete={handleDelete}
+      handleShare={handleShare}
+      handleRename={handleRename}
+      handleCopy={handleCopy}
+      handleCut={handleCut}
+      handlePaste={handlePaste}
+      onOpenFile={onOpenFile}
+      changeDirectory={onChangeDir}
+      onCreateFolder={onCreateFolder}
+      startedTransfers={startedTransfers}
+      progressMap={progressMap}
+      generateBreadcrumb={generateBreadcrumb}
+      fileUploadProps={fileUploadProps}
+    />
   );
 };
 

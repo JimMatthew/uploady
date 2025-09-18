@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useClipboard } from "../contexts/ClipboardContext";
 import SftpController from "../controllers/SftpController";
 export function useSftpFileFolderViewer({ serverId, toast }) {
@@ -21,35 +21,96 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     connectToServer,
   } = SftpController({ toast, setFiles });
 
-  const handleDownload = (filename) => {
-    downloadSftpFile(filename, serverId, files.currentDirectory);
-  };
+  const handleDownload = useCallback(
+    (filename) => {
+      downloadSftpFile(filename, serverId, files.currentDirectory);
+    },
+    [serverId, files.currentDirectory]
+  );
 
-  const handleDelete = (filename) => {
-    deleteSftpFile(filename, serverId, files.currentDirectory);
-  };
+  const handleDelete = useCallback(
+    (filename) => {
+      deleteSftpFile(filename, serverId, files.currentDirectory);
+    },
+    [serverId, files.currentDirectory]
+  );
 
-  const handleShare = (filename) => {
-    shareSftpFile(filename, serverId, files.currentDirectory);
-  };
+  const handleShare = useCallback(
+    (filename) => {
+      shareSftpFile(filename, serverId, files.currentDirectory);
+    },
+    [serverId, files.currentDirectory]
+  );
 
-  const handleRename = (filename, newfilename) => {
-    renameSftpFile(files.currentDirectory, serverId, filename, newfilename);
-  };
+  const handleRename = useCallback(
+    (filename, newfilename) => {
+      renameSftpFile(files.currentDirectory, serverId, filename, newfilename);
+    },
+    [serverId, files.currentDirectory]
+  );
 
-  const handleDownloadFolder = (foldername) => {
-    downloadFolder(files.currentDirectory, foldername, serverId);
-  };
+  const handleDownloadFolder = useCallback(
+    (foldername) => {
+      downloadFolder(files.currentDirectory, foldername, serverId);
+    },
+    [serverId, files.currentDirectory]
+  );
 
-  const handleCopy = (filename, isFolder) => {
-    copyFile({
-      file: filename,
-      path: files.currentDirectory,
-      source: "sftp",
-      serverId: serverId,
-      ...(isFolder && { isDirectory: true }),
-    });
-  };
+  const handleCut = useCallback((filename) => {
+    // TODO: implement cut functionality
+  }, []);
+
+  const onUploadSuccess = useCallback(() => {
+    changeSftpDirectory(serverId, files.currentDirectory);
+  }, [serverId, files.currentDirectory]);
+
+  const onCreateFolder = useCallback(
+    (folder) => {
+      createSftpFolder(folder, serverId, files.currentDirectory);
+    },
+    [serverId, files.currentDirectory]
+  );
+
+  const onDeleteFolder = useCallback(
+    (folder) => {
+      deleteSftpFolder(folder, serverId, files.currentDirectory);
+    },
+    [serverId, files.currentDirectory]
+  );
+
+  const onChangeDirectory = useCallback(
+    (folder) => {
+       changeSftpDirectory(serverId, `${files.currentDirectory}/${folder}`)
+    },
+    [serverId, files.currentDirectory]
+  );
+
+  const onChangeDir = useCallback(
+    (folder) => {
+       changeSftpDirectory(serverId, folder)
+    },
+    [serverId]
+  );
+
+  const handleCopy = useCallback(
+    (filename, isFolder) => {
+      copyFile({
+        file: filename,
+        path: files.currentDirectory,
+        source: "sftp",
+        serverId: serverId,
+        ...(isFolder && { isDirectory: true }),
+      });
+    },
+    [files.currentDirectory, serverId, copyFile]
+  );
+
+  const onFolderCopy = useCallback(
+    (folder) => {
+      handleCopy(folder, true);
+    },
+    [handleCopy]
+  );
 
   useEffect(() => {
     if (!connected) {
@@ -134,6 +195,12 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     deleteSftpFolder,
     createSftpFolder,
     generateBreadcrumb,
-    changeSftpDirectory,
+    onChangeDirectory,
+    onCreateFolder,
+    onDeleteFolder,
+    onFolderCopy,
+    onUploadSuccess,
+    handleCut,
+    onChangeDir
   };
 }

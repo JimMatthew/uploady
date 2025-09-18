@@ -79,11 +79,11 @@ export function useFileList({ toast }) {
     [handleCopy, fileData?.relativePath]
   );
 
-   const onGenerateBreadcrumb = useCallback(
+  const onGenerateBreadcrumb = useCallback(
     () => generateBreadcrumb(fileData.relativePath),
     [generateBreadcrumb, fileData?.relativePath]
   );
- 
+
   useEffect(() => {
     if (token) {
       setLoading(true);
@@ -135,6 +135,6 @@ export function useFileList({ toast }) {
     onFolderCopy,
     onFolderDelete,
     onPaste,
-    onGenerateBreadcrumb
+    onGenerateBreadcrumb,
   };
 }
