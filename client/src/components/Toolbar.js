@@ -39,7 +39,6 @@ const Toolbar = ({
       >
         Delete
       </Button>
-
       <Button
         size="sm"
         colorScheme="gray"
@@ -48,7 +47,7 @@ const Toolbar = ({
       >
         Clear
       </Button>
-
+      
       {selected.size > 0 && isDesktop && (
         <Text fontSize="sm" color="gray.500">
           {selected.size} item(s) selected

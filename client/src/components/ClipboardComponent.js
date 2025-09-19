@@ -6,10 +6,8 @@ import {
   Text,
   Button,
   Icon,
-  Divider,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useState, useMemo, useCallback } from "react";
 import { FiCopy, FiScissors, FiFolder, FiFile } from "react-icons/fi";
 import { useClipboard } from "../contexts/ClipboardContext";
 const ClipboardComponent = ({ handlePaste }) => {

@@ -11,7 +11,7 @@ import {
   List,
   ListItem,
   Text,
-  VStack
+  VStack,
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
 import { CloseIcon } from "@chakra-ui/icons";
@@ -86,59 +86,63 @@ function Upload({
           </Button>
         </HStack>
         {files.length > 0 && (
-  <List spacing={3} width="100%">
-    {files.map((file, index) => (
-      <ListItem
-        key={index}
-        bg="white"
-        p={4}
-        borderRadius="xl"
-        borderWidth="1px"
-        boxShadow="md"
-        _hover={{ boxShadow: "lg", transform: "translateY(-2px)" }}
-        transition="all 0.2s ease"
-      >
-        <HStack justify="space-between" align="center" spacing={4}>
-          {/* File icon + name + progress */}
-          <HStack flex="1" spacing={3} align="flex-start">
-            <Box
-              bg="blue.50"
-              p={2}
-              borderRadius="lg"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <FiFile size={20} color="#3182ce" />
-            </Box>
-            <VStack align="start" spacing={1} flex="1">
-              <Text fontWeight="semibold" color="blue.700" noOfLines={1}>
-                {file.name}
-              </Text>
-              <Progress
-                value={progresses[index]}
-                size="sm"
-                colorScheme="blue"
-                borderRadius="md"
-                width="100%"
-              />
-            </VStack>
-          </HStack>
+          <List spacing={3} width="100%">
+            {files.map((file, index) => (
+              <ListItem
+                key={index}
+                bg="white"
+                p={4}
+                borderRadius="xl"
+                borderWidth="1px"
+                boxShadow="md"
+                _hover={{ boxShadow: "lg", transform: "translateY(-2px)" }}
+                transition="all 0.2s ease"
+              >
+                <HStack justify="space-between" align="center" spacing={4}>
+                  {/* File icon + name + progress */}
+                  <HStack flex="1" spacing={3} align="flex-start">
+                    <Box
+                      bg="blue.50"
+                      p={2}
+                      borderRadius="lg"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <FiFile size={20} color="#3182ce" />
+                    </Box>
+                    <VStack align="start" spacing={1} flex="1">
+                      <Text
+                        fontWeight="semibold"
+                        color="blue.700"
+                        noOfLines={1}
+                      >
+                        {file.name}
+                      </Text>
+                      <Progress
+                        value={progresses[index]}
+                        size="sm"
+                        colorScheme="blue"
+                        borderRadius="md"
+                        width="100%"
+                      />
+                    </VStack>
+                  </HStack>
 
-          {/* Cancel button */}
-          <IconButton
-            aria-label="Cancel upload"
-            icon={<CloseIcon />}
-            size="sm"
-            variant="ghost"
-            colorScheme="red"
-            onClick={() => handleCancel(index)}
-          />
-        </HStack>
-      </ListItem>
-    ))}
-  </List>
-)}
+                  {/* Cancel button */}
+                  <IconButton
+                    aria-label="Cancel upload"
+                    icon={<CloseIcon />}
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    onClick={() => handleCancel(index)}
+                  />
+                </HStack>
+              </ListItem>
+            ))}
+          </List>
+        )}
       </FormControl>
     </Box>
   );

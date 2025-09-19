@@ -30,6 +30,7 @@ const DragAndDropComponent = ({
     token,
     additionalData,
   });
+  
   const onDrop = useCallback((acceptedFiles) => {
     setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
   }, []);

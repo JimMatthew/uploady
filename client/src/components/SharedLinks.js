@@ -7,10 +7,10 @@ import {
   Spinner,
   Heading,
   HStack,
-  VStack
+  VStack,
 } from "@chakra-ui/react";
-import React, { useState, useEffect } from "react";
-import { FiLink, FiTrash } from "react-icons/fi";
+import React, { useEffect } from "react";
+import { FiLink } from "react-icons/fi";
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 

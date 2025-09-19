@@ -27,9 +27,11 @@ const FolderList = ({
       visible: true,
     });
   }, []);
+
   const closeContextMenu = () => {
     setContextMenu({ ...contextMenu, visible: false });
   };
+  
   const toggleFolderSort = useCallback(() => {
     setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   }, []);

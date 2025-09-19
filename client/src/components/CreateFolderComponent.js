@@ -10,18 +10,17 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
   const [folderName, setFolderName] = useState("");
   const bgg = useColorModeValue("white", "gray.800");
   const bgi = useColorModeValue("gray.50", "gray.700");
+
   const handleInputChange = (e) => {
     setFolderName(e.target.value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (folderName.trim() === "") {
       alert("Please enter a valid folder name");
       return;
     }
-
     handleCreateFolder(folderName);
     setFolderName("");
   };

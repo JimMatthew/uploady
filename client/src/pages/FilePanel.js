@@ -1,17 +1,15 @@
 import {
   Box,
-  Text,
   Stack,
   Heading,
-  Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
 import CreateFolderComponent from "../components/CreateFolderComponent";
-import FolderListSftp from "../components/FolderList";
-import FileListFile from "../components/FileListFiles";
+import FolderList from "../components/FolderList";
+import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
 const FilePanel = ({
   files,
@@ -86,14 +84,14 @@ const FilePanel = ({
         >
           <Breadcrumbs
             breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-            onClick={(directory) => changeDirectory(directory)}
+            onClick={changeDirectory}
             color="gray.500"
           />
 
           <CreateFolderComponent handleCreateFolder={onCreateFolder} />
         </Stack>
 
-        <FolderListSftp
+        <FolderList
           folders={files.folders}
           changeDirectory={onChangeDirectory}
           deleteFolder={onDeleteFolder}
@@ -108,7 +106,7 @@ const FilePanel = ({
           />
         )}
 
-        <FileListFile
+        <FileList
           files={files.files}
           handleFileDownload={handleDownload}
           handleFileDelete={handleDelete}
