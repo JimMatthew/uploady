@@ -5,7 +5,7 @@ import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
 import Toolbar from "./Toolbar";
 import { useClipboard } from "../contexts/ClipboardContext";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import FileMenu from "./FileMenu";
 export default function FileList({
   files,
@@ -46,7 +46,7 @@ export default function FileList({
     visible: false,
   });
 
-  const openMenu = (e, fileName) => {
+  const openMenu = useCallback((e, fileName) => {
     e.preventDefault();
     setContextMenu({
       x: e.clientX,
@@ -54,11 +54,18 @@ export default function FileList({
       file: fileName,
       visible: true,
     });
-  };
+  }, []);
 
   const closeContextMenu = () => {
     setContextMenu({ ...contextMenu, visible: false });
   };
+
+  const onRename = useCallback((name, newName) => {
+    handleRenameFile(name, newName);
+    setRenamingFile(null);
+  }, []);
+
+  const onRenameCancel = useCallback(() => setRenamingFile(null), []);
 
   return (
     <Box p={1}>
@@ -91,11 +98,8 @@ export default function FileList({
           onSelect={toggleSelect}
           onOpenMenu={openMenu}
           isRenaming={renamingFile === file.name}
-          onRename={(name, newName) => {
-            handleRenameFile(name, newName);
-            setRenamingFile(null);
-          }}
-          onRenameClose={() => setRenamingFile(null)}
+          onRename={onRename}
+          onRenameClose={onRenameCancel}
         />
       ))}
 

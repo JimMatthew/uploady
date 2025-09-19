@@ -46,7 +46,7 @@ export function useFileList({ toast }) {
 
   const onFileCopy = useCallback(
     (name) => handleCopy(name, fileData.relativePath, false),
-    [handleCopy, fileData?.relativePath]
+    [ fileData?.relativePath]
   );
 
   const onFileCut = useCallback(

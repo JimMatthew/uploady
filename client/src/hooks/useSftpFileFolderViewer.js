@@ -169,7 +169,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         ...(isFolder && { isDirectory: true }),
       });
     },
-    [files?.currentDirectory, serverId, copyFile]
+    [files?.currentDirectory, serverId]
   );
 
   const onFolderCopy = useCallback(
