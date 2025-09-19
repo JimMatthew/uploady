@@ -64,15 +64,17 @@ const FileContextMenu = ({
         >
           Copy
         </MenuButton>
-        <MenuButton
-          icon={<FiScissors />}
-          onClick={() => {
-            handleFileCut(file);
-            closeMenu();
-          }}
-        >
-          Cut
-        </MenuButton>
+        {handleFileCut && (
+          <MenuButton
+            icon={<FiScissors />}
+            onClick={() => {
+              handleFileCut(file);
+              closeMenu();
+            }}
+          >
+            Cut
+          </MenuButton>
+        )}
         <MenuButton
           icon={<FiTrash2 />}
           onClick={() => {
@@ -82,33 +84,39 @@ const FileContextMenu = ({
         >
           Delete
         </MenuButton>
-        <MenuButton
-          icon={<FiDownload />}
-          onClick={() => {
-            handleFileDownload(file);
-            closeMenu();
-          }}
-        >
-          Download
-        </MenuButton>
-        <MenuButton
-          icon={<FiShare2 />}
-          onClick={() => {
-            handleFileShareLink(file);
-            closeMenu();
-          }}
-        >
-          Share
-        </MenuButton>
-        <MenuButton
-          icon={<FiEdit2 />}
-          onClick={() => {
-            setRenamingFile(file);
-            closeMenu();
-          }}
-        >
-          Rename
-        </MenuButton>
+        {handleFileDownload && (
+          <MenuButton
+            icon={<FiDownload />}
+            onClick={() => {
+              handleFileDownload(file);
+              closeMenu();
+            }}
+          >
+            Download
+          </MenuButton>
+        )}
+        {handleFileShareLink && (
+          <MenuButton
+            icon={<FiShare2 />}
+            onClick={() => {
+              handleFileShareLink(file);
+              closeMenu();
+            }}
+          >
+            Share
+          </MenuButton>
+        )}
+        {setRenamingFile && (
+          <MenuButton
+            icon={<FiEdit2 />}
+            onClick={() => {
+              setRenamingFile(file);
+              closeMenu();
+            }}
+          >
+            Rename
+          </MenuButton>
+        )}
         {handleOpenFile && (
           <MenuButton
             icon={<FiFileText />}
