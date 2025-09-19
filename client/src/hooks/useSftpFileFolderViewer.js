@@ -9,6 +9,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
   const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
+
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -229,7 +230,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     };
 
     clearClipboard();
-  }, [clipboard, files?.currentDirectory, serverId, clearClipboard]);
+  }, [ files?.currentDirectory, serverId, clearClipboard]);
 
   const connectToServer = useCallback(
     async (serverId) => {
