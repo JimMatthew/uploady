@@ -54,7 +54,6 @@ const FileList = ({ toast, hideLink = false }) => {
             </Link>
           </Box>
         )}
-
         <FilePanel
           files={fileData}
           handleDownload={onFileDownload}

@@ -23,7 +23,6 @@ const FileItem = React.memo(function FileItem({
 }) {
   const bg = useColorModeValue("gray.50", "gray.800");
   const selectedBg = useColorModeValue("blue.100", "gray.700");
-
   return (
     <Box
       p={2}
@@ -50,7 +49,6 @@ const FileItem = React.memo(function FileItem({
             {size} KB | {date}
           </Text>
         </VStack>
-
         {isRenaming && (
           <RenameComponent
             handleRename={(newname) => onRename(name, newname)}
