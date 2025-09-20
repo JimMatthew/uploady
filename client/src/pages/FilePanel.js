@@ -87,7 +87,6 @@ const FilePanel = ({
             onClick={changeDirectory}
             color="gray.500"
           />
-
           <CreateFolderComponent handleCreateFolder={onCreateFolder} />
         </Stack>
 
@@ -98,6 +97,7 @@ const FilePanel = ({
           downloadFolder={handleDownloadFolder}
           handleCopy={onFolderCopy}
         />
+        
         {/* Clipboard Copy progress*/}
         {startedTransfers && progressMap && (
           <TransferProgress

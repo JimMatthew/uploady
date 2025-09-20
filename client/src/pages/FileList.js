@@ -1,16 +1,10 @@
 import React, { useMemo } from "react";
-import {
-  Box,
-  Container,
-  Spinner,
-  Text,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Container, Spinner, Text, Button } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 
-const FileList = ({ toast }) => {
+const FileList = ({ toast, hideLink = false }) => {
   const {
     fileData,
     setCurrentPath,
@@ -51,14 +45,15 @@ const FileList = ({ toast }) => {
     <Box as="main" minH="80vh" py={8}>
       <Container maxW="container.lg">
         {/* Link to SFTP Servers */}
-
-        <Box align="center">
-          <Link to="/api/sftp">
-            <Button colorScheme="blue" mb={6} size="lg" variant="outline">
-              Go to SFTP Servers
-            </Button>
-          </Link>
-        </Box>
+        {!hideLink && (
+          <Box align="center">
+            <Link to="/api/sftp">
+              <Button colorScheme="blue" mb={6} size="lg" variant="outline">
+                Go to SFTP Servers
+              </Button>
+            </Link>
+          </Box>
+        )}
 
         <FilePanel
           files={fileData}

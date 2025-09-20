@@ -34,15 +34,12 @@ export function useSftpList({ toast }) {
     setTabs((prevTabs) => {
       const idx = prevTabs.findIndex((t) => t.id === keyToRemove);
       if (idx === -1) return prevTabs;
-
       const next = prevTabs.filter((t) => t.id !== keyToRemove);
-
       setActiveTabIndex((prevActive) => {
         if (idx === prevActive) return Math.max(0, prevActive - 1);
         if (idx < prevActive) return prevActive - 1;
         return prevActive;
       });
-
       return next;
     });
   };
@@ -83,7 +80,7 @@ export function useSftpList({ toast }) {
     addTabItem({
       id: "Local",
       label: "Local",
-      content: <FileList toast={toast} />,
+      content: <FileList toast={toast} hideLink={true}/>,
     });
   };
 
