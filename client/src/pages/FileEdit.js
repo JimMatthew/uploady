@@ -37,7 +37,6 @@ const FileEdit = ({
   useEffect(() => {
     async function fetchFile() {
       const decoder = new TextDecoder();
-
       const response = remote
         ? await fetch(
             `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
@@ -157,7 +156,12 @@ const FileEdit = ({
             <Text fontSize="sm" color="gray.400">
               Host
             </Text>
-            <Text fontWeight="semibold">{remote ? { host } : "local"}</Text>
+            {remote ? (
+              <Text fontWeight="semibold">{host}</Text>
+            ) : (
+              <Text fontWeight="semibold"> Local </Text>
+            )}
+
             <Text fontSize="sm" color="gray.400" mt={1}>
               File
             </Text>
