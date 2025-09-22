@@ -21,29 +21,57 @@ import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import { cpp } from "@codemirror/lang-cpp";
+import { transform } from "framer-motion";
 
-const FileEdit = ({ serverId, currentDirectory, filename, toast, host }) => {
+const FileEdit = ({
+  serverId,
+  currentDirectory,
+  filename,
+  toast,
+  host,
+  remote = true,
+}) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
   const cm = useColorModeValue(githubLight, githubDark);
   useEffect(() => {
     async function fetchFile() {
-      const decoder = new TextDecoder();
-      const response = await fetch(
-        `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      if (remote) {
+        const decoder = new TextDecoder();
+        const response = await fetch(
+          `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const reader = response.body.getReader();
+        let result = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          result += decoder.decode(value);
+          setText(result);
         }
-      );
-      const reader = response.body.getReader();
-      let result = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        result += decoder.decode(value);
-        setText(result);
+      } else {
+        const decoder = new TextDecoder();
+        const response = await fetch(
+          `/api/download/${currentDirectory}/${filename}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const reader = response.body.getReader();
+        let result = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          result += decoder.decode(value);
+          setText(result);
+        }
       }
     }
     fetchFile();
@@ -80,18 +108,30 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast, host }) => {
 
   const saveFile = async () => {
     const formData = new FormData();
-    formData.append("currentDirectory", currentDirectory);
-    formData.append("serverId", serverId);
+    if (remote) {
+      formData.append("currentDirectory", currentDirectory)
+      formData.append("serverId", serverId);
+    } else {
+      formData.append("folderPath", currentDirectory);
+    }
     const fileBlob = new Blob([text], { type: "text/plain" });
     formData.append("files", fileBlob, filename);
     try {
-      const response = await fetch("/sftp/api/upload", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        method: "POST",
-        body: formData,
-      });
+      const response = remote
+        ? await fetch("/sftp/api/upload", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            method: "POST",
+            body: formData,
+          })
+        : await fetch("/api/upload", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            method: "POST",
+            body: formData,
+          });
       if (response.ok) {
         toast({
           title: "File Saved",
@@ -130,7 +170,7 @@ const FileEdit = ({ serverId, currentDirectory, filename, toast, host }) => {
             <Text fontSize="sm" color="gray.400">
               Host
             </Text>
-            <Text fontWeight="semibold">{host}</Text>
+            <Text fontWeight="semibold">{remote ? { host } : "local"}</Text>
             <Text fontSize="sm" color="gray.400" mt={1}>
               File
             </Text>

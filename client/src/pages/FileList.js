@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 
-const FileList = ({ toast, hideLink = false }) => {
+const FileList = ({ toast, hideLink = false, openFile }) => {
   const {
     fileData,
     setCurrentPath,
@@ -32,6 +32,10 @@ const FileList = ({ toast, hideLink = false }) => {
     }),
     [fileData?.relativePath, reload]
   );
+
+  const onOpenFile = (filename) => {
+    openFile( null, fileData.relativePath, filename, null, false );
+  };
 
   if (loading || !fileData)
     return (
@@ -70,6 +74,7 @@ const FileList = ({ toast, hideLink = false }) => {
           generateBreadcrumb={onGenerateBreadcrumb}
           onFolderCopy={onFolderCopy}
           fileUploadProps={fileUploadProps}
+          onOpenFile={onOpenFile}
         />
       </Container>
     </Box>
