@@ -36,42 +36,29 @@ const FileEdit = ({
   const cm = useColorModeValue(githubLight, githubDark);
   useEffect(() => {
     async function fetchFile() {
-      if (remote) {
-        const decoder = new TextDecoder();
-        const response = await fetch(
-          `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
-          {
+      const decoder = new TextDecoder();
+
+      const response = remote
+        ? await fetch(
+            `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        : await fetch(`/api/download/${currentDirectory}/${filename}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
-        );
-        const reader = response.body.getReader();
-        let result = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          result += decoder.decode(value);
-          setText(result);
-        }
-      } else {
-        const decoder = new TextDecoder();
-        const response = await fetch(
-          `/api/download/${currentDirectory}/${filename}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const reader = response.body.getReader();
-        let result = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          result += decoder.decode(value);
-          setText(result);
-        }
+          });
+      const reader = response.body.getReader();
+      let result = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        result += decoder.decode(value);
+        setText(result);
       }
     }
     fetchFile();
@@ -109,7 +96,7 @@ const FileEdit = ({
   const saveFile = async () => {
     const formData = new FormData();
     if (remote) {
-      formData.append("currentDirectory", currentDirectory)
+      formData.append("currentDirectory", currentDirectory);
       formData.append("serverId", serverId);
     } else {
       formData.append("folderPath", currentDirectory);
