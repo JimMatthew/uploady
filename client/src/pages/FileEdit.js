@@ -59,10 +59,9 @@ const FileEdit = ({
 }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [fileType, setFileType] = useState("text"); // "image" | "pdf" | "text"
   const theme = useColorModeValue(githubLight, githubDark);
-
+  const [objectUrl, setObjectUrl] = useState(null);
   const buildUrl = () =>
     serverId
       ? `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`
@@ -74,6 +73,17 @@ const FileEdit = ({
 
       if (isImageFile(filename)) {
         setFileType("image");
+        try {
+          const response = await fetch(buildUrl(), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) throw new Error("Failed to fetch image");
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          setObjectUrl(url);
+        } catch (err) {
+          console.error(err);
+        }
         return;
       }
 
@@ -84,9 +94,9 @@ const FileEdit = ({
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!response.ok) throw new Error("Failed to fetch PDF");
-
           const blob = await response.blob();
-          setPdfUrl(URL.createObjectURL(blob));
+          const url = URL.createObjectURL(blob);
+          setObjectUrl(url);
         } catch (err) {
           console.error(err);
         }
@@ -113,7 +123,7 @@ const FileEdit = ({
     fetchFile();
 
     return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [filename]);
 
@@ -130,11 +140,14 @@ const FileEdit = ({
     formData.append("files", fileBlob, filename);
 
     try {
-      const response = await fetch(remote ? "/sftp/api/upload" : "/api/upload", {
-        headers: { Authorization: `Bearer ${token}` },
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        remote ? "/sftp/api/upload" : "/api/upload",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          method: "POST",
+          body: formData,
+        }
+      );
 
       toast({
         title: response.ok ? "File Saved" : "Error Saving File",
@@ -149,20 +162,13 @@ const FileEdit = ({
 
   const renderContent = () => {
     if (fileType === "image") {
-      return (
-        <ImageViewer
-          serverId={serverId}
-          currentDirectory={currentDirectory}
-          filename={filename}
-          token={token}
-        />
-      );
+      return <ImageViewer src={objectUrl} alt={filename} />;
     }
     if (fileType === "pdf") {
       return (
         <Box>
           <iframe
-            src={pdfUrl}
+            src={objectUrl}
             title="file"
             style={{ width: "100%", height: "100vh", border: "none" }}
           />
@@ -200,16 +206,12 @@ const FileEdit = ({
             <Text fontSize="sm" color="gray.400">
               Host
             </Text>
-            <Text fontWeight="semibold">
-              {remote ? host : "Local"}
-            </Text>
+            <Text fontWeight="semibold">{remote ? host : "Local"}</Text>
 
             <Text fontSize="sm" color="gray.400" mt={1}>
               File
             </Text>
-            <Text fontWeight="semibold">
-              {currentDirectory + filename}
-            </Text>
+            <Text fontWeight="semibold">{currentDirectory + filename}</Text>
           </Box>
           <Spacer />
           {fileType === "text" && (
