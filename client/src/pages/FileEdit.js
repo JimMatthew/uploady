@@ -22,6 +22,11 @@ import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import { cpp } from "@codemirror/lang-cpp";
 import { transform } from "framer-motion";
+import ImageViewer from "../components/ImageViewer";
+
+function isImageFile(fileName) {
+  return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
+}
 
 const FileEdit = ({
   serverId,
@@ -33,9 +38,15 @@ const FileEdit = ({
 }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
+  const [isimage, setIsImage] = useState(false);
   const cm = useColorModeValue(githubLight, githubDark);
+
   useEffect(() => {
     async function fetchFile() {
+      if (isImageFile(filename)) {
+        setIsImage(true);
+        return;
+      }
       const decoder = new TextDecoder();
       const response = remote
         ? await fetch(
@@ -168,32 +179,42 @@ const FileEdit = ({
             <Text fontWeight="semibold">{currentDirectory + filename}</Text>
           </Box>
           <Spacer />
-          <Button
-            onClick={saveFile}
-            colorScheme="blue"
-            size="sm"
-            _hover={{ bg: "blue.500" }}
-            _active={{ bg: "blue.600" }}
-          >
-            Save
-          </Button>
+          {!isimage && (
+            <Button
+              onClick={saveFile}
+              colorScheme="blue"
+              size="sm"
+              _hover={{ bg: "blue.500" }}
+              _active={{ bg: "blue.600" }}
+            >
+              Save
+            </Button>
+          )}
         </Flex>
       </CardHeader>
-
       <CardBody p={0}>
-        <Box
-          border="1px solid"
-          borderColor="gray.600"
-          borderRadius="md"
-          overflow="hidden"
-        >
-          <CodeMirror
-            value={text}
-            onChange={updateContent}
-            theme={cm}
-            extensions={getExtension(filename)}
+        {isimage ? (
+          <ImageViewer
+            serverId={serverId}
+            currentDirectory={currentDirectory}
+            filename={filename}
+            token={token}
           />
-        </Box>
+        ) : (
+          <Box
+            border="1px solid"
+            borderColor="gray.600"
+            borderRadius="md"
+            overflow="hidden"
+          >
+            <CodeMirror
+              value={text}
+              onChange={updateContent}
+              theme={cm}
+              extensions={getExtension(filename)}
+            />
+          </Box>
+        )}
       </CardBody>
     </Card>
   );
