@@ -29,6 +29,9 @@ function isImageFile(fileName) {
   return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
 }
 
+const videoExtensions = ["mp4", "webm", "ogg"];
+const audioExtensions = ["mp3", "wav", "ogg"];
+
 function getLanguageExtension(fileType) {
   switch (fileType) {
     case "js":
@@ -70,6 +73,19 @@ const FileEdit = ({
   useEffect(() => {
     async function fetchFile() {
       const ext = getFileExtension(filename);
+      const videoExtensions = ["mp4", "webm", "ogg"];
+      const audioExtensions = ["mp3", "wav", "ogg"];
+
+      const isVideo = videoExtensions.includes(ext);
+      const isAudio = audioExtensions.includes(ext);
+      if (isVideo) {
+        setFileType("video");
+        return;
+      }
+      if (isAudio) {
+        setFileType("audio");
+        return;
+      }
 
       if (isImageFile(filename)) {
         setFileType("image");
@@ -161,6 +177,26 @@ const FileEdit = ({
   };
 
   const renderContent = () => {
+    if (fileType === "video") {
+      return (
+        <video
+          controls
+          src={`/api/downloadstream/${currentDirectory}/${filename}`}
+        >
+          Video not supported
+        </video>
+      );
+    }
+    if (fileType === "audio") {
+      return (
+        <audio controls>
+          <source
+            src={`/api/downloadstream/${currentDirectory}/${filename}`}
+            type="audio/mpeg"
+          ></source>
+        </audio>
+      );
+    }
     if (fileType === "image") {
       return <ImageViewer src={objectUrl} alt={filename} />;
     }

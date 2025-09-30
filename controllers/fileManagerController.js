@@ -3,8 +3,8 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
-const { execSync } = require("child_process");
-
+const { execSync, spawn } = require("child_process");
+const mime = require("mime-types");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
@@ -239,7 +239,6 @@ const delete_file_json_post = async (req, res, next) => {
 const download_file_get = (req, res, next) => {
   const relativeFilePath = req.params[0];
   const filePath = path.join(uploadsDir, relativeFilePath);
-
   res.download(filePath, (err) => {
     if (err) {
       return next(err);
@@ -247,6 +246,93 @@ const download_file_get = (req, res, next) => {
   });
 };
 
+const download_file_stream3 = async (req, res) => {
+  const rfilePath = req.params[0];
+
+  const filePath = path.join(uploadsDir, rfilePath);
+  const contentType = mime.lookup(filePath) || "application/octet-stream";
+  const stat = await fs.promises.stat(filePath);
+  const fileSize = stat.size;
+
+  const range = req.headers.range;
+
+  if (range) {
+    // Parse range: "bytes=start-end"
+    res.writeHead(200, {
+      "Content-Type": "video/mp4",
+      "Transfer-Encoding": "chunked",
+    });
+
+    const ffmpeg = spawn("ffmpeg", [
+      "-i",
+      filePath,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "23",
+      "-c:a",
+      "aac",
+      "-movflags",
+      "frag_keyframe+empty_moov+faststart",
+      "-f",
+      "mp4",
+      "pipe:1",
+    ]);
+
+    ffmpeg.stdout.pipe(res);
+
+    ffmpeg.stderr.on("data", (data) => {
+      console.error("FFmpeg stderr:", data.toString());
+    });
+
+    ffmpeg.on("close", (code) => {
+      console.log(`FFmpeg exited with code ${code}`);
+    });
+  } else {
+    // Optional: handle range requests
+    // You could parse range, then feed ffmpeg with -ss and -t to serve partial chunks
+    res.status(416).send("Range requests not yet supported for transcoding.");
+  }
+};
+
+const download_file_stream = async (req, res) => {
+  const rfilePath = req.params[0];
+
+  const filePath = path.join(uploadsDir, rfilePath);
+  const contentType = mime.lookup(filePath) || "application/octet-stream";
+  const stat = await fs.promises.stat(filePath);
+  const fileSize = stat.size;
+
+  const range = req.headers.range;
+
+  if (range) {
+    // Parse range: "bytes=start-end"
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    const chunkSize = end - start + 1;
+    const file = fs.createReadStream(filePath, { start, end });
+
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": chunkSize,
+      "Content-Type": contentType, // e.g. video/mp4
+    });
+
+    file.pipe(res);
+  } else {
+    // No range header -> send full file
+    res.writeHead(200, {
+      "Content-Length": fileSize,
+      "Content-Type": contentType,
+    });
+    fs.createReadStream(filePath).pipe(res);
+  }
+};
 const create_folder_json_post = async (req, res, next) => {
   try {
     const { folderName, currentPath = "" } = req.body;
@@ -358,4 +444,6 @@ module.exports = {
   cut_file_json_post,
   rename_file_json_post,
   copy_folder_json_post,
+  download_file_stream,
+  getDirectoryContents_get
 };

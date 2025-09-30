@@ -1,9 +1,11 @@
 const SftpClient = require("ssh2-sftp-client");
+const fs = require("fs");
 const path = require("path");
 const SftpServer = require("../models/SftpServer");
 const { PassThrough } = require("stream");
 const archiver = require("archiver");
 const { decrypt } = require("../controllers/encryption");
+
 const {
   copySftpFolder,
   streamFolderSftpToSftp,
@@ -13,8 +15,8 @@ class SftpError extends Error {
   constructor(message, code, details) {
     super(message);
     this.name = "SftpError";
-    this.code = code || "SFTP_ERROR"; 
-    this.details = details; 
+    this.code = code || "SFTP_ERROR";
+    this.details = details;
   }
 }
 
@@ -29,8 +31,7 @@ async function withSftp(serverId, fn) {
     if (sftp) {
       try {
         await sftp.end();
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   }
 }
@@ -203,12 +204,75 @@ async function uploadFile(serverId, stream, remotePath) {
   }
 }
 
+const getDirectoryContents_get = (dirPath) => {
+  const contents = fs.readdirSync(dirPath);
+  const files = [];
+  const folders = [];
+
+  contents.forEach((item) => {
+    const itemPath = path.join(dirPath, item);
+    const stats = fs.lstatSync(itemPath);
+
+    if (stats.isDirectory()) {
+      folders.push({ name: item }); // Only push the name for folders
+    } else if (stats.isFile()) {
+      files.push({
+        name: item, // File name
+        size: (stats.size / 1024).toFixed(2), // Size in KB
+        date: stats.mtime.toLocaleDateString(), // Last modified date
+      });
+    }
+  });
+
+  return { files, folders };
+};
+
+const uploadsDir = path.join(__dirname, "../uploads");
+
+async function uploadLocalFolderToSftp(localPath, destPath, sftpDest) {
+  const { files, folders } = getDirectoryContents_get(localPath);
+  for (const file of files) {
+    await uploadLocalFileToSftp(
+      path.join(localPath, file.name),
+      path.join(destPath, file.name),
+      sftpDest
+    );
+  }
+  for (const folder of folders) {
+    const newLocalPath = path.join(localPath, folder.name);
+    const newDestPath = path.join(destPath, folder.name);
+    try {
+      await sftpDest.mkdir(newDestPath); 
+    } catch (err) {
+      if (!err.message.includes("already exists")) {
+        throw err;
+      }
+    }
+    await uploadLocalFolderToSftp(newLocalPath, newDestPath, sftpDest);
+  }
+}
+
+const uploadLocalFileToSftp = async (localPath, destPath, sftpDest) => {
+  const readStream = fs.createReadStream(localPath);
+  const writeStream = await sftpDest.createWriteStream(destPath);
+  
+  await new Promise((resolve, reject) => {
+    readStream
+      .pipe(writeStream)
+      .on("finish", resolve)
+      .on("close", resolve)
+      .on("end", resolve)
+      .on("error", reject);
+  });
+};
+
 /*
   Copy files to newPath
   If copying files to same sftp server, leave newServerId undefined
   If copying to another server, provide newServerId and files will be
   copied to newPath and newServerId
 */
+
 async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
   const grouped = {};
   for (const item of files) {
@@ -216,9 +280,24 @@ async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(item);
   }
+
   for (const [serverId, fileGroup] of Object.entries(grouped)) {
     let sftpSource, sftpDest;
-    if (!newServerId || newServerId === serverId) {
+    if (serverId === null || serverId === "null") {
+      // local to sftp
+      sftpDest = await connectToSftp(newServerId);
+      for (const file of fileGroup) {
+        const localPath = path.join(uploadsDir, file.path, file.file);
+        const destPath = path.join(newPath, file.file);
+        if (file.isDirectory) {
+          await sftpDest.mkdir(destPath);
+          await uploadLocalFolderToSftp(localPath, destPath, sftpDest);
+        } else {
+          await uploadLocalFileToSftp(localPath, destPath, sftpDest);
+        }
+      }
+      await sftpDest.end();
+    } else if (!newServerId || newServerId === serverId) {
       // same server copy
       sftpSource = await connectToSftp(serverId);
       for (const file of fileGroup) {

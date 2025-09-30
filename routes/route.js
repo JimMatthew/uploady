@@ -74,6 +74,11 @@ router.get(
   filemanagerController.download_file_get
 );
 
+router.get(
+  "/api/downloadstream/*",
+  filemanagerController.download_file_stream
+)
+
 router.post(
   "/api/upload",
   authenticateJWT,
