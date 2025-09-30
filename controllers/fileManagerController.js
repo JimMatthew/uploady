@@ -3,8 +3,10 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
+const sftpService = require("../services/sftpService");
 const { execSync, spawn } = require("child_process");
 const mime = require("mime-types");
+const sftp = require("ssh2-sftp-client");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
@@ -246,57 +248,6 @@ const download_file_get = (req, res, next) => {
   });
 };
 
-const download_file_stream3 = async (req, res) => {
-  const rfilePath = req.params[0];
-
-  const filePath = path.join(uploadsDir, rfilePath);
-  const contentType = mime.lookup(filePath) || "application/octet-stream";
-  const stat = await fs.promises.stat(filePath);
-  const fileSize = stat.size;
-
-  const range = req.headers.range;
-
-  if (range) {
-    // Parse range: "bytes=start-end"
-    res.writeHead(200, {
-      "Content-Type": "video/mp4",
-      "Transfer-Encoding": "chunked",
-    });
-
-    const ffmpeg = spawn("ffmpeg", [
-      "-i",
-      filePath,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "fast",
-      "-crf",
-      "23",
-      "-c:a",
-      "aac",
-      "-movflags",
-      "frag_keyframe+empty_moov+faststart",
-      "-f",
-      "mp4",
-      "pipe:1",
-    ]);
-
-    ffmpeg.stdout.pipe(res);
-
-    ffmpeg.stderr.on("data", (data) => {
-      console.error("FFmpeg stderr:", data.toString());
-    });
-
-    ffmpeg.on("close", (code) => {
-      console.log(`FFmpeg exited with code ${code}`);
-    });
-  } else {
-    // Optional: handle range requests
-    // You could parse range, then feed ffmpeg with -ss and -t to serve partial chunks
-    res.status(416).send("Range requests not yet supported for transcoding.");
-  }
-};
-
 const download_file_stream = async (req, res) => {
   const rfilePath = req.params[0];
 
@@ -320,7 +271,7 @@ const download_file_stream = async (req, res) => {
       "Content-Range": `bytes ${start}-${end}/${fileSize}`,
       "Accept-Ranges": "bytes",
       "Content-Length": chunkSize,
-      "Content-Type": contentType, // e.g. video/mp4
+      "Content-Type": contentType,
     });
 
     file.pipe(res);
@@ -333,6 +284,7 @@ const download_file_stream = async (req, res) => {
     fs.createReadStream(filePath).pipe(res);
   }
 };
+
 const create_folder_json_post = async (req, res, next) => {
   try {
     const { folderName, currentPath = "" } = req.body;
@@ -350,50 +302,105 @@ const create_folder_json_post = async (req, res, next) => {
 
 const copy_file_json_post = async (req, res, next) => {
   try {
-    const { filename, currentPath, newPath } = req.body;
+    const { filename, currentPath, newPath, serverId } = req.body;
+
+    if (serverId) {
+      // sftp -> local copy
+      const sftp = await sftpService.connectToSftp(serverId);
+      const remotePath = path.posix.join(currentPath, filename);
+      const localDest = path.join(uploadsDir, newPath, filename);
+
+      await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
+      await sftp.get(remotePath, localDest);
+      await sftp.end();
+      return res.status(200).json({ message: "File copied from SFTP" });
+    }
+
+    // Local → local copy
     const cfpath = path.join(uploadsDir, currentPath, filename);
     const nfpath = path.join(uploadsDir, newPath, filename);
 
+    await fs.promises.mkdir(path.dirname(nfpath), { recursive: true });
     await fs.promises.copyFile(cfpath, nfpath);
-    res.status(200).json({ message: "File copied" });
+
+    res.status(200).json({ message: "File copied locally" });
   } catch (err) {
-    return next({ message: "Error copying file", status: 404 });
+    console.error("copy_file_json_post error:", err);
+    return next({ message: "Error copying file", status: 500 });
   }
 };
 
 /*
   Recursively copies folderName from currentPath to newPath
 */
-const copy_folder = async (folderName, currentPath, newPath) => {
-  const { files, folders } = getDirectoryContents_get(
-    path.join(uploadsDir, currentPath, folderName)
-  );
-  const newp = path.join(uploadsDir, newPath, folderName);
-
-  await fs.promises.mkdir(newp);
-
-  files.forEach(async (file) => {
-    const cfpath = path.join(
-      uploadsDir,
-      path.join(currentPath, folderName),
-      file.name
+const copy_folder = async ({
+  folderName,
+  currentPath,
+  newPath,
+  sftp,
+  serverId,
+}) => {
+  if (sftp) {
+    const { files, folders } = await sftpService.listDirectory(
+      serverId,
+      path.posix.join(currentPath, folderName)
     );
-    const nfpath = path.join(newp, file.name);
-    await fs.promises.copyFile(cfpath, nfpath);
-  });
-  folders.forEach(async (folder) => {
-    copy_folder(
-      folder.name,
-      path.join(currentPath, folderName),
-      path.join(newPath, folderName)
+    console.log(files);
+    console.log(folders);
+    const destPath = path.join(uploadsDir, newPath, folderName);
+    await fs.promises.mkdir(destPath, { recursive: true });
+    for (const file of files) {
+      const src = path.posix.join(currentPath, folderName, file.name);
+      const dst = path.join(destPath, file.name);
+      await sftp.get(src, dst);
+    }
+    for (const folder of folders) {
+      await copy_folder({
+        folderName: folder.name,
+        currentPath: path.posix.join(currentPath, folderName),
+        newPath: path.join(newPath, folderName),
+        sftp,
+        serverId,
+      });
+    }
+  } else {
+    const { files, folders } = getDirectoryContents_get(
+      path.join(uploadsDir, currentPath, folderName)
     );
-  });
+
+    const newp = path.join(uploadsDir, newPath, folderName);
+
+    await fs.promises.mkdir(newp);
+
+    files.forEach(async (file) => {
+      const cfpath = path.join(
+        uploadsDir,
+        path.join(currentPath, folderName),
+        file.name
+      );
+      const nfpath = path.join(newp, file.name);
+      await fs.promises.copyFile(cfpath, nfpath);
+    });
+    folders.forEach(async (folder) => {
+      copy_folder(
+        folder.name,
+        path.join(currentPath, folderName),
+        path.join(newPath, folderName)
+      );
+    });
+  }
 };
 
 const copy_folder_json_post = async (req, res, next) => {
   try {
-    const { folderName, currentPath, newPath } = req.body;
-    await copy_folder(folderName, currentPath, newPath);
+    const { folderName, currentPath, newPath, serverId } = req.body;
+    let sftp;
+    if (serverId) {
+      sftp = await sftpService.connectToSftp(serverId);
+    }
+    console.log("copy");
+    await copy_folder({ folderName, currentPath, newPath, sftp, serverId });
+    if (sftp) sftp.end();
     res.status(200).json({ message: "File moved" });
   } catch (err) {
     return next({ message: "Error copying folder", status: 404 });
@@ -445,5 +452,5 @@ module.exports = {
   rename_file_json_post,
   copy_folder_json_post,
   download_file_stream,
-  getDirectoryContents_get
+  getDirectoryContents_get,
 };

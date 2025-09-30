@@ -353,4 +353,5 @@ module.exports = {
   uploadFile,
   connectToSftp,
   sftpCopyFilesBatch,
+  connectToSftp
 };

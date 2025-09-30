@@ -44,32 +44,6 @@ const FileController = ({ toast, onRefresh }) => {
   /**
    * File operations
    */
-  const handleFileCopy = async (filename, currentPath, newPath) => {
-    try {
-      await apiRequest("/api/copy-file", {
-        method: "POST",
-        body: JSON.stringify({ filename, currentPath, newPath }),
-      });
-      onRefresh(newPath);
-      showToast("File copied", "success");
-    } catch {
-      showToast("Error copying file", "error");
-    }
-  };
-
-  const handleFolderCopy = async (folderName, currentPath, newPath) => {
-    try {
-      await apiRequest("/api/copy-folder", {
-        method: "POST",
-        body: JSON.stringify({ folderName, currentPath, newPath }),
-      });
-      onRefresh(newPath);
-      showToast("Folder copied", "success");
-    } catch {
-      showToast("Error copying folder", "error");
-    }
-  };
-
   const handleFileCut = async (filename, currentPath, newPath) => {
     try {
       await apiRequest("/api/cut-file", {
@@ -207,13 +181,39 @@ const FileController = ({ toast, onRefresh }) => {
     cutFile({ file: filename, path: rp, source: "local", serverId: null });
   }
 
+   const handleFileCopy = async (filename, currentPath, newPath, serverId) => {
+    try {
+      await apiRequest("/api/copy-file", {
+        method: "POST",
+        body: JSON.stringify({ filename, currentPath, newPath, serverId }),
+      });
+      onRefresh(newPath);
+      showToast("File copied", "success");
+    } catch {
+      showToast("Error copying file", "error");
+    }
+  };
+
+  const handleFolderCopy = async (folderName, currentPath, newPath, serverId) => {
+    try {
+      await apiRequest("/api/copy-folder", {
+        method: "POST",
+        body: JSON.stringify({ folderName, currentPath, newPath, serverId }),
+      });
+      onRefresh(newPath);
+      showToast("Folder copied", "success");
+    } catch {
+      showToast("Error copying folder", "error");
+    }
+  };
+
   function handlePaste(rp) {
-    clipboard.forEach(({ file, path, action, isDirectory }) => {
+    clipboard.forEach(({ file, path, action, isDirectory, serverId }) => {
       if (action === "copy") {
         if (isDirectory) {
-          handleFolderCopy(file, path, rp);
+          handleFolderCopy(file, path, rp, serverId);
         } else {
-          handleFileCopy(file, path, rp);
+          handleFileCopy(file, path, rp, serverId);
         }
       } else if (action === "cut") handleFileCut(file, path, rp);
     });
