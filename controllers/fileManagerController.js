@@ -303,7 +303,6 @@ const create_folder_json_post = async (req, res, next) => {
 const copy_file_json_post = async (req, res, next) => {
   try {
     const { filename, currentPath, newPath, serverId } = req.body;
-
     if (serverId) {
       // sftp -> local copy
       const sftp = await sftpService.connectToSftp(serverId);
@@ -315,7 +314,6 @@ const copy_file_json_post = async (req, res, next) => {
       await sftp.end();
       return res.status(200).json({ message: "File copied from SFTP" });
     }
-
     // Local → local copy
     const cfpath = path.join(uploadsDir, currentPath, filename);
     const nfpath = path.join(uploadsDir, newPath, filename);
@@ -345,8 +343,6 @@ const copy_folder = async ({
       serverId,
       path.posix.join(currentPath, folderName)
     );
-    console.log(files);
-    console.log(folders);
     const destPath = path.join(uploadsDir, newPath, folderName);
     await fs.promises.mkdir(destPath, { recursive: true });
     for (const file of files) {
@@ -367,11 +363,8 @@ const copy_folder = async ({
     const { files, folders } = getDirectoryContents_get(
       path.join(uploadsDir, currentPath, folderName)
     );
-
     const newp = path.join(uploadsDir, newPath, folderName);
-
     await fs.promises.mkdir(newp);
-
     files.forEach(async (file) => {
       const cfpath = path.join(
         uploadsDir,
@@ -398,7 +391,6 @@ const copy_folder_json_post = async (req, res, next) => {
     if (serverId) {
       sftp = await sftpService.connectToSftp(serverId);
     }
-    console.log("copy");
     await copy_folder({ folderName, currentPath, newPath, sftp, serverId });
     if (sftp) sftp.end();
     res.status(200).json({ message: "File moved" });
