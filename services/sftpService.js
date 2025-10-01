@@ -135,9 +135,8 @@ const formatDate = (timestamp) => {
   return date.toLocaleString();
 };
 
-async function listDirectory(serverId, currentDirectory) {
-  return withSftp(serverId, async (sftp) => {
-    const contents = await sftp.list(currentDirectory);
+async function listDirWithSftp({sftp, currentDirectory}) {
+  const contents = await sftp.list(currentDirectory);
     const { files, folders } = contents.reduce(
       (acc, item) => {
         if (item.type === "d") {
@@ -154,6 +153,11 @@ async function listDirectory(serverId, currentDirectory) {
       { files: [], folders: [] }
     );
     return { files, folders };
+}
+
+async function listDirectory(serverId, currentDirectory) {
+  return withSftp(serverId, async (sftp) => {
+    return listDirWithSftp({sftp, currentDirectory})
   });
 }
 
@@ -353,5 +357,6 @@ module.exports = {
   uploadFile,
   connectToSftp,
   sftpCopyFilesBatch,
-  connectToSftp
+  connectToSftp,
+  listDirWithSftp
 };

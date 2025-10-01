@@ -339,17 +339,20 @@ const copy_folder = async ({
   serverId,
 }) => {
   if (sftp) {
-    const { files, folders } = await sftpService.listDirectory(
-      serverId,
-      path.posix.join(currentPath, folderName)
-    );
+    //sftp -> local copy
+    const { files, folders } = await sftpService.listDirWithSftp({
+      sftp,
+      currentDirectory: path.join(currentPath, folderName),
+    });
     const destPath = path.join(uploadsDir, newPath, folderName);
     await fs.promises.mkdir(destPath, { recursive: true });
+
     for (const file of files) {
       const src = path.posix.join(currentPath, folderName, file.name);
       const dst = path.join(destPath, file.name);
       await sftp.get(src, dst);
     }
+
     for (const folder of folders) {
       await copy_folder({
         folderName: folder.name,
@@ -360,6 +363,7 @@ const copy_folder = async ({
       });
     }
   } else {
+    //local -> local copy
     const { files, folders } = getDirectoryContents_get(
       path.join(uploadsDir, currentPath, folderName)
     );
@@ -375,11 +379,11 @@ const copy_folder = async ({
       await fs.promises.copyFile(cfpath, nfpath);
     });
     folders.forEach(async (folder) => {
-      copy_folder(
-        folder.name,
-        path.join(currentPath, folderName),
-        path.join(newPath, folderName)
-      );
+      copy_folder({
+        folderName: folder.name,
+        currentPath: path.join(currentPath, folderName),
+        newPath: path.join(newPath, folderName),
+      });
     });
   }
 };
@@ -395,6 +399,7 @@ const copy_folder_json_post = async (req, res, next) => {
     if (sftp) sftp.end();
     res.status(200).json({ message: "File moved" });
   } catch (err) {
+    console.log(err);
     return next({ message: "Error copying folder", status: 404 });
   }
 };
