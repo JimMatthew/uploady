@@ -142,11 +142,6 @@ const getDirectoryData = (relativePath) => {
   return { files, folders, currentPath, relativePath };
 };
 
-/*
-    Renders the main file manager display, listing files and folders in 
-    current path
-  */
-
 const list_directory_json_get = (req, res, next) => {
   try {
     const data = getDirectoryData(req.params[0] || "");
@@ -314,7 +309,7 @@ const copy_file_json_post = async (req, res, next) => {
       await sftp.end();
       return res.status(200).json({ message: "File copied from SFTP" });
     }
-    // Local → local copy
+    // Local -> local copy
     const cfpath = path.join(uploadsDir, currentPath, filename);
     const nfpath = path.join(uploadsDir, newPath, filename);
 
