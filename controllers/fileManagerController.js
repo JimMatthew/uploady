@@ -403,20 +403,19 @@ const rename_file_json_post = async (req, res, next) => {
 };
 
 const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
-  const {folders, files } = localFileService.listLocalDir(folderPath);
+  const { folders, files } = localFileService.listLocalDir(folderPath);
   for (const file of files) {
     const itemPath = `${folderPath}/${file.name}`;
     const zipPath = `${zipFolderPath}/${file.name}`;
     const stream = fs.createReadStream(itemPath);
-      archive.append(stream || Buffer.alloc(0), { name: zipPath });
-   
+    archive.append(stream || Buffer.alloc(0), { name: zipPath });
   }
-   for (const folder of folders) {
+  for (const folder of folders) {
     const itemPath = `${folderPath}/${folder.name}`;
     const zipPath = `${zipFolderPath}/${folder.name}`;
-      archive.append(null, { name: `${zipPath}/` });
-      await addFolderToArchive(archive, itemPath, zipPath);
-    }
+    archive.append(null, { name: `${zipPath}/` });
+    await addFolderToArchive(archive, itemPath, zipPath);
+  }
 };
 
 async function archiveFolder(lpath, res) {
@@ -430,14 +429,13 @@ async function archiveFolder(lpath, res) {
 const get_archive_folder = async (req, res) => {
   const relativePath = req.params[0] || "";
   const p = path.join(uploadsDir, relativePath ? `/${relativePath}` : "/");
-
   try {
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
     res.setHeader("Content-Type", "application/zip");
     await archiveFolder(p, res);
   } catch (err) {
-    console.log(err)
-    res.status(404).json(err)
+    console.log(err);
+    res.status(500).json("Error: Error downloading folder");
   }
 };
 
