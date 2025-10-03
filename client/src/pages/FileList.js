@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Container, Spinner, Text, Button } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { useFileList } from "../hooks/useFileList";
@@ -24,6 +24,7 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     onGenerateBreadcrumb,
   } = useFileList({ toast });
 
+  const token = localStorage.getItem("token");
   const fileUploadProps = useMemo(
     () => ({
       apiEndpoint: "/api/upload",
@@ -34,7 +35,60 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
   );
 
   const onOpenFile = (filename) => {
-    openFile( null, fileData.relativePath, filename, null, false );
+    openFile(null, fileData.relativePath, filename, null, false);
+  };
+
+  const apiRequest = useCallback(
+    async (url, options = {}, expectBlob = false) => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
+
+        if (response.status === 401) {
+          //navigate("/");
+          throw new Error("Unauthorized");
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Request failed");
+        }
+
+        return expectBlob ? response.blob() : response.json();
+      } catch (error) {
+        console.error("API error:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  const downloadFileBlob = useCallback((blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }, []);
+
+  const handleDownloadFolder = async (foldername) => {
+    try {
+      const folder = `${fileData.relativePath}/${foldername}`;
+      const blob = await apiRequest(`/api/download-folder/${folder}`, {}, true);
+      downloadFileBlob(blob, `${foldername}.zip`);
+      //showToast("Folder downloaded", "success");
+    } catch {
+      //showToast("Error downloading folder", "error");
+    }
   };
 
   if (loading || !fileData)
@@ -75,6 +129,7 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
           onFolderCopy={onFolderCopy}
           fileUploadProps={fileUploadProps}
           onOpenFile={onOpenFile}
+          handleDownloadFolder={handleDownloadFolder}
         />
       </Container>
     </Box>

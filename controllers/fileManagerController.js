@@ -6,7 +6,7 @@ const sftpController = require("../controllers/sftpController");
 const sftpService = require("../services/sftpService");
 const localFileService = require("../services/localFileService");
 const { execSync, spawn } = require("child_process");
-
+const archiver = require("archiver");
 const mime = require("mime-types");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
@@ -402,6 +402,45 @@ const rename_file_json_post = async (req, res, next) => {
   }
 };
 
+const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
+  const {folders, files } = localFileService.listLocalDir(folderPath);
+  for (const file of files) {
+    const itemPath = `${folderPath}/${file.name}`;
+    const zipPath = `${zipFolderPath}/${file.name}`;
+    const stream = fs.createReadStream(itemPath);
+      archive.append(stream || Buffer.alloc(0), { name: zipPath });
+   
+  }
+   for (const folder of folders) {
+    const itemPath = `${folderPath}/${folder.name}`;
+    const zipPath = `${zipFolderPath}/${folder.name}`;
+      archive.append(null, { name: `${zipPath}/` });
+      await addFolderToArchive(archive, itemPath, zipPath);
+    }
+};
+
+async function archiveFolder(lpath, res) {
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  archive.pipe(res);
+
+  await addFolderToArchive(archive, lpath, "/");
+  archive.finalize();
+}
+
+const get_archive_folder = async (req, res) => {
+  const relativePath = req.params[0] || "";
+  const p = path.join(uploadsDir, relativePath ? `/${relativePath}` : "/");
+
+  try {
+    res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
+    res.setHeader("Content-Type", "application/zip");
+    await archiveFolder(p, res);
+  } catch (err) {
+    console.log(err)
+    res.status(404).json(err)
+  }
+};
+
 module.exports = {
   download_file_get,
   upload_files_post,
@@ -419,4 +458,5 @@ module.exports = {
   rename_file_json_post,
   copy_folder_json_post,
   download_file_stream,
+  get_archive_folder,
 };

@@ -110,4 +110,9 @@ router.post(
   filemanagerController.rename_file_json_post
 );
 
+router.get(
+  "/api/download-folder/*",
+  filemanagerController.get_archive_folder
+)
+
 module.exports = router;
