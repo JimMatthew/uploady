@@ -319,11 +319,11 @@ const copy_local_folder = async (folderName, currentPath, newPath) => {
     await fs.promises.copyFile(cfpath, nfpath);
   });
   folders.forEach(async (folder) => {
-    copy_folder({
-      folderName: folder.name,
-      localPath,
-      newPath: path.join(newPath, folderName),
-    });
+    copy_local_folder(
+       folder.name,
+       localPath,
+       path.join(newPath, folderName),
+    );
   });
 };
 
@@ -343,7 +343,7 @@ const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
   }
 
   for (const folder of folders) {
-    await copy_folder({
+    await copy_sftp_folder({
       folderName: folder.name,
       currentPath,
       newPath: path.join(newPath, folderName),
@@ -418,21 +418,17 @@ const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
   }
 };
 
-async function archiveFolder(lpath, res) {
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  archive.pipe(res);
-
-  await addFolderToArchive(archive, lpath, "/");
-  archive.finalize();
-}
-
 const get_archive_folder = async (req, res) => {
   const relativePath = req.params[0] || "";
   const p = path.join(uploadsDir, relativePath ? `/${relativePath}` : "/");
   try {
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
     res.setHeader("Content-Type", "application/zip");
-    await archiveFolder(p, res);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    await addFolderToArchive(archive, p, "/");
+    archive.finalize();
   } catch (err) {
     console.log(err);
     res.status(500).json("Error: Error downloading folder");

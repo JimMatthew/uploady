@@ -112,6 +112,7 @@ router.post(
 
 router.get(
   "/api/download-folder/*",
+  authenticateJWT,
   filemanagerController.get_archive_folder
 )
 
