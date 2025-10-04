@@ -362,9 +362,12 @@ const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
   await fs.promises.mkdir(destPath, { recursive: true });
 
   for (const file of files) {
-    const src = path.posix.join(currentDirectory, file.name);
-    const dst = path.join(destPath, file.name);
-    await sftp.get(src, dst);
+    await copy_file_to_local({
+      filename: file.name,
+      currentPath: currentDirectory,
+      newPath: path.join(newPath, folderName),
+      sftp,
+    });
   }
 
   for (const folder of folders) {
@@ -381,20 +384,23 @@ const copy_sftp_folder_to_local = async (
   serverId,
   folderName,
   currentPath,
-  newPath,
+  newPath
 ) => {
   const sftp = await connectToSftp(serverId);
   await copy_sftp_folder({ folderName, currentPath, newPath, sftp });
   await sftp.end();
 };
 
-const copy_sftp_file = async (filename, currentPath, newPath, serverId) => {
-  const sftp = await connectToSftp(serverId);
+const copy_file_to_local = async ({ filename, currentPath, newPath, sftp }) => {
   const remotePath = path.posix.join(currentPath, filename);
   const localDest = path.join(uploadsDir, newPath, filename);
-
   await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
   await sftp.get(remotePath, localDest);
+};
+
+const copy_sftp_file = async (filename, currentPath, newPath, serverId) => {
+  const sftp = await connectToSftp(serverId);
+  await copy_file_to_local({ filename, currentPath, newPath, sftp });
   await sftp.end();
 };
 
