@@ -6,6 +6,7 @@ const { PassThrough } = require("stream");
 const archiver = require("archiver");
 const { decrypt } = require("../controllers/encryption");
 const localFileService = require("./localFileService");
+const uploadsDir = path.join(__dirname, "../uploads");
 const {
   copySftpFolder,
   streamFolderSftpToSftp,
@@ -208,8 +209,6 @@ async function uploadFile(serverId, stream, remotePath) {
   }
 }
 
-const uploadsDir = path.join(__dirname, "../uploads");
-
 async function uploadLocalFolderToSftp(localPath, destPath, sftpDest) {
   const { files, folders } = localFileService.listLocalDir(localPath);
   for (const file of files) {
@@ -353,6 +352,52 @@ async function sftpCopyFilesBatch(files, newPath, newServerId, transferId) {
   }
 }
 
+const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
+  const currentDirectory = path.join(currentPath, folderName);
+  const { files, folders } = await listDirWithSftp({
+    sftp,
+    currentDirectory,
+  });
+  const destPath = path.join(uploadsDir, newPath, folderName);
+  await fs.promises.mkdir(destPath, { recursive: true });
+
+  for (const file of files) {
+    const src = path.posix.join(currentDirectory, file.name);
+    const dst = path.join(destPath, file.name);
+    await sftp.get(src, dst);
+  }
+
+  for (const folder of folders) {
+    await copy_sftp_folder({
+      folderName: folder.name,
+      currentPath: currentDirectory,
+      newPath: path.join(newPath, folderName),
+      sftp,
+    });
+  }
+};
+
+const copy_sftp_folder_to_local = async (
+  serverId,
+  folderName,
+  currentPath,
+  newPath,
+) => {
+  const sftp = await connectToSftp(serverId);
+  await copy_sftp_folder({ folderName, currentPath, newPath, sftp });
+  await sftp.end();
+};
+
+const copy_sftp_file = async (filename, currentPath, newPath, serverId) => {
+  const sftp = await connectToSftp(serverId);
+  const remotePath = path.posix.join(currentPath, filename);
+  const localDest = path.join(uploadsDir, newPath, filename);
+
+  await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
+  await sftp.get(remotePath, localDest);
+  await sftp.end();
+};
+
 module.exports = {
   createFolder,
   renameFile,
@@ -366,4 +411,6 @@ module.exports = {
   sftpCopyFilesBatch,
   connectToSftp,
   listDirWithSftp,
+  copy_sftp_file,
+  copy_sftp_folder_to_local,
 };
