@@ -274,7 +274,7 @@ const copy_file_json_post = async (req, res, next) => {
   try {
     const { filename, currentPath, newPath, serverId } = req.body;
     if (serverId) {
-      await sftpService.copy_sftp_file(
+      await sftpService.copy_sftp_file_to_local(
         filename,
         currentPath,
         newPath,

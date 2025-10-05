@@ -398,7 +398,7 @@ const copy_file_to_local = async ({ filename, currentPath, newPath, sftp }) => {
   await sftp.get(remotePath, localDest);
 };
 
-const copy_sftp_file = async (filename, currentPath, newPath, serverId) => {
+const copy_sftp_file_to_local = async (filename, currentPath, newPath, serverId) => {
   const sftp = await connectToSftp(serverId);
   await copy_file_to_local({ filename, currentPath, newPath, sftp });
   await sftp.end();
@@ -417,6 +417,6 @@ module.exports = {
   sftpCopyFilesBatch,
   connectToSftp,
   listDirWithSftp,
-  copy_sftp_file,
+  copy_sftp_file_to_local,
   copy_sftp_folder_to_local,
 };

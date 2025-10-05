@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const sftpService = require("./sftpService")
 const uploadsDir = path.join(__dirname, "../uploads");
 
 const listLocalDir = (dirPath) => {
@@ -50,7 +49,5 @@ const copy_local_file = async (filename, currentPath, newPath) => {
   await fs.promises.mkdir(path.dirname(nfpath), { recursive: true });
   await fs.promises.copyFile(cfpath, nfpath);
 };
-
-
 
 module.exports = { listLocalDir, copy_local_folder, copy_local_file };
