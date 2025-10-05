@@ -30,7 +30,6 @@ export default function ServerCard({
       bg={useColorModeValue("gray.50", "gray.700")}
       _hover={{ bg: useColorModeValue("white", "gray.600") }}
       transition="all 0.2s ease"
-      mb={2}
     >
       <VStack align="start" spacing={2}>
         {/* Host name */}

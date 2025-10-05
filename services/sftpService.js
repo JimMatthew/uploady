@@ -1,10 +1,9 @@
 const SftpClient = require("ssh2-sftp-client");
 const fs = require("fs");
 const path = require("path");
-const SftpServer = require("../models/SftpServer");
 const { PassThrough } = require("stream");
 const archiver = require("archiver");
-const { decrypt } = require("../controllers/encryption");
+const serverService = require("./serverService");
 const localFileService = require("./localFileService");
 const uploadsDir = path.join(__dirname, "../uploads");
 const {
@@ -12,6 +11,7 @@ const {
   streamFolderSftpToSftp,
   streamFileSftpPair,
 } = require("./sftpTransferService");
+
 class SftpError extends Error {
   constructor(message, code, details) {
     super(message);
@@ -38,34 +38,9 @@ async function withSftp(serverId, fn) {
 }
 
 const connectToSftp = async (serverId) => {
-  const server = await SftpServer.findById(serverId);
-  if (!server) throw new Error("Server not found");
-
   const sftp = new SftpClient();
+  const options = await serverService.getServerOptions(serverId);
 
-  const options = {
-    host: server.host,
-    port: 22,
-    username: server.username,
-  };
-
-  if (server.authType === "password") {
-    options.password = decrypt(server.credentials.password);
-  } else if (server.authType === "key") {
-    let privateKey = decrypt(server.credentials.privateKey).trim();
-
-    if (privateKey.includes("\\n")) {
-      privateKey = privateKey.replace(/\\n/g, "\n");
-    }
-    options.privateKey = privateKey;
-
-    const passphrase =
-      server.credentials.passphrase && server.credentials.passphrase.iv
-        ? decrypt(server.credentials.passphrase)
-        : undefined;
-
-    if (passphrase) options.passphrase = passphrase;
-  }
   await sftp.connect(options);
   return sftp;
 };
@@ -380,7 +355,7 @@ const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
   }
 };
 
-const copy_sftp_folder_to_local = async (
+const copyftpFolderToLocal = async (
   serverId,
   folderName,
   currentPath,
@@ -398,7 +373,12 @@ const copy_file_to_local = async ({ filename, currentPath, newPath, sftp }) => {
   await sftp.get(remotePath, localDest);
 };
 
-const copy_sftp_file_to_local = async (filename, currentPath, newPath, serverId) => {
+const copySftpFileToLocal = async (
+  filename,
+  currentPath,
+  newPath,
+  serverId
+) => {
   const sftp = await connectToSftp(serverId);
   await copy_file_to_local({ filename, currentPath, newPath, sftp });
   await sftp.end();
@@ -417,6 +397,6 @@ module.exports = {
   sftpCopyFilesBatch,
   connectToSftp,
   listDirWithSftp,
-  copy_sftp_file_to_local,
-  copy_sftp_folder_to_local,
+  copySftpFileToLocal,
+  copyftpFolderToLocal,
 };

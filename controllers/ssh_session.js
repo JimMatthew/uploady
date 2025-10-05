@@ -1,6 +1,5 @@
 const { Client } = require("ssh2");
-const SftpServer = require("../models/SftpServer");
-const { decrypt } = require("./encryption");
+const serverService = require("../services/serverService");
 
 const ssh_session = (socket) => {
   let sshClient = new Client();
@@ -9,32 +8,7 @@ const ssh_session = (socket) => {
     const { event, serverId } = JSON.parse(message);
 
     if (event === "startSession") {
-      const serverInfo = await SftpServer.findById(serverId);
-      if (!serverInfo) return;
-
-      const { host, username, authType } = serverInfo;
-
-      const connectConfig = {
-        host,
-        port: 22,
-        username,
-      };
-
-      if (authType === "password") {
-        connectConfig.password = decrypt(serverInfo.credentials.password);
-      } else if (authType === "key") {
-        let privateKey = decrypt(serverInfo.credentials.privateKey);
-        if (privateKey.includes("\\n")) {
-          privateKey = privateKey.replace(/\\n/g, "\n");
-        }
-        connectConfig.privateKey = privateKey;
-        if (
-          serverInfo.credentials.passphrase &&
-          serverInfo.credentials.passphrase.iv
-        ) {
-          connectConfig.passphrase = decrypt(serverInfo.credentials.passphrase);
-        }
-      }
+      const connectConfig = await serverService.getServerOptions(serverId);
 
       sshClient
         .on("ready", () => {
