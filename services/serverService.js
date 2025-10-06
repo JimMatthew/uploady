@@ -107,9 +107,15 @@ const getServerOptions = async (serverId) => {
   return options;
 };
 
+const getServers = async () => {
+  const servers = await SftpServer.find().select("_id, host");
+  return servers
+}
+
 module.exports = {
   share_file,
   checkServerStatus,
   save_server,
   getServerOptions,
+  getServers
 };
