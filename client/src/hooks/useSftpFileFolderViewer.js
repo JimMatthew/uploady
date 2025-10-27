@@ -122,7 +122,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     [serverId, files?.currentDirectory, apiRequest, showToast]
   );
 
-  const handleRename = useCallback(
+  const handleRename = 
     async (filename, newfilename) => {
       try {
         await apiRequest("/sftp/api/renameFile", {
@@ -139,9 +139,8 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
       } catch {
         showToast("Error renaming file", "error");
       }
-    },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
-  );
+    };
+   
 
   const handleShare = useCallback(
     async (filename) => {

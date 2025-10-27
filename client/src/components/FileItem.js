@@ -10,7 +10,7 @@ import {
 import { FcFile } from "react-icons/fc";
 import RenameComponent from "./RenameComponent";
 
-const FileItem = React.memo(function FileItem({
+const FileItem = function FileItem({
   name,
   size,
   date,
@@ -58,6 +58,6 @@ const FileItem = React.memo(function FileItem({
       </HStack>
     </Box>
   );
-});
+};
 
 export default FileItem;
