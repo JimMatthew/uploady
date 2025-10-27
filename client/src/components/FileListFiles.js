@@ -60,10 +60,10 @@ export default function FileList({
     setContextMenu({ ...contextMenu, visible: false });
   };
 
-  const onRename = (name, newName) => {
+  const onRename = useCallback((name, newName) => {
     handleRenameFile(name, newName);
     setRenamingFile(null);
-  };
+  }, [handleRenameFile]);
 
   const onRenameCancel = useCallback(() => setRenamingFile(null), []);
 
