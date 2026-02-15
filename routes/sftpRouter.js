@@ -1,7 +1,7 @@
 const express = require("express");
 const sftpController = require("../controllers/sftpController");
 const authenticateJWT = require("../middlewares/jwtAuth");
-
+const progressController = require("../controllers/progressController")
 
   const router = express.Router();
 
@@ -88,7 +88,8 @@ const authenticateJWT = require("../middlewares/jwtAuth");
 
   router.get(
     "/api/progress/:transferId",
-    sftpController.get_transfer_progress
+    progressController.get_transfer_progress
+    //sftpController.get_transfer_progress
   )
 
  module.exports = router;

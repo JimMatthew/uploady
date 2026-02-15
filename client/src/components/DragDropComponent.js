@@ -9,8 +9,11 @@ import {
   VStack,
   useColorModeValue,
   Progress,
+  IconButton,
+  HStack,
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
+import { CloseIcon } from "@chakra-ui/icons";
 const DragAndDropComponent = ({
   apiEndpoint,
   additionalData = {},
@@ -27,8 +30,9 @@ const DragAndDropComponent = ({
     token,
     additionalData,
   });
+  
   const onDrop = useCallback((acceptedFiles) => {
-    setFiles(acceptedFiles);
+    setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -42,6 +46,10 @@ const DragAndDropComponent = ({
 
   const handleUpload = () => {
     uploadFiles(files, onFinish);
+  };
+
+  const handleCancel = (index) => {
+    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
   return (
@@ -73,27 +81,40 @@ const DragAndDropComponent = ({
 
       {files.length > 0 && (
         <Box width="100%">
-          <Text fontWeight="bold" mb={2}>
+          <Text color={"blue"} fontWeight="bold" mb={2}>
             Selected Files:
           </Text>
           <List spacing={2}>
             {files.map((file, index) => (
               <ListItem
                 key={index}
-                bg="gray.100"
+                bg="gray.300"
                 p={2}
                 borderRadius="md"
                 borderWidth="1px"
                 borderColor="gray.300"
+                boxShadow="sm"
               >
-                <Text>{file.name}</Text>
-                <Progress
-                  align="left"
-                  value={progresses[index]}
-                  size="md"
-                  colorScheme="blue"
-                  mt={2}
-                />
+                <HStack justify="space-between" align="center">
+                  <Box flex="1">
+                    <Text fontWeight="semibold" color={"blue.700"}>{file.name}</Text>
+                    <Progress
+                      align="left"
+                      value={progresses[index]}
+                      size="md"
+                      colorScheme="blue"
+                      mt={2}
+                    />
+                  </Box>
+                  <IconButton
+                    aria-label="Cancel upload"
+                    icon={<CloseIcon />}
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    onClick={() => handleCancel(index)} 
+                  />
+                </HStack>
               </ListItem>
             ))}
           </List>

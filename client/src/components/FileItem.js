@@ -1,59 +1,63 @@
-import { Box, HStack, VStack, Text, Button, Icon, Menu, MenuButton, MenuItem, MenuList } from "@chakra-ui/react";
+import React from "react";
+import {
+  Box,
+  HStack,
+  VStack,
+  Text,
+  Icon,
+  useColorModeValue,
+} from "@chakra-ui/react";
 import { FcFile } from "react-icons/fc";
-import RenameFileComponent from "./RenameFileComponent";
+import RenameComponent from "./RenameComponent";
 
-export default function FileItem({
-  file,
+const FileItem = function FileItem({
+  name,
+  size,
+  date,
+  isSelected,
+  onSelect,
+  onOpenMenu,
   isRenaming,
-  newFilename,
-  onRenameInput,
-  onRenameConfirm,
-  onRenameCancel,
-  onCopy,
-  onCut,
-  onDownload,
-  onShare,
-  onDelete,
-  onStartRename,
-  onOpenFile
+  onRename,
+  onRenameClose,
 }) {
+  const bg = useColorModeValue("gray.50", "gray.800");
+  const selectedBg = useColorModeValue("blue.100", "gray.700");
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" transition="all 0.2s">
+    <Box
+      p={2}
+      borderWidth="1px"
+      borderRadius="lg"
+      transition="all 0.2s"
+      bg={isSelected ? selectedBg : bg}
+      cursor="pointer"
+      onClick={() => onSelect(name)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onOpenMenu(e, name);
+      }}
+    >
       <HStack justify="space-between" align="center">
         <VStack align="start" spacing={1}>
           <HStack>
             <Icon as={FcFile} boxSize={6} />
             <Text fontWeight="semibold" fontSize="lg" isTruncated>
-              {file.name}
+              {name}
             </Text>
           </HStack>
           <Text fontSize="sm" color="gray.500">
-            {file.size} KB | {file.date}
+            {size} KB | {date}
           </Text>
         </VStack>
-
-        {isRenaming ? (
-          <RenameFileComponent
-            newFilename={newFilename}
-            onInput={onRenameInput}
-            handleRename={onRenameConfirm}
-            onCancel={onRenameCancel}
+        {isRenaming && (
+          <RenameComponent
+            handleRename={(newname) => onRename(name, newname)}
+            onCancel={onRenameClose}
           />
-        ) : (
-          <Menu>
-            <MenuButton as={Button}>Actions</MenuButton>
-            <MenuList>
-              <MenuItem onClick={onCopy}>Copy</MenuItem>
-              <MenuItem onClick={onCut}>Cut</MenuItem>
-              <MenuItem onClick={onDownload}>Download</MenuItem>
-              <MenuItem onClick={onShare}>Share</MenuItem>
-              <MenuItem onClick={onStartRename}>Rename</MenuItem>
-              <MenuItem onClick={onDelete}>Delete</MenuItem>
-              {onOpenFile && <MenuItem onClick={onOpenFile}> Open File</MenuItem>}
-            </MenuList>
-          </Menu>
         )}
       </HStack>
     </Box>
   );
-}
+};
+
+export default FileItem;

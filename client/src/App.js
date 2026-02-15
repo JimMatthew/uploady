@@ -9,16 +9,15 @@ import AppLayout from "./AppLayout";
 import SftpList from "./pages/SftpList"
 import About from "./pages/About"
 const App = () => {
-  const [user, setuser] = useState(null);
   const toast = useToast();
   let vh = window.innerHeight * 0.01
   document.documentElement.style.setProperty('--vh', `${vh}px`)
   return (
     <Router>
-      <AppLayout username={user}>
+      <AppLayout>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/app/files" element={<FileList setUser={setuser} toast={toast}/>} />
+          <Route path="/app/files" element={<FileList toast={toast}/>} />
           <Route path="/api/sftp" element={<SftpList toast={toast}/>} />
           <Route path="/about" element={<About/>}/>
         </Routes>

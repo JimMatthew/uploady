@@ -3,9 +3,11 @@ const path = require("path");
 const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const sftpController = require("../controllers/sftpController");
-const SftpServer = require("../models/SftpServer");
-const { execSync } = require("child_process");
-
+const sftpService = require("../services/sftpService");
+const localFileService = require("../services/localFileService");
+const { execSync, spawn } = require("child_process");
+const archiver = require("archiver");
+const mime = require("mime-types");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
@@ -85,7 +87,7 @@ const generateShareLinkJsonPost = async (req, res, next) => {
 };
 
 /*
-    Server a shared file. 
+    Serve a shared file. 
     We use the token to lookup the shared file 
     A shared file can exist on this server, where we serve the
     local file, or on a remote server, where we will connect to it via
@@ -120,12 +122,13 @@ const serveSharedFile = async (req, res, next) => {
 };
 
 const delete_folder_json_post = async (req, res, next) => {
+  const fpath = req.body.folderPath;
+  const fname = req.body.folderName;
+  if (!fpath || !fname) {
+    return res.status(500).send("Error: Missing required fields");
+  }
   try {
-    const folderPath = path.join(
-      uploadsDir,
-      req.body.folderPath || "",
-      req.body.folderName || ""
-    );
+    const folderPath = path.join(uploadsDir, fpath, fname);
     await fs.promises.rmdir(folderPath);
     res.status(200).json({ message: "Folder deleted" });
   } catch (err) {
@@ -135,16 +138,11 @@ const delete_folder_json_post = async (req, res, next) => {
 
 const getDirectoryData = (relativePath) => {
   const currentPath = relativePath ? `/files/${relativePath}` : "/files";
-  const { files, folders } = getDirectoryContents_get(
+  const { files, folders } = localFileService.listLocalDir(
     path.join(uploadsDir, relativePath)
   );
   return { files, folders, currentPath, relativePath };
 };
-
-/*
-    Renders the main file manager display, listing files and folders in 
-    current path
-  */
 
 const list_directory_json_get = (req, res, next) => {
   try {
@@ -156,36 +154,11 @@ const list_directory_json_get = (req, res, next) => {
 };
 
 /*
-    Obtains the file and folder info for dirPath
-    and returns the info in an array of properties
-  */
-const getDirectoryContents_get = (dirPath) => {
-  const contents = fs.readdirSync(dirPath);
-  const files = [];
-  const folders = [];
-
-  contents.forEach((item) => {
-    const itemPath = path.join(dirPath, item);
-    const stats = fs.lstatSync(itemPath);
-
-    if (stats.isDirectory()) {
-      folders.push({ name: item }); // Only push the name for folders
-    } else if (stats.isFile()) {
-      files.push({
-        name: item, // File name
-        size: (stats.size / 1024).toFixed(2), // Size in KB
-        date: stats.mtime.toLocaleDateString(), // Last modified date
-      });
-    }
-  });
-
-  return { files, folders };
-};
-
+  Returns a list of all shared links
+*/
 const file_links_json_get = async (req, res) => {
   try {
     const links = await SharedFile.find();
-
     res.json({ links });
   } catch (err) {
     console.error(err);
@@ -238,12 +211,48 @@ const delete_file_json_post = async (req, res, next) => {
 const download_file_get = (req, res, next) => {
   const relativeFilePath = req.params[0];
   const filePath = path.join(uploadsDir, relativeFilePath);
-
   res.download(filePath, (err) => {
     if (err) {
       return next(err);
     }
   });
+};
+
+const download_file_stream = async (req, res) => {
+  const rfilePath = req.params[0];
+
+  const filePath = path.join(uploadsDir, rfilePath);
+  const contentType = mime.lookup(filePath) || "application/octet-stream";
+  const stat = await fs.promises.stat(filePath);
+  const fileSize = stat.size;
+
+  const range = req.headers.range;
+
+  if (range) {
+    // Parse range: "bytes=start-end"
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    const chunkSize = end - start + 1;
+    const file = fs.createReadStream(filePath, { start, end });
+
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": chunkSize,
+      "Content-Type": contentType,
+    });
+
+    file.pipe(res);
+  } else {
+    // No range header -> send full file
+    res.writeHead(200, {
+      "Content-Length": fileSize,
+      "Content-Type": contentType,
+    });
+    fs.createReadStream(filePath).pipe(res);
+  }
 };
 
 const create_folder_json_post = async (req, res, next) => {
@@ -263,49 +272,47 @@ const create_folder_json_post = async (req, res, next) => {
 
 const copy_file_json_post = async (req, res, next) => {
   try {
-    const { filename, currentPath, newPath } = req.body;
-    const cfpath = path.join(uploadsDir, currentPath, filename);
-    const nfpath = path.join(uploadsDir, newPath, filename);
-
-    await fs.promises.copyFile(cfpath, nfpath);
-    res.status(200).json({ message: "File copied" });
+    const { filename, currentPath, newPath, serverId } = req.body;
+    if (serverId) {
+      await sftpService.copySftpFileToLocal(
+        filename,
+        currentPath,
+        newPath,
+        serverId
+      );
+    } else {
+      await localFileService.copy_local_file(filename, currentPath, newPath);
+    }
+    res.status(200).json({ message: "File copied locally" });
   } catch (err) {
-    return next({ message: "Error copying file", status: 404 });
+    console.error("copy_file_json_post error:", err);
+    return next({ message: "Error copying file", status: 500 });
   }
 };
 
-/*
-  Recursively copies folderName from currentPath to newPath
-*/
-const copy_folder = async (folderName, currentPath, newPath) => {
-  const { files, folders } = getDirectoryContents_get(path.join(uploadsDir, currentPath, folderName));
-  const newp = path.join(uploadsDir, newPath, folderName)
-
-  await fs.promises.mkdir(newp);
-  
-  files.forEach(async (file) => {
-    const cfpath = path.join(uploadsDir, path.join(currentPath, folderName), file.name);
-    const nfpath = path.join(newp, file.name);
-    await fs.promises.copyFile(cfpath, nfpath);
-  })
-  folders.forEach(async folder => {
-    copy_folder(
-      folder.name,
-      path.join(currentPath, folderName),
-      path.join(newPath, folderName)
-    )
-  })
-}
-
 const copy_folder_json_post = async (req, res, next) => {
   try {
-    const { folderName, currentPath, newPath } = req.body;
-    await copy_folder(folderName, currentPath, newPath);
-    res.status(200).json({ message: "File moved" });
+    const { folderName, currentPath, newPath, serverId } = req.body;
+    if (serverId) {
+      await sftpService.copyftpFolderToLocal(
+        serverId,
+        folderName,
+        currentPath,
+        newPath,
+      );
+    } else {
+      await localFileService.copy_local_folder(
+        folderName,
+        currentPath,
+        newPath
+      );
+    }
+    res.status(200).json({ message: "Folder moved" });
   } catch (err) {
-    return next({ message: "Error copying folder", status: 404 })
+    console.log(err);
+    return next({ message: "Error copying folder", status: 404 });
   }
-}
+};
 
 const cut_file_json_post = async (req, res, next) => {
   try {
@@ -335,6 +342,39 @@ const rename_file_json_post = async (req, res, next) => {
   }
 };
 
+const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
+  const { folders, files } = localFileService.listLocalDir(folderPath);
+  for (const file of files) {
+    const itemPath = `${folderPath}/${file.name}`;
+    const zipPath = `${zipFolderPath}/${file.name}`;
+    const stream = fs.createReadStream(itemPath);
+    archive.append(stream || Buffer.alloc(0), { name: zipPath });
+  }
+  for (const folder of folders) {
+    const itemPath = `${folderPath}/${folder.name}`;
+    const zipPath = `${zipFolderPath}/${folder.name}`;
+    archive.append(null, { name: `${zipPath}/` });
+    await addFolderToArchive(archive, itemPath, zipPath);
+  }
+};
+
+const get_archive_folder = async (req, res) => {
+  const relativePath = req.params[0] || "";
+  const p = path.join(uploadsDir, relativePath ? `/${relativePath}` : "/");
+  try {
+    res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
+    res.setHeader("Content-Type", "application/zip");
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    await addFolderToArchive(archive, p, "/");
+    archive.finalize();
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error: Error downloading folder");
+  }
+};
+
 module.exports = {
   download_file_get,
   upload_files_post,
@@ -350,5 +390,7 @@ module.exports = {
   copy_file_json_post,
   cut_file_json_post,
   rename_file_json_post,
-  copy_folder_json_post
+  copy_folder_json_post,
+  download_file_stream,
+  get_archive_folder,
 };

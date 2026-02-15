@@ -65,7 +65,7 @@ const About = () => {
           <Heading mb={5}>Uploady</Heading>
           <Text>v 1.01 build: {stats.version}</Text>
 
-          <Heading size="md">Server Info</Heading>
+          <Heading size="md">Server Info:</Heading>
           {stats.memory ? (
             <Box>
               <Text>

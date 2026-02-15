@@ -1,34 +1,96 @@
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Container,
-  useBreakpointValue,
-  Spinner,
-  Text,
-  Button,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import FileListPane from "./fileListPane";
-import SharedLinks from "../components/SharedLinks";
-import Upload from "../components/UploadComponent";
+import React, { useMemo, useCallback } from "react";
+import { Box, Container, Spinner, Text, Button } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
-import DragAndDropComponent from "../components/DragDropComponent";
-import { useFileListPane } from "../hooks/useFileList";
+import { useFileList } from "../hooks/useFileList";
+import FilePanel from "./FilePanel";
 
-const FileList = ({ setUser, toast }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
-
+const FileList = ({ toast, hideLink = false, openFile }) => {
   const {
     fileData,
     setCurrentPath,
     loading,
-    links,
     handleFolderClick,
     reload,
-    fetchLinks
-  } = useFileListPane();
+    onCreateFolder,
+    onFileCopy,
+    onFileCut,
+    onFileDelete,
+    onFileDownload,
+    onFileRename,
+    onFileShare,
+    onFolderCopy,
+    onFolderDelete,
+    onPaste,
+    onGenerateBreadcrumb,
+  } = useFileList({ toast });
 
-  const bgg = useColorModeValue("white", "gray.700");
+  const token = localStorage.getItem("token");
+  const fileUploadProps = useMemo(
+    () => ({
+      apiEndpoint: "/api/upload",
+      additionalData: { folderPath: fileData?.relativePath },
+      onUploadSuccess: reload,
+    }),
+    [fileData?.relativePath, reload]
+  );
+
+  const onOpenFile = (filename) => {
+    openFile(null, fileData.relativePath, filename, null, false);
+  };
+
+  const apiRequest = useCallback(
+    async (url, options = {}, expectBlob = false) => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
+
+        if (response.status === 401) {
+          //navigate("/");
+          throw new Error("Unauthorized");
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Request failed");
+        }
+
+        return expectBlob ? response.blob() : response.json();
+      } catch (error) {
+        console.error("API error:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  const downloadFileBlob = useCallback((blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }, []);
+
+  const handleDownloadFolder = async (foldername) => {
+    try {
+      const folder = `${fileData.relativePath}/${foldername}`;
+      const blob = await apiRequest(`/api/download-folder/${folder}`, {}, true);
+      downloadFileBlob(blob, `${foldername}.zip`);
+      //showToast("Folder downloaded", "success");
+    } catch {
+      //showToast("Error downloading folder", "error");
+    }
+  };
+
   if (loading || !fileData)
     return (
       <Box textAlign="center" py={10}>
@@ -41,55 +103,34 @@ const FileList = ({ setUser, toast }) => {
     <Box as="main" minH="80vh" py={8}>
       <Container maxW="container.lg">
         {/* Link to SFTP Servers */}
-
-        <Box align="center">
-          <Link to="/api/sftp">
-            <Button colorScheme="blue" mb={6} size="lg" variant="outline">
-              Go to SFTP Servers
-            </Button>
-          </Link>
-
-          {/* Upload Area */}
-          <Box mb={8}>
-            {isMobile ? (
-              <Upload
-                apiEndpoint={"/api/upload"}
-                additionalData={{ folderPath: fileData.relativePath }}
-                onUploadSuccess={reload}
-              />
-            ) : (
-              <DragAndDropComponent
-                apiEndpoint={"/api/upload"}
-                additionalData={{ folderPath: fileData.relativePath }}
-                onUploadSuccess={reload}
-              />
-            )}
+        {!hideLink && (
+          <Box align="center">
+            <Link to="/api/sftp">
+              <Button colorScheme="blue" mb={6} size="lg" variant="outline">
+                Go to SFTP Servers
+              </Button>
+            </Link>
           </Box>
-        </Box>
-
-        {/* Shared Links Section */}
-        <Box
-          mb={8}
-          bg={bgg}
-          boxShadow="sm"
-          p={{ base: 2, md: 6 }}
-          borderRadius="md"
-        >
-          <SharedLinks onReload={fetchLinks} links={links} />
-        </Box>
-
-        {/* File List Pane */}
-        <Box bg={bgg} boxShadow="md" p={{ base: 1, md: 6 }} borderRadius="md">
-          <FileListPane
-            data={fileData}
-            onFolderClick={handleFolderClick}
-            onRefresh={reload}
-            toast={toast}
-            files={fileData.files}
-            folders={fileData.folders}
-            handleBreadcrumbClick={setCurrentPath}
-          />
-        </Box>
+        )}
+        <FilePanel
+          files={fileData}
+          handleDownload={onFileDownload}
+          onChangeDirectory={handleFolderClick}
+          onDeleteFolder={onFolderDelete}
+          handleDelete={onFileDelete}
+          handleShare={onFileShare}
+          handleRename={onFileRename}
+          handleCopy={onFileCopy}
+          handleCut={onFileCut}
+          handlePaste={onPaste}
+          changeDirectory={setCurrentPath}
+          onCreateFolder={onCreateFolder}
+          generateBreadcrumb={onGenerateBreadcrumb}
+          onFolderCopy={onFolderCopy}
+          fileUploadProps={fileUploadProps}
+          onOpenFile={onOpenFile}
+          handleDownloadFolder={handleDownloadFolder}
+        />
       </Container>
     </Box>
   );

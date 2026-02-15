@@ -2,138 +2,57 @@ import {
   Button,
   Box,
   Text,
-  Collapse,
-  useDisclosure,
-  useToast,
   SimpleGrid,
   useColorModeValue,
+  Spinner,
+  Heading,
+  HStack,
+  VStack,
 } from "@chakra-ui/react";
-import { FiLink, FiTrash } from "react-icons/fi";
+import React, { useEffect } from "react";
+import { FiLink } from "react-icons/fi";
 import LinkCard from "./LinkCard";
-const SharedLinks = ({ onReload, links }) => {
-  const { isOpen, onToggle } = useDisclosure();
-  const token = localStorage.getItem("token");
-  const toast = useToast();
+import { useSharedLinks } from "../hooks/useSharedLinks";
+
+const SharedLinks = () => {
   const bgg = useColorModeValue("white", "gray.700");
-  const handleShowLinks = () => {
-    if (isOpen) {
-      onToggle();
-      return;
-    }
-    onToggle();
-    onReload();
-  };
+  const { clickLink, deleteLink, copyToClip, links, loading, loadLinks } =
+    useSharedLinks();
 
-  const deleteLink = (linkToken) => {
-    fetch(`/api/stop-sharing`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ token: linkToken }),
-    })
-      .then((res) => res.json())
-      .then(onReload())
-      .catch((err) => {
-        toast({
-          title: "Error",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Link copied!",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
-
-  const copyToClip = (text) => {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      // If clipboard API is available, use it
-      navigator.clipboard
-        .writeText(text)
-        .then(() => {
-          toast({
-            title: "Link copied!",
-            status: "success",
-            duration: 2000,
-            isClosable: true,
-          });
-        })
-        .catch((err) => {
-          console.error("Failed to copy text to clipboard", err);
-        });
-    } else {
-      // Fallback for browsers that don't support Clipboard API
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        toast({
-          title: "Link copied!",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
-        });
-      } catch (err) {
-        console.error("Fallback method failed to copy text", err);
-      }
-      document.body.removeChild(textArea);
-    }
-  };
-
-  const clickLink = (link, fileName) => {
-    fetch(link, {
-      headers: {},
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
-  };
+  useEffect(() => {
+    loadLinks();
+  }, []);
 
   return (
     <Box>
-      {/* Button to show/hide shared links */}
-      <Box align="center">
+      <HStack justify="space-between" align="center" mb={4}>
+        <Heading size="lg">Active Shared Files</Heading>
         <Button
           leftIcon={<FiLink />}
           colorScheme="blue"
-          mb={4}
-          onClick={handleShowLinks}
-          margin="5px"
+          onClick={loadLinks}
+          size="sm"
         >
-          Show Shared Links
+          Refresh
         </Button>
-      </Box>
+      </HStack>
 
-      <Collapse in={isOpen}>
+      {loading ? (
+        <VStack py={10} spacing={3}>
+          <Spinner size="lg" />
+          <Text fontSize="md" color="gray.500">
+            Loading shared links...
+          </Text>
+        </VStack>
+      ) : (
         <Box
-          p={{ base: 0, md: 6 }}
+          p={{ base: 4, md: 6 }}
           shadow="lg"
           borderWidth="1px"
           borderRadius="lg"
-          background="white"
-          transition="0.3s ease"
-          _hover={{ shadow: "xl" }}
           bg={bgg}
+          transition="all 0.2s"
+          _hover={{ shadow: "xl" }}
         >
           <SimpleGrid
             spacing={6}
@@ -150,11 +69,15 @@ const SharedLinks = ({ onReload, links }) => {
                 />
               ))
             ) : (
-              <Text>No shared links available</Text>
+              <Box textAlign="center" py={6}>
+                <Text fontSize="md" color="gray.500">
+                  No shared links available
+                </Text>
+              </Box>
             )}
           </SimpleGrid>
         </Box>
-      </Collapse>
+      )}
     </Box>
   );
 };

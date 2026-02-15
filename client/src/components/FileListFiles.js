@@ -3,55 +3,87 @@ import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import ClipboardComponent from "./ClipboardComponent";
 import PickSortComponent from "./PickSortComponent";
-
+import Toolbar from "./Toolbar";
+import { useClipboard } from "../contexts/ClipboardContext";
+import { useState, useCallback } from "react";
+import FileMenu from "./FileMenu";
 export default function FileList({
   files,
-  rp,
+  handleFileDownload,
+  handleFileDelete,
+  handleFileShareLink,
+  handleRenameFile,
   handleFileCopy,
   handleFileCut,
-  handleRenameFile,
-  handleFolderCopy,
-  handleFileDownload,
-  handleFileShareLink,
-  handleFileDelete
+  handleFilePaste,
+  handleOpenFile,
 }) {
   const {
     sortedFiles,
-    clipboard,
-    showRenameInput,
-    setShowRenameInput,
-    newFilename,
-    setNewFilename,
-    renameId,
-    setRenameId,
     fileSortDirection,
-    setFileSortDirection,
     sortField,
     setSortField,
+    selected,
+    toggleSelect,
     handleCopy,
-    handleCut,
-    handleRename,
-    handlePaste,
-  } = useFileList(files, rp,
-    {
-      handleFileCopy,
-      handleFileCut,
-      handleRenameFile,
-      handleFolderCopy
-    }
-  );
+    handleDelete,
+    handleShare,
+    isSelected,
+    clearSelection,
+    toggleFileSort,
+  } = useFileList({
+    files,
+    handleFileCopy,
+    handleFileDelete,
+    handleFileShareLink,
+  });
+  const { clipboard } = useClipboard();
+  const [renamingFile, setRenamingFile] = useState(null);
+  const [contextMenu, setContextMenu] = useState({
+    x: 0,
+    y: 0,
+    file: null,
+    visible: false,
+  });
+
+  const openMenu = useCallback((e, fileName) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      file: fileName,
+      visible: true,
+    });
+  }, []);
+
+  const closeContextMenu = () => {
+    setContextMenu({ ...contextMenu, visible: false });
+  };
+
+  const onRename = useCallback((name, newName) => {
+    handleRenameFile(name, newName);
+    setRenamingFile(null);
+  }, [handleRenameFile]);
+
+  const onRenameCancel = useCallback(() => setRenamingFile(null), []);
 
   return (
-    <Box>
-      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
+    <Box p={1}>
+      <Toolbar
+        selected={selected}
+        handleCopy={handleCopy}
+        handleDelete={handleDelete}
+        handleClear={clearSelection}
+        handleShare={handleShare}
+      />
+
+      {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       <PickSortComponent
         header="files"
         fields={["name", "size", "date"]}
         sortDirection={fileSortDirection}
-        onToggleDirection={() =>
-          setFileSortDirection((d) => (d === "asc" ? "desc" : "asc"))
-        }
+        onToggleDirection={toggleFileSort}
         onFieldChange={setSortField}
         selectedField={sortField}
       />
@@ -59,23 +91,33 @@ export default function FileList({
       {sortedFiles.map((file) => (
         <FileItem
           key={file.name}
-          file={file}
-          isRenaming={showRenameInput && renameId === file.name}
-          newFilename={newFilename}
-          onRenameInput={setNewFilename}
-          onRenameConfirm={() => handleRename(file.name)}
-          onRenameCancel={() => setShowRenameInput(false)}
-          onCopy={() => handleCopy(file.name)}
-          onCut={() => handleCut(file.name)}
-          onDownload={() => handleFileDownload(file.name, rp)}
-          onShare={() => handleFileShareLink(file.name, rp)}
-          onDelete={() => handleFileDelete(file.name, rp)}
-          onStartRename={() => {
-            setShowRenameInput(true);
-            setRenameId(file.name);
-          }}
+          name={file.name}
+          size={file.size}
+          date={file.date}
+          isSelected={isSelected(file.name)}
+          onSelect={toggleSelect}
+          onOpenMenu={openMenu}
+          isRenaming={renamingFile === file.name}
+          onRename={onRename}
+          onRenameClose={onRenameCancel}
         />
       ))}
+
+      {contextMenu.visible && (
+        <FileMenu
+          file={contextMenu.file}
+          top={contextMenu.y}
+          left={contextMenu.x}
+          closeMenu={closeContextMenu}
+          handleFileCopy={handleFileCopy}
+          handleFileCut={handleFileCut}
+          handleFileDelete={handleFileDelete}
+          handleFileDownload={handleFileDownload}
+          handleFileShareLink={handleFileShareLink}
+          handleOpenFile={handleOpenFile}
+          setRenamingFile={setRenamingFile}
+        />
+      )}
     </Box>
   );
 }

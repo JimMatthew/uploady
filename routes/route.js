@@ -74,6 +74,11 @@ router.get(
   filemanagerController.download_file_get
 );
 
+router.get(
+  "/api/downloadstream/*",
+  filemanagerController.download_file_stream
+)
+
 router.post(
   "/api/upload",
   authenticateJWT,
@@ -104,5 +109,11 @@ router.post(
   authenticateJWT,
   filemanagerController.rename_file_json_post
 );
+
+router.get(
+  "/api/download-folder/*",
+  authenticateJWT,
+  filemanagerController.get_archive_folder
+)
 
 module.exports = router;

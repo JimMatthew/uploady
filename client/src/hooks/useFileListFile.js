@@ -1,18 +1,58 @@
-import { useState, useMemo } from "react";
-import { useClipboard } from "../contexts/ClipboardContext";
+import { useState, useMemo, useCallback } from "react";
 
-export function useFileList(files, rp, {
+export function useFileList({
+  files,
   handleFileCopy,
-  handleFileCut,
-  handleRenameFile,
-  handleFolderCopy
+  handleFileDelete,
+  handleFileShareLink,
 }) {
-  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
-  const [showRenameInput, setShowRenameInput] = useState(false);
-  const [newFilename, setNewFilename] = useState("");
-  const [renameId, setRenameId] = useState("");
   const [fileSortDirection, setFileSortDirection] = useState("asc");
   const [sortField, setSortField] = useState("name");
+  const [selected, setSelected] = useState(new Set());
+
+  const toggleSelect = useCallback((fileName) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(fileName)) {
+        next.delete(fileName);
+      } else {
+        next.add(fileName);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCopy = useCallback(() => {
+    selected.forEach((file) => {
+      handleFileCopy(file);
+    });
+    setSelected(new Set());
+  }, [selected, handleFileCopy]);
+
+  const handleDelete = useCallback(() => {
+    selected.forEach((file) => {
+      handleFileDelete(file);
+    });
+    setSelected(new Set());
+  }, [selected, handleFileDelete]);
+
+  const handleShare = useCallback(() => {
+    selected.forEach((file) => {
+      handleFileShareLink(file);
+    });
+    setSelected(new Set());
+  }, [selected, handleFileShareLink]);
+
+  const isSelected = useCallback(
+    (fileName) => selected.has(fileName),
+    [selected]
+  );
+
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
+
+  const toggleFileSort = useCallback(() => {
+    setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+  }, []);
 
   const sortedFiles = useMemo(() => {
     const arr = [...files];
@@ -35,50 +75,19 @@ export function useFileList(files, rp, {
     );
   }, [files, fileSortDirection, sortField]);
 
-  function handleCopy(filename) {
-    copyFile({ file: filename, path: rp, source: "local", serverId: null });
-  }
-
-  function handleCut(filename) {
-    cutFile({ file: filename, path: rp, source: "local", serverId: null });
-  }
-
-  function handleRename(filename) {
-    handleRenameFile(filename, newFilename, rp);
-    setShowRenameInput(false);
-    setNewFilename("");
-  }
-
-  function handlePaste() {
-    clipboard.forEach(({ file, path, action, isDirectory }) => {
-      if (action === "copy") {
-        if (isDirectory) {
-          handleFolderCopy(file, path, rp)
-        } else {
-        handleFileCopy(file, path, rp);
-        }
-      }
-      else if (action === "cut") handleFileCut(file, path, rp);
-    });
-    clearClipboard();
-  }
-
   return {
     sortedFiles,
-    clipboard,
-    showRenameInput,
-    setShowRenameInput,
-    newFilename,
-    setNewFilename,
-    renameId,
-    setRenameId,
     fileSortDirection,
     setFileSortDirection,
     sortField,
     setSortField,
+    toggleSelect,
+    selected,
     handleCopy,
-    handleCut,
-    handleRename,
-    handlePaste,
+    handleDelete,
+    handleShare,
+    isSelected,
+    clearSelection,
+    toggleFileSort,
   };
 }

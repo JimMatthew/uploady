@@ -3,137 +3,182 @@ import SftpFileFolderView from "../pages/SftpFileFolderViewer";
 import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
+import FileList from "../pages/FileList";
+import SharedLinks from "../components/SharedLinks";
 import { useNavigate } from "react-router-dom";
 import {
-    SaveServer,
-    DeleteServer,
-    fetchServerStatuses,
+  SaveServer,
+  DeleteServer,
+  fetchServerStatuses,
 } from "../controllers/StoreServer";
+let nextId = 1;
 export function useSftpList({ toast }) {
+  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(false);
+  const [sftpServers, setSftpServers] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [tabs, setTabs] = useState([]);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [serverStatuses, setServerStatuses] = useState({});
+  const navigate = useNavigate();
 
-    const token = localStorage.getItem("token");
-    const [loading, setLoading] = useState(false);
-    const [sftpServers, setSftpServers] = useState(null);
-    const [showSidebar, setShowSidebar] = useState(false);
-    const [tabs, setTabs] = useState([]);
-    const [serverStatuses, setServerStatuses] = useState({});
-    const navigate = useNavigate();
-    const addTabItem = ({ id, label, content }) => {
-        const newTab = {
-            id,
-            label,
-            content,
-        };
-        setTabs((prevTabs) => [...prevTabs, newTab]);
-    };
+  const addTabItem = ({ id, label, content }) => {
+    setTabs((prev) => {
+      const newTabs = [...prev, { id: nextId++, label, content }];
+      setActiveTabIndex(newTabs.length - 1);
+      return newTabs;
+    });
+  };
 
-    const closeTab = (indexToRemove) => {
-        setTabs((prevTabs) =>
-            prevTabs.filter((_, index) => index !== indexToRemove)
-        );
-    };
+  const closeTab = (keyToRemove) => {
+    setTabs((prevTabs) => {
+      const idx = prevTabs.findIndex((t) => t.id === keyToRemove);
+      if (idx === -1) return prevTabs;
+      const next = prevTabs.filter((t) => t.id !== keyToRemove);
+      setActiveTabIndex((prevActive) => {
+        if (idx === prevActive) return Math.max(0, prevActive - 1);
+        if (idx < prevActive) return prevActive - 1;
+        return prevActive;
+      });
+      return next;
+    });
+  };
 
-    const handleOpenFile = async (serverId, currentDirectory, filename) => {
-        addTabItem({
-            id: filename,
-            label: filename,
-            content: (
-                <FileEdit
-                    serverId={serverId}
-                    currentDirectory={currentDirectory}
-                    filename={filename}
-                    toast={toast}
-                />
-            ),
-        });
-    };
+  const handleOpenFile = async (serverId, currentDirectory, filename, host, remote) => {
+    addTabItem({
+      id: filename,
+      label: filename,
+      content: (
+        <FileEdit
+          serverId={serverId}
+          currentDirectory={currentDirectory}
+          filename={filename}
+          toast={toast}
+          host={host}
+          remote={remote}
+        />
+      ),
+    });
+  };
 
-    const handleSshLaunch = (server) => {
-        addTabItem({
-            id: server._id,
-            label: `${server.host} - SSH`,
-            content: <SshConsole serverId={server._id} />,
-        });
-    };
+  const handleSshLaunch = (server) => {
+    addTabItem({
+      id: server._id,
+      label: `${server.host} - SSH`,
+      content: <SshConsole serverId={server._id} />,
+    });
+  };
 
-    const handleNewServer = () => {
-        addTabItem({
-            id: "new",
-            label: "New Server",
-            content: <AddServer handleSaveServer={handleSaveServer} />,
-        });
-    };
+  const handleNewServer = () => {
+    addTabItem({
+      id: "new",
+      label: "New Server",
+      content: <AddServer handleSaveServer={handleSaveServer} />,
+    });
+  };
 
-    const handleSaveServer = async (host, username, password) => {
-        await SaveServer({ host, username, password, toast });
-        fetchFiles();
-    };
+  const handleLocalTab = () => {
+    addTabItem({
+      id: "Local",
+      label: "Local",
+      content: <FileList toast={toast} hideLink={true} openFile={handleOpenFile}/>,
+    });
+  };
 
-    const deleteServer = async (serverId) => {
-        await DeleteServer({ serverId: serverId, toast: toast });
-        fetchFiles();
-    };
+  const handleSharedLinks = () => {
+    addTabItem({
+      id: "links",
+      label: "Links",
+      content: <SharedLinks />,
+    });
+  };
 
-    useEffect(() => {
-        if (token) {
-            fetchFiles();
-        } else {
-            console.error("No token found");
-        }
-    }, []);
+  const handleSaveServer = async (
+    host,
+    username,
+    password,
+    authMethod,
+    passphrase
+  ) => {
+    await SaveServer({
+      host,
+      username,
+      password,
+      authMethod,
+      toast,
+      passphrase,
+    });
+    fetchServers();
+  };
 
-    const handleConnect = async (server) => {
-        addTabItem({
-            id: server._id,
-            label: `${server.host} - SFTP`,
-            content: (
-                <SftpFileFolderView
-                    serverId={server._id}
-                    toast={toast}
-                    openFile={handleOpenFile}
-                />
-            ),
-        });
-    };
+  const deleteServer = async (serverId) => {
+    await DeleteServer({ serverId: serverId, toast: toast });
+    fetchServers();
+  };
 
-    const fetchFiles = async () => {
-        try {
-            setLoading(true);
-
-            const res = await fetch("/sftp/api/", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (res.status !== 200) {
-                navigate("/");
-                return;
-            }
-
-            const data = await res.json();
-            setSftpServers(data);
-
-            await fetchServerStatuses({ data, setServerStatuses });
-        } catch (err) {
-            console.error("Error fetching files:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-    return {
-        loading,
-        sftpServers,
-        showSidebar,
-        setShowSidebar,
-        tabs,
-        serverStatuses,
-        closeTab,
-        handleNewServer,
-        handleSshLaunch,
-        deleteServer,
-        handleConnect
+  useEffect(() => {
+    if (token) {
+      fetchServers();
+    } else {
+      navigate("/");
+      console.error("No token found");
     }
+  }, []);
+
+  const handleConnect = async (server) => {
+    addTabItem({
+      id: server._id,
+      label: `${server.host} - SFTP`,
+      content: (
+        <SftpFileFolderView
+          serverId={server._id}
+          toast={toast}
+          openFile={handleOpenFile}
+          host={server.host}
+        />
+      ),
+    });
+  };
+
+  const fetchServers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/sftp/api/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (res.status !== 200) {
+        navigate("/");
+        return;
+      }
+      const data = await res.json();
+      setSftpServers(data);
+      await fetchServerStatuses({ data, setServerStatuses });
+    } catch (err) {
+      console.error("Error fetching files:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    sftpServers,
+    showSidebar,
+    setShowSidebar,
+    tabs,
+    serverStatuses,
+    closeTab,
+    handleNewServer,
+    handleSshLaunch,
+    deleteServer,
+    handleConnect,
+    handleLocalTab,
+    activeTabIndex,
+    setActiveTabIndex,
+    handleSharedLinks,
+  };
 }

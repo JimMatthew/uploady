@@ -1,4 +1,11 @@
-export const SaveServer = async ({ host, username, password, toast }) => {
+export const SaveServer = async ({
+  host,
+  username,
+  password,
+  authMethod,
+  toast,
+  passphrase,
+}) => {
   const response = await fetch("/sftp/api/save-server", {
     method: "POST",
     headers: {
@@ -8,7 +15,15 @@ export const SaveServer = async ({ host, username, password, toast }) => {
     body: JSON.stringify({
       host: host,
       username: username,
-      password: password,
+      authType: authMethod,
+      password: authMethod === "password" ? password : undefined,
+      key: authMethod === "key" ? password : undefined,
+      passphrase:
+        authMethod === "key"
+          ? passphrase
+            ? passphrase
+            : undefined
+          : undefined,
     }),
   });
   if (!response.ok) {
@@ -52,23 +67,23 @@ export const DeleteServer = async ({ serverId, toast }) => {
   });
 };
 
-export const fetchServerStatuses = async ({data, setServerStatuses}) => {
-    data.servers.forEach(async (server) => {
-      try {
-        const response = await fetch(`/sftp/server-status/${server._id}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch");
-        }
-        const json = await response.json();
-        setServerStatuses((prev) => ({
-          ...prev,
-          [server._id]: json.status,
-        }));
-      } catch (error) {
-        setServerStatuses((prev) => ({
-          ...prev,
-          [server._id]: "Error fetching status",
-        }));
+export const fetchServerStatuses = async ({ data, setServerStatuses }) => {
+  data.servers.forEach(async (server) => {
+    try {
+      const response = await fetch(`/sftp/server-status/${server._id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch");
       }
-    });
-  };
+      const json = await response.json();
+      setServerStatuses((prev) => ({
+        ...prev,
+        [server._id]: json.status,
+      }));
+    } catch (error) {
+      setServerStatuses((prev) => ({
+        ...prev,
+        [server._id]: "Error fetching status",
+      }));
+    }
+  });
+};

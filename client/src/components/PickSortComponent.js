@@ -15,7 +15,6 @@ const PickSortComponent = ({
       <Text fontSize="lg" fontWeight="bold">
         {header}
       </Text>
-
       <HStack spacing={2}>
         <Select
           size="sm"
@@ -28,7 +27,6 @@ const PickSortComponent = ({
             </option>
           ))}
         </Select>
-
         <Button
           size="sm"
           variant="outline"
