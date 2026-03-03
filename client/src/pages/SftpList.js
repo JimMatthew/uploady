@@ -51,7 +51,7 @@ const SFTPApp = ({ toast }) => {
     );
 
   return (
-    <Flex h="100%" direction="column" bg="#0A0A0E">
+    <Flex h="100%" direction="column" bg="#0D0E14">
       {/* Mobile sidebar toggle */}
       {!isDesktop && !showSidebar && (
         <Flex

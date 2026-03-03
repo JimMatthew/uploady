@@ -21,7 +21,7 @@ const Footer = () => {
         <Text
           fontSize="12px"
           fontFamily="'JetBrains Mono', monospace"
-          color="rgba(255,255,255,0.25)"
+          color="rgba(255, 255, 255, 0.45)"
           letterSpacing="-0.01em"
         >
           © {new Date().getFullYear()} James Lindstrom
@@ -33,7 +33,7 @@ const Footer = () => {
               key={href}
               href={href}
               fontSize="12px"
-              color="rgba(255,255,255,0.3)"
+              color="rgba(255, 255, 255, 0.45)"
               letterSpacing="-0.01em"
               textDecoration="none"
               transition="color 0.12s"

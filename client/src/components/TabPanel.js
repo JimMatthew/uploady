@@ -9,7 +9,7 @@ const TabPanelComp = ({ tabs, activeTabIndex, setActiveTabIndex, closeTab }) => 
       <Flex
         align="stretch"
         borderBottom="1px solid rgba(255,255,255,0.07)"
-        bg="rgba(8,8,12,0.6)"
+        bg="#0D0E14"
         overflowX="auto"
         flexShrink={0}
         sx={{
@@ -69,7 +69,7 @@ const TabPanelComp = ({ tabs, activeTabIndex, setActiveTabIndex, closeTab }) => 
           })
         ) : (
           <Flex align="center" px={4} h="40px">
-            <Text fontSize="12px" color="rgba(255,255,255,0.2)" fontStyle="italic">
+            <Text fontSize="12px" color="rgba(255, 255, 255, 0.3)" fontStyle="italic">
               No open tabs
             </Text>
           </Flex>
@@ -92,13 +92,13 @@ const TabPanelComp = ({ tabs, activeTabIndex, setActiveTabIndex, closeTab }) => 
           <Center h="320px" flexDirection="column" gap={3}>
             <Box
               w="48px" h="48px" borderRadius="12px"
-              bg="rgba(255,255,255,0.03)"
+              bg="rgba(255, 255, 255, 0.44)"
               border="1px dashed rgba(255,255,255,0.08)"
               display="flex" alignItems="center" justifyContent="center"
             >
-              <Icon as={FiLayout} boxSize="20px" color="rgba(255,255,255,0.12)" />
+              <Icon as={FiLayout} boxSize="20px" color="rgba(255, 255, 255, 0.25)" />
             </Box>
-            <Text fontSize="13px" color="rgba(255,255,255,0.2)" letterSpacing="-0.01em">
+            <Text fontSize="13px" color="rgba(255, 255, 255, 0.35)" letterSpacing="-0.01em">
               Select a server to open a tab
             </Text>
           </Center>

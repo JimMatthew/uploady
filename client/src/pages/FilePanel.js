@@ -24,7 +24,7 @@ const FilePanel = ({
         px={{ base: 3, md: 5 }}
         py={4}
         borderBottom="1px solid rgba(255,255,255,0.06)"
-        bg="rgba(8,8,12,0.4)"
+        
       >
         <Flex justify="center">
           {!isMobile ? (
