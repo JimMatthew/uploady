@@ -1,82 +1,80 @@
-import {
-  Button,
-  Box,
-  Text,
-  SimpleGrid,
-  useColorModeValue,
-  Spinner,
-  Heading,
-  HStack,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Text, Flex, SimpleGrid, VStack, Icon, Spinner } from "@chakra-ui/react";
 import React, { useEffect } from "react";
-import { FiLink } from "react-icons/fi";
+import { FiLink, FiRefreshCw } from "react-icons/fi";
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 
 const SharedLinks = () => {
-  const bgg = useColorModeValue("white", "gray.700");
-  const { clickLink, deleteLink, copyToClip, links, loading, loadLinks } =
-    useSharedLinks();
-
-  useEffect(() => {
-    loadLinks();
-  }, []);
+  const { clickLink, deleteLink, copyToClip, links, loading, loadLinks } = useSharedLinks();
+  useEffect(() => { loadLinks(); }, []);
 
   return (
-    <Box>
-      <HStack justify="space-between" align="center" mb={4}>
-        <Heading size="lg">Active Shared Files</Heading>
-        <Button
-          leftIcon={<FiLink />}
-          colorScheme="blue"
+    <Box p={6}>
+      {/* Header row */}
+      <Flex align="center" justify="space-between" mb={5}>
+        <Flex align="center" gap={3}>
+          <Box
+            w="32px" h="32px" borderRadius="8px"
+            bg="rgba(99,102,241,0.12)" border="1px solid rgba(99,102,241,0.2)"
+            display="flex" alignItems="center" justifyContent="center"
+          >
+            <FiLink color="#6366F1" size={14} />
+          </Box>
+          <Box>
+            <Text fontSize="15px" fontWeight={700} color="rgba(255,255,255,0.9)" letterSpacing="-0.02em">
+              Shared Files
+            </Text>
+            <Text fontSize="12px" color="rgba(255,255,255,0.3)">
+              {links.length} active link{links.length !== 1 ? "s" : ""}
+            </Text>
+          </Box>
+        </Flex>
+
+        <Flex
+          align="center" gap={2}
+          px={3} h="32px"
+          borderRadius="7px"
+          border="1px solid rgba(255,255,255,0.08)"
+          color="rgba(255,255,255,0.35)"
+          cursor="pointer"
+          fontSize="12px" fontWeight={500}
+          transition="all 0.12s"
+          _hover={{ borderColor: "rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.75)" }}
           onClick={loadLinks}
-          size="sm"
         >
+          <Icon as={FiRefreshCw} boxSize="12px" />
           Refresh
-        </Button>
-      </HStack>
+        </Flex>
+      </Flex>
 
       {loading ? (
-        <VStack py={10} spacing={3}>
-          <Spinner size="lg" />
-          <Text fontSize="md" color="gray.500">
-            Loading shared links...
-          </Text>
+        <VStack py={12} spacing={3}>
+          <Spinner size="sm" color="rgba(99,102,241,0.6)" />
+          <Text fontSize="12px" color="rgba(255,255,255,0.25)">Loading…</Text>
         </VStack>
+      ) : links.length > 0 ? (
+        <SimpleGrid spacing={3} templateColumns="repeat(auto-fill, minmax(280px, 1fr))">
+          {links.map((link, i) => (
+            <LinkCard
+              key={i}
+              linkItem={link}
+              stopSharing={deleteLink}
+              clickLink={clickLink}
+              copyToClipboard={copyToClip}
+            />
+          ))}
+        </SimpleGrid>
       ) : (
-        <Box
-          p={{ base: 4, md: 6 }}
-          shadow="lg"
-          borderWidth="1px"
-          borderRadius="lg"
-          bg={bgg}
-          transition="all 0.2s"
-          _hover={{ shadow: "xl" }}
+        <Flex
+          direction="column" align="center" justify="center"
+          h="160px"
+          border="1px dashed rgba(255,255,255,0.07)"
+          borderRadius="12px"
+          gap={2}
         >
-          <SimpleGrid
-            spacing={6}
-            templateColumns="repeat(auto-fill, minmax(300px, 1fr))"
-          >
-            {links.length > 0 ? (
-              links.map((link, index) => (
-                <LinkCard
-                  key={index}
-                  linkItem={link}
-                  stopSharing={deleteLink}
-                  clickLink={clickLink}
-                  copyToClipboard={copyToClip}
-                />
-              ))
-            ) : (
-              <Box textAlign="center" py={6}>
-                <Text fontSize="md" color="gray.500">
-                  No shared links available
-                </Text>
-              </Box>
-            )}
-          </SimpleGrid>
-        </Box>
+          <Icon as={FiLink} boxSize="20px" color="rgba(255,255,255,0.12)" />
+          <Text fontSize="13px" color="rgba(255,255,255,0.2)">No shared links yet</Text>
+        </Flex>
       )}
     </Box>
   );

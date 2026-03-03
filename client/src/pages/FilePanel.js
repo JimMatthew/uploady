@@ -1,9 +1,4 @@
-import {
-  Box,
-  Stack,
-  Heading,
-  useBreakpointValue,
-} from "@chakra-ui/react";
+import { Box, Flex, Stack, Text, useBreakpointValue } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
@@ -11,41 +6,27 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderList from "../components/FolderList";
 import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
+
 const FilePanel = ({
-  files,
-  handleDownload,
-  onChangeDirectory,
-  onDeleteFolder,
-  handleDownloadFolder,
-  onFolderCopy,
-  handleDelete,
-  handleShare,
-  handleRename,
-  handleCopy,
-  handleCut,
-  handlePaste,
-  onOpenFile,
-  changeDirectory,
-  onCreateFolder,
-  startedTransfers,
-  progressMap,
-  generateBreadcrumb,
-  fileUploadProps,
+  files, handleDownload, onChangeDirectory, onDeleteFolder,
+  handleDownloadFolder, onFolderCopy, handleDelete, handleShare,
+  handleRename, handleCopy, handleCut, handlePaste, onOpenFile,
+  changeDirectory, onCreateFolder, startedTransfers, progressMap,
+  generateBreadcrumb, fileUploadProps,
 }) => {
-    const isMobile = useBreakpointValue({ base: true, md: false });
+  const isMobile = useBreakpointValue({ base: true, md: false });
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
+
   return (
-    <Box
-      p={{ base: 2, md: 6 }}
-      borderWidth="1px"
-      borderRadius="md"
-      boxShadow="md"
-      maxWidth="1200px"
-      mx="auto"
-    >
-      {/* Heading */}
-      <Box mb={6}>
-        <Box align="center">
+    <Box h="100%" display="flex" flexDirection="column">
+      {/* Upload zone */}
+      <Box
+        px={{ base: 3, md: 5 }}
+        py={4}
+        borderBottom="1px solid rgba(255,255,255,0.06)"
+        bg="rgba(8,8,12,0.4)"
+      >
+        <Flex justify="center">
           {!isMobile ? (
             <DragAndDropComponent
               apiEndpoint={apiEndpoint}
@@ -59,37 +40,35 @@ const FilePanel = ({
               onUploadSuccess={onUploadSuccess}
             />
           )}
-        </Box>
-
-        <Heading size="lg" mb={4} color="gray.700">
-          Files and Folders
-        </Heading>
+        </Flex>
       </Box>
 
-      <Box
-        p={{ base: 2, md: 6 }}
-        borderWidth="1px"
-        borderRadius="md"
-        boxShadow="md"
-        maxWidth="1200px"
-        mx="auto"
+      {/* Breadcrumb + create folder toolbar */}
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={3}
+        px={{ base: 3, md: 5 }}
+        py={3}
+        borderBottom="1px solid rgba(255,255,255,0.05)"
+        flexWrap="wrap"
       >
-        {/* Folder Creation and Breadcrumb */}
-        <Stack
-          direction={{ base: "column", md: "row" }}
-          justify="space-between"
-          align={{ base: "start", md: "center" }}
-          spacing={4}
-          mb={6}
-        >
-          <Breadcrumbs
-            breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-            onClick={changeDirectory}
-            color="gray.500"
-          />
-          <CreateFolderComponent handleCreateFolder={onCreateFolder} />
-        </Stack>
+        <Breadcrumbs
+          breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
+          onClick={changeDirectory}
+        />
+        <CreateFolderComponent handleCreateFolder={onCreateFolder} />
+      </Flex>
 
+      {/* Transfer progress */}
+      {startedTransfers && progressMap && (
+        <Box px={{ base: 3, md: 5 }} pt={3}>
+          <TransferProgress transfers={startedTransfers} progressMap={progressMap} />
+        </Box>
+      )}
+
+      {/* File browser */}
+      <Box flex={1} overflow="auto" px={{ base: 0, md: 0 }}>
         <FolderList
           folders={files.folders}
           changeDirectory={onChangeDirectory}
@@ -97,15 +76,6 @@ const FilePanel = ({
           downloadFolder={handleDownloadFolder}
           handleCopy={onFolderCopy}
         />
-        
-        {/* Clipboard Copy progress*/}
-        {startedTransfers && progressMap && (
-          <TransferProgress
-            transfers={startedTransfers}
-            progressMap={progressMap}
-          />
-        )}
-
         <FileList
           files={files.files}
           handleFileDownload={handleDownload}

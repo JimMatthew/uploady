@@ -1,217 +1,153 @@
 import React, { useState } from "react";
 import {
-  Box,
-  Button,
-  VStack,
-  Heading,
-  Input,
-  FormControl,
-  FormLabel,
-  Select,
-  useColorModeValue,
-  Textarea,
+  Box, VStack, Text, Input, Textarea,
+  Select, Flex, Icon,
 } from "@chakra-ui/react";
+import { FiServer, FiUser, FiLock, FiKey, FiSave } from "react-icons/fi";
+
+const Field = ({ label, required, children }) => (
+  <Box w="100%">
+    <Flex align="center" gap={1} mb="6px">
+      <Text fontSize="11px" fontWeight="600" color="rgba(255,255,255,0.4)" letterSpacing="0.06em" textTransform="uppercase">
+        {label}
+      </Text>
+      {required && <Text fontSize="10px" color="rgba(239,68,68,0.6)">*</Text>}
+    </Flex>
+    {children}
+  </Box>
+);
+
+const inputStyles = {
+  bg: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  borderRadius: "8px",
+  color: "rgba(255,255,255,0.85)",
+  fontSize: "13px",
+  fontFamily: "'JetBrains Mono', monospace",
+  _placeholder: { color: "rgba(255,255,255,0.2)" },
+  _hover: { borderColor: "rgba(255,255,255,0.18)" },
+  _focus: { borderColor: "#6366F1", boxShadow: "0 0 0 2px rgba(99,102,241,0.2)", bg: "rgba(99,102,241,0.05)" },
+};
 
 const AddServer = ({ handleSaveServer }) => {
-  const [newServerDetails, setNewServerDetails] = useState({
-    host: "",
-    username: "",
-    authMethod: "password",
-    password: "",
-    privateKey: "",
-    passphrase: "",
+  const [form, setForm] = useState({
+    host: "", username: "", authMethod: "password",
+    password: "", privateKey: "", passphrase: "",
   });
 
-  const boxBg = useColorModeValue("white", "gray.700");
-  const inputBg = useColorModeValue("gray.50", "gray.800");
-  const borderColor = useColorModeValue("gray.300", "gray.600");
-  const labelColor = useColorModeValue("gray.600", "gray.300");
-  const headingColor = useColorModeValue("gray.800", "white");
-
-  const handleInputChange = (e) => {
-    setNewServerDetails({
-      ...newServerDetails,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSave = (e) => {
     e.preventDefault();
     handleSaveServer(
-      newServerDetails.host,
-      newServerDetails.username,
-      newServerDetails.authMethod === "password"
-        ? newServerDetails.password
-        : newServerDetails.privateKey,
-      newServerDetails.authMethod,
-      newServerDetails.passphrase
+      form.host, form.username,
+      form.authMethod === "password" ? form.password : form.privateKey,
+      form.authMethod, form.passphrase
     );
-    setNewServerDetails({
-      host: "",
-      username: "",
-      authMethod: "password",
-      password: "",
-      privateKey: "",
-      passphrase: "",
-    });
+    setForm({ host: "", username: "", authMethod: "password", password: "", privateKey: "", passphrase: "" });
   };
 
   return (
-    <Box
-      bg={boxBg}
-      p={8}
-      borderRadius="lg"
-      boxShadow="lg"
-      border="1px solid"
-      borderColor={borderColor}
-      maxW="sm"
-      mx="auto"
-      mt={10}
-    >
-      <VStack as="form" spacing={6} onSubmit={handleSave}>
-        <Heading size="lg" color={headingColor} fontWeight="bold">
-          Add New Server
-        </Heading>
+    <Box maxW="420px" mx="auto" mt={8}>
+      {/* Header */}
+      <Flex align="center" gap={3} mb={6}>
+        <Box
+          w="36px" h="36px" borderRadius="9px"
+          bg="rgba(99,102,241,0.15)" border="1px solid rgba(99,102,241,0.25)"
+          display="flex" alignItems="center" justifyContent="center"
+        >
+          <FiServer color="#818CF8" size={16} />
+        </Box>
+        <Box>
+          <Text fontSize="16px" fontWeight="700" color="rgba(255,255,255,0.9)" letterSpacing="-0.02em">
+            Add Server
+          </Text>
+          <Text fontSize="12px" color="rgba(255,255,255,0.3)">
+            Configure SFTP connection
+          </Text>
+        </Box>
+      </Flex>
 
-        {/* Host */}
-        <FormControl id="host" isRequired>
-          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-            Host
-          </FormLabel>
-          <Input
-            name="host"
-            placeholder="Enter server host"
-            value={newServerDetails.host}
-            onChange={handleInputChange}
-            bg={inputBg}
-            border="1px solid"
-            borderColor={borderColor}
-            borderRadius="md"
-            _hover={{ borderColor: "blue.400" }}
-            _focus={{
-              borderColor: "blue.500",
-              boxShadow: "0 0 0 1px blue.500",
-            }}
-          />
-        </FormControl>
+      <VStack
+        as="form"
+        onSubmit={handleSave}
+        spacing={4}
+        align="stretch"
+        p={5}
+        bg="rgba(255,255,255,0.02)"
+        border="1px solid rgba(255,255,255,0.07)"
+        borderRadius="12px"
+      >
+        <Field label="Host" required>
+          <Input name="host" placeholder="192.168.1.1 or hostname" value={form.host} onChange={set} {...inputStyles} />
+        </Field>
 
-        {/* Username */}
-        <FormControl id="username" isRequired>
-          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-            Username
-          </FormLabel>
-          <Input
-            name="username"
-            placeholder="Enter username"
-            value={newServerDetails.username}
-            onChange={handleInputChange}
-            bg={inputBg}
-            border="1px solid"
-            borderColor={borderColor}
-            borderRadius="md"
-            _hover={{ borderColor: "blue.400" }}
-            _focus={{
-              borderColor: "blue.500",
-              boxShadow: "0 0 0 1px blue.500",
-            }}
-          />
-        </FormControl>
+        <Field label="Username" required>
+          <Input name="username" placeholder="root" value={form.username} onChange={set} {...inputStyles} />
+        </Field>
 
-        {/* Auth Method */}
-        <FormControl id="authMethod" isRequired>
-          <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-            Authentication Method
-          </FormLabel>
+        <Field label="Auth Method" required>
           <Select
             name="authMethod"
-            value={newServerDetails.authMethod}
-            onChange={handleInputChange}
-            bg={inputBg}
-            border="1px solid"
-            borderColor={borderColor}
-            borderRadius="md"
+            value={form.authMethod}
+            onChange={set}
+            {...inputStyles}
+            sx={{ option: { bg: "#0D0D12", color: "rgba(255,255,255,0.85)" } }}
           >
             <option value="password">Password</option>
             <option value="key">SSH Key</option>
           </Select>
-        </FormControl>
+        </Field>
 
-        {/* Password (only if password auth) */}
-        {newServerDetails.authMethod === "password" && (
-          <FormControl id="password" isRequired>
-            <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-              Password
-            </FormLabel>
-            <Input
-              name="password"
-              type="password"
-              placeholder="Enter password"
-              value={newServerDetails.password}
-              onChange={handleInputChange}
-              bg={inputBg}
-              border="1px solid"
-              borderColor={borderColor}
-              borderRadius="md"
-              _hover={{ borderColor: "blue.400" }}
-              _focus={{
-                borderColor: "blue.500",
-                boxShadow: "0 0 0 1px blue.500",
-              }}
-            />
-          </FormControl>
+        {form.authMethod === "password" && (
+          <Field label="Password" required>
+            <Input name="password" type="password" placeholder="••••••••" value={form.password} onChange={set} {...inputStyles} />
+          </Field>
         )}
 
-        {/* Private Key (only if key auth) */}
-        {newServerDetails.authMethod === "key" && (
+        {form.authMethod === "key" && (
           <>
-            <FormControl id="privateKey" isRequired>
-              <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-                Private Key
-              </FormLabel>
+            <Field label="Private Key" required>
               <Textarea
                 name="privateKey"
-                placeholder="Paste private key here"
-                value={newServerDetails.privateKey}
-                onChange={handleInputChange}
-                bg={inputBg}
-                border="1px solid"
-                borderColor={borderColor}
-                borderRadius="md"
-                _hover={{ borderColor: "blue.400" }}
-                _focus={{
-                  borderColor: "blue.500",
-                  boxShadow: "0 0 0 1px blue.500",
-                }}
-                rows={8}
+                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                value={form.privateKey}
+                onChange={set}
+                rows={7}
+                resize="none"
+                {...inputStyles}
+                fontSize="11px"
               />
-            </FormControl>
-            <FormControl id="passphrase">
-              <FormLabel fontSize="md" fontWeight="medium" color={labelColor}>
-                Passphrase (optional)
-              </FormLabel>
-              <Input
-                name="passphrase"
-                type="password"
-                placeholder="Enter passphrase if your key has one"
-                value={newServerDetails.passphrase}
-                onChange={handleInputChange}
-                bg={inputBg}
-                border="1px solid"
-                borderColor={borderColor}
-                borderRadius="md"
-                _hover={{ borderColor: "blue.400" }}
-                _focus={{
-                  borderColor: "blue.500",
-                  boxShadow: "0 0 0 1px blue.500",
-                }}
-              />
-            </FormControl>
+            </Field>
+            <Field label="Passphrase">
+              <Input name="passphrase" type="password" placeholder="Optional" value={form.passphrase} onChange={set} {...inputStyles} />
+            </Field>
           </>
         )}
 
-        <Button colorScheme="blue" type="submit" width="full" borderRadius="md">
+        {/* Submit */}
+        <Flex
+          as="button"
+          type="submit"
+          mt={2}
+          h="40px"
+          align="center"
+          justify="center"
+          gap={2}
+          borderRadius="8px"
+          bg="rgba(99,102,241,0.2)"
+          border="1px solid rgba(99,102,241,0.35)"
+          color="#818CF8"
+          cursor="pointer"
+          fontWeight={600}
+          fontSize="13px"
+          letterSpacing="-0.01em"
+          transition="all 0.15s"
+          _hover={{ bg: "rgba(99,102,241,0.3)", borderColor: "rgba(99,102,241,0.5)" }}
+        >
+          <FiSave size={14} />
           Save Server
-        </Button>
+        </Flex>
       </VStack>
     </Box>
   );
