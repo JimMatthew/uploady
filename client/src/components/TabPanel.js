@@ -57,9 +57,9 @@ const TabPanelComp = ({ tabs, activeTabIndex, setActiveTabIndex, closeTab }) => 
                   w="16px" h="16px" flexShrink={0}
                   align="center" justify="center"
                   borderRadius="4px"
-                  color="rgba(255,255,255,0.2)"
+                  color="rgba(255, 255, 255, 0.4)"
                   transition="all 0.12s"
-                  _hover={{ bg: "rgba(239,68,68,0.15)", color: "#EF4444" }}
+                  _hover={{ bg: "rgba(239,68,68,0.25)", color: "#EF4444" }}
                   onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                 >
                   <FiX size={10} />

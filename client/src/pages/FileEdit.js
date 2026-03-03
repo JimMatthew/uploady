@@ -1,132 +1,64 @@
 import { useEffect, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import {
-  Box,
-  Flex,
-  Text,
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-  Spacer,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
+import { Box, Flex, Text, Icon } from "@chakra-ui/react";
+import { githubDark } from "@uiw/codemirror-theme-github";
 import { javascript } from "@codemirror/lang-javascript";
 import { java } from "@codemirror/lang-java";
 import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import { cpp } from "@codemirror/lang-cpp";
+import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
 import ImageViewer from "../components/ImageViewer";
 
-function getFileExtension(filename) {
-  const parts = filename.split(".");
-  return parts.length > 1 ? parts.pop().toLowerCase() : "";
-}
+const EXT_LANG = {
+  js: () => javascript({ jsx: true }),
+  ts: () => javascript({ jsx: true, typescript: true }),
+  java: () => java(),
+  json: () => json(),
+  rs: () => rust(),
+  html: () => html(),
+  cpp: () => cpp(),
+  c: () => cpp(),
+};
 
-function isImageFile(fileName) {
-  return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
-}
+const getExt = (f) => f.includes(".") ? f.split(".").pop().toLowerCase() : "";
+const isImage = (f) => /\.(png|jpe?g|gif|webp|svg)$/i.test(f);
+const VIDEO_EXT = ["mp4", "webm", "ogg"];
+const AUDIO_EXT = ["mp3", "wav", "ogg"];
 
-const videoExtensions = ["mp4", "webm", "ogg"];
-const audioExtensions = ["mp3", "wav", "ogg"];
-
-function getLanguageExtension(fileType) {
-  switch (fileType) {
-    case "js":
-      return javascript({ jsx: true });
-    case "java":
-      return java();
-    case "json":
-      return json();
-    case "rs":
-      return rust();
-    case "html":
-      return html();
-    case "cpp":
-    case "c":
-      return cpp();
-    default:
-      return javascript();
-  }
-}
-
-const FileEdit = ({
-  serverId,
-  currentDirectory,
-  filename,
-  toast,
-  host,
-  remote = true,
-}) => {
+const FileEdit = ({ serverId, currentDirectory, filename, toast, host, remote = true }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
-  const [fileType, setFileType] = useState("text"); // "image" | "pdf" | "text"
-  const theme = useColorModeValue(githubLight, githubDark);
+  const [fileType, setFileType] = useState("text");
   const [objectUrl, setObjectUrl] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   const buildUrl = () =>
     serverId
       ? `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`
       : `/api/download/${currentDirectory}/${filename}`;
 
   useEffect(() => {
-    async function fetchFile() {
-      const ext = getFileExtension(filename);
-      const videoExtensions = ["mp4", "webm", "ogg"];
-      const audioExtensions = ["mp3", "wav", "ogg"];
+    const ext = getExt(filename);
+    if (VIDEO_EXT.includes(ext)) { setFileType("video"); return; }
+    if (AUDIO_EXT.includes(ext)) { setFileType("audio"); return; }
 
-      const isVideo = videoExtensions.includes(ext);
-      const isAudio = audioExtensions.includes(ext);
-      if (isVideo) {
-        setFileType("video");
-        return;
-      }
-      if (isAudio) {
-        setFileType("audio");
-        return;
-      }
+    const fetchWithBlob = async (type) => {
+      setFileType(type);
+      const res = await fetch(buildUrl(), { headers: { Authorization: `Bearer ${token}` } });
+      const blob = await res.blob();
+      setObjectUrl(URL.createObjectURL(blob));
+    };
 
-      if (isImageFile(filename)) {
-        setFileType("image");
-        try {
-          const response = await fetch(buildUrl(), {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok) throw new Error("Failed to fetch image");
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setObjectUrl(url);
-        } catch (err) {
-          console.error(err);
-        }
-        return;
-      }
+    if (isImage(filename)) { fetchWithBlob("image"); return; }
+    if (ext === "pdf") { fetchWithBlob("pdf"); return; }
 
-      if (ext === "pdf") {
-        setFileType("pdf");
-        try {
-          const response = await fetch(buildUrl(), {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok) throw new Error("Failed to fetch PDF");
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setObjectUrl(url);
-        } catch (err) {
-          console.error(err);
-        }
-        return;
-      }
-
-      // default: text
-      setFileType("text");
+    setFileType("text");
+    (async () => {
       const decoder = new TextDecoder();
-      const response = await fetch(buildUrl(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const reader = response.body.getReader();
+      const res = await fetch(buildUrl(), { headers: { Authorization: `Bearer ${token}` } });
+      const reader = res.body.getReader();
       let result = "";
       while (true) {
         const { done, value } = await reader.read();
@@ -134,16 +66,13 @@ const FileEdit = ({
         result += decoder.decode(value);
         setText(result);
       }
-    }
+    })();
 
-    fetchFile();
-
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [filename]);
 
   const saveFile = async () => {
+    setSaving(true);
     const formData = new FormData();
     if (remote) {
       formData.append("currentDirectory", currentDirectory);
@@ -151,120 +80,146 @@ const FileEdit = ({
     } else {
       formData.append("folderPath", currentDirectory);
     }
-
-    const fileBlob = new Blob([text], { type: "text/plain" });
-    formData.append("files", fileBlob, filename);
-
+    formData.append("files", new Blob([text], { type: "text/plain" }), filename);
     try {
-      const response = await fetch(
-        remote ? "/sftp/api/upload" : "/api/upload",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          method: "POST",
-          body: formData,
-        }
-      );
-
+      const res = await fetch(remote ? "/sftp/api/upload" : "/api/upload", {
+        headers: { Authorization: `Bearer ${token}` },
+        method: "POST",
+        body: formData,
+      });
       toast({
-        title: response.ok ? "File Saved" : "Error Saving File",
-        status: response.ok ? "success" : "error",
-        duration: 3000,
+        title: res.ok ? "Saved" : "Save failed",
+        status: res.ok ? "success" : "error",
+        duration: 2000,
         isClosable: true,
       });
-    } catch (error) {
-      console.error("Error uploading file:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   const renderContent = () => {
-    if (fileType === "video") {
-      return (
-        <video
-          controls
-          src={`/api/downloadstream/${currentDirectory}/${filename}`}
-        >
+    if (fileType === "video") return (
+      <Box bg="#000" borderRadius="8px" overflow="hidden">
+        <video controls style={{ width: "100%", display: "block" }}
+          src={`/api/downloadstream/${currentDirectory}/${filename}`}>
           Video not supported
         </video>
-      );
-    }
-    if (fileType === "audio") {
-      return (
-        <audio controls>
-          <source
-            src={`/api/downloadstream/${currentDirectory}/${filename}`}
-            type="audio/mpeg"
-          ></source>
+      </Box>
+    );
+    if (fileType === "audio") return (
+      <Box px={4} py={6}>
+        <audio controls style={{ width: "100%" }}>
+          <source src={`/api/downloadstream/${currentDirectory}/${filename}`} type="audio/mpeg" />
         </audio>
-      );
-    }
-    if (fileType === "image") {
-      return <ImageViewer src={objectUrl} alt={filename} />;
-    }
-    if (fileType === "pdf") {
-      return (
-        <Box>
-          <iframe
-            src={objectUrl}
-            title="file"
-            style={{ width: "100%", height: "100vh", border: "none" }}
-          />
-        </Box>
-      );
-    }
+      </Box>
+    );
+    if (fileType === "image") return (
+      <Box p={4}><ImageViewer src={objectUrl} alt={filename} /></Box>
+    );
+    if (fileType === "pdf") return (
+      <iframe src={objectUrl} title="file"
+        style={{ width: "100%", height: "100vh", border: "none", display: "block" }} />
+    );
     return (
       <Box
-        border="1px solid"
-        borderColor="gray.600"
-        borderRadius="md"
-        overflow="hidden"
+        sx={{
+          ".cm-editor": {
+            fontSize: "13px",
+            fontFamily: "'JetBrains Mono', monospace",
+            bg: "transparent",
+          },
+          ".cm-editor.cm-focused": { outline: "none" },
+          ".cm-scroller": { fontFamily: "'JetBrains Mono', monospace" },
+          ".cm-gutters": { bg: "rgba(255,255,255,0.02)", borderRight: "1px solid rgba(255,255,255,0.07)" },
+        }}
       >
         <CodeMirror
           value={text}
           onChange={setText}
-          theme={theme}
-          extensions={[getLanguageExtension(getFileExtension(filename))]}
+          theme={githubDark}
+          extensions={[EXT_LANG[getExt(filename)]?.() || javascript()]}
+          style={{ minHeight: "300px" }}
         />
       </Box>
     );
   };
 
   return (
-    <Card
-      variant="outline"
-      borderRadius="xl"
-      boxShadow="md"
-      p={4}
-      bg={useColorModeValue("gray.50", "gray.800")}
-    >
-      <CardHeader p={0} mb={3}>
-        <Flex align="center">
-          <Box>
-            <Text fontSize="sm" color="gray.400">
-              Host
-            </Text>
-            <Text fontWeight="semibold">{remote ? host : "Local"}</Text>
-
-            <Text fontSize="sm" color="gray.400" mt={1}>
-              File
-            </Text>
-            <Text fontWeight="semibold">{currentDirectory + filename}</Text>
-          </Box>
-          <Spacer />
-          {fileType === "text" && (
-            <Button
-              onClick={saveFile}
-              colorScheme="blue"
-              size="sm"
-              _hover={{ bg: "blue.500" }}
-              _active={{ bg: "blue.600" }}
-            >
-              Save
-            </Button>
-          )}
+    <Box h="100%" display="flex" flexDirection="column" bg="#0A0A0E">
+      {/* File header bar */}
+      <Flex
+        align="center"
+        gap={4}
+        px={5}
+        h="48px"
+        borderBottom="1px solid rgba(255,255,255,0.07)"
+        bg="rgba(8,8,12,0.8)"
+        flexShrink={0}
+      >
+        {/* Host badge */}
+        <Flex align="center" gap={2}>
+          <Icon
+            as={remote ? FiServer : FiMonitor}
+            boxSize="12px"
+            color="rgba(255,255,255,0.25)"
+          />
+          <Text fontSize="12px" fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.4)">
+            {remote ? host : "local"}
+          </Text>
         </Flex>
-      </CardHeader>
-      <CardBody p={0}>{renderContent()}</CardBody>
-    </Card>
+
+        <Icon as={FiFile} boxSize="11px" color="rgba(255,255,255,0.15)" />
+
+        {/* Path + filename */}
+        <Flex align="center" gap={0} minW={0} flex={1}>
+          <Text
+            fontSize="12px"
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.3)"
+            noOfLines={1}
+          >
+            {currentDirectory}
+          </Text>
+          <Text
+            fontSize="12px"
+            fontWeight={600}
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.8)"
+            flexShrink={0}
+          >
+            {filename}
+          </Text>
+        </Flex>
+
+        {/* Save button */}
+        {fileType === "text" && (
+          <Flex
+            align="center" gap="6px"
+            px={3} h="28px"
+            borderRadius="6px"
+            bg={saving ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.15)"}
+            border="1px solid rgba(99,102,241,0.3)"
+            color="#818CF8"
+            cursor={saving ? "wait" : "pointer"}
+            fontSize="12px" fontWeight={600}
+            transition="all 0.12s"
+            _hover={{ bg: "rgba(99,102,241,0.25)", borderColor: "rgba(99,102,241,0.5)" }}
+            onClick={!saving ? saveFile : undefined}
+            flexShrink={0}
+          >
+            <Icon as={FiSave} boxSize="12px" />
+            {saving ? "Saving…" : "Save"}
+          </Flex>
+        )}
+      </Flex>
+
+      {/* Content */}
+      <Box flex={1} overflow="auto">
+        {renderContent()}
+      </Box>
+    </Box>
   );
 };
 

@@ -36,7 +36,7 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
         fontSize="13px"
         fontFamily="'JetBrains Mono', monospace"
         color="rgba(255,255,255,0.8)"
-        _placeholder={{ color: "rgba(255,255,255,0.2)" }}
+        _placeholder={{ color: "rgba(255,255,255,0.5)" }}
         flex={1}
       />
       <Flex
