@@ -1,57 +1,65 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { Box } from "@chakra-ui/react";
-import SortComponent from "./SortComponent";
+import { Box, HStack, Text, Icon } from "@chakra-ui/react";
+import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import FolderItem from "./FolderItem";
 import FileMenu from "./FileMenu";
-const FolderList = ({
-  folders,
-  changeDirectory,
-  deleteFolder,
-  downloadFolder,
-  handleCopy,
-}) => {
-  const [folderSortDirection, setFolderSortDirection] = useState("asc");
-  const [contextMenu, setContextMenu] = useState({
-    x: 0,
-    y: 0,
-    file: null,
-    visible: false,
-  });
 
-  const openMenu = useCallback((e, fileName) => {
+const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, handleCopy }) => {
+  const [sortDir, setSortDir] = useState("asc");
+  const [contextMenu, setContextMenu] = useState({ x: 0, y: 0, file: null, visible: false });
+
+  const openMenu = useCallback((e, name) => {
     e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      file: fileName,
-      visible: true,
-    });
+    setContextMenu({ x: e.clientX, y: e.clientY, file: name, visible: true });
   }, []);
 
-  const closeContextMenu = () => {
-    setContextMenu({ ...contextMenu, visible: false });
-  };
-  
-  const toggleFolderSort = useCallback(() => {
-    setFolderSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+  const closeMenu = () => setContextMenu((m) => ({ ...m, visible: false }));
+
+  const toggleSort = useCallback(() => {
+    setSortDir((d) => (d === "asc" ? "desc" : "asc"));
   }, []);
 
-  const asc = useCallback((a, b) => a.name.localeCompare(b.name), []);
-  const desc = useCallback((a, b) => b.name.localeCompare(a.name), []);
-
-  const sortedfolders = useMemo(() => {
-    return [...folders].sort(folderSortDirection === "asc" ? asc : desc);
-  }, [folders, folderSortDirection, asc, desc]);
+  const sorted = useMemo(() => {
+    return [...folders].sort((a, b) =>
+      sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    );
+  }, [folders, sortDir]);
 
   return (
-    <Box mb={8}>
-      <SortComponent
-        header="folders"
-        onToggle={toggleFolderSort}
-        sortDirection={folderSortDirection}
-      />
+    <Box mb={6}>
+      {/* Section header */}
+      <HStack
+        px={4} py={2} mb={1}
+        justify="space-between"
+        borderBottom="1px solid rgba(255,255,255,0.07)"
+      >
+        <Text
+          fontSize="10px" fontWeight="700"
+          letterSpacing="0.1em"
+          textTransform="uppercase"
+          color="rgba(255,255,255,0.3)"
+        >
+          Folders
+          <Text as="span" ml={2} color="rgba(255,255,255,0.18)">
+            {folders.length}
+          </Text>
+        </Text>
+        <HStack
+          spacing={1} cursor="pointer"
+          onClick={toggleSort}
+          _hover={{ color: "rgba(255,255,255,0.6)" }}
+          color="rgba(255,255,255,0.25)"
+          transition="color 0.15s"
+        >
+          <Text fontSize="10px" letterSpacing="0.05em">
+            {sortDir === "asc" ? "A → Z" : "Z → A"}
+          </Text>
+          <Icon as={sortDir === "asc" ? FiChevronUp : FiChevronDown} boxSize={3} />
+        </HStack>
+      </HStack>
+
       <Box>
-        {sortedfolders.map((folder) => (
+        {sorted.map((folder) => (
           <FolderItem
             key={folder.name}
             folder={folder.name}
@@ -60,12 +68,13 @@ const FolderList = ({
           />
         ))}
       </Box>
+
       {contextMenu.visible && (
         <FileMenu
           file={contextMenu.file}
           top={contextMenu.y}
           left={contextMenu.x}
-          closeMenu={closeContextMenu}
+          closeMenu={closeMenu}
           handleFileCopy={handleCopy}
           handleFileDelete={deleteFolder}
           handleFileDownload={downloadFolder}
