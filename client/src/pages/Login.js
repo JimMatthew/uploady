@@ -62,10 +62,12 @@ const Login = () => {
       {/* Background glow */}
       <Box
         position="absolute"
-        w="400px" h="400px"
+        w="400px"
+        h="400px"
         borderRadius="full"
         bg="radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)"
-        top="50%" left="50%"
+        top="50%"
+        left="50%"
         transform="translate(-50%, -50%)"
         pointerEvents="none"
       />
@@ -74,22 +76,58 @@ const Login = () => {
         {/* Logo */}
         <Flex direction="column" align="center" mb={8} gap={3}>
           <Box
-            w="44px" h="44px"
+            w="44px"
+            h="44px"
             borderRadius="12px"
             bg="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
-            display="flex" alignItems="center" justifyContent="center"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
             boxShadow="0 0 24px rgba(99,102,241,0.35)"
           >
             <svg width="22" height="22" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
-              <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-              <rect x="1" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-              <rect x="7" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
+              <rect
+                x="1"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
+              <rect
+                x="7"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="1"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="7"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
             </svg>
           </Box>
           <Box textAlign="center">
             <Text
-              fontSize="20px" fontWeight="800"
+              fontSize="20px"
+              fontWeight="800"
               color="rgba(255,255,255,0.9)"
               letterSpacing="-0.03em"
               fontFamily="'JetBrains Mono', monospace"
@@ -116,14 +154,27 @@ const Login = () => {
         >
           {/* Username */}
           <Box>
-            <Text fontSize="11px" fontWeight="600" color="rgba(255,255,255,0.35)"
-              letterSpacing="0.07em" textTransform="uppercase" mb="6px">
+            <Text
+              fontSize="11px"
+              fontWeight="600"
+              color="rgba(255,255,255,0.35)"
+              letterSpacing="0.07em"
+              textTransform="uppercase"
+              mb="6px"
+            >
               Username
             </Text>
             <Box position="relative">
-              <Icon as={FiUser} position="absolute" left={3} top="50%"
-                transform="translateY(-50%)" boxSize="13px"
-                color="rgba(255,255,255,0.25)" pointerEvents="none" zIndex={1}
+              <Icon
+                as={FiUser}
+                position="absolute"
+                left={3}
+                top="50%"
+                transform="translateY(-50%)"
+                boxSize="13px"
+                color="rgba(255,255,255,0.25)"
+                pointerEvents="none"
+                zIndex={1}
               />
               <Input
                 {...inputStyles}
@@ -139,14 +190,27 @@ const Login = () => {
 
           {/* Password */}
           <Box>
-            <Text fontSize="11px" fontWeight="600" color="rgba(255,255,255,0.35)"
-              letterSpacing="0.07em" textTransform="uppercase" mb="6px">
+            <Text
+              fontSize="11px"
+              fontWeight="600"
+              color="rgba(255,255,255,0.35)"
+              letterSpacing="0.07em"
+              textTransform="uppercase"
+              mb="6px"
+            >
               Password
             </Text>
             <Box position="relative">
-              <Icon as={FiLock} position="absolute" left={3} top="50%"
-                transform="translateY(-50%)" boxSize="13px"
-                color="rgba(255,255,255,0.25)" pointerEvents="none" zIndex={1}
+              <Icon
+                as={FiLock}
+                position="absolute"
+                left={3}
+                top="50%"
+                transform="translateY(-50%)"
+                boxSize="13px"
+                color="rgba(255,255,255,0.25)"
+                pointerEvents="none"
+                zIndex={1}
               />
               <Input
                 {...inputStyles}
@@ -163,13 +227,24 @@ const Login = () => {
 
           {/* Error */}
           {error && (
-            <Flex align="center" gap={2} px={3} py="8px"
+            <Flex
+              align="center"
+              gap={2}
+              px={3}
+              py="8px"
               bg="rgba(239,68,68,0.08)"
               border="1px solid rgba(239,68,68,0.2)"
               borderRadius="7px"
             >
-              <Icon as={FiAlertCircle} boxSize="13px" color="#EF4444" flexShrink={0} />
-              <Text fontSize="12px" color="rgba(239,68,68,0.9)">{error}</Text>
+              <Icon
+                as={FiAlertCircle}
+                boxSize="13px"
+                color="#EF4444"
+                flexShrink={0}
+              />
+              <Text fontSize="12px" color="rgba(239,68,68,0.9)">
+                {error}
+              </Text>
             </Flex>
           )}
 
@@ -191,10 +266,16 @@ const Login = () => {
             fontSize="13px"
             letterSpacing="-0.01em"
             transition="all 0.15s"
-            _hover={{ bg: "rgba(99,102,241,0.3)", borderColor: "rgba(99,102,241,0.5)" }}
+            _hover={{
+              bg: "rgba(99,102,241,0.3)",
+              borderColor: "rgba(99,102,241,0.5)",
+            }}
           >
             {loading ? (
-              <Box w="14px" h="14px" borderRadius="full"
+              <Box
+                w="14px"
+                h="14px"
+                borderRadius="full"
                 border="2px solid rgba(129,140,248,0.3)"
                 borderTopColor="#818CF8"
                 animation="spin 0.7s linear infinite"

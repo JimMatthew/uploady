@@ -11,31 +11,64 @@ import FileMenu from "./FileMenu";
 const SORT_FIELDS = ["name", "size", "date"];
 
 export default function FileList({
-  files, handleFileDownload, handleFileDelete,
-  handleFileShareLink, handleRenameFile,
-  handleFileCopy, handleFileCut, handleFilePaste, handleOpenFile,
+  files,
+  handleFileDownload,
+  handleFileDelete,
+  handleFileShareLink,
+  handleRenameFile,
+  handleFileCopy,
+  handleFileCut,
+  handleFilePaste,
+  handleOpenFile,
 }) {
   const {
-    sortedFiles, fileSortDirection, sortField, setSortField,
-    selected, toggleSelect, handleCopy, handleDelete, handleShare,
-    isSelected, clearSelection, toggleFileSort,
-  } = useFileList({ files, handleFileCopy, handleFileDelete, handleFileShareLink });
+    sortedFiles,
+    fileSortDirection,
+    sortField,
+    setSortField,
+    selected,
+    toggleSelect,
+    handleCopy,
+    handleDelete,
+    handleShare,
+    isSelected,
+    clearSelection,
+    toggleFileSort,
+  } = useFileList({
+    files,
+    handleFileCopy,
+    handleFileDelete,
+    handleFileShareLink,
+  });
 
   const { clipboard } = useClipboard();
   const [renamingFile, setRenamingFile] = useState(null);
-  const [contextMenu, setContextMenu] = useState({ x: 0, y: 0, file: null, visible: false });
+  const [contextMenu, setContextMenu] = useState({
+    x: 0,
+    y: 0,
+    file: null,
+    visible: false,
+  });
 
   const openMenu = useCallback((e, fileName) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, file: fileName, visible: true });
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      file: fileName,
+      visible: true,
+    });
   }, []);
 
   const closeMenu = () => setContextMenu((m) => ({ ...m, visible: false }));
 
-  const onRename = useCallback((name, newName) => {
-    handleRenameFile(name, newName);
-    setRenamingFile(null);
-  }, [handleRenameFile]);
+  const onRename = useCallback(
+    (name, newName) => {
+      handleRenameFile(name, newName);
+      setRenamingFile(null);
+    },
+    [handleRenameFile],
+  );
 
   return (
     <Box>
@@ -51,17 +84,23 @@ export default function FileList({
 
       {/* Section header + sort controls */}
       <HStack
-        px={4} py={2} mb={1}
+        px={4}
+        py={2}
+        mb={1}
         justify="space-between"
         borderBottom="1px solid rgba(255,255,255,0.07)"
       >
         <Text
-          fontSize="10px" fontWeight="700"
-          letterSpacing="0.1em" textTransform="uppercase"
-          color="rgba(255,255,255,0.3)"
+          fontSize="10px"
+          fontWeight="700"
+          letterSpacing="0.1em"
+          textTransform="uppercase"
+          color="rgba(255, 255, 255, 0.46)"
         >
           Files
-          <Text as="span" ml={2} color="rgba(255,255,255,0.18)">{files.length}</Text>
+          <Text as="span" ml={2} color="rgba(255, 255, 255, 0.4)">
+            {files.length}
+          </Text>
         </Text>
 
         {/* Sort field pills */}
@@ -69,27 +108,37 @@ export default function FileList({
           {SORT_FIELDS.map((field) => (
             <Box
               key={field}
-              px={2} py="2px"
+              px={2}
+              py="2px"
               borderRadius="4px"
               cursor="pointer"
               bg={sortField === field ? "rgba(99,102,241,0.2)" : "transparent"}
               border="1px solid"
-              borderColor={sortField === field ? "rgba(99,102,241,0.4)" : "transparent"}
-              onClick={() => sortField === field ? toggleFileSort() : setSortField(field)}
+              borderColor={
+                sortField === field ? "rgba(99,102,241,0.4)" : "transparent"
+              }
+              onClick={() =>
+                sortField === field ? toggleFileSort() : setSortField(field)
+              }
               transition="all 0.12s"
               _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
             >
               <HStack spacing={1}>
                 <Text
-                  fontSize="10px" letterSpacing="0.05em"
-                  color={sortField === field ? "#818CF8" : "rgba(255,255,255,0.3)"}
+                  fontSize="10px"
+                  letterSpacing="0.05em"
+                  color={
+                    sortField === field ? "#818CF8" : "rgba(255,255,255,0.3)"
+                  }
                   textTransform="capitalize"
                 >
                   {field}
                 </Text>
                 {sortField === field && (
                   <Icon
-                    as={fileSortDirection === "asc" ? FiChevronUp : FiChevronDown}
+                    as={
+                      fileSortDirection === "asc" ? FiChevronUp : FiChevronDown
+                    }
                     boxSize={3}
                     color="#818CF8"
                   />

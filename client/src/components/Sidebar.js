@@ -2,8 +2,12 @@ import React from "react";
 import { Box, VStack, Text, Flex, Icon } from "@chakra-ui/react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  FiFolder, FiPlusCircle, FiHardDrive,
-  FiLink, FiX, FiMonitor,
+  FiFolder,
+  FiPlusCircle,
+  FiHardDrive,
+  FiLink,
+  FiX,
+  FiMonitor,
 } from "react-icons/fi";
 import ServerCard from "../components/ServerCard";
 
@@ -29,18 +33,35 @@ const NavButton = ({ icon, label, onClick, to, active }) => {
       w="100%"
     >
       <Icon as={icon} boxSize="15px" flexShrink={0} />
-      <Text fontSize="13px" fontWeight={active ? 600 : 450} letterSpacing="-0.01em">
+      <Text
+        fontSize="13px"
+        fontWeight={active ? 600 : 450}
+        letterSpacing="-0.01em"
+      >
         {label}
       </Text>
     </Flex>
   );
-  return to ? <Link to={to} style={{ width: "100%" }}>{content}</Link> : content;
+  return to ? (
+    <Link to={to} style={{ width: "100%" }}>
+      {content}
+    </Link>
+  ) : (
+    content
+  );
 };
 
 const Sidebar = ({
-  handleConnect, handleLocalTab, handleNewServer,
-  handleSshLaunch, handleSharedLinks, deleteServer,
-  setShowSidebar, isDesktop, sftpServers, serverStatuses,
+  handleConnect,
+  handleLocalTab,
+  handleNewServer,
+  handleSshLaunch,
+  handleSharedLinks,
+  deleteServer,
+  setShowSidebar,
+  isDesktop,
+  sftpServers,
+  serverStatuses,
 }) => {
   return (
     <Box
@@ -54,10 +75,14 @@ const Sidebar = ({
       flexDirection="column"
       position={{ base: "absolute", lg: "relative" }}
       zIndex={{ base: 10, lg: 1 }}
-      top={0} left={0}
+      top={0}
+      left={0}
       sx={{
         "::-webkit-scrollbar": { width: "4px" },
-        "::-webkit-scrollbar-thumb": { background: "rgba(255,255,255,0.1)", borderRadius: "2px" },
+        "::-webkit-scrollbar-thumb": {
+          background: "rgba(255,255,255,0.1)",
+          borderRadius: "2px",
+        },
         "::-webkit-scrollbar-track": { background: "transparent" },
         scrollbarWidth: "thin",
         scrollbarColor: "rgba(255,255,255,0.1) transparent",
@@ -67,17 +92,29 @@ const Sidebar = ({
       <VStack align="stretch" spacing={1} p={3} pt={4}>
         {/* Section label */}
         <Text
-          fontSize="10px" fontWeight="700" letterSpacing="0.1em"
-          textTransform="uppercase" color="rgba(255,255,255,0.2)"
-          px={3} pb={1}
+          fontSize="10px"
+          fontWeight="700"
+          letterSpacing="0.1em"
+          textTransform="uppercase"
+          color="rgba(255, 255, 255, 0.35)"
+          px={3}
+          pb={1}
         >
           Navigation
         </Text>
 
-        <NavButton icon={FiFolder}     label="Files"          to="/app/files" />
-        <NavButton icon={FiHardDrive}  label="Local"          onClick={handleLocalTab} />
-        <NavButton icon={FiLink}       label="Shared Links"   onClick={handleSharedLinks} />
-        <NavButton icon={FiPlusCircle} label="Add Server"     onClick={handleNewServer} />
+        <NavButton icon={FiFolder} label="Files" to="/app/files" />
+        <NavButton icon={FiHardDrive} label="Local" onClick={handleLocalTab} />
+        <NavButton
+          icon={FiLink}
+          label="Shared Links"
+          onClick={handleSharedLinks}
+        />
+        <NavButton
+          icon={FiPlusCircle}
+          label="Add Server"
+          onClick={handleNewServer}
+        />
       </VStack>
 
       {/* Divider */}
@@ -86,12 +123,16 @@ const Sidebar = ({
       {/* Servers section */}
       <VStack align="stretch" spacing={1} p={3} flex={1}>
         <Text
-          fontSize="10px" fontWeight="700" letterSpacing="0.1em"
-          textTransform="uppercase" color="rgba(255,255,255,0.2)"
-          px={3} pb={1}
+          fontSize="10px"
+          fontWeight="700"
+          letterSpacing="0.1em"
+          textTransform="uppercase"
+          color="rgba(255, 255, 255, 0.35)"
+          px={3}
+          pb={1}
         >
           Servers
-          <Text as="span" ml={2} color="rgba(255,255,255,0.12)">
+          <Text as="span" ml={2} color="rgba(255, 255, 255, 0.35)">
             {sftpServers?.servers?.length || 0}
           </Text>
         </Text>
@@ -110,7 +151,8 @@ const Sidebar = ({
           ))
         ) : (
           <Flex
-            align="center" justify="center"
+            align="center"
+            justify="center"
             h="60px"
             borderRadius="8px"
             border="1px dashed rgba(255,255,255,0.08)"
@@ -136,11 +178,16 @@ const Sidebar = ({
           cursor="pointer"
           color="rgba(255,255,255,0.4)"
           transition="all 0.12s"
-          _hover={{ bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.8)" }}
+          _hover={{
+            bg: "rgba(255,255,255,0.05)",
+            color: "rgba(255,255,255,0.8)",
+          }}
           onClick={() => setShowSidebar(false)}
         >
           <FiX size={14} />
-          <Text fontSize="12px" fontWeight={500}>Close</Text>
+          <Text fontSize="12px" fontWeight={500}>
+            Close
+          </Text>
         </Flex>
       )}
     </Box>

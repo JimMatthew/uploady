@@ -1,5 +1,12 @@
 import React from "react";
-import { Box, Flex, Text, Icon, Spinner, useBreakpointValue } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Text,
+  Icon,
+  Spinner,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import { FiMenu, FiSidebar } from "react-icons/fi";
 import { useSftpList } from "../hooks/useSftpList";
 import Sidebar from "../components/Sidebar";
@@ -7,22 +14,41 @@ import TabPanelComp from "../components/TabPanel";
 
 const SFTPApp = ({ toast }) => {
   const {
-    loading, sftpServers, showSidebar, setShowSidebar,
-    tabs, serverStatuses, closeTab, handleNewServer,
-    handleSshLaunch, deleteServer, handleConnect,
-    handleLocalTab, activeTabIndex, setActiveTabIndex, handleSharedLinks,
+    loading,
+    sftpServers,
+    showSidebar,
+    setShowSidebar,
+    tabs,
+    serverStatuses,
+    closeTab,
+    handleNewServer,
+    handleSshLaunch,
+    deleteServer,
+    handleConnect,
+    handleLocalTab,
+    activeTabIndex,
+    setActiveTabIndex,
+    handleSharedLinks,
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
 
-  if (loading || !sftpServers) return (
-    <Flex align="center" justify="center" h="100vh" direction="column" gap={3}
-      bg="rgba(8,8,12,1)"
-    >
-      <Spinner size="sm" color="rgba(99,102,241,0.5)" />
-      <Text fontSize="12px" color="rgba(255,255,255,0.25)">Initializing…</Text>
-    </Flex>
-  );
+  if (loading || !sftpServers)
+    return (
+      <Flex
+        align="center"
+        justify="center"
+        h="100vh"
+        direction="column"
+        gap={3}
+        bg="rgba(8,8,12,1)"
+      >
+        <Spinner size="sm" color="rgba(99,102,241,0.5)" />
+        <Text fontSize="12px" color="rgba(255,255,255,0.25)">
+          Initializing…
+        </Text>
+      </Flex>
+    );
 
   return (
     <Flex h="100%" direction="column" bg="#0A0A0E">
@@ -58,7 +84,10 @@ const SFTPApp = ({ toast }) => {
             fontSize="12px"
             fontWeight={500}
             transition="all 0.12s"
-            _hover={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.8)" }}
+            _hover={{
+              borderColor: "rgba(255,255,255,0.2)",
+              color: "rgba(255,255,255,0.8)",
+            }}
             onClick={() => setShowSidebar(true)}
           >
             <Icon as={FiSidebar} boxSize="13px" />

@@ -15,11 +15,21 @@ const Breadcrumbs = ({ breadcrumb, onClick }) => {
       overflow="hidden"
       maxW="100%"
     >
-      <Icon as={FiHome} boxSize="12px" color="rgba(255,255,255,0.25)" flexShrink={0} />
+      <Icon
+        as={FiHome}
+        boxSize="12px"
+        color="rgba(255, 255, 255, 0.35)"
+        flexShrink={0}
+      />
 
       {breadcrumb?.map((crumb, index) => (
         <Flex key={index} align="center" gap={1} minW={0}>
-          <Icon as={FiChevronRight} boxSize="11px" color="rgba(255,255,255,0.15)" flexShrink={0} />
+          <Icon
+            as={FiChevronRight}
+            boxSize="11px"
+            color="rgba(255,255,255,0.15)"
+            flexShrink={0}
+          />
           <Text
             fontSize="12px"
             fontWeight={index === breadcrumb.length - 1 ? 600 : 450}

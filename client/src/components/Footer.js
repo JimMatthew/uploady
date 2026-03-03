@@ -1,23 +1,49 @@
-import { Box, Text, Stack, Link } from "@chakra-ui/react";
+import { Box, Flex, Text, Link } from "@chakra-ui/react";
 
 const Footer = () => {
   return (
     <Box
       as="footer"
-      bg="gray.800"
-      color="white"
-      p={4}
-      position="relative"
-      bottom="0"
+      borderTop="1px solid rgba(255,255,255,0.06)"
+      bg="rgba(8,8,12,0.8)"
+      px={6}
+      py={4}
       width="100%"
     >
-      <Stack spacing={2} align="center">
-        <Text>© {new Date().getFullYear()} James Lindstrom. All rights reserved.</Text>
-        <Stack direction="row" spacing={4}>
-          <Link href="/about" color="teal.300">About</Link>
-          <Link href="/terms" color="teal.300">Terms Of Service</Link>
-        </Stack>
-      </Stack>
+      <Flex
+        align="center"
+        justify="space-between"
+        maxW="1200px"
+        mx="auto"
+        flexWrap="wrap"
+        gap={3}
+      >
+        <Text
+          fontSize="12px"
+          fontFamily="'JetBrains Mono', monospace"
+          color="rgba(255,255,255,0.25)"
+          letterSpacing="-0.01em"
+        >
+          © {new Date().getFullYear()} James Lindstrom
+        </Text>
+
+        <Flex gap={5}>
+          {[["About", "/about"], ["Terms of Service", "/terms"]].map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              fontSize="12px"
+              color="rgba(255,255,255,0.3)"
+              letterSpacing="-0.01em"
+              textDecoration="none"
+              transition="color 0.12s"
+              _hover={{ color: "rgba(255,255,255,0.7)", textDecoration: "none" }}
+            >
+              {label}
+            </Link>
+          ))}
+        </Flex>
+      </Flex>
     </Box>
   );
 };

@@ -1,16 +1,27 @@
 import { Text, Box, Flex, Tooltip, Icon } from "@chakra-ui/react";
-import { FiFileText, FiTerminal, FiTrash2, FiWifi, FiWifiOff } from "react-icons/fi";
+import {
+  FiFileText,
+  FiTerminal,
+  FiTrash2,
+  FiWifi,
+  FiWifiOff,
+} from "react-icons/fi";
 
 const ActionBtn = ({ icon, label, color, onClick }) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Flex
-      w="28px" h="28px"
-      align="center" justify="center"
+      w="28px"
+      h="28px"
+      align="center"
+      justify="center"
       borderRadius="6px"
       cursor="pointer"
       color={color || "rgba(255,255,255,0.35)"}
       transition="all 0.12s"
-      _hover={{ bg: "rgba(255,255,255,0.07)", color: color || "rgba(255,255,255,0.8)" }}
+      _hover={{
+        bg: "rgba(255,255,255,0.07)",
+        color: color || "rgba(255,255,255,0.8)",
+      }}
       onClick={onClick}
     >
       <Icon as={icon} boxSize="14px" />
@@ -19,8 +30,12 @@ const ActionBtn = ({ icon, label, color, onClick }) => (
 );
 
 export default function ServerCard({
-  serverId, serverName, serverStatuses,
-  handleConnect, handleSshLaunch, deleteServer,
+  serverId,
+  serverName,
+  serverStatuses,
+  handleConnect,
+  handleSshLaunch,
+  deleteServer,
 }) {
   const status = serverStatuses[serverId];
   const isOnline = status === "online";
@@ -59,18 +74,26 @@ export default function ServerCard({
         {/* Status dot */}
         {isLoading ? (
           <Box
-            w="6px" h="6px" borderRadius="full"
+            w="6px"
+            h="6px"
+            borderRadius="full"
             bg="rgba(255,255,255,0.15)"
             animation="pulse 1.5s infinite"
           />
         ) : (
           <Flex align="center" gap={1}>
             <Box
-              w="6px" h="6px" borderRadius="full"
+              w="6px"
+              h="6px"
+              borderRadius="full"
               bg={isOnline ? "#22C55E" : "#EF4444"}
               boxShadow={isOnline ? "0 0 6px rgba(34,197,94,0.6)" : "none"}
             />
-            <Text fontSize="10px" color={isOnline ? "#4ADE80" : "rgba(239,68,68,0.7)"} letterSpacing="0.04em">
+            <Text
+              fontSize="10px"
+              color={isOnline ? "#4ADE80" : "rgba(239,68,68,0.7)"}
+              letterSpacing="0.04em"
+            >
               {status}
             </Text>
           </Flex>
@@ -79,10 +102,25 @@ export default function ServerCard({
 
       {/* Actions */}
       <Flex gap={1}>
-        <ActionBtn icon={FiFileText}  label="SFTP"   color="rgba(34,197,94,0.7)"  onClick={handleConnect} />
-        <ActionBtn icon={FiTerminal}  label="SSH"    color="rgba(99,102,241,0.7)" onClick={handleSshLaunch} />
+        <ActionBtn
+          icon={FiFileText}
+          label="SFTP"
+          color="rgba(34,197,94,0.7)"
+          onClick={handleConnect}
+        />
+        <ActionBtn
+          icon={FiTerminal}
+          label="SSH"
+          color="rgba(99,102,241,0.7)"
+          onClick={handleSshLaunch}
+        />
         <Box flex={1} />
-        <ActionBtn icon={FiTrash2}    label="Delete" color="rgba(239,68,68,0.5)"  onClick={deleteServer} />
+        <ActionBtn
+          icon={FiTrash2}
+          label="Delete"
+          color="rgba(239,68,68,0.5)"
+          onClick={deleteServer}
+        />
       </Flex>
     </Box>
   );

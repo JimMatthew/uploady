@@ -1,5 +1,9 @@
 import {
-  Flex, Text, Box, IconButton, useBreakpointValue,
+  Flex,
+  Text,
+  Box,
+  IconButton,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { FiLogOut, FiMenu } from "react-icons/fi";
 import DarkModeToggle from "./DarkModeToggle";
@@ -11,7 +15,9 @@ const Header = () => {
     try {
       const res = await fetch("/apilogout", { method: "GET" });
       if (res.ok) window.location.href = "/";
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -31,17 +37,52 @@ const Header = () => {
       {/* Logo mark */}
       <Flex align="center" gap={2} mr={4}>
         <Box
-          w="22px" h="22px"
+          w="22px"
+          h="22px"
           borderRadius="5px"
           bg="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
-          display="flex" alignItems="center" justifyContent="center"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
           flexShrink={0}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <rect x="1" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
-            <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-            <rect x="1" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-            <rect x="7" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
+            <rect
+              x="1"
+              y="1"
+              width="4"
+              height="4"
+              rx="1"
+              fill="white"
+              fillOpacity="0.9"
+            />
+            <rect
+              x="7"
+              y="1"
+              width="4"
+              height="4"
+              rx="1"
+              fill="white"
+              fillOpacity="0.5"
+            />
+            <rect
+              x="1"
+              y="7"
+              width="4"
+              height="4"
+              rx="1"
+              fill="white"
+              fillOpacity="0.5"
+            />
+            <rect
+              x="7"
+              y="7"
+              width="4"
+              height="4"
+              rx="1"
+              fill="white"
+              fillOpacity="0.9"
+            />
           </svg>
         </Box>
         {showText && (
@@ -58,7 +99,13 @@ const Header = () => {
       </Flex>
 
       {/* Vertical rule */}
-      <Box w="1px" h="20px" bg="rgba(255,255,255,0.08)" mr={2} display={{ base: "none", md: "block" }} />
+      <Box
+        w="1px"
+        h="20px"
+        bg="rgba(255,255,255,0.08)"
+        mr={2}
+        display={{ base: "none", md: "block" }}
+      />
 
       <Box flex={1} />
 

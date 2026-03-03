@@ -1,12 +1,26 @@
-import { Box, Flex, Text, HStack, Icon, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Text,
+  HStack,
+  Icon,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverBody,
+} from "@chakra-ui/react";
 import { FiDownload, FiCopy, FiLink2, FiX } from "react-icons/fi";
 import { MdQrCode2 } from "react-icons/md";
 import QRCode from "react-qr-code";
 
 const ActionBtn = ({ icon, label, onClick, accent }) => (
   <Flex
-    align="center" gap="6px"
-    px={3} h="28px"
+    align="center"
+    gap="6px"
+    px={3}
+    h="28px"
     borderRadius="6px"
     cursor="pointer"
     fontSize="12px"
@@ -40,9 +54,15 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
     {/* Header */}
     <Flex align="start" justify="space-between" mb={3}>
       <HStack spacing={2} minW={0} flex={1}>
-        <Icon as={FiLink2} boxSize="13px" color="rgba(255,255,255,0.3)" flexShrink={0} />
+        <Icon
+          as={FiLink2}
+          boxSize="13px"
+          color="rgba(255,255,255,0.3)"
+          flexShrink={0}
+        />
         <Text
-          fontSize="13px" fontWeight={600}
+          fontSize="13px"
+          fontWeight={600}
           color="rgba(255,255,255,0.8)"
           fontFamily="'JetBrains Mono', monospace"
           noOfLines={1}
@@ -52,8 +72,11 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
         </Text>
       </HStack>
       <Flex
-        w="22px" h="22px" flexShrink={0}
-        align="center" justify="center"
+        w="22px"
+        h="22px"
+        flexShrink={0}
+        align="center"
+        justify="center"
         borderRadius="5px"
         cursor="pointer"
         color="rgba(255,255,255,0.2)"
@@ -82,13 +105,19 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
         display="inline-flex"
         align="center"
         gap={1}
-        px="6px" h="18px"
+        px="6px"
+        h="18px"
         borderRadius="4px"
         bg="rgba(139,92,246,0.12)"
         border="1px solid rgba(139,92,246,0.25)"
         mb={3}
       >
-        <Text fontSize="10px" color="#A78BFA" fontWeight={600} letterSpacing="0.04em">
+        <Text
+          fontSize="10px"
+          color="#A78BFA"
+          fontWeight={600}
+          letterSpacing="0.04em"
+        >
           REMOTE · {linkItem.serverName}
         </Text>
       </Flex>
@@ -96,10 +125,17 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
 
     {/* Actions */}
     <HStack spacing={2} flexWrap="wrap">
-      <ActionBtn icon={FiDownload} label="Download" accent="99,102,241"
-        onClick={() => clickLink(linkItem.link, linkItem.fileName)} />
-      <ActionBtn icon={FiCopy} label="Copy"
-        onClick={() => copyToClipboard(linkItem.link)} />
+      <ActionBtn
+        icon={FiDownload}
+        label="Download"
+        accent="99,102,241"
+        onClick={() => clickLink(linkItem.link, linkItem.fileName)}
+      />
+      <ActionBtn
+        icon={FiCopy}
+        label="Copy"
+        onClick={() => copyToClipboard(linkItem.link)}
+      />
       <Popover placement="top">
         <PopoverTrigger>
           <Box>
@@ -117,7 +153,14 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
           <PopoverCloseButton size="sm" color="rgba(255,255,255,0.4)" />
           <PopoverBody p={4}>
             <Box bg="white" p={2} borderRadius="8px">
-              <QRCode value={linkItem.link} size={160} level="H" bgColor="white" fgColor="#0D0D12" style={{ width: "100%", height: "auto" }} />
+              <QRCode
+                value={linkItem.link}
+                size={160}
+                level="H"
+                bgColor="white"
+                fgColor="#0D0D12"
+                style={{ width: "100%", height: "auto" }}
+              />
             </Box>
           </PopoverBody>
         </PopoverContent>

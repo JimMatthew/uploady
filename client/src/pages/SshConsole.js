@@ -39,7 +39,9 @@ const SshConsole = ({ serverId, host }) => {
     term.current.loadAddon(new WebglAddon());
 
     const wsProtocol = isHttps ? "wss" : "ws";
-    const socket = new WebSocket(`${wsProtocol}://${window.location.hostname}:3001/ssh`);
+    const socket = new WebSocket(
+      `${wsProtocol}://${window.location.hostname}:3001/ssh`,
+    );
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ event: "startSession", serverId }));
@@ -50,11 +52,13 @@ const SshConsole = ({ serverId, host }) => {
     const handleResize = () => {
       if (!init) return;
       fitAddon.fit();
-      socket.send(JSON.stringify({
-        event: "resize",
-        rows: term.current.rows,
-        cols: term.current.cols,
-      }));
+      socket.send(
+        JSON.stringify({
+          event: "resize",
+          rows: term.current.rows,
+          cols: term.current.cols,
+        }),
+      );
     };
 
     window.addEventListener("resize", handleResize);
@@ -95,7 +99,12 @@ const SshConsole = ({ serverId, host }) => {
         {/* Traffic lights */}
         <Flex gap="6px" align="center">
           <Box w="10px" h="10px" borderRadius="full" bg="rgba(239,68,68,0.5)" />
-          <Box w="10px" h="10px" borderRadius="full" bg="rgba(251,191,36,0.5)" />
+          <Box
+            w="10px"
+            h="10px"
+            borderRadius="full"
+            bg="rgba(251,191,36,0.5)"
+          />
           <Box w="10px" h="10px" borderRadius="full" bg="rgba(34,197,94,0.5)" />
         </Flex>
 
@@ -103,8 +112,12 @@ const SshConsole = ({ serverId, host }) => {
 
         <Icon as={FiTerminal} boxSize="12px" color="rgba(255,255,255,0.3)" />
         {host && (
-          <Text fontSize="12px" fontFamily="'JetBrains Mono', monospace"
-            color="rgba(255,255,255,0.45)" letterSpacing="-0.01em">
+          <Text
+            fontSize="12px"
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.45)"
+            letterSpacing="-0.01em"
+          >
             {host}
           </Text>
         )}
@@ -114,13 +127,19 @@ const SshConsole = ({ serverId, host }) => {
         {/* Connection status */}
         <Flex align="center" gap={2}>
           <Box
-            w="6px" h="6px" borderRadius="full"
+            w="6px"
+            h="6px"
+            borderRadius="full"
             bg={connected ? "#22C55E" : "rgba(255,255,255,0.2)"}
             boxShadow={connected ? "0 0 6px rgba(34,197,94,0.6)" : "none"}
             transition="all 0.3s"
           />
-          <Text fontSize="10px" letterSpacing="0.04em" transition="color 0.3s"
-            color={connected ? "#4ADE80" : "rgba(255,255,255,0.3)"}>
+          <Text
+            fontSize="10px"
+            letterSpacing="0.04em"
+            transition="color 0.3s"
+            color={connected ? "#4ADE80" : "rgba(255,255,255,0.3)"}
+          >
             {connected ? "connected" : "connecting…"}
           </Text>
         </Flex>

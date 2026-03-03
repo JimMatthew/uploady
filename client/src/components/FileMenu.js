@@ -1,12 +1,18 @@
 import { Box, VStack, HStack, Text, Icon } from "@chakra-ui/react";
 import {
-  FiCopy, FiScissors, FiTrash2,
-  FiDownload, FiShare2, FiEdit2, FiFileText,
+  FiCopy,
+  FiScissors,
+  FiTrash2,
+  FiDownload,
+  FiShare2,
+  FiEdit2,
+  FiFileText,
 } from "react-icons/fi";
 
 const MenuItem = ({ icon, label, onClick, danger }) => (
   <HStack
-    px={3} py="7px"
+    px={3}
+    py="7px"
     spacing={3}
     cursor="pointer"
     transition="all 0.1s"
@@ -39,12 +45,22 @@ const Divider = () => (
 );
 
 const FileContextMenu = ({
-  top, left, file, closeMenu,
-  handleFileCopy, handleFileCut, handleFileDelete,
-  handleFileDownload, handleFileShareLink,
-  handleOpenFile, setRenamingFile,
+  top,
+  left,
+  file,
+  closeMenu,
+  handleFileCopy,
+  handleFileCut,
+  handleFileDelete,
+  handleFileDownload,
+  handleFileShareLink,
+  handleOpenFile,
+  setRenamingFile,
 }) => {
-  const wrap = (fn) => () => { fn(file); closeMenu(); };
+  const wrap = (fn) => () => {
+    fn(file);
+    closeMenu();
+  };
 
   return (
     <Box
@@ -76,28 +92,49 @@ const FileContextMenu = ({
       </Box>
       <Divider />
 
-      <MenuItem icon={FiCopy}    label="Copy"     onClick={wrap(handleFileCopy)} />
+      <MenuItem icon={FiCopy} label="Copy" onClick={wrap(handleFileCopy)} />
       {handleFileCut && (
-        <MenuItem icon={FiScissors} label="Cut"   onClick={wrap(handleFileCut)} />
+        <MenuItem icon={FiScissors} label="Cut" onClick={wrap(handleFileCut)} />
       )}
       {setRenamingFile && (
-        <MenuItem icon={FiEdit2} label="Rename"   onClick={wrap(setRenamingFile)} />
+        <MenuItem
+          icon={FiEdit2}
+          label="Rename"
+          onClick={wrap(setRenamingFile)}
+        />
       )}
       {handleOpenFile && (
-        <MenuItem icon={FiFileText} label="Open"  onClick={wrap(handleOpenFile)} />
+        <MenuItem
+          icon={FiFileText}
+          label="Open"
+          onClick={wrap(handleOpenFile)}
+        />
       )}
 
       {(handleFileDownload || handleFileShareLink) && <Divider />}
 
       {handleFileDownload && (
-        <MenuItem icon={FiDownload} label="Download" onClick={wrap(handleFileDownload)} />
+        <MenuItem
+          icon={FiDownload}
+          label="Download"
+          onClick={wrap(handleFileDownload)}
+        />
       )}
       {handleFileShareLink && (
-        <MenuItem icon={FiShare2}  label="Share link" onClick={wrap(handleFileShareLink)} />
+        <MenuItem
+          icon={FiShare2}
+          label="Share link"
+          onClick={wrap(handleFileShareLink)}
+        />
       )}
 
       <Divider />
-      <MenuItem icon={FiTrash2} label="Delete" onClick={wrap(handleFileDelete)} danger />
+      <MenuItem
+        icon={FiTrash2}
+        label="Delete"
+        onClick={wrap(handleFileDelete)}
+        danger
+      />
     </Box>
   );
 };

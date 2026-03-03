@@ -37,10 +37,10 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
           fontSize="10px" fontWeight="700"
           letterSpacing="0.1em"
           textTransform="uppercase"
-          color="rgba(255,255,255,0.3)"
+          color="rgba(255, 255, 255, 0.4)"
         >
           Folders
-          <Text as="span" ml={2} color="rgba(255,255,255,0.18)">
+          <Text as="span" ml={2} color="rgba(255, 255, 255, 0.35)">
             {folders.length}
           </Text>
         </Text>
@@ -48,7 +48,7 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
           spacing={1} cursor="pointer"
           onClick={toggleSort}
           _hover={{ color: "rgba(255,255,255,0.6)" }}
-          color="rgba(255,255,255,0.25)"
+          color="rgba(255, 255, 255, 0.35)"
           transition="color 0.15s"
         >
           <Text fontSize="10px" letterSpacing="0.05em">

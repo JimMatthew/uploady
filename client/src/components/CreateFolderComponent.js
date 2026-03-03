@@ -26,7 +26,13 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
       transition="border-color 0.15s"
       _focusWithin={{ borderColor: "rgba(99,102,241,0.4)" }}
     >
-      <Icon as={FiFolderPlus} boxSize="14px" color="rgba(255,255,255,0.25)" ml={2} flexShrink={0} />
+      <Icon
+        as={FiFolderPlus}
+        boxSize="14px"
+        color="rgba(255,255,255,0.25)"
+        ml={2}
+        flexShrink={0}
+      />
       <Input
         variant="unstyled"
         size="sm"
