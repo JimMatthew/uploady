@@ -188,16 +188,15 @@ async function sftp_copy_files_batch_json_post(req, res) {
 const share_sftp_file = async (req, res, next) => {
   const { serverId, remotePath } = req.body;
   if (!serverId || !remotePath) {
-    return res
-      .status(400)
-      .send(JSON.stringify("Error: Missing required fields"));
+    return res.status(400).send(JSON.stringify("Error: Missing required fields"));
   }
-  const fileName = remotePath.split("/").pop();
-  const filePath = remotePath ? remotePath : "/";
-  const { link } = await serverService.share_file(fileName, filePath, serverId);
-  return res.json({
-    link: link,
-  });
+  try {
+    const fileName = remotePath.split("/").pop();
+    const { link } = await serverService.share_file(fileName, remotePath, serverId);
+    return res.json({ link });
+  } catch (err) {
+    return handleError(res, "Error creating share link");
+  }
 };
 
 const sftp_servers_json_get = async (req, res, next) => {

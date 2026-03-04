@@ -102,10 +102,15 @@ async function archiveFolder(serverId, remotePath, res) {
     archive.pipe(res);
 
     await addFolderToArchive(sftp, archive, remotePath, "/");
-    archive.finalize();
+    
+    // Wait for archive to fully finish before withSftp closes connection
+    await new Promise((resolve, reject) => {
+      archive.on("finish", resolve);
+      archive.on("error", reject);
+      archive.finalize();
+    });
   });
 }
-
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
   return date.toLocaleString();
