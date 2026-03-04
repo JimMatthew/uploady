@@ -63,7 +63,10 @@ const FileEdit = ({
         headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await res.blob();
-      setObjectUrl(URL.createObjectURL(blob));
+      const typedBlob = type === "pdf" 
+    ? new Blob([blob], { type: "application/pdf" })
+    : blob;
+  setObjectUrl(URL.createObjectURL(typedBlob));
     };
 
     if (isImage(filename)) {
