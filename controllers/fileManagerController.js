@@ -12,23 +12,27 @@ const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
 
-const get_performance_stats = (req, res, next) => {
-  const mem = process.memoryUsage();
-  const cpu = process.cpuUsage();
-  const uptime = process.uptime();
-  const nodeVersion = process.version;
-  const report = process.report.getReport();
-  res.json({
-    memory: mem,
-    cpu: cpu,
-    uptime: uptime,
-    nodeVersion: nodeVersion,
-    v8Version: report.header.componentVersions.v8,
-    osName: report.header.osName,
-    osRelease: report.header.osRelease,
-    osVersion: report.header.osVersion,
-    version: execSync("git rev-parse --short HEAD").toString().trim(),
-  });
+const get_performance_stats = (req, res) => {
+  try {
+    const mem = process.memoryUsage();
+    const cpu = process.cpuUsage();
+    const report = process.report.getReport();
+
+    res.json({
+      memory: mem,
+      cpu: cpu,
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      v8Version: report.header.componentVersions.v8,
+      osName: report.header.osName,
+      osRelease: report.header.osRelease,
+      osVersion: report.header.osVersion,
+      version: execSync("git rev-parse --short HEAD").toString().trim(),
+    });
+  } catch (err) {
+    console.error("Performance stats error:", err);
+    res.status(500).json({ error: "Failed to retrieve performance stats" });
+  }
 };
 
 /*
@@ -66,72 +70,80 @@ const upload_files_post = (req, res, next) => {
     the url will be /share/xxxxx/file.foo where xxxxx is a random
   */
 const generateShareLinkJsonPost = async (req, res, next) => {
-  const relativeFilePath = req.body.filePath || ""; // Pass full relative path from client
-  const fileName = req.body.fileName;
+  const { filePath: relativeFilePath = "", fileName } = req.body;
+
+  if (!fileName) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
+
   const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
 
   if (!fs.existsSync(absoluteFilePath)) {
-    return next({ message: "File not found", status: 400 });
+    return next({ message: "File not found", status: 404 });
   }
+
   const relPathName = path.join(relativeFilePath, fileName);
-  const token = crypto.randomBytes(5).toString("hex"); // Generate random token
+  const token = crypto.randomBytes(5).toString("hex");
   const shareLink = `${req.protocol}://${domain}/share/${token}/${fileName}`;
 
-  if (!(await storeLinkInfo(fileName, relPathName, shareLink, token))) {
+  const stored = await storeLinkInfo(fileName, relPathName, shareLink, token);
+  if (!stored) {
     return next({ message: "File is already shared", status: 400 });
   }
-  res.json({
-    link: shareLink,
-    fileName: fileName,
-  });
+
+  res.json({ link: shareLink, fileName });
 };
 
-/*
-    Serve a shared file. 
-    We use the token to lookup the shared file 
-    A shared file can exist on this server, where we serve the
-    local file, or on a remote server, where we will connect to it via
-    sftp and proxy/stream the file to the client
-  */
-const serveSharedFile = async (req, res, next) => {
-  const { token, filename } = req.params; // Extract token and file name from the URL
+/**
+ * GET /share/:token/:filename
+ * Serves a shared file — either from local disk or proxied from a remote
+ * SFTP server depending on how the share was created.
+ */
+const serveSharedFile = async (req, res) => {
+  const { token, filename } = req.params;
 
   const sharedFile = await SharedFile.findOne({ token });
+  if (!sharedFile) {
+    return res.status(404).send("File not found");
+  }
 
-  if (!sharedFile) return res.status(404).send("File not found");
   if (sharedFile.isRemote) {
-    const remotePath = sharedFile.filePath;
-    const serverId = sharedFile.serverId;
+    const { remotePath, serverId } = sharedFile;
     if (!serverId || !remotePath) {
       return res.status(404).send("File not found");
     }
-    sftpController.sftp_download_file(serverId, remotePath, res);
-  } else {
-    const filePath = path.join(uploadsDir, sharedFile.filePath);
-    const absoluteFilePath = path.join(path.dirname(filePath), filename);
-    if (!fs.existsSync(absoluteFilePath)) {
-      return res.status(404).send("File not found");
-    }
-
-    res.download(absoluteFilePath, filename, (err) => {
-      if (err) {
-        return res.status(500).send("Error downloading file");
-      }
-    });
+    // Delegate to sftp download — streams file directly to client
+    return sftpController.sftp_download_file(serverId, remotePath, res);
   }
+
+  const filePath = path.join(uploadsDir, sharedFile.filePath);
+  const absoluteFilePath = path.join(path.dirname(filePath), filename);
+
+  if (!fs.existsSync(absoluteFilePath)) {
+    return res.status(404).send("File not found");
+  }
+
+  res.download(absoluteFilePath, filename, (err) => {
+    if (err && !res.headersSent) {
+      console.error("Share download error:", err);
+      res.status(500).send("Error downloading file");
+    }
+  });
 };
 
 const delete_folder_json_post = async (req, res, next) => {
-  const fpath = req.body.folderPath;
-  const fname = req.body.folderName;
+  const { folderPath: fpath, folderName: fname } = req.body;
+
   if (!fpath || !fname) {
-    return res.status(500).send("Error: Missing required fields");
+    return next({ message: "Missing required fields", status: 400 });
   }
+
   try {
     const folderPath = path.join(uploadsDir, fpath, fname);
     await fs.promises.rmdir(folderPath);
     res.status(200).json({ message: "Folder deleted" });
   } catch (err) {
+    console.error("Delete folder error:", err);
     next({ message: "Error deleting folder", status: 400 });
   }
 };
@@ -139,7 +151,7 @@ const delete_folder_json_post = async (req, res, next) => {
 const getDirectoryData = (relativePath) => {
   const currentPath = relativePath ? `/files/${relativePath}` : "/files";
   const { files, folders } = localFileService.listLocalDir(
-    path.join(uploadsDir, relativePath)
+    path.join(uploadsDir, relativePath),
   );
   return { files, folders, currentPath, relativePath };
 };
@@ -166,54 +178,76 @@ const file_links_json_get = async (req, res) => {
   }
 };
 
-/*
-    Store file info for shared file
-  */
+/**
+ * Stores share link metadata in the database.
+ * Returns false if the file is already shared, true on success.
+ * @param {string} fileName
+ * @param {string} filePath
+ * @param {string} link
+ * @param {string} token
+ * @returns {Promise<boolean>}
+ */
 const storeLinkInfo = async (fileName, filePath, link, token) => {
-  if (await SharedFile.findOne({ fileName, filePath })) {
-    return false; //file already shared
-  }
+  const existing = await SharedFile.findOne({ fileName, filePath });
+  if (existing) return false;
 
-  const sharedFile = new SharedFile({
-    fileName,
-    filePath,
-    link,
-    token,
-  });
-  await sharedFile.save();
+  await new SharedFile({ fileName, filePath, link, token }).save();
   return true;
 };
 
+/**
+ * Removes a share link by token.
+ */
 const stop_sharing_json_post = async (req, res) => {
-  const token = req.body.token;
-  await SharedFile.deleteOne({ token });
-  res.status(200).json({
-    message: "link deleted",
-  });
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ error: "Missing token" });
+  }
+  try {
+    await SharedFile.deleteOne({ token });
+    res.status(200).json({ message: "Link deleted" });
+  } catch (err) {
+    console.error("Stop sharing error:", err);
+    res.status(500).json({ error: "Error deleting link" });
+  }
 };
 
 const delete_file_json_post = async (req, res, next) => {
   try {
     const relativeFilePath = req.params[0];
+
+    if (!relativeFilePath) {
+      return next({ message: "Missing file path", status: 400 });
+    }
+
     const filePath = path.join(uploadsDir, relativeFilePath);
 
     await fs.promises.unlink(filePath);
+
+    // Clean up any share links pointing to this file
     await SharedFile.findOneAndDelete({
       filePath,
       fileName: path.basename(filePath),
     });
+
     res.status(200).json({ message: "File deleted" });
   } catch (err) {
+    console.error("Delete file error:", err);
     next({ message: "Error deleting file", status: 400 });
   }
 };
 
+/**
+ * GET /files/download/*
+ * Triggers a file download using Express's res.download helper.
+ */
 const download_file_get = (req, res, next) => {
-  const relativeFilePath = req.params[0];
-  const filePath = path.join(uploadsDir, relativeFilePath);
+  const filePath = path.join(uploadsDir, req.params[0]);
+
   res.download(filePath, (err) => {
     if (err) {
-      return next(err);
+      console.error("Download error:", err);
+      next(err);
     }
   });
 };
@@ -256,43 +290,66 @@ const download_file_stream = async (req, res) => {
 };
 
 const create_folder_json_post = async (req, res, next) => {
+  const { folderName, currentPath = "" } = req.body;
+
+  if (!folderName) {
+    return next({ message: "Missing folder name", status: 400 });
+  }
+
   try {
-    const { folderName, currentPath = "" } = req.body;
     const fullPath = path.join(uploadsDir, currentPath, folderName);
 
     if (fs.existsSync(fullPath)) {
-      return next({ message: "Folder already exists", status: 404 });
+      return next({ message: "Folder already exists", status: 409 });
     }
+
     await fs.promises.mkdir(fullPath);
-    res.status(200).json({ message: "Folder created " });
+    res.status(200).json({ message: "Folder created" });
   } catch (err) {
-    return next({ message: "Error creating folder", status: 404 });
+    console.error("Create folder error:", err);
+    next({ message: "Error creating folder", status: 500 });
   }
 };
 
+/**
+ * Copies a file — either from a remote SFTP server to local, or within local storage.
+ */
 const copy_file_json_post = async (req, res, next) => {
+  const { filename, currentPath, newPath, serverId } = req.body;
+
+  if (!filename || !currentPath || !newPath) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
+
   try {
-    const { filename, currentPath, newPath, serverId } = req.body;
     if (serverId) {
       await sftpService.copySftpFileToLocal(
         filename,
         currentPath,
         newPath,
-        serverId
+        serverId,
       );
     } else {
       await localFileService.copy_local_file(filename, currentPath, newPath);
     }
-    res.status(200).json({ message: "File copied locally" });
+    res.status(200).json({ message: "File copied" });
   } catch (err) {
-    console.error("copy_file_json_post error:", err);
-    return next({ message: "Error copying file", status: 500 });
+    console.error("Copy file error:", err);
+    next({ message: "Error copying file", status: 500 });
   }
 };
 
+/**
+ * Copies a folder — either from a remote SFTP server to local, or within local storage.
+ */
 const copy_folder_json_post = async (req, res, next) => {
+  const { folderName, currentPath, newPath, serverId } = req.body;
+
+  if (!folderName || !currentPath || !newPath) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
+
   try {
-    const { folderName, currentPath, newPath, serverId } = req.body;
     if (serverId) {
       await sftpService.copyftpFolderToLocal(
         serverId,
@@ -304,55 +361,74 @@ const copy_folder_json_post = async (req, res, next) => {
       await localFileService.copy_local_folder(
         folderName,
         currentPath,
-        newPath
+        newPath,
       );
     }
-    res.status(200).json({ message: "Folder moved" });
+    res.status(200).json({ message: "Folder copied" });
   } catch (err) {
-    console.log(err);
-    return next({ message: "Error copying folder", status: 404 });
+    console.error("Copy folder error:", err);
+    next({ message: "Error copying folder", status: 500 });
   }
 };
 
+/**
+ * Moves a local file by copying it to the new path then deleting the original.
+ */
 const cut_file_json_post = async (req, res, next) => {
+  const { filename, currentPath, newPath } = req.body;
+
+  if (!filename || !currentPath || !newPath) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
+
   try {
-    const { filename, currentPath, newPath } = req.body;
-    const cfpath = path.join(uploadsDir, currentPath, filename);
-    const nfpath = path.join(uploadsDir, newPath, filename);
-    await fs.promises.copyFile(cfpath, nfpath);
-    await fs.promises.rm(cfpath);
+    const srcPath = path.join(uploadsDir, currentPath, filename);
+    const destPath = path.join(uploadsDir, newPath, filename);
+
+    await fs.promises.copyFile(srcPath, destPath);
+    await fs.promises.rm(srcPath);
+
     res.status(200).json({ message: "File moved" });
   } catch (err) {
-    return next({ message: "Error copying file", status: 404 });
+    console.error("Move file error:", err);
+    next({ message: "Error moving file", status: 500 });
   }
 };
 
 const rename_file_json_post = async (req, res, next) => {
+  const { filename, newFilename, currentPath } = req.body;
+  if (!filename || !newFilename || !currentPath) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
   try {
-    const { filename, newFilename, currentPath } = req.body;
-    if (!filename || !newFilename || !path) {
-      return next({ message: "error missing fields", status: 404 });
-    }
-    const cfpath = path.join(uploadsDir, currentPath, filename);
-    const nfpath = path.join(uploadsDir, currentPath, newFilename);
-    await fs.promises.rename(cfpath, nfpath);
-    res.status(200).json({ message: "file renamed" });
+    const srcPath = path.join(uploadsDir, currentPath, filename);
+    const destPath = path.join(uploadsDir, currentPath, newFilename);
+    await fs.promises.rename(srcPath, destPath);
+    res.status(200).json({ message: "File renamed" });
   } catch (err) {
-    return next({ message: `error`, status: 404 });
+    console.error("Rename file error:", err);
+    next({ message: "Error renaming file", status: 500 });
   }
 };
 
+/**
+ * Recursively appends a local folder's contents to an archiver instance.
+ * @param {archiver.Archiver} archive
+ * @param {string} folderPath - Absolute local path
+ * @param {string} zipFolderPath - Path inside the ZIP
+ */
 const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
   const { folders, files } = localFileService.listLocalDir(folderPath);
+
   for (const file of files) {
-    const itemPath = `${folderPath}/${file.name}`;
-    const zipPath = `${zipFolderPath}/${file.name}`;
-    const stream = fs.createReadStream(itemPath);
-    archive.append(stream || Buffer.alloc(0), { name: zipPath });
+    const itemPath = path.join(folderPath, file.name);
+    const zipPath = path.posix.join(zipFolderPath, file.name);
+    archive.append(fs.createReadStream(itemPath), { name: zipPath });
   }
+
   for (const folder of folders) {
-    const itemPath = `${folderPath}/${folder.name}`;
-    const zipPath = `${zipFolderPath}/${folder.name}`;
+    const itemPath = path.join(folderPath, folder.name);
+    const zipPath = path.posix.join(zipFolderPath, folder.name);
     archive.append(null, { name: `${zipPath}/` });
     await addFolderToArchive(archive, itemPath, zipPath);
   }
@@ -360,18 +436,36 @@ const addFolderToArchive = async (archive, folderPath, zipFolderPath) => {
 
 const get_archive_folder = async (req, res) => {
   const relativePath = req.params[0] || "";
-  const p = path.join(uploadsDir, relativePath ? `/${relativePath}` : "/");
+  const folderPath = path.join(uploadsDir, relativePath || "/");
+
   try {
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
     res.setHeader("Content-Type", "application/zip");
+
     const archive = archiver("zip", { zlib: { level: 9 } });
+
+    archive.on("error", (err) => {
+      console.error("Archive error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error creating archive" });
+      }
+    });
+
     archive.pipe(res);
 
-    await addFolderToArchive(archive, p, "/");
-    archive.finalize();
+    await addFolderToArchive(archive, folderPath, "/");
+
+    // Await finalization so we know the archive is complete before returning
+    await new Promise((resolve, reject) => {
+      archive.on("finish", resolve);
+      archive.on("error", reject);
+      archive.finalize();
+    });
   } catch (err) {
-    console.log(err);
-    res.status(500).json("Error: Error downloading folder");
+    console.error("Archive folder error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Error downloading folder" });
+    }
   }
 };
 
