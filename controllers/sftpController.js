@@ -7,28 +7,66 @@ const { sftpCopyFilesBatch } = require("../services/sftpService");
 const { complete } = require("../services/progressService");
 const domain = process.env.HOSTNAME;
 
+/**
+ * Sends a JSON error response and logs the message.
+ * @param {import('express').Response} res
+ * @param {string} message
+ * @param {number} [status=500]
+ */
 const handleError = (res, message, status = 500) => {
   console.error(message);
   res.status(status).json({ error: message });
 };
 
+/**
+ * Pipes a readable stream to an Express response, attaching error handling
+ * and ensuring cleanup is called exactly once regardless of how the
+ * response ends.
+ * @param {import('stream').Readable} stream
+ * @param {import('express').Response} res
+ * @param {Function} cleanup
+ */
+const pipeStreamToResponse = (stream, res, cleanup) => {
+  let cleanedUp = false;
+  const safeCleanup = async () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    await cleanup();
+  };
+
+  stream.on("error", async (err) => {
+    console.error("Stream error:", err);
+    await safeCleanup();
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Stream error during download" });
+    } else {
+      res.destroy();
+    }
+  });
+
+  res.on("finish", safeCleanup);
+  res.on("close", safeCleanup);
+
+  stream.pipe(res);
+};
+
 const sftp_rename_file_json_post = async (req, res) => {
   const { currentPath, fileName, newFileName, serverId } = req.body;
   if (!currentPath || !fileName || !newFileName || !serverId) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return handleError(res, "Missing required fields", 400);
   }
   try {
     await sftpService.renameFile(serverId, currentPath, fileName, newFileName);
     res.status(200).json({ message: "File renamed" });
   } catch (err) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return handleError(res, `Error renaming file: ${err.message}`, 500);
   }
 };
 
-async function sftp_create_folder_json_post(req, res) {
+const sftp_create_folder_json_post = async (req, res) => {
   const { currentPath, folderName, serverId } = req.body;
   if (!currentPath || !folderName || !serverId) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return handleError(res, "Missing required fields", 400);
   }
   try {
     const result = await sftpService.createFolder(
@@ -38,39 +76,35 @@ async function sftp_create_folder_json_post(req, res) {
     );
     res.status(200).json({ message: "Folder created", path: result.path });
   } catch (err) {
-    res.status(500).json({
-      error: "Error creating folder",
-      details: err.message,
-    });
+    return handleError(res, `Error creating folder: ${err.message}`);
   }
 }
 
-const sftp_delete_file_json_post = async (req, res, next) => {
+const sftp_delete_file_json_post = async (req, res) => {
   const { serverId, currentDirectory, fileName } = req.body;
-  if (serverId && currentDirectory && fileName) {
-    try {
-      await sftpService.deleteFile(
-        serverId,
-        path.join(currentDirectory, fileName)
-      );
-      return res.status(200).send(JSON.stringify("message: File Deleted"));
-    } catch (error) {
-      return res.status(400).send("Error deleting file");
-    }
+  if (!serverId || !currentDirectory || !fileName) {
+    return handleError(res, "Missing required fields", 400);
   }
-  return res.status(404).send("server not found");
+  try {
+    await sftpService.deleteFile(serverId, path.posix.join(currentDirectory, fileName));
+    res.status(200).json({ message: "File deleted" });
+  } catch (err) {
+    console.error("Delete file error:", err);
+    return handleError(res, "Error deleting file");
+  }
 };
 
-const sftp_delete_folder_json_post = async (req, res, next) => {
+const sftp_delete_folder_json_post = async (req, res) => {
   const { serverId, currentDirectory, deleteDir } = req.body;
+  if (!serverId || !currentDirectory || !deleteDir) {
+    return handleError(res, "Missing required fields", 400);
+  }
   try {
-    await sftpService.deleteFolder(
-      serverId,
-      path.join(currentDirectory, deleteDir)
-    );
-    res.status(200).send(JSON.stringify("message: Folder Deleted"));
-  } catch (error) {
-    res.status(400).send(JSON.stringify("Error: Failed to delete folder"));
+    await sftpService.deleteFolder(serverId, path.posix.join(currentDirectory, deleteDir));
+    res.status(200).json({ message: "Folder deleted" });
+  } catch (err) {
+    console.error("Delete folder error:", err);
+    return handleError(res, "Error deleting folder");
   }
 };
 
@@ -106,12 +140,25 @@ async function sftp_download_file(serverId, remotePath, res) {
   }
 }
 
-async function sftp_stream_download_get(req, res) {
+const sftp_stream_download_get = async (req, res) => {
   const { serverId } = req.params;
   const relativePath = req.params[0] || "";
   const remotePath = relativePath ? `/${relativePath}` : "/";
-  await sftp_download_file(serverId, remotePath, res);
-}
+
+  try {
+    const { stream, filename, cleanup } = await sftpService.downloadFile(serverId, remotePath);
+
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+
+    pipeStreamToResponse(stream, res, cleanup);
+  } catch (err) {
+    console.error("Download error:", err);
+    if (!res.headersSent) {
+      handleError(res, "Error downloading file");
+    }
+  }
+};
 
 async function sftp_stream_upload_post(req, res) {
   const busboy = Busboy({ headers: req.headers });
@@ -152,9 +199,7 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
   try {
     const server = await SftpServer.findById(serverId);
     if (!server) {
-      return res.status(404).json({
-        error: "Server not found",
-      });
+      return handleError(res, "Server not found", 404);
     }
     const { files, folders } = await sftpService.listDirectory(
       serverId,
@@ -169,32 +214,36 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    return res.status(404).send("Error listing directory");
+    return handleError(res, "Error listing directory");
   }
 };
 
-async function sftp_copy_files_batch_json_post(req, res) {
+const sftp_copy_files_batch_json_post = async (req, res) => {
   const { files, newPath, newServerId, transferId } = req.body;
+  if (!files || !newPath) {
+    return handleError(res, "Missing required fields", 400);
+  }
   try {
     await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
     complete(transferId);
-    res.status(200).send("Batch transfer complete");
+    res.status(200).json({ message: "Batch transfer complete" });
   } catch (err) {
-    console.error("Transfer failed:", err);
-    res.status(500).send("Batch transfer failed");
+    console.error("Batch transfer error:", err);
+    return handleError(res, "Batch transfer failed");
   }
-}
+};
 
-const share_sftp_file = async (req, res, next) => {
+const share_sftp_file = async (req, res) => {
   const { serverId, remotePath } = req.body;
   if (!serverId || !remotePath) {
-    return res.status(400).send(JSON.stringify("Error: Missing required fields"));
+    return handleError(res, "Missing required fields", 400);
   }
   try {
     const fileName = remotePath.split("/").pop();
     const { link } = await serverService.share_file(fileName, remotePath, serverId);
-    return res.json({ link });
+    res.json({ link });
   } catch (err) {
+    console.error("Share file error:", err);
     return handleError(res, "Error creating share link");
   }
 };
@@ -247,11 +296,15 @@ const sftp_save_server_json_post = async (req, res, next) => {
 
 const sftp_delete_server__json_post = async (req, res, next) => {
   const { serverId } = req.body;
+  if (!serverId) {
+    return handleError(res, "Missing serverId", 400);
+  }
   try {
     await SftpServer.findByIdAndDelete(serverId);
-    res.status(200).send("server dlelered");
-  } catch (error) {
-    return res.status(404).send("Error deleting server");
+    res.status(200).json({ message: "Server deleted" });
+  } catch (err) {
+    console.error("Delete server error:", err);
+    return handleError(res, "Error deleting server");
   }
 };
 
