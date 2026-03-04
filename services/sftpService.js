@@ -146,24 +146,27 @@ async function listDirectory(serverId, currentDirectory) {
 async function downloadFile(serverId, remotePath) {
   const sftp = await connectToSftp(serverId);
   const stream = new PassThrough();
-  try {
-    await sftp.get(remotePath, stream);
-    const cleanup = async () => {
-      try {
-        await sftp.end();
-      } catch (err) {
-        console.error("Error closing SFTP:", err);
-      }
-    };
-    return {
-      stream,
-      filename: remotePath.split("/").pop(),
-      cleanup,
-    };
-  } catch (err) {
-    await sftp.end();
-    throw new SftpError("Error downloading file", err.code, err.message);
-  }
+  
+  const cleanup = async () => {
+    try {
+      await sftp.end();
+    } catch (err) {
+      console.error("Error closing SFTP:", err);
+    }
+  };
+
+  // Don't await - let transfer happen while stream is being piped
+  sftp.get(remotePath, stream)
+    .catch(async (err) => {
+      stream.destroy(err);
+      await cleanup();
+    });
+
+  return {
+    stream,
+    filename: remotePath.split("/").pop(),
+    cleanup,
+  };
 }
 
 async function uploadFile(serverId, stream, remotePath) {
