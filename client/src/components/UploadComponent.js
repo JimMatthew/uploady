@@ -1,27 +1,19 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
-  Progress,
-  Button,
-  Input,
   Box,
+  Flex,
   HStack,
-  FormControl,
-  useColorModeValue,
-  IconButton,
-  List,
-  ListItem,
-  Text,
   VStack,
+  Text,
+  Progress,
+  IconButton,
+  Icon,
 } from "@chakra-ui/react";
 import useFileUpload from "../controllers/useFileUpload";
 import { CloseIcon } from "@chakra-ui/icons";
-import { FiFile } from "react-icons/fi";
-function Upload({
-  apiEndpoint,
-  additionalData = {},
-  onUploadSuccess,
-  onUploadError,
-}) {
+import { FiFile, FiUpload } from "react-icons/fi";
+
+function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
 
@@ -31,119 +23,173 @@ function Upload({
     additionalData,
   });
 
-  const handleFileChange = (event) => {
-    setFiles((prevFiles) => [...prevFiles, ...Array.from(event.target.files)]);
-  };
-
-  const onFinish = () => {
-    setFiles([]);
-    onUploadSuccess();
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    await uploadFiles(files, onFinish);
-    fileInputRef.current.value = null;
+  const handleFileChange = (e) => {
+    setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
   };
 
   const handleCancel = (index) => {
-    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!files.length) return;
+    await uploadFiles(files, () => {
+      setFiles([]);
+      onUploadSuccess?.();
+    });
+    fileInputRef.current.value = null;
+  };
+
   return (
-    <Box
-      as="form"
-      onSubmit={handleSubmit}
-      p={4}
-      shadow="md"
-      borderWidth="1px"
-      borderRadius="lg"
-      background={useColorModeValue("gray.50", "gray.800")}
-      maxW="lg"
-      mx="auto"
-    >
-      <FormControl>
-        <HStack spacing={4} align="center">
-          <Input
+    <Box as="form" onSubmit={handleSubmit} w="100%" maxW="480px">
+      {/* Upload row */}
+      <HStack spacing={2}>
+        {/* File input button */}
+        <Box
+          as="label"
+          flex={1}
+          h="36px"
+          px={3}
+          display="flex"
+          alignItems="center"
+          gap={2}
+          borderRadius="8px"
+          bg="rgba(255,255,255,0.04)"
+          border="1px solid rgba(255,255,255,0.08)"
+          cursor="pointer"
+          transition="all 0.15s"
+          _hover={{
+            bg: "rgba(255,255,255,0.07)",
+            borderColor: "rgba(255,255,255,0.15)",
+          }}
+        >
+          <Icon as={FiFile} boxSize="13px" color="rgba(255,255,255,0.3)" />
+          <Text
+            fontSize="12px"
+            fontFamily="'JetBrains Mono', monospace"
+            color={
+              files.length ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"
+            }
+            noOfLines={1}
+            flex={1}
+          >
+            {files.length
+              ? `${files.length} file${files.length > 1 ? "s" : ""} selected`
+              : "Choose files…"}
+          </Text>
+          <input
             type="file"
+            multiple
             ref={fileInputRef}
             onChange={handleFileChange}
-            variant="unstyled"
-            _focus={{ outline: "none" }}
-            p={2}
-            bg={useColorModeValue("white", "gray.700")}
-            borderWidth="1px"
-            borderRadius="md"
-            size="md"
+            style={{ display: "none" }}
           />
-          <Button
-            colorScheme="blue"
-            type="submit"
-            size="md"
-            px={6}
-            _hover={{ bg: "blue.600" }}
-          >
-            Upload
-          </Button>
-        </HStack>
-        {files.length > 0 && (
-          <List spacing={3} width="100%">
-            {files.map((file, index) => (
-              <ListItem
-                key={index}
-                bg="white"
-                p={4}
-                borderRadius="xl"
-                borderWidth="1px"
-                boxShadow="md"
-                _hover={{ boxShadow: "lg", transform: "translateY(-2px)" }}
-                transition="all 0.2s ease"
-              >
-                <HStack justify="space-between" align="center" spacing={4}>
-                  {/* File icon + name + progress */}
-                  <HStack flex="1" spacing={3} align="flex-start">
-                    <Box
-                      bg="blue.50"
-                      p={2}
-                      borderRadius="lg"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <FiFile size={20} color="#3182ce" />
-                    </Box>
-                    <VStack align="start" spacing={1} flex="1">
-                      <Text
-                        fontWeight="semibold"
-                        color="blue.700"
-                        noOfLines={1}
-                      >
-                        {file.name}
-                      </Text>
-                      <Progress
-                        value={progresses[index]}
-                        size="sm"
-                        colorScheme="blue"
-                        borderRadius="md"
-                        width="100%"
-                      />
-                    </VStack>
-                  </HStack>
+        </Box>
 
-                  {/* Cancel button */}
-                  <IconButton
-                    aria-label="Cancel upload"
-                    icon={<CloseIcon />}
-                    size="sm"
-                    variant="ghost"
-                    colorScheme="red"
-                    onClick={() => handleCancel(index)}
-                  />
-                </HStack>
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </FormControl>
+        {/* Upload button */}
+        <Flex
+          as="button"
+          type="submit"
+          align="center"
+          gap="6px"
+          px={3}
+          h="36px"
+          borderRadius="8px"
+          bg={files.length ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)"}
+          border={`1px solid ${files.length ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.08)"}`}
+          color={files.length ? "#818CF8" : "rgba(255,255,255,0.25)"}
+          cursor={files.length ? "pointer" : "default"}
+          fontSize="12px"
+          fontWeight={600}
+          fontFamily="'JetBrains Mono', monospace"
+          transition="all 0.15s"
+          flexShrink={0}
+          _hover={
+            files.length
+              ? {
+                  bg: "rgba(99,102,241,0.3)",
+                  borderColor: "rgba(99,102,241,0.6)",
+                }
+              : {}
+          }
+        >
+          <Icon as={FiUpload} boxSize="12px" />
+          Upload
+        </Flex>
+      </HStack>
+
+      {/* File list */}
+      {files.length > 0 && (
+        <VStack spacing={1} mt={2} align="stretch">
+          {files.map((file, index) => (
+            <Flex
+              key={index}
+              align="center"
+              gap={3}
+              px={3}
+              py="10px"
+              borderRadius="8px"
+              bg="rgba(255,255,255,0.03)"
+              border="1px solid rgba(255,255,255,0.06)"
+            >
+              {/* File icon */}
+              <Flex
+                align="center"
+                justify="center"
+                w="28px"
+                h="28px"
+                borderRadius="6px"
+                bg="rgba(99,102,241,0.12)"
+                flexShrink={0}
+              >
+                <Icon as={FiFile} boxSize="13px" color="#818CF8" />
+              </Flex>
+
+              {/* Name + progress */}
+              <VStack align="start" spacing="4px" flex={1} minW={0}>
+                <Text
+                  fontSize="12px"
+                  fontFamily="'JetBrains Mono', monospace"
+                  fontWeight={600}
+                  color="rgba(255,255,255,0.75)"
+                  noOfLines={1}
+                >
+                  {file.name}
+                </Text>
+                <Progress
+                  value={progresses[index] ?? 0}
+                  size="xs"
+                  w="100%"
+                  borderRadius="full"
+                  bg="rgba(255,255,255,0.06)"
+                  sx={{
+                    "& > div": {
+                      background: "linear-gradient(90deg, #6366F1, #818CF8)",
+                      borderRadius: "full",
+                    },
+                  }}
+                />
+              </VStack>
+
+              {/* Cancel */}
+              <IconButton
+                aria-label="Remove file"
+                icon={<CloseIcon boxSize="9px" />}
+                size="xs"
+                variant="ghost"
+                color="rgba(255,255,255,0.2)"
+                _hover={{
+                  color: "rgba(255,255,255,0.6)",
+                  bg: "rgba(255,255,255,0.06)",
+                }}
+                onClick={() => handleCancel(index)}
+                flexShrink={0}
+              />
+            </Flex>
+          ))}
+        </VStack>
+      )}
     </Box>
   );
 }

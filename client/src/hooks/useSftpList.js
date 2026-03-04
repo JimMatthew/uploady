@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import SftpFileFolderView from "../pages/SftpFileFolderViewer";
 import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
@@ -11,158 +11,196 @@ import {
   DeleteServer,
   fetchServerStatuses,
 } from "../controllers/StoreServer";
-let nextId = 1;
+
 export function useSftpList({ toast }) {
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const nextId = useRef(1);
+
   const [loading, setLoading] = useState(false);
   const [sftpServers, setSftpServers] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [serverStatuses, setServerStatuses] = useState({});
-  const navigate = useNavigate();
 
-  const addTabItem = ({ id, label, content }) => {
+  // ---------------------------------------------------------------------------
+  // Tab management
+  // ---------------------------------------------------------------------------
+
+  const addTabItem = useCallback(({ label, content }) => {
     setTabs((prev) => {
-      const newTabs = [...prev, { id: nextId++, label, content }];
+      const newTabs = [...prev, { id: nextId.current++, label, content }];
       setActiveTabIndex(newTabs.length - 1);
       return newTabs;
     });
-  };
+  }, []);
 
-  const closeTab = (keyToRemove) => {
+  const closeTab = useCallback((keyToRemove) => {
     setTabs((prevTabs) => {
       const idx = prevTabs.findIndex((t) => t.id === keyToRemove);
       if (idx === -1) return prevTabs;
+
       const next = prevTabs.filter((t) => t.id !== keyToRemove);
+
       setActiveTabIndex((prevActive) => {
-        if (idx === prevActive) return Math.max(0, prevActive - 1);
-        if (idx < prevActive) return prevActive - 1;
-        return prevActive;
+        if (idx > prevActive) return prevActive;
+        return Math.max(0, prevActive - 1);
       });
+
       return next;
     });
-  };
+  }, []);
 
-  const handleOpenFile = async (serverId, currentDirectory, filename, host, remote) => {
-    addTabItem({
-      id: filename,
-      label: filename,
-      content: (
-        <FileEdit
-          serverId={serverId}
-          currentDirectory={currentDirectory}
-          filename={filename}
-          toast={toast}
-          host={host}
-          remote={remote}
-        />
-      ),
-    });
-  };
+  // ---------------------------------------------------------------------------
+  // Tab openers
+  // ---------------------------------------------------------------------------
 
-  const handleSshLaunch = (server) => {
-    addTabItem({
-      id: server._id,
-      label: `${server.host} - SSH`,
-      content: <SshConsole serverId={server._id} />,
-    });
-  };
+  const handleOpenFile = useCallback(
+    (serverId, currentDirectory, filename, host, remote) => {
+      addTabItem({
+        label: filename,
+        content: (
+          <FileEdit
+            serverId={serverId}
+            currentDirectory={currentDirectory}
+            filename={filename}
+            toast={toast}
+            host={host}
+            remote={remote}
+          />
+        ),
+      });
+    },
+    [addTabItem, toast],
+  );
 
-  const handleNewServer = () => {
+  const handleSshLaunch = useCallback(
+    (server) => {
+      addTabItem({
+        label: `${server.host} - SSH`,
+        content: <SshConsole serverId={server._id} />,
+      });
+    },
+    [addTabItem],
+  );
+
+  const handleNewServer = useCallback(() => {
     addTabItem({
-      id: "new",
       label: "New Server",
       content: <AddServer handleSaveServer={handleSaveServer} />,
     });
-  };
+    // handleSaveServer is stable (defined below with useCallback)
+  }, [addTabItem]);
 
-  const handleLocalTab = () => {
+  const handleLocalTab = useCallback(() => {
     addTabItem({
-      id: "Local",
       label: "Local",
-      content: <FileList toast={toast} hideLink={true} openFile={handleOpenFile}/>,
+      content: (
+        <FileList toast={toast} hideLink={true} openFile={handleOpenFile} />
+      ),
     });
-  };
+  }, [addTabItem, toast, handleOpenFile]);
 
-  const handleSharedLinks = () => {
+  const handleSharedLinks = useCallback(() => {
     addTabItem({
-      id: "links",
       label: "Links",
       content: <SharedLinks />,
     });
-  };
+  }, [addTabItem]);
 
-  const handleSaveServer = async (
-    host,
-    username,
-    password,
-    authMethod,
-    passphrase
-  ) => {
-    await SaveServer({
-      host,
-      username,
-      password,
-      authMethod,
-      toast,
-      passphrase,
-    });
-    fetchServers();
-  };
+  const handleConnect = useCallback(
+    (server) => {
+      addTabItem({
+        label: `${server.host} - SFTP`,
+        content: (
+          <SftpFileFolderView
+            serverId={server._id}
+            toast={toast}
+            openFile={handleOpenFile}
+            host={server.host}
+          />
+        ),
+      });
+    },
+    [addTabItem, toast, handleOpenFile],
+  );
 
-  const deleteServer = async (serverId) => {
-    await DeleteServer({ serverId: serverId, toast: toast });
-    fetchServers();
-  };
+  // ---------------------------------------------------------------------------
+  // Server management
+  // ---------------------------------------------------------------------------
 
-  useEffect(() => {
-    if (token) {
-      fetchServers();
-    } else {
-      navigate("/");
-      console.error("No token found");
-    }
-  }, []);
-
-  const handleConnect = async (server) => {
-    addTabItem({
-      id: server._id,
-      label: `${server.host} - SFTP`,
-      content: (
-        <SftpFileFolderView
-          serverId={server._id}
-          toast={toast}
-          openFile={handleOpenFile}
-          host={server.host}
-        />
-      ),
-    });
-  };
-
-  const fetchServers = async () => {
+  const fetchServers = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await fetch("/sftp/api/", {
-        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-      if (res.status !== 200) {
+
+      if (res.status === 401 || res.status === 403) {
         navigate("/");
         return;
       }
+
+      if (!res.ok) {
+        console.error("Failed to fetch servers:", res.status);
+        return;
+      }
+
       const data = await res.json();
       setSftpServers(data);
+      setLoading(false);
       await fetchServerStatuses({ data, setServerStatuses });
     } catch (err) {
-      console.error("Error fetching files:", err);
+      console.error("Error fetching servers:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigate]);
+
+  const handleSaveServer = useCallback(
+    async (host, username, password, authType, passphrase) => {
+      await SaveServer({
+        host,
+        username,
+        password,
+        authType,
+        toast,
+        passphrase,
+      });
+      fetchServers();
+    },
+    [toast, fetchServers],
+  );
+
+  const deleteServer = useCallback(
+    async (serverId) => {
+      await DeleteServer({ serverId, toast });
+      fetchServers();
+    },
+    [toast, fetchServers],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Auth + initial load
+  // Intent: run once on mount. token and navigate are stable references
+  // so omitting them from deps is safe here.
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    fetchServers();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------------------
+  // Public interface
+  // ---------------------------------------------------------------------------
 
   return {
     loading,
@@ -171,14 +209,14 @@ export function useSftpList({ toast }) {
     setShowSidebar,
     tabs,
     serverStatuses,
-    closeTab,
-    handleNewServer,
-    handleSshLaunch,
-    deleteServer,
-    handleConnect,
-    handleLocalTab,
     activeTabIndex,
     setActiveTabIndex,
+    closeTab,
+    handleConnect,
+    handleNewServer,
+    handleSshLaunch,
+    handleLocalTab,
     handleSharedLinks,
+    deleteServer,
   };
 }

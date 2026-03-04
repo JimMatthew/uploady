@@ -1,17 +1,58 @@
-import React, { useEffect, useState, useCallback } from "react";
-import fileController from "../controllers/fileController";
+import { useEffect, useState, useCallback } from "react";
+import useFileController from "../controllers/fileController";
 import { useNavigate } from "react-router-dom";
-export function useFileList({ toast }) {
-  const [fileData, setFileData] = useState(null);
-  const [currentPath, setCurrentPath] = useState("files");
-  const token = localStorage.getItem("token");
-  const [loading, setLoading] = useState(true);
 
+export function useFileList({ toast }) {
+  const [fileData, setFileData]   = useState(null);
+  const [currentPath, setCurrentPath] = useState("files");
+  const [loading, setLoading]     = useState(true);
+
+  const token    = localStorage.getItem("token");
   const navigate = useNavigate();
 
-  const reload = () => {
+  // ---------------------------------------------------------------------------
+  // Core fetch
+  // ---------------------------------------------------------------------------
+
+  const fetchFiles = useCallback(async (path) => {
+    //setLoading(true);
+    try {
+      const response = await fetch(`/api/${path}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        navigate("/");
+        return;
+      }
+
+      if (!response.ok) {
+        console.error("Failed to fetch files:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      setFileData(data);
+    } catch (err) {
+      console.error("Error fetching files:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, navigate]);
+
+  // reload always uses the current path
+  const reload = useCallback(() => {
+    console.log("reload recreated");
     fetchFiles(currentPath);
-  };
+  }, [fetchFiles, currentPath]);
+
+  // ---------------------------------------------------------------------------
+  // Controller — named as a hook so React handles memoization correctly
+  // and function references stay stable across renders
+  // ---------------------------------------------------------------------------
 
   const {
     handleFileDownload,
@@ -24,105 +65,96 @@ export function useFileList({ toast }) {
     handleCopy,
     handleCut,
     handlePaste,
-  } = fileController({ toast, onRefresh: reload });
+  } = useFileController({ toast, onRefresh: reload });
+
+  // ---------------------------------------------------------------------------
+  // Auth + initial load
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    fetchFiles(currentPath);
+  }, [currentPath, token]);
+
+  // ---------------------------------------------------------------------------
+  // Bound operations — curry current relativePath into each handler
+  // so callers only need to pass the file/folder name
+  // ---------------------------------------------------------------------------
 
   const onFileDownload = useCallback(
-    (name) => {
-      if (!fileData?.relativePath) return;
-      handleFileDownload(name, fileData.relativePath);
-    },
+    (name) => handleFileDownload(name, fileData?.relativePath),
     [handleFileDownload, fileData?.relativePath]
   );
 
   const onFileDelete = useCallback(
-    (name) => handleFileDelete(name, fileData.relativePath),
+    (name) => handleFileDelete(name, fileData?.relativePath),
     [handleFileDelete, fileData?.relativePath]
   );
 
   const onFileShare = useCallback(
-    (name) => handleFileShareLink(name, fileData.relativePath),
+    (name) => handleFileShareLink(name, fileData?.relativePath),
     [handleFileShareLink, fileData?.relativePath]
   );
 
   const onFileCopy = useCallback(
-    (name) => handleCopy(name, fileData.relativePath, false),
-    [ fileData?.relativePath]
+    (name) => handleCopy(name, fileData?.relativePath, false),
+    [handleCopy, fileData?.relativePath]
   );
 
   const onFileCut = useCallback(
-    (name) => handleCut(name, fileData.relativePath),
+    (name) => handleCut(name, fileData?.relativePath),
     [handleCut, fileData?.relativePath]
   );
 
   const onFileRename = useCallback(
-    (name, newName) => handleRenameFile(name, newName, fileData.relativePath),
+    (name, newName) => handleRenameFile(name, newName, fileData?.relativePath),
     [handleRenameFile, fileData?.relativePath]
   );
 
   const onFolderDelete = useCallback(
-    (folder) => handleDeleteFolder(folder, fileData.relativePath),
+    (folder) => handleDeleteFolder(folder, fileData?.relativePath),
     [handleDeleteFolder, fileData?.relativePath]
   );
 
   const onFolderCopy = useCallback(
-    (folder) => handleCopy(folder, fileData.relativePath, true),
+    (folder) => handleCopy(folder, fileData?.relativePath, true),
     [handleCopy, fileData?.relativePath]
   );
 
   const onPaste = useCallback(
-    () => handlePaste(fileData.relativePath),
+    () => handlePaste(fileData?.relativePath),
     [handlePaste, fileData?.relativePath]
   );
 
   const onCreateFolder = useCallback(
-    (folder) => createFolder(folder, fileData.relativePath),
-    [handleCopy, fileData?.relativePath]
+    (folder) => createFolder(folder, fileData?.relativePath),
+    [createFolder, fileData?.relativePath]  // was [handleCopy, ...] — bug fix
   );
 
   const onGenerateBreadcrumb = useCallback(
-    () => generateBreadcrumb(fileData.relativePath),
+    () => generateBreadcrumb(fileData?.relativePath),
     [generateBreadcrumb, fileData?.relativePath]
   );
 
-  useEffect(() => {
-    if (token) {
-      setLoading(true);
-      fetchFiles(currentPath);
-      setLoading(false);
-    } else {
-      navigate("/");
-      console.error("No token found");
-    }
-  }, [currentPath, token]);
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
 
-  const handleFolderClick = (folderName) => {
-    setCurrentPath((prevPath) => `${prevPath}/${folderName}`);
-  };
+  const handleFolderClick = useCallback((folderName) => {
+    setCurrentPath((prev) => `${prev}/${folderName}`);
+  }, []);
 
-  const fetchFiles = async (path) => {
-    try {
-      const response = await fetch(`/api/${path}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+  // ---------------------------------------------------------------------------
+  // Public interface
+  // ---------------------------------------------------------------------------
 
-      if (response.status !== 200) {
-        navigate("/");
-        return;
-      }
-      const data = await response.json();
-      setFileData(data);
-    } catch (err) {
-      console.error("Error fetching files:", err);
-    }
-  };
   return {
     fileData,
-    setCurrentPath,
     loading,
+    setCurrentPath,
     handleFolderClick,
     reload,
     onCreateFolder,

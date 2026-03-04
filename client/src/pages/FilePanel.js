@@ -14,7 +14,7 @@ const FilePanel = ({
   changeDirectory, onCreateFolder, startedTransfers, progressMap,
   generateBreadcrumb, fileUploadProps,
 }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const isMobile = useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
 
   return (

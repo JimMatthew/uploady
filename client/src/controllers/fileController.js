@@ -62,7 +62,7 @@ const FileController = ({ toast, onRefresh }) => {
       const blob = await apiRequest(
         `/api/download/${path}/${fileName}`,
         {},
-        true
+        true,
       );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -100,13 +100,13 @@ const FileController = ({ toast, onRefresh }) => {
       showToast(
         "Link generated",
         "success",
-        `Share link created for ${fileName}`
+        `Share link created for ${fileName}`,
       );
     } catch {
       showToast(
         "Error generating link",
         "error",
-        `Failed to generate link for ${fileName}`
+        `Failed to generate link for ${fileName}`,
       );
     }
   };
@@ -138,6 +138,10 @@ const FileController = ({ toast, onRefresh }) => {
   };
 
   const handleRenameFile = async (filename, newFilename, path) => {
+    if (!filename || !newFilename || !path) {
+      showToast("Missing required fields", "error");
+      return;
+    }
     try {
       await apiRequest("/api/rename-file", {
         method: "POST",
@@ -181,7 +185,7 @@ const FileController = ({ toast, onRefresh }) => {
     cutFile({ file: filename, path: rp, source: "local", serverId: null });
   }
 
-   const handleFileCopy = async (filename, currentPath, newPath, serverId) => {
+  const handleFileCopy = async (filename, currentPath, newPath, serverId) => {
     try {
       await apiRequest("/api/copy-file", {
         method: "POST",
@@ -194,7 +198,12 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
-  const handleFolderCopy = async (folderName, currentPath, newPath, serverId) => {
+  const handleFolderCopy = async (
+    folderName,
+    currentPath,
+    newPath,
+    serverId,
+  ) => {
     try {
       await apiRequest("/api/copy-folder", {
         method: "POST",
@@ -207,18 +216,21 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
-  function handlePaste(rp) {
-    clipboard.forEach(({ file, path, action, isDirectory, serverId }) => {
-      if (action === "copy") {
-        if (isDirectory) {
-          handleFolderCopy(file, path, rp, serverId);
-        } else {
-          handleFileCopy(file, path, rp, serverId);
-        }
-      } else if (action === "cut") handleFileCut(file, path, rp);
-    });
-    clearClipboard();
-  }
+  const handlePaste = async (rp) => {
+    try {
+      await Promise.all(
+        clipboard.map(({ file, path, action, isDirectory, serverId }) => {
+          if (action === "cut") return handleFileCut(file, path, rp);
+          return isDirectory
+            ? handleFolderCopy(file, path, rp, serverId)
+            : handleFileCopy(file, path, rp, serverId);
+        }),
+      );
+      clearClipboard();
+    } catch {
+      showToast("Error pasting items", "error");
+    }
+  };
 
   return {
     handleFolderCopy,
@@ -231,7 +243,7 @@ const FileController = ({ toast, onRefresh }) => {
     generateBreadcrumb,
     handleCopy,
     handleCut,
-    handlePaste
+    handlePaste,
   };
 };
 

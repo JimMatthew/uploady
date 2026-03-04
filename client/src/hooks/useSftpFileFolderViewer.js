@@ -8,54 +8,111 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   const [connected, setConnected] = useState(false);
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
-  const { copyFile, cutFile, clipboard, clearClipboard } = useClipboard();
 
+  const { copyFile, clipboard, clearClipboard } = useClipboard();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  // ---------------------------------------------------------------------------
+  // Core API wrapper
+  // ---------------------------------------------------------------------------
+
   const apiRequest = useCallback(
     async (url, options = {}, expectBlob = false) => {
-      try {
-        const response = await fetch(url, {
-          ...options,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            ...options.headers,
-          },
-        });
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
 
-        if (response.status === 401) {
-          navigate("/");
-          throw new Error("Unauthorized");
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Request failed");
-        }
-
-        return expectBlob ? response.blob() : response.json();
-      } catch (error) {
-        console.error("API error:", error);
-        throw error;
+      if (response.status === 401) {
+        navigate("/");
+        throw new Error("Unauthorized");
       }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Request failed");
+      }
+
+      return expectBlob ? response.blob() : response.json();
     },
-    [token, navigate]
+    [token, navigate],
   );
 
   const showToast = useCallback(
     (title, status, description = null) => {
-      toast({
-        title,
-        description,
-        status,
-        duration: 3000,
-        isClosable: true,
-      });
+      toast({ title, description, status, duration: 3000, isClosable: true });
     },
-    [toast]
+    [toast],
   );
+
+  // ---------------------------------------------------------------------------
+  // Directory navigation
+  // ---------------------------------------------------------------------------
+
+  const connectToServer = useCallback(async () => {
+    try {
+      const data = await apiRequest(`/sftp/api/connect/${serverId}/`);
+      setFiles(data);
+    } catch {
+      showToast("Error connecting to server", "error");
+    }
+  }, [serverId, apiRequest, showToast]);
+
+  const changeSftpDirectory = useCallback(
+    async (directory) => {
+      try {
+        const data = await apiRequest(
+          `/sftp/api/connect/${serverId}/${directory}/`,
+        );
+        setFiles(data);
+      } catch {
+        showToast("Error listing directory", "error");
+      }
+    },
+    [serverId, apiRequest, showToast],
+  );
+
+  const onChangeDirectory = useCallback(
+    (folder) => changeSftpDirectory(`${files.currentDirectory}/${folder}`),
+    [changeSftpDirectory, files?.currentDirectory],
+  );
+
+  const onUploadSuccess = useCallback(
+    () => changeSftpDirectory(files.currentDirectory),
+    [changeSftpDirectory, files?.currentDirectory],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Initial connection
+  // Cleanup flag prevents stale connection from marking a new serverId
+  // as connected if serverId changes while a connection is in flight
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    let cancelled = false;
+    setConnected(false);
+    setLoading(true);
+
+    connectToServer().then(() => {
+      if (!cancelled) {
+        setConnected(true);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [serverId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------------------
+  // File operations
+  // ---------------------------------------------------------------------------
 
   const downloadFileBlob = useCallback((blob, filename) => {
     const url = window.URL.createObjectURL(blob);
@@ -65,7 +122,9 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    window.URL.revokeObjectURL(url);
+    // Delay revoke — a.click() is async and revoking immediately
+    // can cancel the download before it starts on larger files
+    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }, []);
 
   const handleDownload = useCallback(
@@ -74,14 +133,20 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         const blob = await apiRequest(
           `/sftp/api/download/${serverId}/${files.currentDirectory}/${filename}`,
           {},
-          true
+          true,
         );
         downloadFileBlob(blob, filename);
       } catch {
         showToast("Error downloading file", "error");
       }
     },
-    [serverId, files?.currentDirectory, apiRequest, downloadFileBlob, showToast]
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      downloadFileBlob,
+      showToast,
+    ],
   );
 
   const handleDownloadFolder = useCallback(
@@ -91,7 +156,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         const blob = await apiRequest(
           `/sftp/api/download-folder/${serverId}/${folder}`,
           {},
-          true
+          true,
         );
         downloadFileBlob(blob, `${foldername}.zip`);
         showToast("Folder downloaded", "success");
@@ -99,7 +164,13 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         showToast("Error downloading folder", "error");
       }
     },
-    [serverId, files?.currentDirectory, apiRequest, downloadFileBlob, showToast]
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      downloadFileBlob,
+      showToast,
+    ],
   );
 
   const handleDelete = useCallback(
@@ -119,10 +190,16 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         showToast("Error deleting file", "error");
       }
     },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      changeSftpDirectory,
+      showToast,
+    ],
   );
 
-   const handleRename = useCallback(
+  const handleRename = useCallback(
     async (filename, newfilename) => {
       try {
         await apiRequest("/sftp/api/renameFile", {
@@ -140,7 +217,13 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         showToast("Error renaming file", "error");
       }
     },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      changeSftpDirectory,
+      showToast,
+    ],
   );
 
   const handleShare = useCallback(
@@ -156,11 +239,71 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         showToast("Error sharing file", "error");
       }
     },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
+    [serverId, files?.currentDirectory, apiRequest, showToast],
   );
 
+  // ---------------------------------------------------------------------------
+  // Folder operations
+  // ---------------------------------------------------------------------------
+
+  const onDeleteFolder = useCallback(
+    async (folder) => {
+      try {
+        await apiRequest("/sftp/api/delete-folder", {
+          method: "POST",
+          body: JSON.stringify({
+            currentDirectory: files.currentDirectory,
+            serverId,
+            deleteDir: folder,
+          }),
+        });
+        await changeSftpDirectory(files.currentDirectory);
+        showToast("Folder deleted", "success");
+      } catch {
+        showToast("Error deleting folder", "error");
+      }
+    },
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      changeSftpDirectory,
+      showToast,
+    ],
+  );
+
+  const onCreateFolder = useCallback(
+    async (folder) => {
+      try {
+        await apiRequest("/sftp/api/create-folder", {
+          method: "POST",
+          body: JSON.stringify({
+            currentPath: files.currentDirectory,
+            serverId,
+            folderName: folder,
+          }),
+        });
+        await changeSftpDirectory(files.currentDirectory);
+        showToast("Folder created", "success");
+      } catch {
+        showToast("Error creating folder", "error");
+      }
+    },
+    [
+      serverId,
+      files?.currentDirectory,
+      apiRequest,
+      changeSftpDirectory,
+      showToast,
+    ],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Clipboard
+  // ---------------------------------------------------------------------------
+
   const handleCopy = useCallback(
-    (filename, isFolder) => {
+    (filename, isFolder = false) => {
       copyFile({
         file: filename,
         path: files.currentDirectory,
@@ -169,38 +312,59 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         ...(isFolder && { isDirectory: true }),
       });
     },
-    [files?.currentDirectory, serverId]
+    [copyFile, files?.currentDirectory, serverId],
   );
 
   const onFolderCopy = useCallback(
     (folder) => handleCopy(folder, true),
-    [handleCopy]
+    [handleCopy],
   );
 
   const handlePaste = useCallback(() => {
+    if (!clipboard.length) return;
+
     const transferId = crypto.randomUUID();
+
+    // Pre-populate progress map with all files before SSE starts
+    const initialTransfers = Object.fromEntries(
+      clipboard.map(({ file }) => [
+        `${transferId}-${file}`,
+        { file, progress: 0 },
+      ]),
+    );
+    setStartedTransfers(initialTransfers);
+
     const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
 
-    const batchTransfer = {};
-    clipboard.forEach(({ file }) => {
-      batchTransfer[`${transferId}-${file}`] = { file, progress: 0 };
-    });
-    setStartedTransfers(batchTransfer);
-
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = async (event) => {
       const data = JSON.parse(event.data);
 
       if (data.ready) {
-        fetch("/sftp/api/copy-files", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            files: clipboard,
-            newPath: files.currentDirectory,
-            newServerId: serverId,
-            transferId,
-          }),
-        });
+        try {
+          const res = await fetch("/sftp/api/copy-files", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              files: clipboard,
+              newPath: files.currentDirectory,
+              newServerId: serverId,
+              transferId,
+            }),
+          });
+          if (!res.ok) {
+            console.error("Batch copy failed:", await res.text());
+            eventSource.close();
+            showToast("Error pasting files", "error");
+            setProgressMap({});
+            setStartedTransfers({});
+          }
+        } catch (err) {
+          console.error("Batch copy error:", err);
+          eventSource.close();
+          showToast("Error pasting files", "error");
+          setProgressMap({});
+          setStartedTransfers({});
+        }
       } else if (data.file && data.percent !== undefined) {
         setProgressMap((prev) => ({
           ...prev,
@@ -227,112 +391,45 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     eventSource.onerror = (err) => {
       console.error("SSE error:", err);
       eventSource.close();
+      showToast("Transfer connection lost", "error");
+      setProgressMap({});
+      setStartedTransfers({});
     };
 
     clearClipboard();
-  }, [ files?.currentDirectory, serverId, clearClipboard]);
+  }, [
+    clipboard,
+    files?.currentDirectory,
+    serverId,
+    clearClipboard,
+    changeSftpDirectory,
+    showToast,
+  ]);
 
-  const connectToServer = useCallback(
-    async (serverId) => {
-      try {
-        const data = await apiRequest(`/sftp/api/connect/${serverId}/`);
-        setFiles(data);
-      } catch {
-        showToast("Error connecting to server", "error");
-      }
-    },
-    [apiRequest, showToast]
-  );
-
-  const changeSftpDirectory = useCallback(
-    async (directory) => {
-      try {
-        const data = await apiRequest(
-          `/sftp/api/connect/${serverId}/${directory}/`
-        );
-        setFiles(data);
-      } catch {
-        showToast("Error listing directory", "error");
-      }
-    },
-    [apiRequest, showToast]
-  );
-
-  useEffect(() => {
-    if (!connected) {
-      setLoading(true);
-      connectToServer(serverId).then(() => {
-        setConnected(true);
-        setLoading(false);
-      });
-    }
-  }, [serverId, connected, connectToServer]);
+  // ---------------------------------------------------------------------------
+  // Utilities
+  // ---------------------------------------------------------------------------
 
   const generateBreadcrumb = useCallback((path) => {
-    const parts = path.split("/").filter(Boolean);
     let currentPath = "";
-    const breadcrumbs = parts.map((part) => {
-      currentPath += `/${part}`;
-      return { name: part, path: currentPath };
-    });
-    return [{ name: "Home", path: "/" }, ...breadcrumbs];
+    const crumbs = path
+      .split("/")
+      .filter(Boolean)
+      .map((part) => {
+        currentPath += `/${part}`;
+        return { name: part, path: currentPath };
+      });
+    return [{ name: "Home", path: "/" }, ...crumbs];
   }, []);
 
-  const onChangeDirectory = useCallback(
-    (folder) => {
-      changeSftpDirectory(`${files.currentDirectory}/${folder}`);
-    },
-    [serverId, files.currentDirectory]
-  );
-
-  const onUploadSuccess = useCallback(
-    () => changeSftpDirectory(files.currentDirectory),
-    [files?.currentDirectory]
-  );
-
-  const onDeleteFolder = useCallback(
-    async (folder) => {
-      try {
-        await apiRequest("/sftp/api/delete-folder", {
-          method: "POST",
-          body: JSON.stringify({
-            currentDirectory: files.currentDirectory,
-            serverId,
-            deleteDir: folder,
-          }),
-        });
-        await changeSftpDirectory(files.currentDirectory);
-        showToast("File deleted", "success");
-      } catch {
-        showToast("Error deleting file", "error");
-      }
-    },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
-  );
-
-  const onCreateFolder = useCallback(
-    async (folder) => {
-      try {
-        await apiRequest("/sftp/api/create-folder", {
-          method: "POST",
-          body: JSON.stringify({
-            currentPath: files.currentDirectory,
-            serverId,
-            folderName: folder,
-          }),
-        });
-        await changeSftpDirectory(files.currentDirectory);
-        showToast("File deleted", "success");
-      } catch {
-        showToast("Error deleting file", "error");
-      }
-    },
-    [serverId, files?.currentDirectory, apiRequest, showToast]
-  );
+  // ---------------------------------------------------------------------------
+  // Public interface
+  // ---------------------------------------------------------------------------
 
   return {
     files,
     loading,
+    connected,
     progressMap,
     startedTransfers,
     handleCopy,
