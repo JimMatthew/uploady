@@ -320,10 +320,12 @@ const uploadLocalFileToSftp = async (localPath, destPath, sftpDest) => {
   const writeStream = await sftpDest.createWriteStream(destPath);
 
   await new Promise((resolve, reject) => {
-    writeStream.on("finish", resolve);
-    writeStream.on("error", reject);
-    readStream.on("error", reject);
-    readStream.pipe(writeStream);
+    readStream
+      .pipe(writeStream)
+      .on("finish", resolve)
+      .on("close", resolve)
+      .on("end", resolve)
+      .on("error", reject);
   });
 };
 
