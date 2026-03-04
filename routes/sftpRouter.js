@@ -2,6 +2,7 @@ const express = require("express");
 const sftpController = require("../controllers/sftpController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const progressController = require("../controllers/progressController")
+const { getServerStatsHandler } = require("../services/serverStatsService");
 
   const router = express.Router();
 
@@ -79,6 +80,11 @@ const progressController = require("../controllers/progressController")
   router.get(
     "/server-status/:serverId",
     sftpController.server_status_get
+  )
+
+  router.get(
+    "/server-stats/:serverId",
+    getServerStatsHandler
   )
 
   router.post(
