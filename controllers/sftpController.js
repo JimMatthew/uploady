@@ -229,20 +229,21 @@ const sftp_id_list_files_json_get = async (req, res, next) => {
   }
 };
 
-const sftp_copy_files_batch_json_post = async (req, res) => {
+async function sftp_copy_files_batch_json_post(req, res) {
   const { files, newPath, newServerId, transferId } = req.body;
-  if (!files || !newPath) {
-    return handleError(res, "Missing required fields", 400);
-  }
   try {
+    console.log("Starting batch transfer", transferId);
     await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
+    console.log("Batch complete, calling complete()", transferId);
     complete(transferId);
-    res.status(200).json({ message: "Batch transfer complete" });
+    res.status(200).send("Batch transfer complete");
   } catch (err) {
-    console.error("Batch transfer error:", err);
-    return handleError(res, "Batch transfer failed");
+    console.error("Transfer failed:", err);
+    // complete here too so the SSE connection doesn't hang
+    complete(transferId);
+    res.status(500).send("Batch transfer failed");
   }
-};
+}
 
 const share_sftp_file = async (req, res) => {
   const { serverId, remotePath } = req.body;

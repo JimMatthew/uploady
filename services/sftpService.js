@@ -4,6 +4,7 @@ const path = require("path");
 const { PassThrough } = require("stream");
 const archiver = require("archiver");
 const serverService = require("./serverService");
+const { sendProgress } = require("./progressService");
 const localFileService = require("./localFileService");
 const {
   copySftpFolder,
@@ -233,7 +234,7 @@ const downloadFile = async (serverId, remotePath) => {
 
   try {
     const stat = await sftp.stat(remotePath);
-    
+
     sftp.get(remotePath, stream).catch(async (err) => {
       stream.destroy(err);
       await cleanup();
@@ -289,28 +290,38 @@ const uploadFile = async (serverId, stream, remotePath) => {
  * @param {string} destPath
  * @param {SftpClient} sftpDest
  */
-const uploadLocalFolderToSftp = async (localPath, destPath, sftpDest) => {
+async function uploadLocalFolderToSftp(
+  localPath,
+  destPath,
+  sftpDest,
+  transferId,
+) {
   const { files, folders } = localFileService.listLocalDir(localPath);
-
   for (const file of files) {
     await uploadLocalFileToSftp(
       path.join(localPath, file.name),
-      path.posix.join(destPath, file.name),
+      path.join(destPath, file.name),
       sftpDest,
+      transferId,
+      file.name, // pass filename for progress label
     );
   }
-
   for (const folder of folders) {
     const newLocalPath = path.join(localPath, folder.name);
-    const newDestPath = path.posix.join(destPath, folder.name);
+    const newDestPath = path.join(destPath, folder.name);
     try {
       await sftpDest.mkdir(newDestPath);
     } catch (err) {
       if (!err.message.includes("already exists")) throw err;
     }
-    await uploadLocalFolderToSftp(newLocalPath, newDestPath, sftpDest);
+    await uploadLocalFolderToSftp(
+      newLocalPath,
+      newDestPath,
+      sftpDest,
+      transferId,
+    );
   }
-};
+}
 
 /**
  * Uploads a single local file to a remote SFTP path.
@@ -318,35 +329,83 @@ const uploadLocalFolderToSftp = async (localPath, destPath, sftpDest) => {
  * @param {string} destPath
  * @param {SftpClient} sftpDest
  */
-const uploadLocalFileToSftp = async (localPath, destPath, sftpDest) => {
+const uploadLocalFileToSftp = async (
+  localPath,
+  destPath,
+  sftpDest,
+  transferId,
+  fileName,
+) => {
+  const stat = await fs.promises.stat(localPath);
+  const totalSize = stat.size;
+  let transferred = 0;
+  let lastUpdate = Date.now();
+
   const readStream = fs.createReadStream(localPath);
-  const writeStream = await sftpDest.createWriteStream(destPath);
+  const writeStream = sftpDest.createWriteStream(destPath);
+
+  const passthrough = new PassThrough();
+  passthrough.on("data", (chunk) => {
+    transferred += chunk.length;
+    const now = Date.now();
+    if (now - lastUpdate > 100) {
+      lastUpdate = now;
+      const percent = Math.min((transferred / totalSize) * 100, 100);
+      if (transferId) {
+        sendProgress(transferId, {
+          file: fileName,
+          percent: percent.toFixed(2),
+        });
+      }
+    }
+  });
 
   await new Promise((resolve, reject) => {
     readStream
+      .pipe(passthrough)
       .pipe(writeStream)
       .on("finish", resolve)
       .on("close", resolve)
       .on("end", resolve)
       .on("error", reject);
   });
+
+  if (transferId) {
+    sendProgress(transferId, { file: fileName, done: true });
+  }
 };
 
 /* 
   Copy items in filegroup to sftp server when filegroup contains
   files local to application
 */
-const copyLocalToSftp = async ({ newServerId, fileGroup, newPath }) => {
+const copyLocalToSftp = async ({
+  newServerId,
+  fileGroup,
+  newPath,
+  transferId,
+}) => {
   const sftpDest = await connectToSftp(newServerId);
   try {
     for (const file of fileGroup) {
       const localPath = path.join(uploadsDir, file.path, file.file);
-      const destPath = path.posix.join(newPath, file.file);
+      const destPath = path.join(newPath, file.file);
       if (file.isDirectory) {
-        await sftpDest.mkdir(destPath);
-        await uploadLocalFolderToSftp(localPath, destPath, sftpDest);
+        await sftpDest.mkdir(destPath).catch(() => {});
+        await uploadLocalFolderToSftp(
+          localPath,
+          destPath,
+          sftpDest,
+          transferId,
+        );
       } else {
-        await uploadLocalFileToSftp(localPath, destPath, sftpDest);
+        await uploadLocalFileToSftp(
+          localPath,
+          destPath,
+          sftpDest,
+          transferId,
+          file.file,
+        );
       }
     }
   } finally {
@@ -438,7 +497,7 @@ const sftpCopyFilesBatch = async (files, newPath, newServerId, transferId) => {
 
   for (const [serverId, fileGroup] of Object.entries(grouped)) {
     if (serverId === "null") {
-      await copyLocalToSftp({ newServerId, fileGroup, newPath });
+      await copyLocalToSftp({ newServerId, fileGroup, newPath, transferId });
     } else if (!newServerId || newServerId === serverId) {
       await copySameSftp({ serverId, fileGroup, newPath });
     } else {
