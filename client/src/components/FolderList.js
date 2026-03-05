@@ -4,9 +4,20 @@ import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import FolderItem from "./FolderItem";
 import FileMenu from "./FileMenu";
 
-const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, handleCopy }) => {
+const FolderList = ({
+  folders,
+  changeDirectory,
+  deleteFolder,
+  downloadFolder,
+  handleCopy,
+}) => {
   const [sortDir, setSortDir] = useState("asc");
-  const [contextMenu, setContextMenu] = useState({ x: 0, y: 0, file: null, visible: false });
+  const [contextMenu, setContextMenu] = useState({
+    x: 0,
+    y: 0,
+    file: null,
+    visible: false,
+  });
 
   const openMenu = useCallback((e, name) => {
     e.preventDefault();
@@ -21,7 +32,9 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
 
   const sorted = useMemo(() => {
     return [...folders].sort((a, b) =>
-      sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      sortDir === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name),
     );
   }, [folders, sortDir]);
 
@@ -29,12 +42,15 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
     <Box mb={6}>
       {/* Section header */}
       <HStack
-        px={4} py={2} mb={1}
+        px={4}
+        py={2}
+        mb={1}
         justify="space-between"
         borderBottom="1px solid rgba(255,255,255,0.07)"
       >
         <Text
-          fontSize="10px" fontWeight="700"
+          fontSize="10px"
+          fontWeight="700"
           letterSpacing="0.1em"
           textTransform="uppercase"
           color="rgba(255, 255, 255, 0.4)"
@@ -45,7 +61,8 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
           </Text>
         </Text>
         <HStack
-          spacing={1} cursor="pointer"
+          spacing={1}
+          cursor="pointer"
           onClick={toggleSort}
           _hover={{ color: "rgba(255,255,255,0.6)" }}
           color="rgba(255, 255, 255, 0.35)"
@@ -54,7 +71,10 @@ const FolderList = ({ folders, changeDirectory, deleteFolder, downloadFolder, ha
           <Text fontSize="10px" letterSpacing="0.05em">
             {sortDir === "asc" ? "A → Z" : "Z → A"}
           </Text>
-          <Icon as={sortDir === "asc" ? FiChevronUp : FiChevronDown} boxSize={3} />
+          <Icon
+            as={sortDir === "asc" ? FiChevronUp : FiChevronDown}
+            boxSize={3}
+          />
         </HStack>
       </HStack>
 

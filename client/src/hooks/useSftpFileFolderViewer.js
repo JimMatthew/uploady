@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useNavigate } from "react-router-dom";
+import { joinPath } from "../utils/path";
 
 export function useSftpFileFolderViewer({ serverId, toast }) {
   const [files, setFiles] = useState([]);
@@ -78,7 +79,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const onChangeDirectory = useCallback(
-    (folder) => changeSftpDirectory(`${files.currentDirectory}/${folder}`),
+    (folder) => changeSftpDirectory(joinPath(files.currentDirectory, folder)),
     [changeSftpDirectory, files?.currentDirectory],
   );
 
@@ -150,12 +151,12 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const handleDownload = useCallback(
-  (filename) => {
-    const token = localStorage.getItem("token");
-    window.location.href = `/sftp/api/download/${serverId}/${files.currentDirectory}/${filename}?token=${token}&t=${Date.now()}`;
-  },
-  [serverId, files?.currentDirectory],
-);
+    (filename) => {
+      const token = localStorage.getItem("token");
+      window.location.href = `/sftp/api/download/${serverId}/${files.currentDirectory}/${filename}?token=${token}&t=${Date.now()}`;
+    },
+    [serverId, files?.currentDirectory],
+  );
 
   const handleDownloadFolder = useCallback(
     async (foldername) => {
