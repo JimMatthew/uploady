@@ -241,15 +241,21 @@ const delete_file_json_post = async (req, res, next) => {
  * GET /files/download/*
  * Triggers a file download using Express's res.download helper.
  */
-const download_file_get = (req, res, next) => {
+const download_file_get = async (req, res, next) => {
   const filePath = path.join(uploadsDir, req.params[0]);
-
-  res.download(filePath, (err) => {
-    if (err) {
-      console.error("Download error:", err);
-      next(err);
-    }
-  });
+  try {
+    const stat = await fs.promises.stat(filePath);
+    res.setHeader("Content-Length", stat.size);
+    res.setHeader("Cache-Control", "no-store");
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        next(err);
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const download_file_stream = async (req, res) => {

@@ -129,13 +129,14 @@ const sftp_get_archive_folder = async (req, res) => {
 
 async function sftp_download_file(serverId, remotePath, res) {
   try {
-    const { stream, filename, cleanup } = await sftpService.downloadFile(
+    const { stream, filename, cleanup, size } = await sftpService.downloadFile(
       serverId,
       remotePath,
     );
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
-
+    res.setHeader("Cache-Control", "no-store");
+    if (size) res.setHeader("Content-Length", size);
     stream.pipe(res);
 
     res.on("close", cleanup);
@@ -152,13 +153,14 @@ const sftp_stream_download_get = async (req, res) => {
   const remotePath = relativePath ? `/${relativePath}` : "/";
 
   try {
-    const { stream, filename, cleanup } = await sftpService.downloadFile(
+    const { stream, filename, cleanup, size } = await sftpService.downloadFile(
       serverId,
       remotePath,
     );
-
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Cache-Control", "no-store");
+    if (size) res.setHeader("Content-Length", size);
 
     pipeStreamToResponse(stream, res, cleanup);
   } catch (err) {

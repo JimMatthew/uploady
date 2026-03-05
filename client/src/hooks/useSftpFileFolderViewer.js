@@ -127,7 +127,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }, []);
 
-  const handleDownload = useCallback(
+  const handleDownload2 = useCallback(
     async (filename) => {
       try {
         const blob = await apiRequest(
@@ -148,6 +148,14 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
       showToast,
     ],
   );
+
+  const handleDownload = useCallback(
+  (filename) => {
+    const token = localStorage.getItem("token");
+    window.location.href = `/sftp/api/download/${serverId}/${files.currentDirectory}/${filename}?token=${token}&t=${Date.now()}`;
+  },
+  [serverId, files?.currentDirectory],
+);
 
   const handleDownloadFolder = useCallback(
     async (foldername) => {

@@ -57,7 +57,22 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
-  const handleFileDownload = async (fileName, path) => {
+  const handleFileDownload = (fileName, path) => {
+  const token = localStorage.getItem("token");
+  window.location.href = `/api/download/${path}/${fileName}?token=${token}&t=${Date.now()}`;
+};
+
+  const handleFileDownload4 = (fileName, path) => {
+  const token = localStorage.getItem("token");
+  const a = document.createElement("a");
+ a.href = `/api/download/${path}/${fileName}?token=${token}&t=${Date.now()}`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
+  const handleFileDownload2 = async (fileName, path) => {
     try {
       const blob = await apiRequest(
         `/api/download/${path}/${fileName}`,

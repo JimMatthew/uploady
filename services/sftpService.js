@@ -231,21 +231,24 @@ const downloadFile = async (serverId, remotePath) => {
     }
   };
 
-  // Do not await — the transfer runs concurrently while the stream is piped
-  // to the HTTP response. Awaiting here would cause the stream to be fully
-  // written and potentially closed before the pipe is set up, causing hangs
-  // on larger binary files.
-  sftp.get(remotePath, stream).catch(async (err) => {
-    console.error("SFTP get error:", err);
-    stream.destroy(err);
-    await cleanup();
-  });
+  try {
+    const stat = await sftp.stat(remotePath);
+    
+    sftp.get(remotePath, stream).catch(async (err) => {
+      stream.destroy(err);
+      await cleanup();
+    });
 
-  return {
-    stream,
-    filename: remotePath.split("/").pop(),
-    cleanup,
-  };
+    return {
+      stream,
+      filename: remotePath.split("/").pop(),
+      cleanup,
+      size: stat.size,
+    };
+  } catch (err) {
+    await cleanup();
+    throw new SftpError("Error downloading file", err.code, err.message);
+  }
 };
 
 /**
