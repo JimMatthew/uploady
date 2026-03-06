@@ -77,34 +77,15 @@ const list_directory_get = (req, res, next) => {
 // ─── Upload ───────────────────────────────────────────────────────────────────
 
 /**
- * Moves uploaded files from the temp directory to the target folder.
- * Files are initially written to temp by multer, then renamed to their
- * final destination.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
 const upload_files_post = (req, res, next) => {
-  const folderPath = req.body.folderPath || "";
-  const targetFolder = path.join(uploadsDir, folderPath);
-  const files = req.files;
-
-  if (!fs.existsSync(targetFolder)) {
-    return next({ message: "Folder does not exist", status: 404 });
-  }
-  if (!files?.length) {
+  if (!req.files?.length) {
     return next({ message: "No files uploaded", status: 400 });
   }
-
-  for (const file of files) {
-    const targetPath = path.join(targetFolder, file.originalname);
-    const currPath = path.join(tempDir, file.originalname);
-    fs.rename(currPath, targetPath, (err) => {
-      if (err) next({ message: "File upload failed", status: 500 });
-    });
-  }
-
-  res.redirect(`/files/${folderPath}`);
+  res.status(200).json({ message: "Files uploaded successfully" });
 };
 
 // ─── Download ─────────────────────────────────────────────────────────────────

@@ -1,16 +1,25 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
-const tempdir = path.join(__dirname, "../temp");
+const uploadsDir = path.join(__dirname, "../uploads");
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(tempdir));
+    const folderPath = req.body.folderPath || "";
+    const targetFolder = path.join(uploadsDir, folderPath);
+
+    if (!fs.existsSync(targetFolder)) {
+      return cb(new Error("Folder does not exist"));
+    }
+
+    cb(null, targetFolder);
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname); // Preserve the original file name
+    cb(null, file.originalname);
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 exports.uploadMiddleware = upload.array("files", 10);
