@@ -8,78 +8,78 @@ const { getServerStatsHandler } = require("../services/serverStatsService");
 
   router.get("/api/",
     authenticateJWT,
-    sftpController.sftp_servers_json_get
+    sftpController.sftp_get_servers_get
   )
 
   router.get(
     "/api/connect/:serverId/*?",
     authenticateJWT,
-    sftpController.sftp_id_list_files_json_get
+    sftpController.sftp_list_directory_get
   );
 
   router.post(
     "/api/renameFile",
     authenticateJWT,
-    sftpController.sftp_rename_file_json_post
+    sftpController.sftp_rename_file_post
   );
 
   router.post(
     "/api/sharefile",
     authenticateJWT,
-    sftpController.share_sftp_file
+    sftpController.sftp_share_file_post
   )
 
   router.post(
     "/api/upload",
     authenticateJWT,
-    sftpController.sftp_stream_upload_post
+    sftpController.sftp_upload_post
   );
 
   router.get(
     "/api/download-folder/:serverId/*",
     authenticateJWT,
-    sftpController.sftp_get_archive_folder
+    sftpController.sftp_archive_folder_get
   );
 
   router.get(
     "/api/download/:serverId/*",
     authenticateJWT,
-    sftpController.sftp_stream_download_get
+    sftpController.sftp_download_get
   );
 
   router.post(
     "/api/create-folder",
     authenticateJWT,
-    sftpController.sftp_create_folder_json_post
+    sftpController.sftp_create_folder_post
   );
 
   router.post(
     "/api/save-server",
     authenticateJWT,
-    sftpController.sftp_save_server_json_post
+    sftpController.sftp_save_server_post
   );
 
   router.post(
     "/api/delete-server",
     authenticateJWT,
-    sftpController.sftp_delete_server__json_post
+    sftpController.sftp_delete_server_post
   );
 
   router.post(
     "/api/delete-file",
     authenticateJWT,
-    sftpController.sftp_delete_file_json_post
+    sftpController.sftp_delete_file_post
   );
 
   router.post(
     "/api/delete-folder",
     authenticateJWT,
-    sftpController.sftp_delete_folder_json_post
+    sftpController.sftp_delete_folder_post
   );
 
   router.get(
     "/server-status/:serverId",
-    sftpController.server_status_get
+    sftpController.sftp_server_status_get
   )
 
   router.get(
@@ -89,7 +89,7 @@ const { getServerStatsHandler } = require("../services/serverStatsService");
 
   router.post(
     "/api/copy-files",
-    sftpController.sftp_copy_files_batch_json_post
+    sftpController.sftp_copy_files_post
   )
 
   router.get(

@@ -31,7 +31,7 @@ router.post(
 );
 
 //download file from public link - not authenticated
-router.get("/share/:token/:filename", filemanagerController.serveSharedFile);
+router.get("/share/:token/:filename", filemanagerController.serve_shared_file_get);
 
 router.get(
   "/api/links",
