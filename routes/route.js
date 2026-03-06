@@ -2,7 +2,7 @@ const express = require("express");
 const storageController = require("../controllers/storageController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const filemanagerController = require("../controllers/fileManagerController");
-
+const progressController = require("../controllers/progressController")
 const router = express.Router();
 
 router.get(
@@ -115,5 +115,8 @@ router.get(
   authenticateJWT,
   filemanagerController.get_archive_folder
 )
+
+router.post("/api/paste-files", authenticateJWT, filemanagerController.paste_files_post);
+router.get("/api/progress/:transferId", progressController.get_transfer_progress);
 
 module.exports = router;

@@ -69,6 +69,8 @@ export function useFileList({ toast }) {
     handleCopy,
     handleCut,
     handlePaste,
+    progressMap,
+    startedTransfers
   } = useFileController({ toast, onRefresh: reload });
 
   // ---------------------------------------------------------------------------
@@ -172,5 +174,7 @@ export function useFileList({ toast }) {
     onFolderDelete,
     onPaste,
     onGenerateBreadcrumb,
+    progressMap,
+    startedTransfers
   };
 }

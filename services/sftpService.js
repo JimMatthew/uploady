@@ -516,7 +516,7 @@ const sftpCopyFilesBatch = async (files, newPath, newServerId, transferId) => {
  * Recursively downloads a remote SFTP folder to local disk.
  * @param {{ folderName: string, currentPath: string, newPath: string, sftp: SftpClient }}
  */
-const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
+const copy_sftp_folder2 = async ({ folderName, currentPath, newPath, sftp }) => {
   const currentDirectory = path.posix.join(currentPath, folderName);
   const { files, folders } = await listDirWithSftp({ sftp, currentDirectory });
   const destPath = path.join(uploadsDir, newPath, folderName);
@@ -542,6 +542,34 @@ const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
   }
 };
 
+const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp, transferId }) => {
+  const currentDirectory = path.posix.join(currentPath, folderName);
+  const { files, folders } = await listDirWithSftp({ sftp, currentDirectory });
+  const destPath = path.join(uploadsDir, newPath, folderName);
+
+  await fs.promises.mkdir(destPath, { recursive: true });
+
+  for (const file of files) {
+    await copy_file_to_local({
+      filename: file.name,
+      currentPath: currentDirectory,
+      newPath: path.join(newPath, folderName),
+      sftp,
+      transferId,  // pass through
+    });
+  }
+
+  for (const folder of folders) {
+    await copy_sftp_folder({
+      folderName: folder.name,
+      currentPath: currentDirectory,
+      newPath: path.join(newPath, folderName),
+      sftp,
+      transferId,  // pass through
+    });
+  }
+};
+
 /**
  * Downloads a remote folder to local disk, managing the SFTP connection.
  * @param {string} serverId
@@ -549,15 +577,10 @@ const copy_sftp_folder = async ({ folderName, currentPath, newPath, sftp }) => {
  * @param {string} currentPath
  * @param {string} newPath
  */
-const copyftpFolderToLocal = async (
-  serverId,
-  folderName,
-  currentPath,
-  newPath,
-) => {
+const copyftpFolderToLocal = async (serverId, folderName, currentPath, newPath, transferId) => {
   const sftp = await connectToSftp(serverId);
   try {
-    await copy_sftp_folder({ folderName, currentPath, newPath, sftp });
+    await copy_sftp_folder({ folderName, currentPath, newPath, sftp, transferId });
   } finally {
     await sftp.end();
   }
@@ -567,11 +590,51 @@ const copyftpFolderToLocal = async (
  * Downloads a single remote file to local disk using an open SFTP connection.
  * @param {{ filename: string, currentPath: string, newPath: string, sftp: SftpClient }}
  */
-const copy_file_to_local = async ({ filename, currentPath, newPath, sftp }) => {
+const copy_file_to_local2 = async ({ filename, currentPath, newPath, sftp }) => {
   const remotePath = path.posix.join(currentPath, filename);
   const localDest = path.join(uploadsDir, newPath, filename);
   await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
   await sftp.get(remotePath, localDest);
+};
+
+const copy_file_to_local = async ({ filename, currentPath, newPath, sftp, transferId }) => {
+  const remotePath = path.posix.join(currentPath, filename);
+  const localDest = path.join(uploadsDir, newPath, filename);
+  await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
+
+  const stat = await sftp.stat(remotePath);
+  const totalSize = stat.size;
+  let transferred = 0;
+  let lastUpdate = Date.now();
+
+  const passthrough = new PassThrough();
+  const writeStream = fs.createWriteStream(localDest);
+
+  passthrough.on("data", (chunk) => {
+    transferred += chunk.length;
+    const now = Date.now();
+    if (now - lastUpdate > 100) {
+      lastUpdate = now;
+      const percent = Math.min((transferred / totalSize) * 100, 100);
+      if (transferId) {
+        sendProgress(transferId, { file: filename, percent: percent.toFixed(2) });
+      }
+    }
+  });
+
+  // Don't await sftp.get — same fix as the browser download
+  sftp.get(remotePath, passthrough).catch((err) => passthrough.destroy(err));
+
+  await new Promise((resolve, reject) => {
+    passthrough
+      .pipe(writeStream)
+      .on("finish", resolve)
+      .on("error", reject);
+  });
+
+  if (transferId) {
+    sendProgress(transferId, { file: filename, done: true });
+  }
 };
 
 /**
@@ -581,15 +644,10 @@ const copy_file_to_local = async ({ filename, currentPath, newPath, sftp }) => {
  * @param {string} newPath
  * @param {string} serverId
  */
-const copySftpFileToLocal = async (
-  filename,
-  currentPath,
-  newPath,
-  serverId,
-) => {
+const copySftpFileToLocal = async (filename, currentPath, newPath, serverId, transferId) => {
   const sftp = await connectToSftp(serverId);
   try {
-    await copy_file_to_local({ filename, currentPath, newPath, sftp });
+    await copy_file_to_local({ filename, currentPath, newPath, sftp, transferId });
   } finally {
     await sftp.end();
   }

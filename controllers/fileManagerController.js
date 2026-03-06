@@ -11,7 +11,7 @@ const mime = require("mime-types");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempdir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
-
+const { PassThrough } = require("stream");
 const get_performance_stats = (req, res) => {
   try {
     const mem = process.memoryUsage();
@@ -377,6 +377,62 @@ const copy_folder_json_post = async (req, res, next) => {
   }
 };
 
+const { complete, sendProgress } = require("../services/progressService");
+
+const paste_files_post = async (req, res, next) => {
+  const { files, newPath, transferId } = req.body;
+
+  if (!files?.length || !newPath) {
+    return next({ message: "Missing required fields", status: 400 });
+  }
+
+  try {
+    for (const item of files) {
+      if (item.action === "cut") {
+        // cut not implemented yet, treat as copy for now
+        if (item.isDirectory) {
+          await localFileService.copy_local_folder(item.file, item.path, newPath, transferId);
+        } else {
+          await localFileService.copy_local_file(item.file, item.path, newPath, transferId);
+        }
+      } else {
+        if (item.serverId) {
+          // SFTP → Local
+          if (item.isDirectory) {
+            await sftpService.copyftpFolderToLocal(item.serverId, item.file, item.path, newPath, transferId);
+          } else {
+            await sftpService.copySftpFileToLocal(item.file, item.path, newPath, item.serverId, transferId);
+          }
+        } else {
+          // Local → Local
+          if (item.isDirectory) {
+            await localFileService.copy_local_folder(item.file, item.path, newPath, transferId);
+          } else {
+            await localFileService.copy_local_file(item.file, item.path, newPath, transferId);
+          }
+        }
+      }
+    }
+    complete(transferId);
+    res.status(200).json({ message: "Paste complete" });
+  } catch (err) {
+    console.error("Paste error:", err);
+    complete(transferId);
+    next({ message: "Error pasting files", status: 500 });
+  }
+};
+
+const local_progress_get = (req, res) => {
+  const { transferId } = req.params;
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+  addClient(transferId, res);
+  res.write(`data: ${JSON.stringify({ ready: true })}\n\n`);
+  req.on("close", () => removeClient(transferId));
+};
+
 /**
  * Moves a local file by copying it to the new path then deleting the original.
  */
@@ -493,4 +549,6 @@ module.exports = {
   copy_folder_json_post,
   download_file_stream,
   get_archive_folder,
+  paste_files_post,
+  local_progress_get
 };

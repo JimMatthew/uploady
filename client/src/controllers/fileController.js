@@ -1,7 +1,10 @@
 import { useClipboard } from "../contexts/ClipboardContext";
+import { useState, useEffect, useCallback } from "react";
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
   const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
+  const [progressMap, setProgressMap] = useState({});
+    const [startedTransfers, setStartedTransfers] = useState({});
   /**
    * Generic API request wrapper
    */
@@ -231,7 +234,7 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
-  const handlePaste = async (rp) => {
+  const handlePaste2 = async (rp) => {
     try {
       await Promise.all(
         clipboard.map(({ file, path, action, isDirectory, serverId }) => {
@@ -247,6 +250,83 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
+  const handlePaste = async (rp) => {
+  if (!clipboard.length) return;
+
+  const transferId = crypto.randomUUID();
+
+  const initialTransfers = Object.fromEntries(
+    clipboard.map(({ file }) => [
+      `${transferId}-${file}`,
+      { file, progress: 0 },
+    ])
+  );
+  setStartedTransfers(initialTransfers);
+
+  const eventSource = new EventSource(`/api/progress/${transferId}`);
+
+  eventSource.onmessage = async (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.ready) {
+      try {
+        const res = await fetch("/api/paste-files", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            files: clipboard,
+            newPath: rp,
+            transferId,
+          }),
+        });
+        if (!res.ok) {
+          eventSource.close();
+          showToast("Error pasting files", "error");
+          setProgressMap({});
+          setStartedTransfers({});
+        }
+      } catch (err) {
+        eventSource.close();
+        showToast("Error pasting files", "error");
+        setProgressMap({});
+        setStartedTransfers({});
+      }
+    } else if (data.file && data.percent !== undefined) {
+      setProgressMap((prev) => ({
+        ...prev,
+        [`${transferId}-${data.file}`]: {
+          file: data.file,
+          progress: Math.round(data.percent),
+        },
+      }));
+    } else if (data.done && data.file) {
+      setProgressMap((prev) => ({
+        ...prev,
+        [`${transferId}-${data.file}`]: { file: data.file, progress: 100 },
+      }));
+    } else if (data.allDone) {
+      eventSource.close();
+      onRefresh(rp);
+      setTimeout(() => {
+        setProgressMap({});
+        setStartedTransfers({});
+      }, 400);
+    }
+  };
+
+  eventSource.onerror = () => {
+    eventSource.close();
+    showToast("Transfer connection lost", "error");
+    setProgressMap({});
+    setStartedTransfers({});
+  };
+
+  clearClipboard();
+};
+
   return {
     handleFolderCopy,
     handleFileDownload,
@@ -259,6 +339,8 @@ const FileController = ({ toast, onRefresh }) => {
     handleCopy,
     handleCut,
     handlePaste,
+    progressMap,
+    startedTransfers
   };
 };
 

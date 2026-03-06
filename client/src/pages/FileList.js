@@ -23,6 +23,8 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     onFolderDelete,
     onPaste,
     onGenerateBreadcrumb,
+    progressMap,
+    startedTransfers
   } = useFileList({ toast });
 
   const token = localStorage.getItem("token");
@@ -152,6 +154,8 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
         fileUploadProps={fileUploadProps}
         onOpenFile={onOpenFile}
         handleDownloadFolder={handleDownloadFolder}
+        progressMap={progressMap}
+        startedTransfers={startedTransfers}
       />
     </Box>
   );
