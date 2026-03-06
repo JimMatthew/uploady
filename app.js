@@ -102,7 +102,10 @@ app.post("/apilogin", (req, res) => {
   const { username, password } = req.body;
   const user = users.find((u) => u.username === username);
 
-  if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+  if (
+    !user ||
+    !verifyPassword(password, user.passwordSalt, user.passwordHash)
+  ) {
     return res.status(401).json({ message: "Invalid username or password" });
   }
 
@@ -142,7 +145,9 @@ const wss = new WebSocket.Server({ server });
 wss.on("connection", sshSessionHandler);
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (${USE_HTTPS ? "https" : "http"})`);
+  console.log(
+    `Server running on port ${PORT} (${USE_HTTPS ? "https" : "http"})`,
+  );
 });
 
 module.exports = app;

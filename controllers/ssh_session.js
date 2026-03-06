@@ -1,72 +1,137 @@
 const { Client } = require("ssh2");
 const serverService = require("../services/serverService");
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Serialises and sends a JSON event frame to the WebSocket client.
+ * @param {import('ws')} socket
+ * @param {string} event
+ * @param {string} data
+ */
+const sendJson = (socket, event, data) => {
+  if (socket.readyState === socket.OPEN) {
+    socket.send(JSON.stringify({ event, data }));
+  }
+};
+
+// ─── Session ──────────────────────────────────────────────────────────────────
+
+/**
+ * Handles a WebSocket connection as an interactive SSH session.
+ * Protocol:
+ *   Client → { event: "startSession", serverId: string }
+ *   Client → { event: "input", data: string }
+ *   Client → { event: "resize", rows: number, cols: number }
+ *   Server → { event: "output", data: string }
+ *
+ * A single socket handles exactly one SSH session. Opening a second
+ * startSession event on the same socket is ignored.
+ * @param {import('ws')} socket
+ */
 const ssh_session = (socket) => {
-  let sshClient = new Client();
+  const sshClient = new Client();
+  let sessionStarted = false;
 
-  socket.on("message", async (message) => {
-    const { event, serverId } = JSON.parse(message);
+  /**
+   * Parses an incoming WebSocket message safely.
+   * @param {Buffer|string} raw
+   * @returns {object|null}
+   */
+  const parseMessage = (raw) => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      console.error("ssh_session: malformed WebSocket message");
+      return null;
+    }
+  };
 
-    if (event === "startSession") {
-      const connectConfig = await serverService.getServerOptions(serverId);
+  // ── Initial handshake listener ───────────────────────────────────────────
+
+  const onStartMessage = async (raw) => {
+    const msg = parseMessage(raw);
+    if (!msg || msg.event !== "startSession") return;
+    if (sessionStarted) return;
+    sessionStarted = true;
+
+    // Replace startup listener with the shell I/O listener once session begins
+    socket.off("message", onStartMessage);
+
+    try {
+      const connectConfig = await serverService.getServerOptions(msg.serverId);
 
       sshClient
         .on("ready", () => {
-          socket.send(
-            JSON.stringify({
-              event: "output",
-              data: "\r\n*** SSH CONNECTION ESTABLISHED ***\r\n",
-            })
+          sendJson(
+            socket,
+            "output",
+            "\r\n*** SSH CONNECTION ESTABLISHED ***\r\n",
           );
 
           sshClient.shell({ term: "xterm-256color" }, (err, stream) => {
             if (err) {
-              return socket.send(
-                JSON.stringify({
-                  event: "output",
-                  data: "\r\n*** SSH SHELL ERROR ***\r\n",
-                })
+              sendJson(
+                socket,
+                "output",
+                `\r\n*** SSH SHELL ERROR: ${err.message} ***\r\n`,
               );
+              return;
             }
 
+            // ── Shell I/O ────────────────────────────────────────────────
+
             stream.on("data", (data) => {
-              socket.send(
-                JSON.stringify({ event: "output", data: data.toString() })
-              );
-            });
-
-            socket.on("message", (message) => {
-              const { event, data, rows, cols } = JSON.parse(message);
-
-              if (event === "resize") {
-                if (rows && cols) {
-                  stream.setWindow(rows, cols);
-                }
-              } else if (event === "input") {
-                stream.write(data);
-              }
+              sendJson(socket, "output", data.toString());
             });
 
             stream.on("close", () => {
+              sendJson(socket, "output", "\r\n*** SSH SESSION CLOSED ***\r\n");
               sshClient.end();
+            });
+
+            // ── Input / resize from client ───────────────────────────────
+
+            socket.on("message", (raw) => {
+              const msg = parseMessage(raw);
+              if (!msg) return;
+
+              if (msg.event === "resize" && msg.rows && msg.cols) {
+                stream.setWindow(msg.rows, msg.cols);
+              } else if (msg.event === "input") {
+                stream.write(msg.data);
+              }
             });
           });
         })
         .on("error", (err) => {
-          socket.send(
-            JSON.stringify({
-              event: "output",
-              data: `\r\n*** SSH CONNECTION ERROR: ${err.message} ***\r\n`,
-            })
+          console.error("SSH connection error:", err.message);
+          sendJson(
+            socket,
+            "output",
+            `\r\n*** SSH CONNECTION ERROR: ${err.message} ***\r\n`,
           );
         })
         .connect(connectConfig);
+    } catch (err) {
+      console.error("ssh_session: failed to get server options:", err.message);
+      sendJson(
+        socket,
+        "output",
+        `\r\n*** FAILED TO CONNECT: ${err.message} ***\r\n`,
+      );
     }
-  });
+  };
+
+  socket.on("message", onStartMessage);
+
+  // ── Cleanup on disconnect ────────────────────────────────────────────────
 
   socket.on("close", () => {
-    if (sshClient) {
+    try {
       sshClient.end();
+    } catch {
+      // Client may not have connected — safe to ignore
     }
   });
 };
