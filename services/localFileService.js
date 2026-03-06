@@ -26,23 +26,6 @@ const listLocalDir = (dirPath) => {
   return { files, folders };
 };
 
-const copy_local_folder2 = async (folderName, currentPath, newPath) => {
-  const localPath = path.join(currentPath, folderName);
-  const { files, folders } = listLocalDir(
-    path.join(uploadsDir, localPath)
-  );
-  const newp = path.join(uploadsDir, newPath, folderName);
-  await fs.promises.mkdir(newp);
-  files.forEach(async (file) => {
-    const cfpath = path.join(uploadsDir, localPath, file.name);
-    const nfpath = path.join(newp, file.name);
-    await fs.promises.copyFile(cfpath, nfpath);
-  });
-  folders.forEach(async (folder) => {
-    await copy_local_folder(folder.name, localPath, path.join(newPath, folderName));
-  });
-};
-
 const copy_local_file = async (filename, currentPath, newPath, transferId) => {
   const cfpath = path.join(uploadsDir, currentPath, filename);
   const nfpath = path.join(uploadsDir, newPath, filename);
@@ -83,20 +66,49 @@ const copy_local_file = async (filename, currentPath, newPath, transferId) => {
   }
 };
 
-const copy_local_folder = async (folderName, currentPath, newPath, transferId) => {
+function countLocalFiles(dirPath) {
+  const { files, folders } = listLocalDir(dirPath);
+  let count = files.length;
+  for (const folder of folders) {
+    count += countLocalFiles(path.join(dirPath, folder.name));
+  }
+  return count;
+}
+
+const copy_local_folder = async (folderName, currentPath, newPath, transferId, counter) => {
   const localPath = path.join(currentPath, folderName);
   const { files, folders } = listLocalDir(path.join(uploadsDir, localPath));
   const newp = path.join(uploadsDir, newPath, folderName);
 
   await fs.promises.mkdir(newp, { recursive: true });
 
-  // for...of instead of forEach so async/await works correctly
+  // Only count on first call
+  if (!counter) {
+    const total = countLocalFiles(path.join(uploadsDir, localPath));
+    counter = { completed: 0, total, name: folderName };
+  }
+
   for (const file of files) {
-    await copy_local_file(file.name, localPath, path.join(newPath, folderName), transferId);
+    await copy_local_file(file.name, localPath, path.join(newPath, folderName), null);
+
+    counter.completed++;
+    if (transferId && counter.total > 0) {
+      const percent = Math.min((counter.completed / counter.total) * 100, 100);
+      sendProgress(transferId, { 
+        file: counter.name, 
+        percent: percent.toFixed(2) 
+      });
+    }
   }
 
   for (const folder of folders) {
-    await copy_local_folder(folder.name, localPath, path.join(newPath, folderName), transferId);
+    await copy_local_folder(
+      folder.name,
+      localPath,
+      path.join(newPath, folderName),
+      transferId,
+      counter  // pass same counter down
+    );
   }
 };
 

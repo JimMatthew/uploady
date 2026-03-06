@@ -2,6 +2,20 @@ const { PassThrough } = require("stream");
 const path = require("path");
 const { sendProgress } = require("./progressService");
 
+// Helper to count all files recursively
+async function countSftpFiles(sftp, dirPath) {
+  const files = await sftp.list(dirPath);
+  let count = 0;
+  for (const file of files) {
+    if (file.type === "-") {
+      count++;
+    } else if (file.type === "d") {
+      count += await countSftpFiles(sftp, path.posix.join(dirPath, file.name));
+    }
+  }
+  return count;
+}
+
 async function streamFileSftpPair(
   source,
   dest,
@@ -31,42 +45,65 @@ async function streamFileSftpPair(
 }
 
 async function streamFolderSftpToSftp(
-  source,
-  dest,
-  sourcePath,
-  destPath,
-  transferId
+  source, dest, sourcePath, destPath, transferId, folderName, counter
 ) {
+  const name = folderName || path.basename(sourcePath);
+  
+  // Only count total on the first call, not on recursive calls
+  if (!counter) {
+    const total = await countSftpFiles(source, sourcePath);
+    counter = { completed: 0, total, name };
+  }
+
   const files = await source.list(sourcePath);
   await dest.mkdir(destPath, false);
+
   for (const file of files) {
-    const srcFile = path.join(sourcePath, file.name);
-    const dstFile = path.join(destPath, file.name);
+    const srcFile = path.posix.join(sourcePath, file.name);
+    const dstFile = path.posix.join(destPath, file.name);
+
     if (file.type === "-") {
-      await streamFileSftpPair(
-        source,
-        dest,
-        srcFile,
-        dstFile,
-        file.name,
-        transferId
-      );
+      await streamFileSftpPair(source, dest, srcFile, dstFile, file.name, null);
+
+      counter.completed++;
+      if (transferId && counter.total > 0) {
+        const percent = Math.min((counter.completed / counter.total) * 100, 100);
+        sendProgress(transferId, { 
+          file: counter.name, 
+          percent: percent.toFixed(2) 
+        });
+      }
     } else if (file.type === "d") {
-      await streamFolderSftpToSftp(source, dest, srcFile, dstFile, transferId);
+      // Pass the same counter down so all levels share it
+      await streamFolderSftpToSftp(
+        source, dest, srcFile, dstFile, transferId, counter.name, counter
+      );
     }
   }
 }
 
-async function copySftpFolder(sftp, sourcePath, destPath) {
+async function copySftpFolder(sftp, sourcePath, destPath, transferId) {
   const files = await sftp.list(sourcePath);
   await sftp.mkdir(destPath, false);
+
+  const name = path.basename(sourcePath);
+  const totalFiles = files.filter(f => f.type === "-").length;
+  let completedFiles = 0;
+
   for (const file of files) {
-    const srcFolder = path.join(sourcePath, file.name);
-    const dstFolder = path.join(destPath, file.name);
+    const srcFile = path.posix.join(sourcePath, file.name);
+    const dstFile = path.posix.join(destPath, file.name);
+
     if (file.type === "-") {
-      await sftp.rcopy(srcFolder, dstFolder);
+      await sftp.rcopy(srcFile, dstFile);
+
+      completedFiles++;
+      if (transferId && totalFiles > 0) {
+        const percent = Math.min((completedFiles / totalFiles) * 100, 100);
+        sendProgress(transferId, { file: name, percent: percent.toFixed(2) });
+      }
     } else if (file.type === "d") {
-      await copySftpFolder(sftp, srcFolder, dstFolder);
+      await copySftpFolder(sftp, srcFile, dstFile, transferId);
     }
   }
 }
