@@ -1,32 +1,48 @@
 const mongoose = require("mongoose");
 
-const sftpServerSchema = new mongoose.Schema({
-  host: { type: String, required: true },
-  username: { type: String, required: true },
-  authType: { 
-    type: String, 
-    enum: ["password", "key"], 
-    required: true,
-    default: "password"
+// ─── Sub-schemas ──────────────────────────────────────────────────────────────
+
+/**
+ * Shape of an AES-256-GCM encrypted value as stored in the database.
+ * Matches the object returned by encrypt() in controllers/encryption.js.
+ */
+const encryptedFieldSchema = new mongoose.Schema(
+  {
+    iv:      { type: String, required: true },
+    content: { type: String, required: true },
+    tag:     { type: String, required: true },
   },
-  credentials: {
-    password: {
-      iv: String,
-      content: String,
-      tag: String
+  { _id: false },
+);
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+/**
+ * Represents a saved SFTP server configuration.
+ * Credentials are stored encrypted — never in plaintext.
+ * Use getServerOptions() in serverService to retrieve decrypted connection options.
+ */
+const sftpServerSchema = new mongoose.Schema(
+  {
+    host:     { type: String, required: true },
+    port:     { type: Number, default: 22 },
+    username: { type: String, required: true },
+    authType: {
+      type:     String,
+      enum:     ["password", "key"],
+      required: true,
+      default:  "password",
     },
-    privateKey: {
-      iv: String,
-      content: String,
-      tag: String
+    credentials: {
+      password:   { type: encryptedFieldSchema },
+      privateKey: { type: encryptedFieldSchema },
+      passphrase: { type: encryptedFieldSchema },
     },
-    passphrase: {
-      iv: String,
-      content: String,
-      tag: String
-    }
-  }
-}, { timestamps: true });
+  },
+  { timestamps: true },
+);
+
+// ─── Model ────────────────────────────────────────────────────────────────────
 
 const SftpServer = mongoose.model("Server", sftpServerSchema);
 
