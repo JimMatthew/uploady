@@ -2,43 +2,32 @@ const express = require("express");
 const storageController = require("../controllers/storageController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const filemanagerController = require("../controllers/fileManagerController");
-const progressController = require("../controllers/progressController")
+const progressController = require("../controllers/progressController");
 const router = express.Router();
 
 router.get(
   "/api/files/*",
   authenticateJWT,
-  filemanagerController.list_directory_json_get
+  filemanagerController.list_directory_get,
 );
 
 router.get(
   "/api//files/*",
   authenticateJWT,
-  filemanagerController.list_directory_json_get
+  filemanagerController.list_directory_get,
 );
 
 router.get(
   "/api/files",
   authenticateJWT,
-  filemanagerController.list_directory_json_get
+  filemanagerController.list_directory_get,
 );
 
-router.post(
-  "/api/copy-file",
-  authenticateJWT,
-  filemanagerController.copy_file_json_post
-);
-
-router.post(
-  "/api/copy-folder",
-  authenticateJWT,
-  filemanagerController.copy_folder_json_post
-)
 
 router.post(
   "/api/cut-file",
   authenticateJWT,
-  filemanagerController.cut_file_json_post
+  filemanagerController.cut_file_post,
 );
 
 //download file from public link - not authenticated
@@ -47,76 +36,81 @@ router.get("/share/:token/:filename", filemanagerController.serveSharedFile);
 router.get(
   "/api/links",
   authenticateJWT,
-  filemanagerController.file_links_json_get
+  filemanagerController.get_share_links_get,
 );
 
 router.post(
   "/api/share",
   authenticateJWT,
-  filemanagerController.generateShareLinkJsonPost
+  filemanagerController.generate_share_link_post,
 );
 
 router.post(
   "/api/stop-sharing",
   authenticateJWT,
-  filemanagerController.stop_sharing_json_post
+  filemanagerController.stop_sharing_post,
 );
 
 router.post(
   "/api/delete/*",
   authenticateJWT,
-  filemanagerController.delete_file_json_post
+  filemanagerController.delete_file_post,
 );
 
 router.get(
   "/api/download/*",
   authenticateJWT,
-  filemanagerController.download_file_get
+  filemanagerController.download_file_get,
 );
 
-router.get(
-  "/api/downloadstream/*",
-  filemanagerController.download_file_stream
-)
+router.get("/api/downloadstream/*", filemanagerController.download_file_stream);
 
 router.post(
   "/api/upload",
   authenticateJWT,
   storageController.uploadMiddleware,
-  filemanagerController.upload_files_post
+  filemanagerController.upload_files_post,
 );
 
 router.post(
   "/api/create-folder",
   authenticateJWT,
-  filemanagerController.create_folder_json_post
+  filemanagerController.create_folder_post,
 );
 
 router.post(
   "/api/delete-folder",
   authenticateJWT,
-  filemanagerController.delete_folder_json_post
+  filemanagerController.delete_folder_post,
 );
 
 router.get(
   "/api/pstats",
   authenticateJWT,
-  filemanagerController.get_performance_stats
+  filemanagerController.get_performance_stats,
 );
 
 router.post(
   "/api/rename-file",
   authenticateJWT,
-  filemanagerController.rename_file_json_post
+  filemanagerController.rename_file_post,
 );
 
 router.get(
   "/api/download-folder/*",
   authenticateJWT,
-  filemanagerController.get_archive_folder
-)
+  filemanagerController.get_archive_folder,
+);
 
-router.post("/api/paste-files", authenticateJWT, filemanagerController.paste_files_post);
-router.get("/api/progress/:transferId", progressController.get_transfer_progress);
+router.post(
+  "/api/paste-files",
+  authenticateJWT,
+  filemanagerController.paste_files_post,
+);
+
+router.get(
+  "/api/progress/:transferId",
+  progressController.get_transfer_progress,
+);
 
 module.exports = router;

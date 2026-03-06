@@ -66,11 +66,11 @@ const parseDisk = (output) => {
   const parts = line.trim().split(/\s+/);
   // With -k, values are in 1K blocks — no "G" suffix to strip
   const totalKb = parseInt(parts[1], 10);
-  const usedKb  = parseInt(parts[2], 10);
+  const usedKb = parseInt(parts[2], 10);
 
   if (isNaN(totalKb) || isNaN(usedKb)) return null;
   return {
-    usedGb:  parseFloat((usedKb  / 1024 / 1024).toFixed(2)),
+    usedGb: parseFloat((usedKb / 1024 / 1024).toFixed(2)),
     totalGb: parseFloat((totalKb / 1024 / 1024).toFixed(2)),
   };
 };
@@ -117,7 +117,7 @@ const parseMemory = (output) => {
     return match ? parseInt(match[1], 10) : null;
   };
 
-  const total     = getValue("MemTotal");
+  const total = getValue("MemTotal");
   const available = getValue("MemAvailable") ?? getValue("MemFree");
 
   if (!total || !available) return null;

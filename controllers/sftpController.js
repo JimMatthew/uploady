@@ -5,10 +5,11 @@ const sftpService = require("../services/sftpService");
 const serverService = require("../services/serverService");
 const { sftpCopyFilesBatch } = require("../services/sftpService");
 const { complete } = require("../services/progressService");
-const domain = process.env.HOSTNAME;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Sends a JSON error response and logs the message.
+ * Sends a JSON error response.
  * @param {import('express').Response} res
  * @param {string} message
  * @param {number} [status=500]
@@ -46,11 +47,55 @@ const pipeStreamToResponse = (stream, res, cleanup) => {
 
   res.on("finish", safeCleanup);
   res.on("close", safeCleanup);
-
   stream.pipe(res);
 };
 
-const sftp_rename_file_json_post = async (req, res) => {
+/**
+ * Sets standard file download headers on the response.
+ * @param {import('express').Response} res
+ * @param {string} filename
+ * @param {number} [size]
+ */
+const setDownloadHeaders = (res, filename, size) => {
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Cache-Control", "no-store");
+  if (size) res.setHeader("Content-Length", size);
+};
+
+// ─── File Listing ─────────────────────────────────────────────────────────────
+
+/**
+ * Lists files and folders at the given remote directory path.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_list_directory_get = async (req, res) => {
+  const { serverId } = req.params;
+  const currentDirectory = "/" + (req.params[0] || "/");
+  try {
+    const server = await SftpServer.findById(serverId);
+    if (!server) return handleError(res, "Server not found", 404);
+
+    const { files, folders } = await sftpService.listDirectory(
+      serverId,
+      currentDirectory,
+    );
+    res.json({ files, folders, currentDirectory, serverId, host: server.host });
+  } catch (err) {
+    console.error("List directory error:", err);
+    return handleError(res, "Error listing directory");
+  }
+};
+
+// ─── File Operations ──────────────────────────────────────────────────────────
+
+/**
+ * Renames a file on the remote SFTP server.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_rename_file_post = async (req, res) => {
   const { currentPath, fileName, newFileName, serverId } = req.body;
   if (!currentPath || !fileName || !newFileName || !serverId) {
     return handleError(res, "Missing required fields", 400);
@@ -59,28 +104,16 @@ const sftp_rename_file_json_post = async (req, res) => {
     await sftpService.renameFile(serverId, currentPath, fileName, newFileName);
     res.status(200).json({ message: "File renamed" });
   } catch (err) {
-    return handleError(res, `Error renaming file: ${err.message}`, 500);
+    return handleError(res, `Error renaming file: ${err.message}`);
   }
 };
 
-const sftp_create_folder_json_post = async (req, res) => {
-  const { currentPath, folderName, serverId } = req.body;
-  if (!currentPath || !folderName || !serverId) {
-    return handleError(res, "Missing required fields", 400);
-  }
-  try {
-    const result = await sftpService.createFolder(
-      currentPath,
-      folderName,
-      serverId,
-    );
-    res.status(200).json({ message: "Folder created", path: result.path });
-  } catch (err) {
-    return handleError(res, `Error creating folder: ${err.message}`);
-  }
-};
-
-const sftp_delete_file_json_post = async (req, res) => {
+/**
+ * Deletes a file on the remote SFTP server.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_delete_file_post = async (req, res) => {
   const { serverId, currentDirectory, fileName } = req.body;
   if (!serverId || !currentDirectory || !fileName) {
     return handleError(res, "Missing required fields", 400);
@@ -97,7 +130,12 @@ const sftp_delete_file_json_post = async (req, res) => {
   }
 };
 
-const sftp_delete_folder_json_post = async (req, res) => {
+/**
+ * Deletes a folder on the remote SFTP server.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_delete_folder_post = async (req, res) => {
   const { serverId, currentDirectory, deleteDir } = req.body;
   if (!serverId || !currentDirectory || !deleteDir) {
     return handleError(res, "Missing required fields", 400);
@@ -114,7 +152,56 @@ const sftp_delete_folder_json_post = async (req, res) => {
   }
 };
 
-const sftp_get_archive_folder = async (req, res) => {
+/**
+ * Creates a folder at the given path on the remote SFTP server.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_create_folder_post = async (req, res) => {
+  const { currentPath, folderName, serverId } = req.body;
+  if (!currentPath || !folderName || !serverId) {
+    return handleError(res, "Missing required fields", 400);
+  }
+  try {
+    const result = await sftpService.createFolder(currentPath, folderName, serverId);
+    res.status(200).json({ message: "Folder created", path: result.path });
+  } catch (err) {
+    return handleError(res, `Error creating folder: ${err.message}`);
+  }
+};
+
+// ─── Download ─────────────────────────────────────────────────────────────────
+
+/**
+ * Streams a file from the remote SFTP server to the client.
+ * Supports token-based auth via query param for direct browser downloads.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_download_get = async (req, res) => {
+  const { serverId } = req.params;
+  const relativePath = req.params[0] || "";
+  const remotePath = relativePath ? `/${relativePath}` : "/";
+
+  try {
+    const { stream, filename, cleanup, size } = await sftpService.downloadFile(
+      serverId,
+      remotePath,
+    );
+    setDownloadHeaders(res, filename, size);
+    pipeStreamToResponse(stream, res, cleanup);
+  } catch (err) {
+    console.error("Download error:", err);
+    if (!res.headersSent) handleError(res, "Error downloading file");
+  }
+};
+
+/**
+ * Streams a remote folder as a ZIP archive to the client.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_archive_folder_get = async (req, res) => {
   const { serverId } = req.params;
   const relativePath = req.params[0] || "";
   const remotePath = relativePath ? `/${relativePath}` : "/";
@@ -123,73 +210,36 @@ const sftp_get_archive_folder = async (req, res) => {
     res.setHeader("Content-Type", "application/zip");
     await sftpService.archiveFolder(serverId, remotePath, res);
   } catch (err) {
-    handleError(res, "Failed to download folder");
+    console.error("Archive folder error:", err);
+    if (!res.headersSent) handleError(res, "Failed to download folder");
   }
 };
 
-async function sftp_download_file(serverId, remotePath, res) {
-  try {
-    const { stream, filename, cleanup, size } = await sftpService.downloadFile(
-      serverId,
-      remotePath,
-    );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Cache-Control", "no-store");
-    if (size) res.setHeader("Content-Length", size);
-    stream.pipe(res);
+// ─── Upload ───────────────────────────────────────────────────────────────────
 
-    res.on("close", cleanup);
-    res.on("finish", cleanup);
-  } catch (err) {
-    console.error("Download error:", err);
-    res.status(500).json({ error: "Error downloading file" });
-  }
-}
-
-const sftp_stream_download_get = async (req, res) => {
-  const { serverId } = req.params;
-  const relativePath = req.params[0] || "";
-  const remotePath = relativePath ? `/${relativePath}` : "/";
-
-  try {
-    const { stream, filename, cleanup, size } = await sftpService.downloadFile(
-      serverId,
-      remotePath,
-    );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Cache-Control", "no-store");
-    if (size) res.setHeader("Content-Length", size);
-
-    pipeStreamToResponse(stream, res, cleanup);
-  } catch (err) {
-    console.error("Download error:", err);
-    if (!res.headersSent) {
-      handleError(res, "Error downloading file");
-    }
-  }
-};
-
-async function sftp_stream_upload_post(req, res) {
+/**
+ * Handles a multipart file upload to a remote SFTP server.
+ * Expects `serverId` and `currentDirectory` as form fields.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_upload_post = async (req, res) => {
   const busboy = Busboy({ headers: req.headers });
   let currentDirectory, serverId;
+
   busboy.on("field", (fieldname, value) => {
     if (fieldname === "currentDirectory") currentDirectory = value;
     if (fieldname === "serverId") serverId = value;
   });
-  busboy.on("file", async (fieldname, file, filename) => {
+
+  busboy.on("file", async (fieldname, file, info) => {
     if (!serverId || !currentDirectory) {
       file.resume();
       return res.status(400).send("Missing directory or server ID");
     }
     try {
-      const remotePath = `${currentDirectory}/${filename.filename}`;
-      const { close } = await sftpService.uploadFile(
-        serverId,
-        file,
-        remotePath,
-      );
+      const remotePath = path.posix.join(currentDirectory, info.filename);
+      const { close } = await sftpService.uploadFile(serverId, file, remotePath);
       await close();
       res.status(200).send("File uploaded successfully");
     } catch (err) {
@@ -197,66 +247,59 @@ async function sftp_stream_upload_post(req, res) {
       res.status(500).send("Error uploading file");
     }
   });
+
   busboy.on("error", (err) => {
     console.error("Busboy error:", err);
     res.status(500).send("Error processing upload");
   });
-  req.pipe(busboy);
-}
 
-const sftp_id_list_files_json_get = async (req, res, next) => {
-  const { serverId } = req.params;
-  const currentDirectory = "/" + (req.params[0] || "/");
-  try {
-    const server = await SftpServer.findById(serverId);
-    if (!server) {
-      return handleError(res, "Server not found", 404);
-    }
-    const { files, folders } = await sftpService.listDirectory(
-      serverId,
-      currentDirectory,
-    );
-    res.json({
-      files,
-      folders,
-      currentDirectory,
-      serverId,
-      host: server.host,
-    });
-  } catch (error) {
-    console.log(error);
-    return handleError(res, "Error listing directory");
-  }
+  req.pipe(busboy);
 };
 
-async function sftp_copy_files_batch_json_post(req, res) {
+// ─── Transfer ─────────────────────────────────────────────────────────────────
+
+/**
+ * Handles a batch file copy/paste operation across any combination of
+ * local and remote SFTP sources and destinations.
+ * Sends progress updates via SSE using the provided transferId.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_copy_files_post = async (req, res) => {
   const { files, newPath, newServerId, transferId } = req.body;
+
+  if (!files?.length || !newPath || !transferId) {
+    return handleError(res, "Missing required fields", 400);
+  }
+
   try {
-    console.log("Starting batch transfer", transferId);
     await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
-    console.log("Batch complete, calling complete()", transferId);
     complete(transferId);
     res.status(200).send("Batch transfer complete");
   } catch (err) {
     console.error("Transfer failed:", err);
-    // complete here too so the SSE connection doesn't hang
     complete(transferId);
     res.status(500).send("Batch transfer failed");
   }
-}
+};
 
-const share_sftp_file = async (req, res) => {
+// ─── Share ────────────────────────────────────────────────────────────────────
+
+/**
+ * Creates a shareable link for a file on a remote SFTP server.
+ * When the link is accessed, the backend streams the file from the
+ * SFTP server directly to the requesting client.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_share_file_post = async (req, res) => {
   const { serverId, remotePath } = req.body;
   if (!serverId || !remotePath) {
     return handleError(res, "Missing required fields", 400);
   }
   try {
     const fileName = remotePath.split("/").pop();
-    const { link } = await serverService.share_file(
-      fileName,
-      remotePath,
-      serverId,
-    );
+    const { link } = await serverService.share_file(fileName, remotePath, serverId);
     res.json({ link });
   } catch (err) {
     console.error("Share file error:", err);
@@ -264,57 +307,67 @@ const share_sftp_file = async (req, res) => {
   }
 };
 
-const sftp_servers_json_get = async (req, res, next) => {
+// ─── Servers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Returns all saved SFTP servers.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_get_servers_get = async (req, res) => {
   try {
-    const servers = await SftpServer.find().select("_id, host");
-    return res.json({ servers });
-  } catch (error) {
-    return res.json({ status: "offline" });
+    const servers = await SftpServer.find().select("_id host");
+    res.json({ servers });
+  } catch (err) {
+    console.error("Get servers error:", err);
+    res.json({ status: "offline" });
   }
 };
 
-const server_status_get = async (req, res) => {
+/**
+ * Returns the current connection status of a saved SFTP server.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_server_status_get = async (req, res) => {
   const { serverId } = req.params;
   try {
     const status = await serverService.checkServerStatus(serverId);
-    return res.json({ status });
-  } catch (error) {
-    return res.json({ status: "offline" });
+    res.json({ status });
+  } catch (err) {
+    console.error("Server status error:", err);
+    res.json({ status: "offline" });
   }
 };
 
-const sftp_save_server_json_post = async (req, res, next) => {
-  const {
-    host,
-    username,
-    password,
-    authType = "password",
-    key,
-    passphrase,
-  } = req.body;
+/**
+ * Saves a new SFTP server configuration.
+ * Supports password and key-based authentication.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_save_server_post = async (req, res) => {
+  const { host, username, password, authType = "password", key, passphrase } = req.body;
   if (!host || !username || !authType) {
-    return handleError(res, "Host, username, and AuthType required", 400);
+    return handleError(res, "Host, username, and authType are required", 400);
   }
   try {
-    await serverService.save_server(
-      host,
-      username,
-      password,
-      authType,
-      key,
-      passphrase,
-    );
-    res.status(200).send();
-  } catch (error) {
-    return handleError(res, "Cannot save Server", 400);
+    await serverService.save_server(host, username, password, authType, key, passphrase);
+    res.status(200).json({ message: "Server saved" });
+  } catch (err) {
+    console.error("Save server error:", err);
+    return handleError(res, "Cannot save server", 400);
   }
 };
 
-const sftp_delete_server__json_post = async (req, res, next) => {
+/**
+ * Deletes a saved SFTP server configuration by ID.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const sftp_delete_server_post = async (req, res) => {
   const { serverId } = req.body;
-  if (!serverId) {
-    return handleError(res, "Missing serverId", 400);
-  }
+  if (!serverId) return handleError(res, "Missing serverId", 400);
   try {
     await SftpServer.findByIdAndDelete(serverId);
     res.status(200).json({ message: "Server deleted" });
@@ -324,20 +377,21 @@ const sftp_delete_server__json_post = async (req, res, next) => {
   }
 };
 
+// ─── Exports ──────────────────────────────────────────────────────────────────
+
 module.exports = {
-  sftp_stream_download_get,
-  sftp_stream_upload_post,
-  server_status_get,
-  sftp_servers_json_get,
-  sftp_id_list_files_json_get,
-  sftp_delete_server__json_post,
-  sftp_save_server_json_post,
-  sftp_delete_file_json_post,
-  sftp_delete_folder_json_post,
-  sftp_create_folder_json_post,
-  sftp_get_archive_folder,
-  share_sftp_file,
-  sftp_download_file,
-  sftp_rename_file_json_post,
-  sftp_copy_files_batch_json_post,
+  sftp_list_directory_get,
+  sftp_rename_file_post,
+  sftp_delete_file_post,
+  sftp_delete_folder_post,
+  sftp_create_folder_post,
+  sftp_download_get,
+  sftp_archive_folder_get,
+  sftp_upload_post,
+  sftp_copy_files_post,
+  sftp_share_file_post,
+  sftp_get_servers_get,
+  sftp_server_status_get,
+  sftp_save_server_post,
+  sftp_delete_server_post,
 };
