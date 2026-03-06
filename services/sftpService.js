@@ -413,26 +413,6 @@ const copyLocalToSftp = async ({
   }
 };
 
-/*
-  Copy items in filegroup from one location to another on sftp server
-*/
-const copySameSftp2 = async ({ serverId, fileGroup, newPath }) => {
-  const sftpSource = await connectToSftp(serverId);
-  try {
-    for (const file of fileGroup) {
-      const sourcePath = path.posix.join(file.path, file.file);
-      const destPath = path.posix.join(newPath, file.file);
-      if (file.isDirectory) {
-        await copySftpFolder(sftpSource, sourcePath, destPath);
-      } else {
-        await sftpSource.rcopy(sourcePath, destPath);
-      }
-    }
-  } finally {
-    await sftpSource.end();
-  }
-};
-
 const copySameSftp = async ({ serverId, fileGroup, newPath, transferId }) => {
   const sftpSource = await connectToSftp(serverId);
   try {

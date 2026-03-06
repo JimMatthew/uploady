@@ -48,7 +48,10 @@ const copy_local_file = async (filename, currentPath, newPath, transferId) => {
       lastUpdate = now;
       const percent = Math.min((transferred / totalSize) * 100, 100);
       if (transferId) {
-        sendProgress(transferId, { file: filename, percent: percent.toFixed(2) });
+        sendProgress(transferId, {
+          file: filename,
+          percent: percent.toFixed(2),
+        });
       }
     }
   });
@@ -75,7 +78,13 @@ function countLocalFiles(dirPath) {
   return count;
 }
 
-const copy_local_folder = async (folderName, currentPath, newPath, transferId, counter) => {
+const copy_local_folder = async (
+  folderName,
+  currentPath,
+  newPath,
+  transferId,
+  counter,
+) => {
   const localPath = path.join(currentPath, folderName);
   const { files, folders } = listLocalDir(path.join(uploadsDir, localPath));
   const newp = path.join(uploadsDir, newPath, folderName);
@@ -89,14 +98,19 @@ const copy_local_folder = async (folderName, currentPath, newPath, transferId, c
   }
 
   for (const file of files) {
-    await copy_local_file(file.name, localPath, path.join(newPath, folderName), null);
+    await copy_local_file(
+      file.name,
+      localPath,
+      path.join(newPath, folderName),
+      null,
+    );
 
     counter.completed++;
     if (transferId && counter.total > 0) {
       const percent = Math.min((counter.completed / counter.total) * 100, 100);
-      sendProgress(transferId, { 
-        file: counter.name, 
-        percent: percent.toFixed(2) 
+      sendProgress(transferId, {
+        file: counter.name,
+        percent: percent.toFixed(2),
       });
     }
   }
@@ -107,7 +121,7 @@ const copy_local_folder = async (folderName, currentPath, newPath, transferId, c
       localPath,
       path.join(newPath, folderName),
       transferId,
-      counter  // pass same counter down
+      counter,
     );
   }
 };
