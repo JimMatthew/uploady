@@ -41,7 +41,7 @@ const SFTPApp = ({ toast }) => {
         h="100vh"
         direction="column"
         gap={3}
-        bg="rgba(8,8,12,1)"
+        
       >
         <Spinner size="sm" color="rgba(99,102,241,0.5)" />
         <Text fontSize="12px" color="rgba(255,255,255,0.25)">
@@ -51,7 +51,7 @@ const SFTPApp = ({ toast }) => {
     );
 
   return (
-    <Flex h="100%" direction="column" bg="#0D0E14">
+    <Flex h="100%" direction="column" >
       {/* Mobile sidebar toggle */}
       {!isDesktop && !showSidebar && (
         <Flex
@@ -60,7 +60,7 @@ const SFTPApp = ({ toast }) => {
           px={4}
           h="44px"
           borderBottom="1px solid rgba(255,255,255,0.06)"
-          bg="rgba(8,8,12,0.8)"
+          
         >
           <Text
             fontSize="12px"
@@ -119,7 +119,7 @@ const SFTPApp = ({ toast }) => {
           overflow="hidden"
           display="flex"
           flexDirection="column"
-          bg="#0D0D12"
+          
         >
           <TabPanelComp
             tabs={tabs}

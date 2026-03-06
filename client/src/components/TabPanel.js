@@ -9,7 +9,7 @@ const TabPanelComp = ({ tabs, activeTabIndex, setActiveTabIndex, closeTab }) => 
       <Flex
         align="stretch"
         borderBottom="1px solid rgba(255,255,255,0.07)"
-        bg="#0D0E14"
+        
         overflowX="auto"
         flexShrink={0}
         sx={{

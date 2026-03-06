@@ -26,7 +26,7 @@ const Header = () => {
       align="center"
       px={5}
       h="52px"
-      bg="rgba(15, 17, 23, 0.95)"
+      bg="gray.900"
       backdropFilter="blur(12px)"
       borderBottom="1px solid rgba(255,255,255,0.07)"
       position="sticky"
@@ -109,7 +109,7 @@ const Header = () => {
 
       <Box flex={1} />
 
-      <DarkModeToggle />
+      
 
       {/* Logout */}
       <Flex
