@@ -51,54 +51,64 @@ const SFTPApp = ({ toast }) => {
     );
 
   return (
-    <Flex h="100%" direction="column" >
-      {/* Mobile sidebar toggle */}
-      {!isDesktop && !showSidebar && (
+  <Flex h="100%" direction="column" overflow="hidden">
+    {/* Mobile sidebar toggle */}
+    {!isDesktop && !showSidebar && (
+      <Flex
+        align="center"
+        justify="space-between"
+        px={4}
+        h="44px"
+        flexShrink={0}
+        borderBottom="1px solid rgba(255,255,255,0.06)"
+      >
+        <Text
+          fontSize="12px"
+          fontWeight={700}
+          color="rgba(255,255,255,0.5)"
+          letterSpacing="0.08em"
+          textTransform="uppercase"
+          fontFamily="'JetBrains Mono', monospace"
+        >
+          uploady
+        </Text>
         <Flex
           align="center"
-          justify="space-between"
-          px={4}
-          h="44px"
-          borderBottom="1px solid rgba(255,255,255,0.06)"
-          
+          gap={2}
+          px={3}
+          h="30px"
+          borderRadius="7px"
+          border="1px solid rgba(255,255,255,0.09)"
+          cursor="pointer"
+          color="rgba(255,255,255,0.4)"
+          fontSize="12px"
+          fontWeight={500}
+          transition="all 0.12s"
+          _hover={{
+            borderColor: "rgba(255,255,255,0.2)",
+            color: "rgba(255,255,255,0.8)",
+          }}
+          onClick={() => setShowSidebar(true)}
         >
-          <Text
-            fontSize="12px"
-            fontWeight={700}
-            color="rgba(255,255,255,0.5)"
-            letterSpacing="0.08em"
-            textTransform="uppercase"
-            fontFamily="'JetBrains Mono', monospace"
-          >
-            uploady
-          </Text>
-          <Flex
-            align="center"
-            gap={2}
-            px={3}
-            h="30px"
-            borderRadius="7px"
-            border="1px solid rgba(255,255,255,0.09)"
-            cursor="pointer"
-            color="rgba(255,255,255,0.4)"
-            fontSize="12px"
-            fontWeight={500}
-            transition="all 0.12s"
-            _hover={{
-              borderColor: "rgba(255,255,255,0.2)",
-              color: "rgba(255,255,255,0.8)",
-            }}
-            onClick={() => setShowSidebar(true)}
-          >
-            <Icon as={FiSidebar} boxSize="13px" />
-            Servers
-          </Flex>
+          <Icon as={FiSidebar} boxSize="13px" />
+          Servers
         </Flex>
-      )}
+      </Flex>
+    )}
 
-      <Flex flex={1} overflow="hidden">
-        {/* Sidebar */}
-        {(isDesktop || showSidebar) && (
+    {/* Body — fills remaining height */}
+    <Flex flex={1} overflow="hidden">
+      {/* Sidebar — own scrollbar */}
+      {(isDesktop || showSidebar) && (
+        <Box
+          h="100%"
+          overflowY="auto"
+          flexShrink={0}
+          css={{
+            "&::-webkit-scrollbar": { width: "0px" },
+            scrollbarWidth: "none",
+          }}
+        >
           <Sidebar
             handleConnect={handleConnect}
             handleLocalTab={handleLocalTab}
@@ -111,26 +121,21 @@ const SFTPApp = ({ toast }) => {
             sftpServers={sftpServers}
             serverStatuses={serverStatuses}
           />
-        )}
-
-        {/* Main tab area */}
-        <Box
-          flex={1}
-          overflow="hidden"
-          display="flex"
-          flexDirection="column"
-          
-        >
-          <TabPanelComp
-            tabs={tabs}
-            activeTabIndex={activeTabIndex}
-            setActiveTabIndex={setActiveTabIndex}
-            closeTab={closeTab}
-          />
         </Box>
-      </Flex>
+      )}
+
+      {/* Main tab area — own scrollbar */}
+      <Box flex={1} h="100%" overflowY="auto" minW={0}>
+        <TabPanelComp
+          tabs={tabs}
+          activeTabIndex={activeTabIndex}
+          setActiveTabIndex={setActiveTabIndex}
+          closeTab={closeTab}
+        />
+      </Box>
     </Flex>
-  );
+  </Flex>
+);
 };
 
 export default SFTPApp;
