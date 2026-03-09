@@ -17,7 +17,6 @@ export function useFileList({ toast }) {
 
   const fetchFiles = useCallback(
     async (path) => {
-      //setLoading(true);
       try {
         const response = await fetch(`/api/${path}/`, {
           headers: {
@@ -47,9 +46,7 @@ export function useFileList({ toast }) {
     [token, navigate],
   );
 
-  // reload always uses the current path
   const reload = useCallback(() => {
-    console.log("reload recreated");
     fetchFiles(currentPath);
   }, [fetchFiles, currentPath]);
 
@@ -137,7 +134,7 @@ export function useFileList({ toast }) {
 
   const onCreateFolder = useCallback(
     (folder) => createFolder(folder, fileData?.relativePath),
-    [createFolder, fileData?.relativePath], // was [handleCopy, ...] — bug fix
+    [createFolder, fileData?.relativePath], 
   );
 
   const onGenerateBreadcrumb = useCallback(

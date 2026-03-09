@@ -11,8 +11,8 @@ export function useFileList({
   const [selected, setSelected] = useState(new Set());
 
   useEffect(() => {
-  setSelected(new Set());
-}, [files]); 
+    setSelected(new Set());
+  }, [files]);
 
   const toggleSelect = useCallback((fileName) => {
     setSelected((prev) => {
@@ -49,7 +49,7 @@ export function useFileList({
 
   const isSelected = useCallback(
     (fileName) => selected.has(fileName),
-    [selected]
+    [selected],
   );
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
@@ -62,20 +62,20 @@ export function useFileList({
     const arr = [...files];
     if (sortField === "size") {
       return arr.sort((a, b) =>
-        fileSortDirection === "asc" ? a.size - b.size : b.size - a.size
+        fileSortDirection === "asc" ? a.size - b.size : b.size - a.size,
       );
     }
     if (sortField === "date") {
       return arr.sort((a, b) =>
         fileSortDirection === "asc"
           ? new Date(a.date).getTime() - new Date(b.date).getTime()
-          : new Date(b.date).getTime() - new Date(a.date).getTime()
+          : new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
     }
     return arr.sort((a, b) =>
       fileSortDirection === "asc"
         ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
+        : b.name.localeCompare(a.name),
     );
   }, [files, fileSortDirection, sortField]);
 

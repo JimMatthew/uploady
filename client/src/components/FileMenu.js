@@ -1,4 +1,5 @@
-import { Box, VStack, HStack, Text, Icon } from "@chakra-ui/react";
+import { forwardRef } from "react";
+import { Box, HStack, Text, Icon } from "@chakra-ui/react";
 import {
   FiCopy,
   FiScissors,
@@ -44,99 +45,116 @@ const Divider = () => (
   <Box mx={2} my="2px" h="1px" bg="rgba(255,255,255,0.07)" />
 );
 
-const FileContextMenu = ({
-  top,
-  left,
-  file,
-  closeMenu,
-  handleFileCopy,
-  handleFileCut,
-  handleFileDelete,
-  handleFileDownload,
-  handleFileShareLink,
-  handleOpenFile,
-  setRenamingFile,
-}) => {
-  const wrap = (fn) => () => {
-    fn(file);
-    closeMenu();
-  };
+/**
+ * Right-click context menu for file items.
+ * Uses forwardRef so the parent can measure dimensions and reposition
+ * the menu if it would overflow the viewport edges.
+ */
+const FileContextMenu = forwardRef(
+  (
+    {
+      top,
+      left,
+      file,
+      closeMenu,
+      handleFileCopy,
+      handleFileCut,
+      handleFileDelete,
+      handleFileDownload,
+      handleFileShareLink,
+      handleOpenFile,
+      setRenamingFile,
+    },
+    ref,
+  ) => {
+    const wrap = (fn) => () => {
+      fn(file);
+      closeMenu();
+    };
 
-  return (
-    <Box
-      position="fixed"
-      top={top}
-      left={left}
-      bg="rgba(18, 18, 24, 0.97)"
-      backdropFilter="blur(20px)"
-      border="1px solid rgba(255,255,255,0.1)"
-      borderRadius="10px"
-      boxShadow="0 8px 32px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.05) inset"
-      zIndex={9999}
-      onMouseLeave={closeMenu}
-      minW="172px"
-      overflow="hidden"
-      py="4px"
-    >
-      {/* Filename header */}
-      <Box px={3} pt={2} pb="6px">
-        <Text
-          fontSize="11px"
-          color="rgba(255,255,255,0.3)"
-          noOfLines={1}
-          letterSpacing="0.01em"
-          fontFamily="'JetBrains Mono', monospace"
-        >
-          {file}
-        </Text>
+    return (
+      <Box
+        ref={ref}
+        position="fixed"
+        top={`${top}px`}
+        left={`${left}px`}
+        bg="rgba(18, 18, 24, 0.97)"
+        backdropFilter="blur(20px)"
+        border="1px solid rgba(255,255,255,0.1)"
+        borderRadius="10px"
+        boxShadow="0 8px 32px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.05) inset"
+        zIndex={9999}
+        onMouseLeave={closeMenu}
+        minW="172px"
+        overflow="hidden"
+        py="4px"
+      >
+        {/* Filename header */}
+        <Box px={3} pt={2} pb="6px">
+          <Text
+            fontSize="11px"
+            color="rgba(255,255,255,0.3)"
+            noOfLines={1}
+            letterSpacing="0.01em"
+            fontFamily="'JetBrains Mono', monospace"
+          >
+            {file}
+          </Text>
+        </Box>
+        <Divider />
+
+        <MenuItem icon={FiCopy} label="Copy" onClick={wrap(handleFileCopy)} />
+        {handleFileCut && (
+          <MenuItem
+            icon={FiScissors}
+            label="Cut"
+            onClick={wrap(handleFileCut)}
+          />
+        )}
+        {setRenamingFile && (
+          <MenuItem
+            icon={FiEdit2}
+            label="Rename"
+            onClick={wrap(setRenamingFile)}
+          />
+        )}
+        {handleOpenFile && (
+          <MenuItem
+            icon={FiFileText}
+            label="Open"
+            onClick={wrap(handleOpenFile)}
+          />
+        )}
+
+        {(handleFileDownload || handleFileShareLink) && <Divider />}
+
+        {handleFileDownload && (
+          <MenuItem
+            icon={FiDownload}
+            label="Download"
+            onClick={wrap(handleFileDownload)}
+          />
+        )}
+        {handleFileShareLink && (
+          <MenuItem
+            icon={FiShare2}
+            label="Share link"
+            onClick={wrap(handleFileShareLink)}
+          />
+        )}
+
+        <Divider />
+        <MenuItem
+          icon={FiTrash2}
+          label="Delete"
+          onClick={wrap(handleFileDelete)}
+          danger
+        />
       </Box>
-      <Divider />
+    );
+  },
+);
 
-      <MenuItem icon={FiCopy} label="Copy" onClick={wrap(handleFileCopy)} />
-      {handleFileCut && (
-        <MenuItem icon={FiScissors} label="Cut" onClick={wrap(handleFileCut)} />
-      )}
-      {setRenamingFile && (
-        <MenuItem
-          icon={FiEdit2}
-          label="Rename"
-          onClick={wrap(setRenamingFile)}
-        />
-      )}
-      {handleOpenFile && (
-        <MenuItem
-          icon={FiFileText}
-          label="Open"
-          onClick={wrap(handleOpenFile)}
-        />
-      )}
-
-      {(handleFileDownload || handleFileShareLink) && <Divider />}
-
-      {handleFileDownload && (
-        <MenuItem
-          icon={FiDownload}
-          label="Download"
-          onClick={wrap(handleFileDownload)}
-        />
-      )}
-      {handleFileShareLink && (
-        <MenuItem
-          icon={FiShare2}
-          label="Share link"
-          onClick={wrap(handleFileShareLink)}
-        />
-      )}
-
-      <Divider />
-      <MenuItem
-        icon={FiTrash2}
-        label="Delete"
-        onClick={wrap(handleFileDelete)}
-        danger
-      />
-    </Box>
-  );
-};
+FileContextMenu.displayName = "FileContextMenu";
 
 export default FileContextMenu;

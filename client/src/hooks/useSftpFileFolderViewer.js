@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { joinPath } from "../utils/path";
 
 export function useSftpFileFolderViewer({ serverId, toast }) {
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([{}]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [progressMap, setProgressMap] = useState({});
@@ -127,28 +127,6 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     // can cancel the download before it starts on larger files
     setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }, []);
-
-  const handleDownload2 = useCallback(
-    async (filename) => {
-      try {
-        const blob = await apiRequest(
-          `/sftp/api/download/${serverId}/${files.currentDirectory}/${filename}`,
-          {},
-          true,
-        );
-        downloadFileBlob(blob, filename);
-      } catch {
-        showToast("Error downloading file", "error");
-      }
-    },
-    [
-      serverId,
-      files?.currentDirectory,
-      apiRequest,
-      downloadFileBlob,
-      showToast,
-    ],
-  );
 
   const handleDownload = useCallback(
     (filename) => {
@@ -318,7 +296,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
         path: files.currentDirectory,
         source: "sftp",
         serverId,
-        ...(isFolder && { isDirectory: true }),
+        isDirectory: isFolder,
       });
     },
     [copyFile, files?.currentDirectory, serverId],
@@ -343,7 +321,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     );
     setStartedTransfers(initialTransfers);
 
-    const eventSource = new EventSource(`/sftp/api/progress/${transferId}`);
+    const eventSource = new EventSource(`/sftp/api/progress/${transferId}?token=${token}`);
 
     eventSource.onmessage = async (event) => {
       const data = JSON.parse(event.data);
@@ -420,6 +398,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   const generateBreadcrumb = useCallback((path) => {
+    if (!path) return [{ name: "Home", path: "/" }];
     let currentPath = "";
     const crumbs = path
       .split("/")

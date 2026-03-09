@@ -187,9 +187,6 @@ export function useSftpList({ toast }) {
 
   // ---------------------------------------------------------------------------
   // Auth + initial load
-  // Intent: run once on mount. token and navigate are stable references
-  // so omitting them from deps is safe here.
-  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     if (!token) {
@@ -197,11 +194,7 @@ export function useSftpList({ toast }) {
       return;
     }
     fetchServers();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ---------------------------------------------------------------------------
-  // Public interface
-  // ---------------------------------------------------------------------------
+  }, [fetchServers, navigate, token]); 
 
   return {
     loading,

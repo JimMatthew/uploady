@@ -1,114 +1,102 @@
-import { useDisclosure, useToast } from "@chakra-ui/react";
-import React, { useState, useEffect } from "react";
+import { useToast } from "@chakra-ui/react";
+import { useState } from "react";
+
 export function useSharedLinks() {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
   const toast = useToast();
 
-  const deleteLink = (linkToken) => {
-    fetch(`/api/stop-sharing`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ token: linkToken }),
-    })
-      .then((res) => res.json())
-      .then(fetchLinks())
-      .catch((err) => {
-        toast({
-          title: "Error",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
+  const showToast = (title, status) =>
+    toast({ title, status, duration: 2500, isClosable: true });
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Link copied!",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
-
-  const copyToClip = (text) => {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      // If clipboard API is available, use it
-      navigator.clipboard
-        .writeText(text)
-        .then(() => {
-          toast({
-            title: "Link copied!",
-            status: "success",
-            duration: 2000,
-            isClosable: true,
-          });
-        })
-        .catch((err) => {
-          console.error("Failed to copy text to clipboard", err);
-        });
-    } else {
-      // Fallback for browsers that don't support Clipboard API
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        toast({
-          title: "Link copied!",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
-        });
-      } catch (err) {
-        console.error("Fallback method failed to copy text", err);
-      }
-      document.body.removeChild(textArea);
-    }
-  };
-
-  const clickLink = (link, fileName) => {
-    fetch(link, {
-      headers: {},
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((error) => console.error("Download error:", error));
-  };
-
-  const fetchLinks = async () => {
-    const res = await fetch("/api/links", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const data = await res.json();
-    setLinks(data.links);
-  };
+  // ─── Fetch ────────────────────────────────────────────────────────────────
 
   const loadLinks = async () => {
     setLoading(true);
     try {
-      await fetchLinks();
+      const res = await fetch("/api/links", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setLinks(data.links);
     } catch (err) {
-      console.error("Error loading links", err);
+      console.error("Error loading links:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ─── Delete ───────────────────────────────────────────────────────────────
+
+  const deleteLink = async (linkToken) => {
+    try {
+      await fetch("/api/stop-sharing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ token: linkToken }),
+      });
+      await loadLinks();
+      showToast("Link deleted", "success");
+    } catch {
+      showToast("Error deleting link", "error");
+    }
+  };
+
+  // ─── Clipboard ────────────────────────────────────────────────────────────
+
+  /**
+   * Copies text to clipboard with a fallback for browsers that don't
+   * support the async Clipboard API (e.g. non-HTTPS contexts).
+   * @param {string} text
+   */
+  const copyToClip = async (text) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for non-HTTPS or older browsers
+        const el = document.createElement("textarea");
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      showToast("Link copied!", "success");
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err);
+      showToast("Failed to copy link", "error");
+    }
+  };
+
+  // ─── Download ─────────────────────────────────────────────────────────────
+
+  /**
+   * Downloads a shared file via its public link.
+   * No auth header — share links are intentionally public.
+   * @param {string} link
+   * @param {string} fileName
+   */
+  const clickLink = async (link, fileName) => {
+    try {
+      const res = await fetch(link);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), {
+        href: url,
+        download: fileName,
+      });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      console.error("Download error:", err);
+      showToast("Error downloading file", "error");
     }
   };
 
