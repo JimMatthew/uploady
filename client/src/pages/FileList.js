@@ -38,8 +38,8 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     [fileData?.relativePath, reload],
   );
 
-  const onOpenFile = (filename) => {
-    openFile(null, fileData.relativePath, filename, null, false);
+  const onOpenFile = (filename, isNew) => {
+    openFile(null, fileData.relativePath, filename, null, false, isNew);
   };
 
   const apiRequest = useCallback(

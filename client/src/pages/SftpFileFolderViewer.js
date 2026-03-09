@@ -36,8 +36,8 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
     [files?.currentDirectory, serverId, onUploadSuccess],
   );
 
-  const onOpenFile = (filename) =>
-    openFile(serverId, files.currentDirectory, filename, host);
+  const onOpenFile = (filename, isNew) =>
+    openFile(serverId, files.currentDirectory, filename, host, true, isNew);
 
   if (loading)
     return (

@@ -57,7 +57,7 @@ export function useSftpList({ toast }) {
   // ---------------------------------------------------------------------------
 
   const handleOpenFile = useCallback(
-    (serverId, currentDirectory, filename, host, remote) => {
+    (serverId, currentDirectory, filename, host, remote, isNew) => {
       addTabItem({
         label: filename,
         content: (
@@ -68,6 +68,7 @@ export function useSftpList({ toast }) {
             toast={toast}
             host={host}
             remote={remote}
+            isNew={isNew}
           />
         ),
       });

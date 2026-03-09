@@ -39,7 +39,7 @@ const getFileType = (filename) => {
 };
 
 const getLanguageExtension = (filename) =>
-  EXT_LANG[getExt(filename)]?.() ?? javascript();
+  EXT_LANG[getExt(filename)]?.() ?? null;
 
 const EDITOR_STYLES = {
   ".cm-editor": {
@@ -89,7 +89,7 @@ const TextEditor = ({ text, onChange, filename }) => (
       value={text}
       onChange={onChange}
       theme={githubDark}
-      extensions={[getLanguageExtension(filename)]}
+      extensions={[getLanguageExtension(filename)].filter(Boolean)}
       style={{ minHeight: "300px" }}
     />
   </Box>
@@ -193,6 +193,7 @@ const FileEdit = ({
   toast,
   host,
   remote = true,
+  isNew = false,
 }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
@@ -241,7 +242,7 @@ const FileEdit = ({
     // Reset state when file changes
     setText("");
     setObjectUrl(null);
-
+    if (isNew) return;
     if (fileType === "image") {
       fetchAsObjectUrl("image/*");
       return;

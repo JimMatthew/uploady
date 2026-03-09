@@ -6,15 +6,30 @@ import CreateFolderComponent from "../components/CreateFolderComponent";
 import FolderList from "../components/FolderList";
 import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
-
+import CreateFileComponent from "../components/CreateFileComponent";
 const FilePanel = ({
-  files, handleDownload, onChangeDirectory, onDeleteFolder,
-  handleDownloadFolder, onFolderCopy, handleDelete, handleShare,
-  handleRename, handleCopy, handleCut, handlePaste, onOpenFile,
-  changeDirectory, onCreateFolder, startedTransfers, progressMap,
-  generateBreadcrumb, fileUploadProps,
+  files,
+  handleDownload,
+  onChangeDirectory,
+  onDeleteFolder,
+  handleDownloadFolder,
+  onFolderCopy,
+  handleDelete,
+  handleShare,
+  handleRename,
+  handleCopy,
+  handleCut,
+  handlePaste,
+  onOpenFile,
+  changeDirectory,
+  onCreateFolder,
+  startedTransfers,
+  progressMap,
+  generateBreadcrumb,
+  fileUploadProps,
 }) => {
-  const isMobile = useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
+  const isMobile =
+    useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
 
   return (
@@ -24,7 +39,6 @@ const FilePanel = ({
         px={{ base: 3, md: 5 }}
         py={4}
         borderBottom="1px solid rgba(255,255,255,0.06)"
-        
       >
         <Flex justify="center">
           {!isMobile ? (
@@ -57,13 +71,21 @@ const FilePanel = ({
           breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
           onClick={changeDirectory}
         />
-        <CreateFolderComponent handleCreateFolder={onCreateFolder} />
+        <Flex align="center" gap={2}>
+          <CreateFolderComponent handleCreateFolder={onCreateFolder} />
+          <CreateFileComponent
+            onOpenFile={(name) => onOpenFile(name, true)}
+          />
+        </Flex>
       </Flex>
 
       {/* Transfer progress */}
       {startedTransfers && progressMap && (
         <Box px={{ base: 3, md: 5 }} pt={3}>
-          <TransferProgress transfers={startedTransfers} progressMap={progressMap} />
+          <TransferProgress
+            transfers={startedTransfers}
+            progressMap={progressMap}
+          />
         </Box>
       )}
 
