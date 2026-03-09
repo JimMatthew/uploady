@@ -1,4 +1,4 @@
-import { Box, Flex, Stack, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Flex, useBreakpointValue } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
@@ -7,6 +7,7 @@ import FolderList from "../components/FolderList";
 import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
 import CreateFileComponent from "../components/CreateFileComponent";
+
 const FilePanel = ({
   files,
   handleDownload,

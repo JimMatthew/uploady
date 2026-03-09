@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 
 export function useFileList({
   files,
@@ -9,6 +9,10 @@ export function useFileList({
   const [fileSortDirection, setFileSortDirection] = useState("asc");
   const [sortField, setSortField] = useState("name");
   const [selected, setSelected] = useState(new Set());
+
+  useEffect(() => {
+  setSelected(new Set());
+}, [files]); 
 
   const toggleSelect = useCallback((fileName) => {
     setSelected((prev) => {
