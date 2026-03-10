@@ -86,12 +86,12 @@ export function useSftpList({ toast }) {
     [addTabItem],
   );
 
- const handleNewServer = useCallback(() => {
-  addTabItem({
-    label: "New Server",
-    content: <AddServer handleSaveServer={handleSaveServer} />,
-  });
-}, [addTabItem]);
+  const handleNewServer = useCallback(() => {
+    addTabItem({
+      label: "New Server",
+      content: <AddServer handleSaveServer={handleSaveServer} />,
+    });
+  }, [addTabItem]);
 
   const handleLocalTab = useCallback(() => {
     addTabItem({
@@ -193,7 +193,7 @@ export function useSftpList({ toast }) {
       return;
     }
     fetchServers();
-  }, [fetchServers, navigate, token]); 
+  }, [fetchServers, navigate, token]);
 
   return {
     loading,
