@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Box, HStack, Text, Icon } from "@chakra-ui/react";
 import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import FolderItem from "./FolderItem";
@@ -11,7 +11,9 @@ const FolderList = ({
   downloadFolder,
   handleCopy,
 }) => {
+  const menuRef = useRef(null);
   const [sortDir, setSortDir] = useState("asc");
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
@@ -22,9 +24,30 @@ const FolderList = ({
   const openMenu = useCallback((e, name) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, file: name, visible: true });
+    setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
   const closeMenu = () => setContextMenu((m) => ({ ...m, visible: false }));
+
+  useEffect(() => {
+    if (!contextMenu.visible || !menuRef.current) return;
+
+    const menu = menuRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let x = contextMenu.x;
+    let y = contextMenu.y;
+
+    if (x + menu.width > vw) x = vw - menu.width - 8;
+    if (y + menu.height > vh) y = vh - menu.height - 8;
+
+    // Clamp to viewport edges
+    x = Math.max(8, x);
+    y = Math.max(8, y);
+
+    setMenuPos({ x, y });
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
 
   const toggleSort = useCallback(() => {
     setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -91,9 +114,10 @@ const FolderList = ({
 
       {contextMenu.visible && (
         <FileMenu
+          ref={menuRef}
           file={contextMenu.file}
-          top={contextMenu.y}
-          left={contextMenu.x}
+          top={menuPos.y}
+          left={menuPos.x}
           closeMenu={closeMenu}
           handleFileCopy={handleCopy}
           handleFileDelete={deleteFolder}
