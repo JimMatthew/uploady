@@ -8,7 +8,8 @@ import FolderList from "../components/FolderList";
 import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
 import CreateFileComponent from "../components/CreateFileComponent";
-
+import ClipboardComponent from "../components/ClipboardComponent";
+import { useClipboard } from "../contexts/ClipboardContext";
 const FilePanel = ({
   files,
   handleDownload,
@@ -30,6 +31,7 @@ const FilePanel = ({
   generateBreadcrumb,
   fileUploadProps,
 }) => {
+  const { clipboard } = useClipboard();
   const isMobile =
     useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
@@ -106,6 +108,8 @@ const FilePanel = ({
         </Box>
       )}
 
+      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
+      
       {/* File browser */}
       <Box flex={1} overflow="auto" px={{ base: 0, md: 0 }}>
         <FolderList
@@ -123,7 +127,6 @@ const FilePanel = ({
           handleRenameFile={handleRename}
           handleFileCopy={handleCopy}
           handleFileCut={handleCut}
-          handleFilePaste={handlePaste}
           handleOpenFile={onOpenFile}
         />
       </Box>

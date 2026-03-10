@@ -2,9 +2,7 @@ import { Box, HStack, Text, Icon } from "@chakra-ui/react";
 import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
-import ClipboardComponent from "./ClipboardComponent";
 import Toolbar from "./Toolbar";
-import { useClipboard } from "../contexts/ClipboardContext";
 import { useState, useCallback, useEffect, useRef } from "react";
 import FileMenu from "./FileMenu";
 
@@ -18,7 +16,6 @@ export default function FileList({
   handleRenameFile,
   handleFileCopy,
   handleFileCut,
-  handleFilePaste,
   handleOpenFile,
 }) {
   const {
@@ -40,8 +37,7 @@ export default function FileList({
     handleFileDelete,
     handleFileShareLink,
   });
-const menuRef = useRef(null);
-  const { clipboard } = useClipboard();
+  const menuRef = useRef(null);
   const [renamingFile, setRenamingFile] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState({
@@ -71,25 +67,25 @@ const menuRef = useRef(null);
     },
     [handleRenameFile],
   );
-useEffect(() => {
-  if (!contextMenu.visible || !menuRef.current) return;
+  useEffect(() => {
+    if (!contextMenu.visible || !menuRef.current) return;
 
-  const menu = menuRef.current.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+    const menu = menuRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-  let x = contextMenu.x;
-  let y = contextMenu.y;
+    let x = contextMenu.x;
+    let y = contextMenu.y;
 
-  if (x + menu.width > vw) x = vw - menu.width - 8;
-  if (y + menu.height > vh) y = vh - menu.height - 8;
+    if (x + menu.width > vw) x = vw - menu.width - 8;
+    if (y + menu.height > vh) y = vh - menu.height - 8;
 
-  // Clamp to viewport edges
-  x = Math.max(8, x);
-  y = Math.max(8, y);
+    // Clamp to viewport edges
+    x = Math.max(8, x);
+    y = Math.max(8, y);
 
-  setMenuPos({ x, y });
-}, [contextMenu.visible, contextMenu.x, contextMenu.y]);
+    setMenuPos({ x, y });
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
   return (
     <Box>
       <Toolbar
@@ -99,8 +95,6 @@ useEffect(() => {
         handleClear={clearSelection}
         handleShare={handleShare}
       />
-
-      {clipboard[0] && <ClipboardComponent handlePaste={handleFilePaste} />}
 
       {/* Section header + sort controls */}
       <HStack
