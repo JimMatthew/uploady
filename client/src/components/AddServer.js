@@ -81,9 +81,9 @@ const AddServer = ({ handleSaveServer }) => {
   };
 
   return (
-    <Box maxW="420px" mx="auto" mt={8}>
+    <Box maxW="420px" mx="auto" >
       {/* Header */}
-      <Flex align="center" gap={3} mb={6}>
+      <Flex align="center" gap={3} mb={4} paddingTop={4}>
         <Box
           w="36px"
           h="36px"

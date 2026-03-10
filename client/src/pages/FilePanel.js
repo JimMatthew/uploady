@@ -32,8 +32,6 @@ const FilePanel = ({
   fileUploadProps,
 }) => {
   const { clipboard } = useClipboard();
-  const isMobile =
-    useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
 
   const isCompact =
@@ -52,7 +50,6 @@ const FilePanel = ({
   const useCompactUpload = isCompact || isShortScreen;
   return (
     <Box h="100%" display="flex" flexDirection="column">
-      {/* Upload zone */}
 
       {/* Upload zone — only on large screens */}
       {!useCompactUpload && (
