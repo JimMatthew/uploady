@@ -11,7 +11,7 @@ import {
   PopoverCloseButton,
   PopoverBody,
 } from "@chakra-ui/react";
-import { FiDownload, FiCopy, FiLink2, FiX } from "react-icons/fi";
+import { FiDownload, FiCopy, FiLink2, FiX, FiHardDrive } from "react-icons/fi";
 import { MdQrCode2 } from "react-icons/md";
 import QRCode from "react-qr-code";
 
@@ -47,81 +47,111 @@ const LinkCard = ({ linkItem, stopSharing, clickLink, copyToClipboard }) => (
     p={4}
     bg="rgba(255,255,255,0.02)"
     border="1px solid rgba(255,255,255,0.07)"
-    borderRadius="10px"
-    transition="border-color 0.12s"
-    _hover={{ borderColor: "rgba(255,255,255,0.12)" }}
+    borderRadius="12px"
+    transition="all 0.15s"
+    position="relative"
+    _hover={{
+      borderColor: "rgba(255,255,255,0.13)",
+      bg: "rgba(255,255,255,0.03)",
+    }}
   >
-    {/* Header */}
-    <Flex align="start" justify="space-between" mb={3}>
-      <HStack spacing={2} minW={0} flex={1}>
-        <Icon
-          as={FiLink2}
-          boxSize="13px"
-          color="rgba(255,255,255,0.3)"
-          flexShrink={0}
-        />
-        <Text
-          fontSize="13px"
-          fontWeight={600}
-          color="rgba(255,255,255,0.8)"
-          fontFamily="'JetBrains Mono', monospace"
-          noOfLines={1}
-          letterSpacing="-0.01em"
-        >
-          {linkItem.fileName}
-        </Text>
-      </HStack>
-      <Flex
-        w="22px"
-        h="22px"
-        flexShrink={0}
-        align="center"
-        justify="center"
-        borderRadius="5px"
-        cursor="pointer"
-        color="rgba(255,255,255,0.2)"
-        transition="all 0.12s"
-        _hover={{ bg: "rgba(239,68,68,0.12)", color: "#EF4444" }}
-        onClick={() => stopSharing(linkItem.token)}
-      >
-        <FiX size={12} />
-      </Flex>
+    {/* Delete button — absolute top right */}
+    <Flex
+      position="absolute"
+      top={3}
+      right={3}
+      w="22px"
+      h="22px"
+      align="center"
+      justify="center"
+      borderRadius="5px"
+      cursor="pointer"
+      color="rgba(255,255,255,0.15)"
+      transition="all 0.12s"
+      _hover={{ bg: "rgba(239,68,68,0.12)", color: "#EF4444" }}
+      onClick={() => stopSharing(linkItem.token)}
+    >
+      <FiX size={12} />
     </Flex>
+
+    {/* Filename */}
+    <HStack spacing={2} minW={0} mb={1} pr={6}>
+      <Icon
+        as={FiLink2}
+        boxSize="13px"
+        color="rgba(99,102,241,0.6)"
+        flexShrink={0}
+      />
+      <Text
+        fontSize="13px"
+        fontWeight={600}
+        color="rgba(255,255,255,0.85)"
+        fontFamily="'JetBrains Mono', monospace"
+        noOfLines={1}
+        letterSpacing="-0.01em"
+      >
+        {linkItem.fileName}
+      </Text>
+    </HStack>
 
     {/* URL */}
     <Text
       fontSize="11px"
       fontFamily="'JetBrains Mono', monospace"
-      color="rgba(255,255,255,0.25)"
+      color="rgba(255,255,255,0.2)"
       noOfLines={1}
-      mb={2}
+      mb={3}
+      pl="21px"
     >
       {linkItem.link}
     </Text>
 
-    {/* Remote badge */}
-    {linkItem.isRemote && (
-      <Flex
-        display="inline-flex"
-        align="center"
-        gap={1}
-        px="6px"
-        h="18px"
-        borderRadius="4px"
-        bg="rgba(139,92,246,0.12)"
-        border="1px solid rgba(139,92,246,0.25)"
-        mb={3}
-      >
-        <Text
-          fontSize="10px"
-          color="#A78BFA"
-          fontWeight={600}
-          letterSpacing="0.04em"
+    {/* Badges row */}
+    <HStack spacing={2} mb={3}>
+      {linkItem.isRemote ? (
+        <Flex
+          display="inline-flex"
+          align="center"
+          gap={1}
+          px="7px"
+          h="19px"
+          borderRadius="4px"
+          bg="rgba(139,92,246,0.1)"
+          border="1px solid rgba(139,92,246,0.22)"
         >
-          REMOTE · {linkItem.serverName}
-        </Text>
-      </Flex>
-    )}
+          <Icon as={FiHardDrive} boxSize="9px" color="#A78BFA" />
+          <Text
+            fontSize="10px"
+            color="#A78BFA"
+            fontWeight={600}
+            letterSpacing="0.04em"
+          >
+            {linkItem.serverName ?? "Remote"}
+          </Text>
+        </Flex>
+      ) : (
+        <Flex
+          display="inline-flex"
+          align="center"
+          gap={1}
+          px="7px"
+          h="19px"
+          borderRadius="4px"
+          bg="rgba(34,197,94,0.08)"
+          border="1px solid rgba(34,197,94,0.18)"
+        >
+          <Icon as={FiHardDrive} boxSize="9px" color="rgba(34,197,94,0.7)" />
+          <Text
+            fontSize="10px"
+            color="rgba(34,197,94,0.8)"
+            fontWeight={600}
+            letterSpacing="0.04em"
+          >
+            Local
+          </Text>
+        </Flex>
+      )}
+    </HStack>
 
     {/* Actions */}
     <HStack spacing={2} flexWrap="wrap">

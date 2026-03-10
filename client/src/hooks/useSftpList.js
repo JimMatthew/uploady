@@ -86,13 +86,12 @@ export function useSftpList({ toast }) {
     [addTabItem],
   );
 
-  const handleNewServer = useCallback(() => {
-    addTabItem({
-      label: "New Server",
-      content: <AddServer handleSaveServer={handleSaveServer} />,
-    });
-    // handleSaveServer is stable (defined below with useCallback)
-  }, [addTabItem]);
+ const handleNewServer = useCallback(() => {
+  addTabItem({
+    label: "New Server",
+    content: <AddServer handleSaveServer={handleSaveServer} />,
+  });
+}, [addTabItem]);
 
   const handleLocalTab = useCallback(() => {
     addTabItem({
@@ -168,7 +167,7 @@ export function useSftpList({ toast }) {
         host,
         username,
         password,
-        authType,
+        authMethod: authType,
         toast,
         passphrase,
       });

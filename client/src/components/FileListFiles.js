@@ -1,5 +1,5 @@
-import { Box, HStack, Text, Icon } from "@chakra-ui/react";
-import { FiChevronUp, FiChevronDown } from "react-icons/fi";
+import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
+import { FiChevronUp, FiChevronDown, FiFolder } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import Toolbar from "./Toolbar";
@@ -163,20 +163,36 @@ export default function FileList({
         </HStack>
       </HStack>
 
-      {sortedFiles.map((file) => (
-        <FileItem
-          key={file.name}
-          name={file.name}
-          size={file.size}
-          date={file.date}
-          isSelected={isSelected(file.name)}
-          onSelect={toggleSelect}
-          onOpenMenu={openMenu}
-          isRenaming={renamingFile === file.name}
-          onRename={onRename}
-          onRenameClose={() => setRenamingFile(null)}
-        />
-      ))}
+      {sortedFiles.length === 0 ? (
+        <Flex
+          align="center"
+          justify="center"
+          direction="column"
+          gap={2}
+          py={10}
+          color="rgba(255,255,255,0.15)"
+        >
+          <Icon as={FiFolder} boxSize="28px" />
+          <Text fontSize="12px" letterSpacing="0.02em">
+            This folder is empty
+          </Text>
+        </Flex>
+      ) : (
+        sortedFiles.map((file) => (
+          <FileItem
+            key={file.name}
+            name={file.name}
+            size={file.size}
+            date={file.date}
+            isSelected={isSelected(file.name)}
+            onSelect={toggleSelect}
+            onOpenMenu={openMenu}
+            isRenaming={renamingFile === file.name}
+            onRename={onRename}
+            onRenameClose={() => setRenamingFile(null)}
+          />
+        ))
+      )}
 
       {contextMenu.visible && (
         <FileMenu
