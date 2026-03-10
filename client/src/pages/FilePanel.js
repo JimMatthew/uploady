@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Box, Flex, useBreakpointValue } from "@chakra-ui/react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
@@ -33,38 +34,48 @@ const FilePanel = ({
     useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
 
+  const isCompact =
+    useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
+
+  const [isShortScreen, setIsShortScreen] = useState(
+    () => window.innerHeight < 800,
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsShortScreen(window.innerHeight < 800);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const useCompactUpload = isCompact || isShortScreen;
   return (
     <Box h="100%" display="flex" flexDirection="column">
       {/* Upload zone */}
-      <Box
-        px={{ base: 3, md: 5 }}
-        py={4}
-        borderBottom="1px solid rgba(255,255,255,0.06)"
-      >
-        <Flex justify="center">
-          {!isMobile ? (
+
+      {/* Upload zone — only on large screens */}
+      {!useCompactUpload && (
+        <Box
+          px={{ base: 3, md: 5 }}
+          py={4}
+          borderBottom="1px solid rgba(255,255,255,0.06)"
+        >
+          <Flex justify="center">
             <DragAndDropComponent
               apiEndpoint={apiEndpoint}
               additionalData={additionalData}
               onUploadSuccess={onUploadSuccess}
             />
-          ) : (
-            <Upload
-              apiEndpoint={apiEndpoint}
-              additionalData={additionalData}
-              onUploadSuccess={onUploadSuccess}
-            />
-          )}
-        </Flex>
-      </Box>
+          </Flex>
+        </Box>
+      )}
 
-      {/* Breadcrumb + create folder toolbar */}
+      {/* Breadcrumb + toolbar — single row on compact */}
       <Flex
         align="center"
         justify="space-between"
         gap={3}
         px={{ base: 3, md: 5 }}
-        py={3}
+        py={useCompactUpload ? 2 : 3}
         borderBottom="1px solid rgba(255,255,255,0.05)"
         flexWrap="wrap"
       >
@@ -73,10 +84,15 @@ const FilePanel = ({
           onClick={changeDirectory}
         />
         <Flex align="center" gap={2}>
+          {useCompactUpload && (
+            <Upload
+              apiEndpoint={apiEndpoint}
+              additionalData={additionalData}
+              onUploadSuccess={onUploadSuccess}
+            />
+          )}
           <CreateFolderComponent handleCreateFolder={onCreateFolder} />
-          <CreateFileComponent
-            onOpenFile={(name) => onOpenFile(name, true)}
-          />
+          <CreateFileComponent onOpenFile={(name) => onOpenFile(name, true)} />
         </Flex>
       </Flex>
 

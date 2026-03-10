@@ -98,7 +98,7 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     );
 
   return (
-    <Box minH="80vh">
+    <>
       {/* SFTP link banner */}
       {!hideLink && (
         <Flex
@@ -157,7 +157,7 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
         progressMap={progressMap}
         startedTransfers={startedTransfers}
       />
-    </Box>
+    </>
   );
 };
 

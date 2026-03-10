@@ -115,6 +115,12 @@ const Sidebar = ({
           label="Add Server"
           onClick={handleNewServer}
         />
+        {!isDesktop && 
+        <NavButton
+           icon={FiPlusCircle}
+          label="Close"
+          onClick={() => setShowSidebar(false)}
+          />}
       </VStack>
 
       {/* Divider */}
