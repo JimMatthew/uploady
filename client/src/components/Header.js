@@ -2,11 +2,9 @@ import {
   Flex,
   Text,
   Box,
-  IconButton,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { FiLogOut, FiMenu } from "react-icons/fi";
-import DarkModeToggle from "./DarkModeToggle";
+import { FiLogOut } from "react-icons/fi";
 
 const Header = () => {
   const showText = useBreakpointValue({ base: false, md: true });
@@ -108,8 +106,6 @@ const Header = () => {
       />
 
       <Box flex={1} />
-
-      
 
       {/* Logout */}
       <Flex

@@ -136,6 +136,7 @@ const FileItem = function FileItem({
             <RenameComponent
               handleRename={(newname) => onRename(name, newname)}
               onCancel={onRenameClose}
+              currentName={name}
             />
           </Box>
         )}
