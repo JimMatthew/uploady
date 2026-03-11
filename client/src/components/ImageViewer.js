@@ -161,9 +161,9 @@ const ImageViewer = ({ src, alt, onSave }) => {
         px={4}
         py={2}
         borderBottom="1px solid rgba(255,255,255,0.07)"
-        bg="rgba(8,8,12,0.9)"
         flexWrap="wrap"
         flexShrink={0}
+        bg={"gray.800"}
       >
         {isCropping ? (
           // Crop mode controls
@@ -285,7 +285,7 @@ const ImageViewer = ({ src, alt, onSave }) => {
       </Flex>
 
       {/* Image area */}
-      <Box flex={1} position="relative" overflow="hidden">
+      <Box flex={1} position="relative" overflow="hidden" bg={"gray.800"}>
         {isCropping ? (
           <Box position="relative" w="100%" h="calc(100vh - 200px)">
             <Cropper
@@ -298,7 +298,6 @@ const ImageViewer = ({ src, alt, onSave }) => {
               onZoomChange={setZoom}
               onCropComplete={onCropComplete}
               style={{
-                containerStyle: { background: "#0A0A0E" },
                 cropAreaStyle: {
                   border: "2px solid #6366F1",
                   boxShadow: "0 0 0 9999px rgba(0,0,0,0.7)",
@@ -307,13 +306,7 @@ const ImageViewer = ({ src, alt, onSave }) => {
             />
           </Box>
         ) : (
-          <Flex
-            h="100%"
-            align="center"
-            justify="center"
-            overflow="hidden"
-            bg="#0A0A0E"
-          >
+          <Flex h="100%" align="center" justify="center" overflow="hidden">
             <img
               src={displaySrc}
               alt={alt}
@@ -339,8 +332,8 @@ const ImageViewer = ({ src, alt, onSave }) => {
         px={4}
         h="28px"
         borderTop="1px solid rgba(255,255,255,0.05)"
-        bg="rgba(8,8,12,0.8)"
         flexShrink={0}
+        bg={"gray.800"}
       >
         <Text
           fontSize="11px"
