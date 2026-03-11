@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Flex, Icon } from "@chakra-ui/react";
+import { Box, Flex, Icon, Tooltip } from "@chakra-ui/react";
 import { FiUpload, FiUploadCloud } from "react-icons/fi";
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
@@ -111,48 +111,55 @@ const FilePanel = ({
 
           {/* Toggle upload mode — only on large screens */}
           {!forceCompact && (
-            <Flex
-              w="28px"
-              h="28px"
-              align="center"
-              justify="center"
-              borderRadius="6px"
-              cursor="pointer"
-              border="1px solid"
-              borderColor={
-                uploadMode === "dragdrop"
-                  ? "rgba(99,102,241,0.35)"
-                  : "rgba(255,255,255,0.08)"
-              }
-              bg={
-                uploadMode === "dragdrop"
-                  ? "rgba(99,102,241,0.12)"
-                  : "transparent"
-              }
-              color={
-                uploadMode === "dragdrop" ? "#818CF8" : "rgba(255,255,255,0.3)"
-              }
-              transition="all 0.12s"
-              _hover={{
-                borderColor:
-                  uploadMode === "dragdrop"
-                    ? "rgba(99,102,241,0.5)"
-                    : "rgba(255,255,255,0.18)",
-                color:
-                  uploadMode === "dragdrop"
-                    ? "#A5B4FC"
-                    : "rgba(255,255,255,0.7)",
-              }}
-              onClick={toggleUploadMode}
-              title={
+            <Tooltip
+              label={
                 uploadMode === "dragdrop" ? "Hide drop zone" : "Show drop zone"
               }
+              hasArrow
+              openDelay={400}
             >
-              <Icon
-                as={uploadMode === "dragdrop" ? FiUploadCloud : FiUpload}
-                boxSize="13px"
-              />
-            </Flex>
+              <Flex
+                w="28px"
+                h="28px"
+                align="center"
+                justify="center"
+                borderRadius="6px"
+                cursor="pointer"
+                border="1px solid"
+                borderColor={
+                  uploadMode === "dragdrop"
+                    ? "rgba(99,102,241,0.35)"
+                    : "rgba(255,255,255,0.08)"
+                }
+                bg={
+                  uploadMode === "dragdrop"
+                    ? "rgba(99,102,241,0.12)"
+                    : "transparent"
+                }
+                color={
+                  uploadMode === "dragdrop"
+                    ? "#818CF8"
+                    : "rgba(255,255,255,0.3)"
+                }
+                transition="all 0.12s"
+                _hover={{
+                  borderColor:
+                    uploadMode === "dragdrop"
+                      ? "rgba(99,102,241,0.5)"
+                      : "rgba(255,255,255,0.18)",
+                  color:
+                    uploadMode === "dragdrop"
+                      ? "#A5B4FC"
+                      : "rgba(255,255,255,0.7)",
+                }}
+                onClick={toggleUploadMode}
+              >
+                <Icon
+                  as={uploadMode === "dragdrop" ? FiUploadCloud : FiUpload}
+                  boxSize="13px"
+                />
+              </Flex>
+            </Tooltip>
           )}
         </Flex>
       </Flex>

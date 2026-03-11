@@ -1,96 +1,86 @@
-import { useState, useRef } from "react";
-import { Flex, Input, IconButton, Tooltip } from "@chakra-ui/react";
-import { FilePlus, Check, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Flex, Input, Icon, Tooltip } from "@chakra-ui/react";
+import { FiFilePlus } from "react-icons/fi";
 
-/**
- * Renders a "+ New File" button that expands inline to accept a filename.
- * On confirm, creates an empty file and opens it in the editor.
- * @param {{ currentDirectory: string, onOpenFile: (file: object) => void, onCreateSuccess: () => void }} props
- */
 const CreateFileComponent = ({ onOpenFile }) => {
-  const [isEntering, setIsEntering] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [fileName, setFileName] = useState("");
   const inputRef = useRef(null);
 
-  const open = () => {
-    setFileName("");
-    setIsEntering(true);
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
+  useEffect(() => {
+    if (expanded) inputRef.current?.focus();
+  }, [expanded]);
 
-  const cancel = () => {
-    setIsEntering(false);
+  const handleSubmit = () => {
+    if (!fileName.trim()) { setExpanded(false); return; }
+    onOpenFile(fileName.trim());
     setFileName("");
-  };
-
-  const confirm = async () => {
-    const trimmed = fileName.trim();
-    if (!trimmed) return;
-    onOpenFile(trimmed);
+    setExpanded(false);
   };
 
   const onKeyDown = (e) => {
-    if (e.key === "Enter") confirm();
-    if (e.key === "Escape") cancel();
+    if (e.key === "Enter") handleSubmit();
+    if (e.key === "Escape") { setFileName(""); setExpanded(false); }
   };
 
-  if (isEntering) {
+  if (!expanded) {
     return (
-      <Flex align="center" gap={1}>
-        <Input
-          ref={inputRef}
-          value={fileName}
-          onChange={(e) => setFileName(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="filename.txt"
-          size="sm"
-          w="140px"
-          bg="rgba(255,255,255,0.05)"
-          border="1px solid rgba(99,102,241,0.5)"
-          borderRadius="md"
-          color="white"
-          fontSize="0.8rem"
-          _focus={{ borderColor: "#6366F1", boxShadow: "none" }}
-          _placeholder={{ color: "whiteAlpha.400" }}
-        />
-        <Tooltip label="Create">
-          <IconButton
-            icon={<Check size={14} />}
-            size="sm"
-            variant="ghost"
-            color="#6366F1"
-            _hover={{ bg: "rgba(99,102,241,0.15)" }}
-            onClick={confirm}
-            aria-label="Confirm"
-          />
-        </Tooltip>
-        <Tooltip label="Cancel">
-          <IconButton
-            icon={<X size={14} />}
-            size="sm"
-            variant="ghost"
-            color="whiteAlpha.500"
-            _hover={{ bg: "rgba(255,255,255,0.06)" }}
-            onClick={cancel}
-            aria-label="Cancel"
-          />
-        </Tooltip>
-      </Flex>
+      <Tooltip label="New file" hasArrow openDelay={400}>
+        <Flex
+          w="28px"
+          h="28px"
+          align="center"
+          justify="center"
+          borderRadius="6px"
+          cursor="pointer"
+          border="1px solid rgba(255,255,255,0.08)"
+          color="rgba(255,255,255,0.3)"
+          transition="all 0.12s"
+          _hover={{
+            borderColor: "rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.7)",
+          }}
+          onClick={() => setExpanded(true)}
+        >
+          <Icon as={FiFilePlus} boxSize="13px" />
+        </Flex>
+      </Tooltip>
     );
   }
 
   return (
-    <Tooltip label="New file">
-      <IconButton
-        icon={<FilePlus size={15} />}
-        size="sm"
-        variant="ghost"
-        color="whiteAlpha.600"
-        _hover={{ color: "white", bg: "rgba(255,255,255,0.06)" }}
-        onClick={open}
-        aria-label="New file"
+    <Flex
+      align="center"
+      gap={2}
+      px="8px"
+      h="28px"
+      bg="rgba(255,255,255,0.02)"
+      border="1px solid rgba(99,102,241,0.4)"
+      borderRadius="7px"
+      boxShadow="0 0 0 2px rgba(99,102,241,0.1)"
+    >
+      <Icon
+        as={FiFilePlus}
+        boxSize="12px"
+        color="rgba(99,102,241,0.7)"
+        flexShrink={0}
       />
-    </Tooltip>
+      <Input
+        ref={inputRef}
+        variant="unstyled"
+        size="sm"
+        placeholder="File name…"
+        value={fileName}
+        onChange={(e) => setFileName(e.target.value)}
+        onKeyDown={onKeyDown}
+        onBlur={handleSubmit}
+        fontSize="12px"
+        fontFamily="'JetBrains Mono', monospace"
+        color="rgba(255,255,255,0.85)"
+        _placeholder={{ color: "rgba(255,255,255,0.25)" }}
+        w="140px"
+      />
+    </Flex>
   );
 };
 

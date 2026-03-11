@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Flex, Input, Icon } from "@chakra-ui/react";
+import { Flex, Input, Icon, Tooltip } from "@chakra-ui/react";
 import { FiFolderPlus } from "react-icons/fi";
 
 const CreateFolderComponent = ({ handleCreateFolder }) => {
@@ -25,25 +25,26 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
 
   if (!expanded) {
     return (
-      <Flex
-        w="28px"
-        h="28px"
-        align="center"
-        justify="center"
-        borderRadius="6px"
-        cursor="pointer"
-        border="1px solid rgba(255,255,255,0.08)"
-        color="rgba(255,255,255,0.3)"
-        transition="all 0.12s"
-        _hover={{
-          borderColor: "rgba(255,255,255,0.18)",
-          color: "rgba(255,255,255,0.7)",
-        }}
-        onClick={() => setExpanded(true)}
-        title="New folder"
-      >
-        <Icon as={FiFolderPlus} boxSize="13px" />
-      </Flex>
+      <Tooltip label="New folder" hasArrow openDelay={400}>
+        <Flex
+          w="28px"
+          h="28px"
+          align="center"
+          justify="center"
+          borderRadius="6px"
+          cursor="pointer"
+          border="1px solid rgba(255,255,255,0.08)"
+          color="rgba(255,255,255,0.3)"
+          transition="all 0.12s"
+          _hover={{
+            borderColor: "rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.7)",
+          }}
+          onClick={() => setExpanded(true)}
+        >
+          <Icon as={FiFolderPlus} boxSize="13px" />
+        </Flex>
+      </Tooltip>
     );
   }
 
