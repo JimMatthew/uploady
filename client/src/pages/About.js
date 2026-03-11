@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
-import { FiGithub, FiFolder, FiCpu, FiHardDrive, FiClock, FiCode } from "react-icons/fi";
+import { FiGithub, FiFolder, FiCpu, FiHardDrive } from "react-icons/fi";
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatRow = ({ label, value, accent }) => (
   <Flex
     align="center"
     justify="space-between"
-    px={4} py="10px"
+    px={4}
+    py="10px"
     borderBottom="1px solid rgba(255,255,255,0.05)"
     _last={{ borderBottom: "none" }}
   >
@@ -25,19 +28,109 @@ const StatRow = ({ label, value, accent }) => (
   </Flex>
 );
 
+const SectionHeader = ({ icon, label }) => (
+  <Box px={4} py="10px" borderBottom="1px solid rgba(255,255,255,0.06)">
+    <Flex align="center" gap={2}>
+      <Icon as={icon} boxSize="12px" color="rgba(255,255,255,0.25)" />
+      <Text
+        fontSize="10px"
+        fontWeight="700"
+        letterSpacing="0.1em"
+        textTransform="uppercase"
+        color="rgba(255,255,255,0.25)"
+      >
+        {label}
+      </Text>
+    </Flex>
+  </Box>
+);
+
+const NavButton = ({ onClick, href, icon, label, accent }) => {
+  const styles = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "0 16px",
+    height: "34px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textDecoration: "none",
+    transition: "all 0.12s",
+    border: accent
+      ? "1px solid rgba(99,102,241,0.25)"
+      : "1px solid rgba(255,255,255,0.08)",
+    background: accent ? "rgba(99,102,241,0.08)" : "transparent",
+    color: accent ? "#818CF8" : "rgba(255,255,255,0.4)",
+  };
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" style={styles}>
+        <Icon as={icon} boxSize="13px" />
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Flex
+      align="center"
+      gap={2}
+      px={4}
+      h="34px"
+      borderRadius="8px"
+      border={
+        accent
+          ? "1px solid rgba(99,102,241,0.25)"
+          : "1px solid rgba(255,255,255,0.08)"
+      }
+      bg={accent ? "rgba(99,102,241,0.08)" : "transparent"}
+      color={accent ? "#818CF8" : "rgba(255,255,255,0.4)"}
+      fontSize="12px"
+      fontWeight={600}
+      cursor="pointer"
+      transition="all 0.12s"
+      _hover={{
+        bg: accent ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.04)",
+        borderColor: accent ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.15)",
+        color: accent ? "#A5B4FC" : "rgba(255,255,255,0.7)",
+      }}
+      onClick={onClick}
+    >
+      <Icon as={icon} boxSize="13px" />
+      {label}
+    </Flex>
+  );
+};
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 const About = () => {
   const [stats, setStats] = useState(null);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    if (!token) { navigate("/"); return; }
+    if (!token) {
+      navigate("/");
+      return;
+    }
     fetch("/api/pstats", {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    }).then((r) => {
-      if (r.status === 401) { navigate("/"); return; }
-      return r.json();
-    }).then(setStats);
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((r) => {
+        if (r.status === 401) {
+          navigate("/");
+          return null;
+        }
+        return r.json();
+      })
+      .then((data) => data && setStats(data));
   }, []);
 
   const formatUptime = (up) => {
@@ -50,62 +143,95 @@ const About = () => {
   const mb = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
 
   return (
-    <Box minH="100vh" bg="#0A0A0E" py={10} px={4}>
+    <Box minH="100%" bg="gray.800" py={10} px={4}>
       <Box maxW="480px" mx="auto">
-        {/* Header */}
+        {/* Logo + title */}
         <Flex direction="column" align="center" mb={8} gap={3}>
           <Box
-            w="48px" h="48px" borderRadius="13px"
+            w="48px"
+            h="48px"
+            borderRadius="13px"
             bg="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
-            display="flex" alignItems="center" justifyContent="center"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
             boxShadow="0 0 28px rgba(99,102,241,0.3)"
           >
             <svg width="24" height="24" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
-              <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-              <rect x="1" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.5"/>
-              <rect x="7" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.9"/>
+              <rect
+                x="1"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
+              <rect
+                x="7"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="1"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="7"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
             </svg>
           </Box>
           <Box textAlign="center">
-            <Text fontSize="22px" fontWeight="800" color="rgba(255,255,255,0.9)"
-              letterSpacing="-0.03em" fontFamily="'JetBrains Mono', monospace">
+            <Text
+              fontSize="22px"
+              fontWeight="800"
+              color="rgba(255,255,255,0.9)"
+              letterSpacing="-0.03em"
+              fontFamily="'JetBrains Mono', monospace"
+            >
               uploady
             </Text>
             {stats?.version && (
-              <Text fontSize="11px" color="rgba(255,255,255,0.25)" mt="2px" fontFamily="'JetBrains Mono', monospace">
-                v1.01 · {stats.version}
+              <Text
+                fontSize="11px"
+                color="rgba(255,255,255,0.25)"
+                mt="2px"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                {stats.version}
               </Text>
             )}
           </Box>
         </Flex>
 
-        {/* Nav */}
+        {/* Nav buttons */}
         <Flex gap={2} mb={5} justify="center">
-          <Link to="/app/files">
-            <Flex align="center" gap={2} px={4} h="34px" borderRadius="8px"
-              border="1px solid rgba(99,102,241,0.25)"
-              bg="rgba(99,102,241,0.08)" color="#818CF8"
-              fontSize="12px" fontWeight={600}
-              transition="all 0.12s" cursor="pointer"
-              _hover={{ bg: "rgba(99,102,241,0.15)" }}
-            >
-              <Icon as={FiFolder} boxSize="13px" />
-              File Manager
-            </Flex>
-          </Link>
-          <a href="https://github.com/JimMatthew/uploady" target="_blank" rel="noreferrer">
-            <Flex align="center" gap={2} px={4} h="34px" borderRadius="8px"
-              border="1px solid rgba(255,255,255,0.08)"
-              color="rgba(255,255,255,0.4)"
-              fontSize="12px" fontWeight={500}
-              transition="all 0.12s" cursor="pointer"
-              _hover={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.8)" }}
-            >
-              <Icon as={FiGithub} boxSize="13px" />
-              GitHub
-            </Flex>
-          </a>
+          <NavButton
+            icon={FiFolder}
+            label="File Manager"
+            accent
+            onClick={() => navigate("/app/files")}
+          />
+          <NavButton
+            icon={FiGithub}
+            label="GitHub"
+            href="https://github.com/JimMatthew/uploady"
+          />
         </Flex>
 
         {/* Stats card */}
@@ -115,48 +241,43 @@ const About = () => {
           borderRadius="12px"
           overflow="hidden"
         >
-          {/* Section: Memory */}
-          <Box px={4} py="10px" borderBottom="1px solid rgba(255,255,255,0.06)">
-            <Flex align="center" gap={2}>
-              <Icon as={FiHardDrive} boxSize="12px" color="rgba(255,255,255,0.25)" />
-              <Text fontSize="10px" fontWeight="700" letterSpacing="0.1em"
-                textTransform="uppercase" color="rgba(255,255,255,0.25)">
-                Memory
-              </Text>
-            </Flex>
-          </Box>
+          <SectionHeader icon={FiHardDrive} label="Memory" />
 
           {!stats ? (
             <Flex align="center" justify="center" gap={2} py={8}>
               <Spinner size="xs" color="rgba(99,102,241,0.5)" />
-              <Text fontSize="12px" color="rgba(255,255,255,0.2)">Loading…</Text>
+              <Text fontSize="12px" color="rgba(255,255,255,0.2)">
+                Loading…
+              </Text>
             </Flex>
           ) : (
             <>
-              <StatRow label="RSS"         value={mb(stats.memory.rss)} />
-              <StatRow label="Heap total"  value={mb(stats.memory.heapTotal)} />
-              <StatRow label="Heap used"   value={mb(stats.memory.heapUsed)} accent="#818CF8" />
-              <StatRow label="External"    value={mb(stats.memory.external)} />
-              <StatRow label="ArrayBuffers" value={mb(stats.memory.arrayBuffers)} />
+              <StatRow label="RSS" value={mb(stats.memory.rss)} />
+              <StatRow label="Heap total" value={mb(stats.memory.heapTotal)} />
+              <StatRow
+                label="Heap used"
+                value={mb(stats.memory.heapUsed)}
+                accent="#818CF8"
+              />
+              <StatRow label="External" value={mb(stats.memory.external)} />
+              <StatRow
+                label="ArrayBuffers"
+                value={mb(stats.memory.arrayBuffers)}
+              />
 
-              <Box px={4} py="10px"
-                borderTop="1px solid rgba(255,255,255,0.06)"
-                borderBottom="1px solid rgba(255,255,255,0.06)"
-                mt={1}
-              >
-                <Flex align="center" gap={2}>
-                  <Icon as={FiCpu} boxSize="12px" color="rgba(255,255,255,0.25)" />
-                  <Text fontSize="10px" fontWeight="700" letterSpacing="0.1em"
-                    textTransform="uppercase" color="rgba(255,255,255,0.25)">
-                    Environment
-                  </Text>
-                </Flex>
-              </Box>
+              <SectionHeader icon={FiCpu} label="Environment" />
 
-              <StatRow label="Node"    value={stats.nodeVersion} />
-              <StatRow label="V8"      value={stats.v8Version} />
-              <StatRow label="OS"      value={`${stats.osName} ${stats.osRelease}`} />
-              <StatRow label="Uptime"  value={formatUptime(stats.uptime)} accent="#4ADE80" />
+              <StatRow label="Node" value={stats.nodeVersion} />
+              <StatRow label="V8" value={stats.v8Version} />
+              <StatRow
+                label="OS"
+                value={`${stats.osName} ${stats.osRelease}`}
+              />
+              <StatRow
+                label="Uptime"
+                value={formatUptime(stats.uptime)}
+                accent="#4ADE80"
+              />
             </>
           )}
         </Box>

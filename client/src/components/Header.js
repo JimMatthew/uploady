@@ -1,9 +1,4 @@
-import {
-  Flex,
-  Text,
-  Box,
-  useBreakpointValue,
-} from "@chakra-ui/react";
+import { Flex, Text, Box, useBreakpointValue } from "@chakra-ui/react";
 import { FiLogOut } from "react-icons/fi";
 
 const Header = () => {
@@ -22,18 +17,19 @@ const Header = () => {
     <Flex
       as="header"
       align="center"
-      px={5}
-      h="52px"
+      px={4}
+      h="44px"
       bg="gray.900"
       backdropFilter="blur(12px)"
-      borderBottom="1px solid rgba(255,255,255,0.07)"
+      borderBottom="1px solid rgba(255,255,255,0.06)"
       position="sticky"
       top={0}
       zIndex={100}
       gap={3}
+      flexShrink={0}
     >
-      {/* Logo mark */}
-      <Flex align="center" gap={2} mr={4}>
+      {/* Logo */}
+      <Flex align="center" gap="10px">
         <Box
           w="22px"
           h="22px"
@@ -43,6 +39,7 @@ const Header = () => {
           alignItems="center"
           justifyContent="center"
           flexShrink={0}
+          boxShadow="0 0 10px rgba(99,102,241,0.35)"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <rect
@@ -52,7 +49,7 @@ const Header = () => {
               height="4"
               rx="1"
               fill="white"
-              fillOpacity="0.9"
+              fillOpacity="0.95"
             />
             <rect
               x="7"
@@ -61,7 +58,7 @@ const Header = () => {
               height="4"
               rx="1"
               fill="white"
-              fillOpacity="0.5"
+              fillOpacity="0.45"
             />
             <rect
               x="1"
@@ -70,7 +67,7 @@ const Header = () => {
               height="4"
               rx="1"
               fill="white"
-              fillOpacity="0.5"
+              fillOpacity="0.45"
             />
             <rect
               x="7"
@@ -79,7 +76,7 @@ const Header = () => {
               height="4"
               rx="1"
               fill="white"
-              fillOpacity="0.9"
+              fillOpacity="0.95"
             />
           </svg>
         </Box>
@@ -88,22 +85,13 @@ const Header = () => {
             fontSize="13px"
             fontWeight="700"
             letterSpacing="-0.02em"
-            color="rgba(255,255,255,0.9)"
+            color="rgba(255,255,255,0.85)"
             fontFamily="'JetBrains Mono', monospace"
           >
             uploady
           </Text>
         )}
       </Flex>
-
-      {/* Vertical rule */}
-      <Box
-        w="1px"
-        h="20px"
-        bg="rgba(255,255,255,0.08)"
-        mr={2}
-        display={{ base: "none", md: "block" }}
-      />
 
       <Box flex={1} />
 
@@ -112,20 +100,20 @@ const Header = () => {
         align="center"
         gap={2}
         px={3}
-        h="32px"
+        h="30px"
         borderRadius="6px"
-        border="1px solid rgba(255,255,255,0.09)"
+        border="1px solid rgba(255,255,255,0.08)"
         cursor="pointer"
         transition="all 0.15s"
-        color="rgba(255,255,255,0.45)"
+        color="rgba(255,255,255,0.35)"
         _hover={{
-          bg: "rgba(239,68,68,0.1)",
-          borderColor: "rgba(239,68,68,0.3)",
+          bg: "rgba(239,68,68,0.08)",
+          borderColor: "rgba(239,68,68,0.25)",
           color: "#EF4444",
         }}
         onClick={handleLogout}
       >
-        <FiLogOut size={14} />
+        <FiLogOut size={13} />
         {showText && (
           <Text fontSize="12px" fontWeight={500} letterSpacing="0.02em">
             Logout
