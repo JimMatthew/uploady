@@ -63,19 +63,11 @@ const ssh_session = (socket) => {
 
       sshClient
         .on("ready", () => {
-          sendJson(
-            socket,
-            "output",
-            "\r\n*** SSH CONNECTION ESTABLISHED ***\r\n",
-          );
+         sendJson(socket, "connected", null);
 
           sshClient.shell({ term: "xterm-256color" }, (err, stream) => {
             if (err) {
-              sendJson(
-                socket,
-                "output",
-                `\r\n*** SSH SHELL ERROR: ${err.message} ***\r\n`,
-              );
+              sendJson(socket, "shellError", err.message);
               return;
             }
 
@@ -86,7 +78,7 @@ const ssh_session = (socket) => {
             });
 
             stream.on("close", () => {
-              sendJson(socket, "output", "\r\n*** SSH SESSION CLOSED ***\r\n");
+              sendJson(socket, "closed", null);
               sshClient.end();
             });
 
@@ -106,20 +98,12 @@ const ssh_session = (socket) => {
         })
         .on("error", (err) => {
           console.error("SSH connection error:", err.message);
-          sendJson(
-            socket,
-            "output",
-            `\r\n*** SSH CONNECTION ERROR: ${err.message} ***\r\n`,
-          );
+          sendJson(socket, "connectionError", err.message);
         })
         .connect(connectConfig);
     } catch (err) {
       console.error("ssh_session: failed to get server options:", err.message);
-      sendJson(
-        socket,
-        "output",
-        `\r\n*** FAILED TO CONNECT: ${err.message} ***\r\n`,
-      );
+      sendJson(socket, "connectionError", err.message);
     }
   };
 

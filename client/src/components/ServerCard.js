@@ -34,7 +34,7 @@ const formatUptime = (seconds) => {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const ActionBtn = ({ icon, label, color, onClick }) => (
+const ActionBtn = ({ icon, label, color, hoverBg, onClick }) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Flex
       w="28px"
@@ -46,7 +46,7 @@ const ActionBtn = ({ icon, label, color, onClick }) => (
       color={color || "rgba(255,255,255,0.35)"}
       transition="all 0.12s"
       _hover={{
-        bg: "rgba(255,255,255,0.07)",
+        bg: hoverBg || "rgba(255,255,255,0.07)",
         color: color || "rgba(255,255,255,0.8)",
       }}
       onClick={(e) => {
@@ -227,6 +227,7 @@ export default function ServerCard({
                 borderRadius="full"
                 bg={isOnline ? "#22C55E" : "#EF4444"}
                 boxShadow={isOnline ? "0 0 6px rgba(34,197,94,0.6)" : "none"}
+                animation={isOnline ? "pulse 2s infinite" : "none"}
               />
               <Text
                 fontSize="10px"
@@ -255,19 +256,21 @@ export default function ServerCard({
           icon={FiFileText}
           label="SFTP"
           color="rgba(34,197,94,0.7)"
+          hoverBg="rgba(34,197,94,0.1)"
           onClick={handleConnect}
         />
         <ActionBtn
           icon={FiTerminal}
           label="SSH"
           color="rgba(99,102,241,0.7)"
+          hoverBg="rgba(99,102,241,0.1)"
           onClick={handleSshLaunch}
         />
-        <Box flex={1} />
         <ActionBtn
           icon={FiTrash2}
           label="Delete"
           color="rgba(239,68,68,0.5)"
+          hoverBg="rgba(239,68,68,0.1)"
           onClick={deleteServer}
         />
       </Flex>
