@@ -55,7 +55,7 @@ const Login = () => {
       minH="100vh"
       align="center"
       justify="center"
-      bg="#0A0A0E"
+      bg="gray.900"
       position="relative"
       overflow="hidden"
     >
@@ -65,7 +65,7 @@ const Login = () => {
         w="400px"
         h="400px"
         borderRadius="full"
-        bg="radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)"
+        bg="radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)"
         top="50%"
         left="50%"
         transform="translate(-50%, -50%)"
@@ -145,8 +145,8 @@ const Login = () => {
           as="form"
           onSubmit={handleSubmit}
           p={6}
-          bg="rgba(255,255,255,0.02)"
-          border="1px solid rgba(255,255,255,0.07)"
+          bg="rgba(255,255,255,0.03)"
+          border="1px solid rgba(255,255,255,0.08)"
           borderRadius="14px"
           display="flex"
           flexDirection="column"
