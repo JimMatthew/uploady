@@ -7,7 +7,7 @@ import {
   Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { FiMenu, FiSidebar } from "react-icons/fi";
+import { FiSidebar } from "react-icons/fi";
 import { useSftpList } from "../hooks/useSftpList";
 import Sidebar from "../components/Sidebar";
 import TabPanelComp from "../components/TabPanel";
@@ -38,11 +38,19 @@ const SFTPApp = ({ toast }) => {
       <Flex
         align="center"
         justify="center"
-        h="100vh"
+        h="100%"
         direction="column"
         gap={3}
       >
-        <Spinner size="sm" color="rgba(99,102,241,0.5)" />
+        <Box position="relative">
+          <Spinner size="sm" color="rgba(99,102,241,0.5)" />
+          <Box
+            position="absolute"
+            inset={0}
+            borderRadius="full"
+            boxShadow="0 0 12px rgba(99,102,241,0.3)"
+          />
+        </Box>
         <Text fontSize="12px" color="rgba(255,255,255,0.25)">
           Initializing…
         </Text>
@@ -60,12 +68,13 @@ const SFTPApp = ({ toast }) => {
           h="44px"
           flexShrink={0}
           borderBottom="1px solid rgba(255,255,255,0.06)"
+          bg="rgba(8,8,12,0.6)"
         >
           <Text
-            fontSize="12px"
+            fontSize="11px"
             fontWeight={700}
-            color="rgba(255,255,255,0.5)"
-            letterSpacing="0.08em"
+            color="rgba(255,255,255,0.35)"
+            letterSpacing="0.1em"
             textTransform="uppercase"
             fontFamily="'JetBrains Mono', monospace"
           >
@@ -75,29 +84,30 @@ const SFTPApp = ({ toast }) => {
             align="center"
             gap={2}
             px={3}
-            h="30px"
+            h="28px"
             borderRadius="7px"
-            border="1px solid rgba(255,255,255,0.09)"
+            border="1px solid rgba(255,255,255,0.08)"
             cursor="pointer"
-            color="rgba(255,255,255,0.4)"
+            color="rgba(255,255,255,0.35)"
             fontSize="12px"
             fontWeight={500}
-            transition="all 0.12s"
+            transition="all 0.15s"
             _hover={{
-              borderColor: "rgba(255,255,255,0.2)",
-              color: "rgba(255,255,255,0.8)",
+              borderColor: "rgba(99,102,241,0.4)",
+              color: "#818CF8",
+              bg: "rgba(99,102,241,0.08)",
             }}
             onClick={() => setShowSidebar(true)}
           >
-            <Icon as={FiSidebar} boxSize="13px" />
+            <Icon as={FiSidebar} boxSize="12px" />
             Servers
           </Flex>
         </Flex>
       )}
 
-      {/* Body — fills remaining height */}
+      {/* Body */}
       <Flex flex={1} overflow="hidden" position="relative">
-        {/* Mobile overlay — closes sidebar on outside tap */}
+        {/* Mobile overlay */}
         {!isDesktop && showSidebar && (
           <Box
             position="absolute"
@@ -106,7 +116,8 @@ const SFTPApp = ({ toast }) => {
             right={0}
             bottom={0}
             zIndex={9}
-            bg="rgba(0,0,0,0.4)"
+            bg="rgba(0,0,0,0.5)"
+            backdropFilter="blur(2px)"
             onClick={() => setShowSidebar(false)}
           />
         )}
@@ -114,7 +125,7 @@ const SFTPApp = ({ toast }) => {
         {/* Sidebar */}
         {(isDesktop || showSidebar) && (
           <Box
-            w="240px"
+            w="230px"
             h="100%"
             overflowY="auto"
             flexShrink={0}
@@ -142,7 +153,7 @@ const SFTPApp = ({ toast }) => {
           </Box>
         )}
 
-        {/* Main tab area — own scrollbar */}
+        {/* Main tab area */}
         <Box flex={1} h="100%" overflowY="auto" minW={0}>
           <TabPanelComp
             tabs={tabs}

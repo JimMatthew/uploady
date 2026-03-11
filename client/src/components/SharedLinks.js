@@ -35,7 +35,7 @@ const SharedLinks = () => {
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box p={6} maxW="1000px">
+    <Box p={6} >
       {/* Header */}
       <Flex align="center" justify="space-between" mb={6}>
         <Flex align="center" gap={3}>
