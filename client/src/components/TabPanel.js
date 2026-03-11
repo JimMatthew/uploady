@@ -117,6 +117,8 @@ const TabPanelComp = ({
               display={i === activeTabIndex ? "flex" : "none"}
               flexDirection="column"
               h="100%"
+              w="100%"  
+              overflow="auto" 
             >
               {tab.content}
             </Box>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { Box, HStack, Text, Icon } from "@chakra-ui/react";
-import { FiChevronUp, FiChevronDown } from "react-icons/fi";
+import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
+import { FiChevronUp, FiChevronDown, FiFolder } from "react-icons/fi";
 import FolderItem from "./FolderItem";
 import FileMenu from "./FileMenu";
 
@@ -27,8 +27,12 @@ const FolderList = ({
     setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const closeMenu = () => setContextMenu((m) => ({ ...m, visible: false }));
+  const closeMenu = useCallback(
+    () => setContextMenu((m) => ({ ...m, visible: false })),
+    [],
+  );
 
+  // Reposition context menu if it would overflow viewport
   useEffect(() => {
     if (!contextMenu.visible || !menuRef.current) return;
 
@@ -42,7 +46,6 @@ const FolderList = ({
     if (x + menu.width > vw) x = vw - menu.width - 8;
     if (y + menu.height > vh) y = vh - menu.height - 8;
 
-    // Clamp to viewport edges
     x = Math.max(8, x);
     y = Math.max(8, y);
 
@@ -53,43 +56,54 @@ const FolderList = ({
     setSortDir((d) => (d === "asc" ? "desc" : "asc"));
   }, []);
 
-  const sorted = useMemo(() => {
-    return [...folders].sort((a, b) =>
-      sortDir === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name),
-    );
-  }, [folders, sortDir]);
+  const sorted = useMemo(
+    () =>
+      [...folders].sort((a, b) =>
+        sortDir === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name),
+      ),
+    [folders, sortDir],
+  );
+
+  if (!folders.length) return null;
 
   return (
-    <Box mb={6}>
+    <Box>
       {/* Section header */}
       <HStack
         px={4}
         py={2}
-        mb={1}
         justify="space-between"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
+        borderBottom="1px solid rgba(255,255,255,0.06)"
       >
-        <Text
-          fontSize="10px"
-          fontWeight="700"
-          letterSpacing="0.1em"
-          textTransform="uppercase"
-          color="rgba(255, 255, 255, 0.4)"
-        >
-          Folders
-          <Text as="span" ml={2} color="rgba(255, 255, 255, 0.35)">
+        <HStack spacing={2}>
+          <Text
+            fontSize="10px"
+            fontWeight="700"
+            letterSpacing="0.1em"
+            textTransform="uppercase"
+            color="rgba(255,255,255,0.3)"
+          >
+            Folders
+          </Text>
+          <Text
+            fontSize="10px"
+            fontWeight="600"
+            color="rgba(255,255,255,0.2)"
+            letterSpacing="0.05em"
+          >
             {folders.length}
           </Text>
-        </Text>
+        </HStack>
+
         <HStack
           spacing={1}
           cursor="pointer"
           onClick={toggleSort}
+          color="rgba(255,255,255,0.25)"
+          transition="color 0.12s"
           _hover={{ color: "rgba(255,255,255,0.6)" }}
-          color="rgba(255, 255, 255, 0.35)"
-          transition="color 0.15s"
         >
           <Text fontSize="10px" letterSpacing="0.05em">
             {sortDir === "asc" ? "A → Z" : "Z → A"}
@@ -101,16 +115,14 @@ const FolderList = ({
         </HStack>
       </HStack>
 
-      <Box>
-        {sorted.map((folder) => (
-          <FolderItem
-            key={folder.name}
-            folder={folder.name}
-            changeDirectory={changeDirectory}
-            onOpenMenu={openMenu}
-          />
-        ))}
-      </Box>
+      {sorted.map((folder) => (
+        <FolderItem
+          key={folder.name}
+          folder={folder.name}
+          changeDirectory={changeDirectory}
+          onOpenMenu={openMenu}
+        />
+      ))}
 
       {contextMenu.visible && (
         <FileMenu

@@ -1,5 +1,5 @@
 import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
-import { FiChevronUp, FiChevronDown, FiFolder } from "react-icons/fi";
+import { FiChevronUp, FiChevronDown, FiFileText } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import Toolbar from "./Toolbar";
@@ -37,6 +37,7 @@ export default function FileList({
     handleFileDelete,
     handleFileShareLink,
   });
+
   const menuRef = useRef(null);
   const [renamingFile, setRenamingFile] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -58,7 +59,10 @@ export default function FileList({
     setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const closeMenu = () => setContextMenu((m) => ({ ...m, visible: false }));
+  const closeMenu = useCallback(
+    () => setContextMenu((m) => ({ ...m, visible: false })),
+    [],
+  );
 
   const onRename = useCallback(
     (name, newName) => {
@@ -67,6 +71,8 @@ export default function FileList({
     },
     [handleRenameFile],
   );
+
+  // Reposition context menu if it would overflow viewport
   useEffect(() => {
     if (!contextMenu.visible || !menuRef.current) return;
 
@@ -80,12 +86,12 @@ export default function FileList({
     if (x + menu.width > vw) x = vw - menu.width - 8;
     if (y + menu.height > vh) y = vh - menu.height - 8;
 
-    // Clamp to viewport edges
     x = Math.max(8, x);
     y = Math.max(8, y);
 
     setMenuPos({ x, y });
   }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
+
   return (
     <Box>
       <Toolbar
@@ -100,24 +106,30 @@ export default function FileList({
       <HStack
         px={4}
         py={2}
-        mb={1}
         justify="space-between"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
+        borderBottom="1px solid rgba(255,255,255,0.06)"
       >
-        <Text
-          fontSize="10px"
-          fontWeight="700"
-          letterSpacing="0.1em"
-          textTransform="uppercase"
-          color="rgba(255, 255, 255, 0.46)"
-        >
-          Files
-          <Text as="span" ml={2} color="rgba(255, 255, 255, 0.4)">
+        <HStack spacing={2}>
+          <Text
+            fontSize="10px"
+            fontWeight="700"
+            letterSpacing="0.1em"
+            textTransform="uppercase"
+            color="rgba(255,255,255,0.3)"
+          >
+            Files
+          </Text>
+          <Text
+            fontSize="10px"
+            fontWeight="600"
+            color="rgba(255,255,255,0.2)"
+            letterSpacing="0.05em"
+          >
             {files.length}
           </Text>
-        </Text>
+        </HStack>
 
-        {/* Sort field pills */}
+        {/* Sort pills */}
         <HStack spacing={1}>
           {SORT_FIELDS.map((field) => (
             <Box
@@ -126,23 +138,23 @@ export default function FileList({
               py="2px"
               borderRadius="4px"
               cursor="pointer"
-              bg={sortField === field ? "rgba(99,102,241,0.2)" : "transparent"}
+              bg={sortField === field ? "rgba(99,102,241,0.15)" : "transparent"}
               border="1px solid"
               borderColor={
-                sortField === field ? "rgba(99,102,241,0.4)" : "transparent"
+                sortField === field ? "rgba(99,102,241,0.35)" : "transparent"
               }
               onClick={() =>
                 sortField === field ? toggleFileSort() : setSortField(field)
               }
               transition="all 0.12s"
-              _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
+              _hover={{ borderColor: "rgba(255,255,255,0.12)" }}
             >
               <HStack spacing={1}>
                 <Text
                   fontSize="10px"
                   letterSpacing="0.05em"
                   color={
-                    sortField === field ? "#818CF8" : "rgba(255,255,255,0.3)"
+                    sortField === field ? "#818CF8" : "rgba(255,255,255,0.28)"
                   }
                   textTransform="capitalize"
                 >
@@ -163,6 +175,7 @@ export default function FileList({
         </HStack>
       </HStack>
 
+      {/* File rows or empty state */}
       {sortedFiles.length === 0 ? (
         <Flex
           align="center"
@@ -170,11 +183,11 @@ export default function FileList({
           direction="column"
           gap={2}
           py={10}
-          color="rgba(255,255,255,0.15)"
+          color="rgba(255,255,255,0.12)"
         >
-          <Icon as={FiFolder} boxSize="28px" />
+          <Icon as={FiFileText} boxSize="26px" />
           <Text fontSize="12px" letterSpacing="0.02em">
-            This folder is empty
+            No files in this folder
           </Text>
         </Flex>
       ) : (
