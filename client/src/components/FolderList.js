@@ -14,6 +14,7 @@ const FolderList = ({
   const menuRef = useRef(null);
   const [sortDir, setSortDir] = useState("asc");
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [visibleCount, setVisibleCount] = useState(20);
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
@@ -26,6 +27,16 @@ const FolderList = ({
     setContextMenu({ x: e.clientX, y: e.clientY, file: name, visible: true });
     setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
+
+  useEffect(() => {
+  setVisibleCount(20);
+  if (folders.length > 20) {
+    const t = requestAnimationFrame(() =>
+      setVisibleCount(folders.length)
+    );
+    return () => cancelAnimationFrame(t);
+  }
+}, [folders]);
 
   const closeMenu = useCallback(
     () => setContextMenu((m) => ({ ...m, visible: false })),
@@ -115,7 +126,7 @@ const FolderList = ({
         </HStack>
       </HStack>
 
-      {sorted.map((folder) => (
+      {sorted.slice(0, visibleCount).map((folder) => (
         <FolderItem
           key={folder.name}
           folder={folder.name}
