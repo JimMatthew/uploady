@@ -72,7 +72,7 @@ const formatDate = (raw) => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const FileItem = ({
+const FileItem = React.memo(function FileItem ({
   name,
   size,
   date,
@@ -82,7 +82,7 @@ const FileItem = ({
   isRenaming,
   onRename,
   onRenameClose,
-}) => {
+})  {
   const ext = name.includes(".") ? name.split(".").pop().toUpperCase() : "FILE";
   const accent = EXT_COLORS[ext] || "#64748B";
 
@@ -217,6 +217,6 @@ const FileItem = ({
       </HStack>
     </Box>
   );
-};
+});
 
 export default FileItem;
