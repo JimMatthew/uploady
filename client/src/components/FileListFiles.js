@@ -71,6 +71,7 @@ export default function FileList({
     },
     [handleRenameFile],
   );
+  const onRenameClose = useCallback(() => setRenamingFile(null), []);
 
   // Reposition context menu if it would overflow viewport
   useEffect(() => {
@@ -197,12 +198,12 @@ export default function FileList({
             name={file.name}
             size={file.size}
             date={file.date}
-            isSelected={isSelected(file.name)}
+            isSelected={selected.has(file.name)}
             onSelect={toggleSelect}
             onOpenMenu={openMenu}
             isRenaming={renamingFile === file.name}
             onRename={onRename}
-            onRenameClose={() => setRenamingFile(null)}
+            onRenameClose={onRenameClose}
           />
         ))
       )}

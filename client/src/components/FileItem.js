@@ -217,6 +217,14 @@ const FileItem = React.memo(function FileItem ({
       </HStack>
     </Box>
   );
+}, (prev, next) => {
+  return (
+    prev.name === next.name &&
+    prev.isSelected === next.isSelected &&
+    prev.isRenaming === next.isRenaming &&
+    prev.size === next.size &&
+    prev.date === next.date
+  );
 });
 
 export default FileItem;
