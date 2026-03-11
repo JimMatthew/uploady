@@ -115,16 +115,10 @@ const Sidebar = ({
           label="Add Server"
           onClick={handleNewServer}
         />
-        {!isDesktop && 
-        <NavButton
-           icon={FiPlusCircle}
-          label="Close"
-          onClick={() => setShowSidebar(false)}
-          />}
       </VStack>
 
       {/* Divider */}
-      <Box mx={3} my={2} h="1px" bg="rgba(255,255,255,0.06)" />
+      <Box mx={3} my={1} h="1px" bg="rgba(255,255,255,0.06)" />
 
       {/* Servers section */}
       <VStack align="stretch" spacing={1} p={3} flex={1}>
@@ -170,32 +164,6 @@ const Sidebar = ({
           </Flex>
         )}
       </VStack>
-
-      {/* Close button (mobile) */}
-      {!isDesktop && (
-        <Flex
-          m={3}
-          align="center"
-          justify="center"
-          gap={2}
-          h="36px"
-          borderRadius="7px"
-          border="1px solid rgba(255,255,255,0.08)"
-          cursor="pointer"
-          color="rgba(255,255,255,0.4)"
-          transition="all 0.12s"
-          _hover={{
-            bg: "rgba(255,255,255,0.05)",
-            color: "rgba(255,255,255,0.8)",
-          }}
-          onClick={() => setShowSidebar(false)}
-        >
-          <FiX size={14} />
-          <Text fontSize="12px" fontWeight={500}>
-            Close
-          </Text>
-        </Flex>
-      )}
     </Box>
   );
 };
