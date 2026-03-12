@@ -47,3 +47,47 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
 }
+
+.file-item {
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+/* Unselected hover */
+.file-item:not(.selected):hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-left-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Selected hover — stays indigo, just slightly brighter */
+.file-item.selected:hover {
+  background: rgba(99, 102, 241, 0.14) !important;
+  border-left-color: #6366F1 !important;
+}
+
+/* File name brightens on hover regardless of selection */
+.file-item:hover .file-name {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Badge transition */
+.file-badge {
+  transition: all 0.12s;
+}
+
+.folder-item:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-left-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+.folder-item:hover .folder-name {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.folder-item:hover .folder-badge {
+  background: rgba(251, 191, 36, 0.1) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+.folder-item:hover .folder-chevron path {
+  stroke: rgba(251, 191, 36, 0.5);
+}

@@ -1,6 +1,4 @@
 import React from "react";
-import { Text, HStack, Box, Icon } from "@chakra-ui/react";
-import { FiChevronRight } from "react-icons/fi";
 
 const FolderItem = React.memo(function FolderItem({
   folder,
@@ -8,43 +6,41 @@ const FolderItem = React.memo(function FolderItem({
   onOpenMenu,
 }) {
   return (
-    <HStack
-      px={4}
-      py="10px"
-      mb="1px"
-      justify="space-between"
-      align="center"
-      cursor="pointer"
-      borderLeft="2px solid transparent"
-      borderBottom="1px solid rgba(255,255,255,0.04)"
-      transition="all 0.12s ease"
-      role="group"
-      _hover={{
-        bg: "rgba(255,255,255,0.03)",
-        borderLeftColor: "rgba(251,191,36,0.3)",
-      }}
+    <div
+      className="folder-item"
       onClick={() => changeDirectory(folder)}
       onContextMenu={(e) => {
         e.preventDefault();
         onOpenMenu(e, folder);
       }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 16px",
+        marginBottom: "1px",
+        cursor: "pointer",
+        borderLeft: "2px solid transparent",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        background: "transparent",
+        transition: "all 0.12s ease",
+      }}
     >
-      <HStack spacing={3}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         {/* Folder icon tile */}
-        <Box
-          w="34px"
-          h="34px"
-          borderRadius="8px"
-          bg="rgba(255,255,255,0.03)"
-          border="1px solid rgba(251,191,36,0.15)"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          flexShrink={0}
-          transition="all 0.12s"
-          _groupHover={{
-            borderColor: "rgba(251,191,36,0.35)",
-            bg: "rgba(251,191,36,0.06)",
+        <div
+          className="folder-badge"
+          style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "8px",
+            background: "rgba(251,191,36,0.06)",
+            border: "1px solid rgba(251,191,36,0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            transition: "all 0.12s",
           }}
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
@@ -55,32 +51,45 @@ const FolderItem = React.memo(function FolderItem({
               strokeWidth="0.5"
             />
           </svg>
-        </Box>
+        </div>
 
-        <Text
-          fontSize="13px"
-          fontWeight={500}
-          color="rgba(255,255,255,0.75)"
-          fontFamily="'JetBrains Mono', monospace"
-          letterSpacing="-0.01em"
-          transition="color 0.12s"
-          _groupHover={{ color: "rgba(255,255,255,0.95)" }}
+        {/* Folder name */}
+        <span
+          className="folder-name"
+          style={{
+            fontSize: "13px",
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.75)",
+            fontFamily: "'JetBrains Mono', monospace",
+            letterSpacing: "-0.01em",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            transition: "color 0.12s",
+          }}
         >
           {folder}
-        </Text>
-      </HStack>
+        </span>
+      </div>
 
-      <Icon
-        as={FiChevronRight}
-        boxSize="14px"
-        color="rgba(255,255,255,0.15)"
-        transition="all 0.12s ease"
-        _groupHover={{
-          color: "rgba(251,191,36,0.5)",
-          transform: "translateX(2px)",
-        }}
-      />
-    </HStack>
+      {/* Chevron */}
+      <svg
+        className="folder-chevron"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ flexShrink: 0, transition: "all 0.12s" }}
+      >
+        <path
+          d="M9 18l6-6-6-6"
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
   );
 });
 

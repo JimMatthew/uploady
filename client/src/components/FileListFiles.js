@@ -41,7 +41,6 @@ export default function FileList({
   const menuRef = useRef(null);
   const [renamingFile, setRenamingFile] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
-  const [visibleCount, setVisibleCount] = useState(20);
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
@@ -49,15 +48,6 @@ export default function FileList({
     visible: false,
   });
 
-  useEffect(() => {
-  setVisibleCount(20);
-  if (sortedFiles.length > 20) {
-    const t = requestAnimationFrame(() =>
-      setVisibleCount(sortedFiles.length)
-    );
-    return () => cancelAnimationFrame(t);
-  }
-}, [sortedFiles]);
   const openMenu = useCallback((e, fileName) => {
     e.preventDefault();
     setContextMenu({
@@ -202,7 +192,7 @@ export default function FileList({
           </Text>
         </Flex>
       ) : (
-        sortedFiles.slice(0, visibleCount).map((file) => (
+        sortedFiles.map((file) => (
           <FileItem
             key={file.name}
             name={file.name}

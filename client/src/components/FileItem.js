@@ -1,9 +1,6 @@
 import React from "react";
-import { Box, HStack, VStack, Text, Icon } from "@chakra-ui/react";
-import { FiCheck } from "react-icons/fi";
+import { useState } from "react";
 import RenameComponent from "./RenameComponent";
-
-// ─── File type → accent color ─────────────────────────────────────────────────
 
 const EXT_COLORS = {
   PDF: "#FF6B6B",
@@ -46,15 +43,10 @@ const EXT_COLORS = {
   SQL: "#FCA5A5",
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const formatSize = (kb) => {
-  if (kb === undefined || kb === null) return "—";
-  const n = parseFloat(kb);
-  if (isNaN(n)) return "—";
-  if (n < 1) return `${(n * 1024).toFixed(0)} B`;
-  if (n < 1024) return `${n.toFixed(1)} KB`;
-  return `${(n / 1024).toFixed(1)} MB`;
+const formatSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const formatDate = (raw) => {
@@ -70,161 +62,178 @@ const formatDate = (raw) => {
   }
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const FileItem = React.memo(
+  function FileItem({
+    name,
+    size,
+    date,
+    isSelected,
+    onSelect,
+    onOpenMenu,
+    isRenaming,
+    onRename,
+    onRenameClose,
+  }) {
+    const ext = name.includes(".")
+      ? name.split(".").pop().toUpperCase()
+      : "FILE";
+    const accent = EXT_COLORS[ext] || "#64748B";
 
-const FileItem = React.memo(function FileItem ({
-  name,
-  size,
-  date,
-  isSelected,
-  onSelect,
-  onOpenMenu,
-  isRenaming,
-  onRename,
-  onRenameClose,
-})  {
-  const ext = name.includes(".") ? name.split(".").pop().toUpperCase() : "FILE";
-  const accent = EXT_COLORS[ext] || "#64748B";
-
-  return (
-    <Box
-      px={4}
-      py="10px"
-      mb="1px"
-      bg={isSelected ? "rgba(99,102,241,0.10)" : "transparent"}
-      borderLeft="2px solid"
-      borderLeftColor={isSelected ? "#6366F1" : "transparent"}
-      borderBottom="1px solid rgba(255,255,255,0.04)"
-      cursor="pointer"
-      transition="all 0.12s ease"
-      role="group"
-      _hover={{
-        bg: isSelected ? "rgba(99,102,241,0.14)" : "rgba(255,255,255,0.03)",
-        borderLeftColor: isSelected ? "#6366F1" : "rgba(255,255,255,0.12)",
-      }}
-      onClick={() => onSelect(name)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onOpenMenu(e, name);
-      }}
-    >
-      <HStack spacing={3} align="center">
+    return (
+      <div
+        className={`file-item ${isSelected ? "selected" : ""}`}
+        onClick={() => onSelect(name)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onOpenMenu(e, name);
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          padding: "10px 16px",
+          marginBottom: "1px",
+          cursor: "pointer",
+          borderLeft: `2px solid ${isSelected ? "#6366F1" : "transparent"}`,
+          borderBottom: "1px solid rgba(255,255,255,0.04)",
+          background: isSelected ? "rgba(99,102,241,0.10)" : "transparent",
+          transition: "all 0.12s ease",
+        }}
+      >
         {/* Ext badge */}
-        <Box
-          w="34px"
-          h="34px"
-          borderRadius="8px"
-          bg="rgba(255,255,255,0.03)"
-          border="1px solid"
-          borderColor={`${accent}22`}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          flexShrink={0}
-          position="relative"
-          overflow="hidden"
-          transition="all 0.12s"
-          _groupHover={{
-            borderColor: `${accent}44`,
-            bg: `${accent}10`,
-          }}
-          _before={{
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            bg: accent,
-            opacity: 0.06,
+        <div
+          className="file-badge"
+          style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "8px",
+            background: `${accent}10`,
+            border: `1px solid ${accent}22`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <Text
-            fontSize="8px"
-            fontWeight="800"
-            letterSpacing="0.03em"
-            color={accent}
-            lineHeight={1}
-            zIndex={1}
+          <span
+            style={{
+              fontSize: "8px",
+              fontWeight: 800,
+              letterSpacing: "0.03em",
+              color: accent,
+            }}
           >
             {ext.slice(0, 4)}
-          </Text>
-        </Box>
+          </span>
+        </div>
 
-        {/* Name + rename + meta */}
-        <VStack align="start" spacing={0} flex={1} minW={0}>
+        {/* Name + meta */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           {isRenaming ? (
-            <Box onClick={(e) => e.stopPropagation()} w="fit-content">
+            <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "fit-content" }}
+            >
               <RenameComponent
-                handleRename={(newname) => onRename(name, newname)}
+                handleRename={(newName) => onRename(name, newName)}
                 onCancel={onRenameClose}
                 currentName={name}
               />
-            </Box>
+            </div>
           ) : (
-            <Text
-              fontSize="13px"
-              fontWeight={500}
-              color="rgba(255,255,255,0.85)"
-              noOfLines={1}
-              fontFamily="'JetBrains Mono', monospace"
-              letterSpacing="-0.01em"
-              transition="color 0.12s"
-              _groupHover={{ color: "rgba(255,255,255,0.95)" }}
+            <div
+              className="file-name"
+              style={{
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.85)",
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: "-0.01em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
             >
               {name}
-            </Text>
+            </div>
           )}
           {!isRenaming && (
-            <HStack spacing={2} mt="2px">
-              <Text
-                fontSize="11px"
-                color="rgba(255,255,255,0.3)"
-                fontFamily="'JetBrains Mono', monospace"
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "2px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "rgba(255,255,255,0.3)",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
               >
                 {formatSize(size)}
-              </Text>
-              <Box
-                w="2px"
-                h="2px"
-                borderRadius="full"
-                bg="rgba(255,255,255,0.12)"
+              </span>
+              <div
+                style={{
+                  width: "2px",
+                  height: "2px",
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.12)",
+                }}
               />
-              <Text
-                fontSize="11px"
-                color="rgba(255,255,255,0.3)"
-                fontFamily="'JetBrains Mono', monospace"
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "rgba(255,255,255,0.3)",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
               >
                 {formatDate(date)}
-              </Text>
-            </HStack>
+              </span>
+            </div>
           )}
-        </VStack>
+        </div>
 
         {/* Selected indicator */}
         {isSelected && !isRenaming && (
-          <Box
-            w="18px"
-            h="18px"
-            borderRadius="5px"
-            bg="rgba(99,102,241,0.25)"
-            border="1px solid rgba(99,102,241,0.4)"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            flexShrink={0}
+          <div
+            style={{
+              width: "18px",
+              height: "18px",
+              borderRadius: "5px",
+              background: "rgba(99,102,241,0.25)",
+              border: "1px solid rgba(99,102,241,0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
           >
-            <Icon as={FiCheck} boxSize="10px" color="#818CF8" />
-          </Box>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path
+                d="M2 5l2.5 2.5L8 3"
+                stroke="#818CF8"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         )}
-      </HStack>
-    </Box>
-  );
-}, (prev, next) => {
-  return (
-    prev.name === next.name &&
-    prev.isSelected === next.isSelected &&
-    prev.isRenaming === next.isRenaming &&
-    prev.size === next.size &&
-    prev.date === next.date
-  );
-});
+      </div>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.name === next.name &&
+      prev.isSelected === next.isSelected &&
+      prev.isRenaming === next.isRenaming &&
+      prev.size === next.size &&
+      prev.date === next.date
+    );
+  },
+);
 
 export default FileItem;
