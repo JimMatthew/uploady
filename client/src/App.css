@@ -91,3 +91,22 @@ html, body, #root {
 .folder-item:hover .folder-chevron path {
   stroke: rgba(251, 191, 36, 0.5);
 }
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6366F1;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(99,102,241,0.5);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6366F1;
+  border: none;
+  cursor: pointer;
+}

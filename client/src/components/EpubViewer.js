@@ -10,6 +10,9 @@ const EpubViewer = ({ src, filename }) => {
   const [showToc, setShowToc] = useState(false);
   const [currentChapter, setCurrentChapter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [fontSize, setFontSize] = useState(100);
+  const [currentPage, setCurrentPage] = useState(null);
+  const [totalPages, setTotalPages] = useState(null);
 
   useEffect(() => {
     if (!src || !viewerRef.current) return;
@@ -47,15 +50,24 @@ const EpubViewer = ({ src, filename }) => {
         }, 50);
       });
 
-      rendition.on("locationChanged", (loc) => {
-        const chapter = book.navigation?.toc?.find((item) =>
-          item.href?.includes(loc?.start?.href),
-        );
-        if (chapter) setCurrentChapter(chapter.label);
-      });
-
       book.loaded.navigation.then((nav) => {
         setToc(nav.toc);
+
+        rendition.on("locationChanged", (loc) => {
+          if (!loc?.start?.href) return;
+
+          if (loc.start?.displayed) {
+            setCurrentPage(loc.start.displayed.page);
+            setTotalPages(loc.start.displayed.total);
+          }
+
+          const href = loc.start.href.split("/").pop();
+          const chapter = nav.toc?.find(
+            (item) =>
+              item.href?.split("/").pop() === href || item.href?.includes(href),
+          );
+          if (chapter) setCurrentChapter(chapter.label);
+        });
       });
 
       rendition.on("keydown", (e) => {
@@ -80,6 +92,10 @@ const EpubViewer = ({ src, filename }) => {
   const prev = () => renditionRef.current?.prev();
   const next = () => renditionRef.current?.next();
 
+  const changeFontSize = (size) => {
+    setFontSize(size);
+    renditionRef.current?.themes.fontSize(`${size}%`);
+  };
   const goToChapter = (href) => {
     renditionRef.current?.display(href);
     setShowToc(false);
@@ -96,6 +112,7 @@ const EpubViewer = ({ src, filename }) => {
         flexShrink={0}
         borderBottom="1px solid rgba(255,255,255,0.06)"
         bg="gray.900"
+        gap={3}
       >
         {/* TOC toggle */}
         <Flex
@@ -108,6 +125,7 @@ const EpubViewer = ({ src, filename }) => {
           cursor="pointer"
           color="rgba(255,255,255,0.4)"
           fontSize="12px"
+          flexShrink={0}
           transition="all 0.12s"
           _hover={{
             borderColor: "rgba(255,255,255,0.18)",
@@ -119,19 +137,69 @@ const EpubViewer = ({ src, filename }) => {
           Contents
         </Flex>
 
-        {/* Current chapter */}
+        {/* Current chapter — takes remaining space */}
         <Text
           fontSize="12px"
           color="rgba(255,255,255,0.3)"
           fontFamily="'JetBrains Mono', monospace"
           noOfLines={1}
-          maxW="400px"
+          flex={1}
+          minW={0}
         >
-          {currentChapter}
+          {currentChapter || filename}
         </Text>
 
+        {/* Font size slider */}
+        <Flex align="center" gap={2} flexShrink={0}>
+          <Text
+            fontSize="10px"
+            color="rgba(255,255,255,0.25)"
+            fontFamily="'JetBrains Mono', monospace"
+          >
+            A
+          </Text>
+          <input
+            type="range"
+            min={70}
+            max={150}
+            step={5}
+            value={fontSize}
+            onChange={(e) => changeFontSize(Number(e.target.value))}
+            style={{
+              width: "72px",
+              height: "3px",
+              appearance: "none",
+              background: `linear-gradient(to right, #6366F1 ${((fontSize - 70) / 80) * 100}%, rgba(255,255,255,0.1) ${((fontSize - 70) / 80) * 100}%)`,
+              borderRadius: "2px",
+              outline: "none",
+              cursor: "pointer",
+            }}
+          />
+          <Text
+            fontSize="13px"
+            color="rgba(255,255,255,0.25)"
+            fontFamily="'JetBrains Mono', monospace"
+          >
+            A
+          </Text>
+        </Flex>
+
+        {/* Page counter */}
+        {currentPage && totalPages && (
+          <Text
+            fontSize="11px"
+            color="rgba(255,255,255,0.25)"
+            fontFamily="'JetBrains Mono', monospace"
+            flexShrink={0}
+            minW="60px"
+            textAlign="center"
+          >
+            {currentPage} / {totalPages}
+          </Text>
+        )}
+
         {/* Prev / Next */}
-        <Flex align="center" gap={2}>
+        <Flex align="center" gap={2} flexShrink={0}>
           <Flex
             w="28px"
             h="28px"
