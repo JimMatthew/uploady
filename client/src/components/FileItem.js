@@ -133,9 +133,9 @@ const FileItem = React.memo(
         {/* Name + meta */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {isRenaming ? (
-            <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: "fit-content" }}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "fit-content" }}
             >
               <RenameComponent
                 handleRename={(newName) => onRename(name, newName)}
