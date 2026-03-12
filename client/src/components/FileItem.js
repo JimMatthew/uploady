@@ -43,10 +43,13 @@ const EXT_COLORS = {
   SQL: "#FCA5A5",
 };
 
-const formatSize = (bytes) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const formatSize = (kb) => {
+  if (kb === undefined || kb === null) return "—";
+  const n = parseFloat(kb);
+  if (isNaN(n)) return "—";
+  if (n < 1) return `${(n * 1024).toFixed(0)} B`;
+  if (n < 1024) return `${n.toFixed(1)} KB`;
+  return `${(n / 1024).toFixed(1)} MB`;
 };
 
 const formatDate = (raw) => {
