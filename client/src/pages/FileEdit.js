@@ -10,6 +10,7 @@ import { html } from "@codemirror/lang-html";
 import { cpp } from "@codemirror/lang-cpp";
 import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
 import ImageViewer from "../components/ImageViewer";
+import EpubViewer from "../components/EpubViewer";
 
 const EXT_LANG = {
   js: () => javascript({ jsx: true }),
@@ -35,6 +36,7 @@ const getFileType = (filename) => {
   if (AUDIO_EXTS.has(ext)) return "audio";
   if (IMAGE_RE.test(filename)) return "image";
   if (ext === "pdf") return "pdf";
+  if (ext === "epub") return "epub";
   return "text";
 };
 
@@ -333,6 +335,7 @@ const FileEdit = ({
   const [text, setText] = useState("");
   const [objectUrl, setObjectUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [epubData, setEpubData] = useState(null);
   const objectUrlRef = useRef(null);
 
   const fileType = getFileType(filename);
@@ -385,6 +388,17 @@ const FileEdit = ({
       fetchAsObjectUrl("application/pdf");
       return;
     }
+    if (fileType === "epub") {
+  const fetchEpub = async () => {
+    const res = await fetch(buildUrl(), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const buffer = await res.arrayBuffer();
+    setEpubData(buffer);
+  };
+  fetchEpub();
+  return;
+}
     if (fileType === "text") {
       streamTextFile();
       return;
@@ -441,6 +455,7 @@ const FileEdit = ({
         return <ImageViewer src={objectUrl} alt={filename} />;
       case "pdf":
         return <PdfViewer src={objectUrl} />;
+      case "epub": return <EpubViewer src={epubData} filename={filename} />;
       default:
         return (
           <TextEditor text={text} onChange={setText} filename={filename} />
