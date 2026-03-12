@@ -18,7 +18,7 @@ const GlobalStyles = () => (
 
 const AppLayout = ({ children }) => {
   return (
-    <Flex h="100vh" direction="column" overflow="hidden">
+    <Flex h="100dvh" direction="column" overflow="hidden">
       <GlobalStyles />
       <Header flexShrink={0} />
       <Box flex={1} overflow="hidden">
