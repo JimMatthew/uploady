@@ -145,8 +145,6 @@ const SFTPApp = ({ toast }) => {
               handleSshLaunch={handleSshLaunch}
               handleSharedLinks={handleSharedLinks}
               deleteServer={deleteServer}
-              setShowSidebar={setShowSidebar}
-              isDesktop={isDesktop}
               sftpServers={sftpServers}
               serverStatuses={serverStatuses}
             />

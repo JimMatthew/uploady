@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Box, VStack, Text, Flex, Icon } from "@chakra-ui/react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -51,18 +51,16 @@ const NavButton = ({ icon, label, onClick, to, active }) => {
   );
 };
 
-const Sidebar = ({
+const Sidebar = memo(function Sidebar ({
   handleConnect,
   handleLocalTab,
   handleNewServer,
   handleSshLaunch,
   handleSharedLinks,
   deleteServer,
-  setShowSidebar,
-  isDesktop,
   sftpServers,
   serverStatuses,
-}) => {
+}) {
   return (
     <Box
       w="240px"
@@ -166,6 +164,6 @@ const Sidebar = ({
       </VStack>
     </Box>
   );
-};
+});
 
 export default Sidebar;
