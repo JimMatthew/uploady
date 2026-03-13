@@ -12,7 +12,27 @@ import { useClipboard } from "../contexts/ClipboardContext";
 
 const ClipboardComponent = ({ handlePaste }) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
+  const token = localStorage.getItem("token");
+  const downloadAsZip = async () => {
+    const res = await fetch("/sftp/api/zip-clipboard", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ files: clipboard }),
+    });
 
+    if (!res.ok) return;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `uploady-${Date.now()}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <Box
       px={{ base: 3, md: 5 }}
@@ -109,6 +129,25 @@ const ClipboardComponent = ({ handlePaste }) => {
           >
             <FiClipboard size={11} />
             Paste
+          </Flex>
+          <Flex
+            align="center"
+            gap={2}
+            px={3}
+            h="26px"
+            borderRadius="6px"
+            bg="rgba(251,191,36,0.1)"
+            border="1px solid rgba(251,191,36,0.2)"
+            color="#FBBF24"
+            cursor="pointer"
+            fontSize="12px"
+            fontWeight={600}
+            transition="all 0.12s"
+            _hover={{ bg: "rgba(251,191,36,0.18)" }}
+            onClick={downloadAsZip}
+          >
+            <FiClipboard size={11} />
+            zip
           </Flex>
           <Flex
             align="center"

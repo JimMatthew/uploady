@@ -608,6 +608,68 @@ const sftpCopyFilesBatch = async (files, newPath, newServerId, transferId) => {
   }
 };
 
+/**
+ * Streams a ZIP of mixed local/remote clipboard files directly to the response.
+ * Groups SFTP files by serverId to reuse connections across files from the same server.
+ * @param {Array<{ file: string, path: string, source: string, serverId: string|null, isDirectory: boolean }>} files
+ * @param {import('express').Response} res
+ */
+const zipClipboardFiles = async (files, res) => {
+  const archive = archiver("zip", { zlib: { level: 6 } });
+  archive.pipe(res);
+
+  // Group SFTP files by serverId to avoid opening a new connection per file
+  const sftpGroups = {};
+  const localFiles = [];
+
+  for (const item of files) {
+    if (item.source === "local") {
+      localFiles.push(item);
+    } else {
+      const key = item.serverId;
+      if (!sftpGroups[key]) sftpGroups[key] = [];
+      sftpGroups[key].push(item);
+    }
+  }
+
+  // Local files
+  for (const item of localFiles) {
+    const fullPath = path.join(uploadsDir, item.path, item.file);
+    if (item.isDirectory) {
+      archive.directory(fullPath, item.file);
+    } else {
+      archive.file(fullPath, { name: item.file });
+    }
+  }
+
+  // SFTP files — one connection per server
+  for (const [serverId, group] of Object.entries(sftpGroups)) {
+    const sftp = await connectToSftp(serverId);
+    try {
+      for (const item of group) {
+        const remotePath = path.posix.join(item.path, item.file);
+        if (item.isDirectory) {
+          archive.append(null, { name: `${item.file}/` });
+          await addFolderToArchive(sftp, archive, remotePath, item.file);
+        } else {
+          const stat = await sftp.stat(remotePath);
+          if (stat.size === 0) continue;
+          const fileStream = await sftp.get(remotePath);
+          archive.append(fileStream, { name: item.file });
+        }
+      }
+    } finally {
+      await sftp.end();
+    }
+  }
+
+  await new Promise((resolve, reject) => {
+    archive.on("finish", resolve);
+    archive.on("error", reject);
+    archive.finalize();
+  });
+};
+
 // ─── Archive ──────────────────────────────────────────────────────────────────
 
 /**
@@ -668,4 +730,5 @@ module.exports = {
   sftpCopyFilesBatch,
   copySftpFileToLocal,
   copyFtpFolderToLocal,
+  zipClipboardFiles
 };
