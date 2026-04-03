@@ -5,20 +5,15 @@ Uploady file manager is a web based file manager allowing uploading and download
 There is also a server manager allowing you to add servers to be managed via SFTP and SSH. 
 
 Main page of Uploady
-![Screenshot 2024-10-14 134508](https://github.com/user-attachments/assets/e23dc828-39f6-489a-a930-b3cf16795a0a)
-<img width="1071" alt="upmain" src="https://github.com/user-attachments/assets/bbafb6da-05da-48ef-8d4f-b55e9284d45b">
+<img width="1052" height="749" alt="Screenshot 2026-03-16 075206" src="https://github.com/user-attachments/assets/17a2edf2-9cbb-4c1a-90ad-37c65ec81f66" />
 
-Shared Links:
-![Screenshot 2024-10-14 134546](https://github.com/user-attachments/assets/2795129d-0343-4988-a4fa-383262fd8ce2)
-
-Server manager and SFTP viewer:
-![Screenshot 2024-10-14 135323](https://github.com/user-attachments/assets/7d0bcac5-47b5-4951-9114-942a7e441bea)
+Shared Links:<img width="1057" height="570" alt="Screenshot 2026-03-16 075237" src="https://github.com/user-attachments/assets/ac4c1a7f-0ddf-4c30-af16-90d514cb4869" />
 
 SSH:
-![Screenshot 2024-10-14 134707](https://github.com/user-attachments/assets/71e06c8c-24d8-445f-95ce-77af5911e92c)
+<img width="1054" height="951" alt="Screenshot 2026-03-16 075429" src="https://github.com/user-attachments/assets/c84ce9a8-fb04-4e34-b42e-8e533749e019" />
 
 Text viewer / editor:
-<img width="1070" alt="upeditor" src="https://github.com/user-attachments/assets/dc787ffa-bfde-475a-9265-df8df38f0dab">
+<img width="1050" height="735" alt="Screenshot 2026-03-16 075356" src="https://github.com/user-attachments/assets/085fc861-0eff-4485-8f93-08f118ee9ba5" />
 
 To use:
 Git clone the repository. 
@@ -27,3 +22,4 @@ Create a folder named 'uploads' in the project directory. (this can be changed i
 cd to client and run 'npm run build' to build client
 You must also also have a mongoDB. The location is configured in .env
 In main project directory, run 'npm start' to start application
+<img width="1052" height="749" alt="Screenshot 2026-03-16 075206" src="https://github.com/user-attachments/assets/17a2edf2-9cbb-4c1a-90ad-37c65ec81f66" />
