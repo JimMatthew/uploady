@@ -32,3 +32,9 @@ client/buildtest228.zip
 .gitignore
 bun.lock
 client/build2/robots.txt
+cbuild
+cert.pem
+.gitignore
+uploadyrust
+key.pem
+.envr

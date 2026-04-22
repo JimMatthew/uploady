@@ -7,12 +7,12 @@ import reportWebVitals from './reportWebVitals';
 import { ClipboardProvider } from './contexts/ClipboardContext';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const config = {
-  initialColorMode: 'light', 
+  initialColorMode: 'dark', 
   useSystemColorMode: false, 
 };
 const theme = extendTheme({
   config: {
-    initialColorMode: 'light',
+    initialColorMode: 'dark',
     useSystemColorMode: false,
   },
   styles: {
