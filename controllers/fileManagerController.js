@@ -6,10 +6,11 @@ const archiver = require("archiver");
 const mime = require("mime-types");
 const SharedFile = require("../models/SharedFile");
 const sftpService = require("../services/sftpService");
+const executor = require("../services/transferExecutor");
+const TransferJob = require("../models/transferJobs");
+const TransferItem = require("../models/TransferItem");
+const { ItemKind } = require("../controllers/jobs/jobConstants");
 const localFileService = require("../services/localFileService");
-const {
-  complete,
-} = require("../services/progressService");
 
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempDir = path.join(__dirname, "../temp");
@@ -368,61 +369,40 @@ const cut_file_post = async (req, res, next) => {
  * @param {import('express').NextFunction} next
  */
 const paste_files_post = async (req, res, next) => {
-  const { files, newPath, transferId } = req.body;
+  const { files, newPath } = req.body;
 
   if (!files?.length || !newPath) {
     return next({ message: "Missing required fields", status: 400 });
   }
 
   try {
-    for (const item of files) {
-      if (item.serverId) {
-        // SFTP → Local
-        if (item.isDirectory) {
-          await sftpService.copyFtpFolderToLocal(
-            item.serverId,
-            item.file,
-            item.path,
-            newPath,
-            transferId,
-          );
-        } else {
-          await sftpService.copySftpFileToLocal(
-            item.file,
-            item.path,
-            newPath,
-            item.serverId,
-            transferId,
-          );
-        }
-      } else {
-        // Local → Local (cut treated as copy for now)
-        if (item.isDirectory) {
-          await localFileService.copy_local_folder(
-            item.file,
-            item.path,
-            newPath,
-            transferId,
-          );
-        } else {
-          await localFileService.copy_local_file(
-            item.file,
-            item.path,
-            newPath,
-            transferId,
-          );
-        }
-      }
-    }
-    complete(transferId);
-    res.status(200).json({ message: "Paste complete" });
+    const job = await TransferJob.create({
+      destServerId: null,  // local destination
+      destPath: newPath,
+    });
+
+    await TransferItem.insertMany(
+      files.map((f) => ({
+        jobId: job._id,
+        sourceServerId: f.serverId ?? null,
+        filename: f.file,
+        sourcePath: f.serverId
+          ? path.posix.join(f.path, f.file)
+          : path.join(uploadsDir, f.path, f.file),
+        destinationPath: path.join(newPath, f.file),
+        kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
+        size: f.size ?? 0,
+      }))
+    );
+
+    executor.enqueue(job._id);
+
+    res.status(201).json({ jobId: job._id });
   } catch (err) {
-    console.error("Paste error:", err);
-    complete(transferId);
+    console.error("Failed to create paste job:", err);
     next({ message: "Error pasting files", status: 500 });
   }
 };
-
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
 /**

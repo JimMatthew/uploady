@@ -9,6 +9,7 @@ const executor = require("../services/transferExecutor");
 const TransferJob = require("../models/transferJobs");
 const TransferItem = require("../models/TransferItem");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
+const uploadsDir = path.join(__dirname, "../uploads");
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -288,7 +289,7 @@ const sftp_copy_files_post = async (req, res) => {
         filename: f.file,
         sourcePath: f.serverId
       ? path.posix.join(f.path, f.file)   // remote — posix
-      : path.join(f.path, f.file), 
+      : path.join(uploadsDir,f.path, f.file), 
         destinationPath: path.posix.join(newPath, f.file),
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
         size: f.size ?? 0,

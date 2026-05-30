@@ -191,64 +191,65 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
-  const handlePaste = async (rp) => {
-    if (!clipboard.length) return;
+ const handlePaste = async (rp) => {
+  if (!clipboard.length) return;
 
-    const transferId = crypto.randomUUID();
+  try {
+    const res = await fetch("/api/paste-files", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        files: clipboard,
+        newPath: rp,
+      }),
+    });
+
+    if (!res.ok) {
+      showToast("Error pasting files", "error");
+      return;
+    }
+
+    const { jobId } = await res.json();
 
     const initialTransfers = Object.fromEntries(
       clipboard.map(({ file }) => [
-        `${transferId}-${file}`,
+        `${jobId}-${file}`,
         { file, progress: 0 },
       ]),
     );
     setStartedTransfers(initialTransfers);
 
-    const eventSource = new EventSource(`/api/progress/${transferId}`);
+    clearClipboard();
 
-    eventSource.onmessage = async (event) => {
+    const eventSource = new EventSource(`/api/progress/${jobId}`);
+
+    eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.ready) {
-        try {
-          const res = await fetch("/api/paste-files", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              files: clipboard,
-              newPath: rp,
-              transferId,
-            }),
-          });
-          if (!res.ok) {
-            eventSource.close();
-            showToast("Error pasting files", "error");
-            setProgressMap({});
-            setStartedTransfers({});
-          }
-        } catch (err) {
-          eventSource.close();
-          showToast("Error pasting files", "error");
-          setProgressMap({});
-          setStartedTransfers({});
-        }
-      } else if (data.file && data.percent !== undefined) {
+      if (data.ready) return;
+
+      if (data.type === "fileProgress") {
         setProgressMap((prev) => ({
           ...prev,
-          [`${transferId}-${data.file}`]: {
+          [`${jobId}-${data.file}`]: {
             file: data.file,
             progress: Math.round(data.percent),
           },
         }));
-      } else if (data.done && data.file) {
+      } else if (data.type === "fileDone") {
         setProgressMap((prev) => ({
           ...prev,
-          [`${transferId}-${data.file}`]: { file: data.file, progress: 100 },
+          [`${jobId}-${data.file}`]: { file: data.file, progress: 100 },
         }));
-      } else if (data.allDone) {
+      } else if (data.type === "fileFail") {
+        setProgressMap((prev) => ({
+          ...prev,
+          [`${jobId}-${data.file}`]: { file: data.file, progress: 0, error: data.error },
+        }));
+      } else if (data.type === "jobDone") {
         eventSource.close();
         onRefresh(rp);
         setTimeout(() => {
@@ -265,8 +266,11 @@ const FileController = ({ toast, onRefresh }) => {
       setStartedTransfers({});
     };
 
-    clearClipboard();
-  };
+  } catch (err) {
+    console.error("Paste error:", err);
+    showToast("Error pasting files", "error");
+  }
+};
 
   return {
     handleFolderCopy,

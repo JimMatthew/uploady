@@ -714,6 +714,17 @@ const transferSingleFile = async ({
   const isLocalDest = !destServerId;
   const isSameServer = !isLocalSource && sourceServerId === destServerId;
 
+  // ensure destination directory exists before writing
+  const destDir = path.posix.dirname(item.destinationPath);
+  if (!isLocalDest) {
+    await sftpDest.mkdir(destDir, true).catch(() => {});  // true = recursive, ignore if exists
+  } else {
+    await fs.promises.mkdir(
+      path.dirname(item.destinationPath),
+      { recursive: true }
+    );
+  }
+  
   if (isLocalSource && !isLocalDest) {
     // local → sftp
     await uploadLocalFileToSftp(
