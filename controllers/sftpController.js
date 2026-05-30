@@ -5,7 +5,10 @@ const sftpService = require("../services/sftpService");
 const serverService = require("../services/serverService");
 const { sftpCopyFilesBatch } = require("../services/sftpService");
 const { complete } = require("../services/progressService");
-
+const executor = require("../services/transferExecutor");
+const TransferJob = require("../models/transferJobs");
+const TransferItem = require("../models/TransferItem");
+const { ItemKind } = require("../controllers/jobs/jobConstants");
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -268,18 +271,36 @@ const sftp_upload_post = async (req, res) => {
 const sftp_copy_files_post = async (req, res) => {
   const { files, newPath, newServerId, transferId } = req.body;
 
-  if (!files?.length || !newPath || !transferId) {
+  if (!files?.length || !newPath) {
     return handleError(res, "Missing required fields", 400);
   }
 
   try {
-    await sftpCopyFilesBatch(files, newPath, newServerId, transferId);
-    complete(transferId);
-    res.status(200).send("Batch transfer complete");
+    const job = await TransferJob.create({
+      destServerId: newServerId ?? null,
+      destPath: newPath,
+    });
+
+    await TransferItem.insertMany(
+      files.map((f) => ({
+        jobId: job._id,
+        sourceServerId: f.serverId ?? null,
+        filename: f.file,
+        sourcePath: f.serverId
+      ? path.posix.join(f.path, f.file)   // remote — posix
+      : path.join(f.path, f.file), 
+        destinationPath: path.posix.join(newPath, f.file),
+        kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
+        size: f.size ?? 0,
+      }))
+    );
+
+    executor.enqueue(job._id);
+
+    res.status(201).json({ jobId: job._id });
   } catch (err) {
-    console.error("Transfer failed:", err);
-    complete(transferId);
-    res.status(500).send("Batch transfer failed");
+    console.error("Failed to create transfer job:", err);
+    res.status(500).send("Failed to create transfer job");
   }
 };
 

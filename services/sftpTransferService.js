@@ -45,7 +45,7 @@ async function countSftpFiles(sftp, dirPath) {
  * @param {string} destPath - Full remote path on destination server
  * @param {string} filename - Display name used in progress events
  * @param {string|null} transferId - SSE transfer ID, null to suppress
- */
+ 
 async function streamFileSftpPair(
   source,
   dest,
@@ -88,6 +88,41 @@ async function streamFileSftpPair(
 
   if (transferId) {
     sendProgress(transferId, { file: filename, done: true });
+  }
+}
+*/
+/**
+ * @param {import('ssh2-sftp-client')} source
+ * @param {import('ssh2-sftp-client')} dest
+ * @param {string} sourcePath
+ * @param {string} destPath
+ * @param {string} filename
+ * @param {(percent: number) => void} onProgress
+ */
+async function streamFileSftpPair(source, dest, sourcePath, destPath, filename, onProgress) {
+  const passthrough = new PassThrough();
+  const { size: totalSize } = await source.stat(sourcePath);
+  let transferred = 0;
+  let lastUpdate = Date.now();
+
+  passthrough.on("data", (chunk) => {
+    transferred += chunk.length;
+    const now = Date.now();
+    if (now - lastUpdate > 100) {
+      lastUpdate = now;
+      const percent = Math.min((transferred / totalSize) * 100, 100);
+      onProgress?.(percent);
+    }
+  });
+
+  try {
+    await Promise.all([
+      source.get(sourcePath, passthrough),
+      dest.put(passthrough, destPath),
+    ]);
+  } catch (err) {
+    passthrough.destroy(err);
+    throw err;
   }
 }
 

@@ -307,65 +307,69 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     [handleCopy],
   );
 
-  const handlePaste = useCallback(() => {
-    if (!clipboard.length) return;
+ const handlePaste = useCallback(async () => {
+  if (!clipboard.length) return;
 
-    const transferId = crypto.randomUUID();
+  try {
+    // POST first — server creates the job and returns jobId
+    const res = await fetch("/sftp/api/copy-files", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        files: clipboard,
+        newPath: files.currentDirectory,
+        newServerId: serverId,
+      }),
+    });
 
-    // Pre-populate progress map with all files before SSE starts
+    if (!res.ok) {
+      showToast("Error pasting files", "error");
+      return;
+    }
+
+    const { jobId } = await res.json();
+
+    // pre-populate progress map from clipboard (we still know the files)
     const initialTransfers = Object.fromEntries(
       clipboard.map(({ file }) => [
-        `${transferId}-${file}`,
+        `${jobId}-${file}`,
         { file, progress: 0 },
       ]),
     );
     setStartedTransfers(initialTransfers);
 
-    const eventSource = new EventSource(`/sftp/api/progress/${transferId}?token=${token}`);
+    clearClipboard();
 
-    eventSource.onmessage = async (event) => {
+    // open SSE after we have jobId
+    const eventSource = new EventSource(`/sftp/api/progress/${jobId}?token=${token}`);
+
+    eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
       if (data.ready) {
-        try {
-          const res = await fetch("/sftp/api/copy-files", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              files: clipboard,
-              newPath: files.currentDirectory,
-              newServerId: serverId,
-              transferId,
-            }),
-          });
-          if (!res.ok) {
-            console.error("Batch copy failed:", await res.text());
-            eventSource.close();
-            showToast("Error pasting files", "error");
-            setProgressMap({});
-            setStartedTransfers({});
-          }
-        } catch (err) {
-          console.error("Batch copy error:", err);
-          eventSource.close();
-          showToast("Error pasting files", "error");
-          setProgressMap({});
-          setStartedTransfers({});
-        }
-      } else if (data.file && data.percent !== undefined) {
+        // channel open, job already running — nothing to do
+        return;
+      }
+
+      if (data.type === "fileProgress") {
         setProgressMap((prev) => ({
           ...prev,
-          [`${transferId}-${data.file}`]: {
+          [`${jobId}-${data.file}`]: {
             file: data.file,
             progress: Math.round(data.percent),
           },
         }));
-      } else if (data.done && data.file) {
+      } else if (data.type === "fileDone") {
         setProgressMap((prev) => ({
           ...prev,
-          [`${transferId}-${data.file}`]: { file: data.file, progress: 100 },
+          [`${jobId}-${data.file}`]: { file: data.file, progress: 100 },
         }));
-      } else if (data.allDone) {
+      } else if (data.type === "fileFail") {
+        setProgressMap((prev) => ({
+          ...prev,
+          [`${jobId}-${data.file}`]: { file: data.file, progress: 0, error: data.error },
+        }));
+      } else if (data.type === "jobDone") {
         eventSource.close();
         changeSftpDirectory(files.currentDirectory);
         setTimeout(() => {
@@ -383,15 +387,19 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
       setStartedTransfers({});
     };
 
-    clearClipboard();
-  }, [
-    clipboard,
-    files?.currentDirectory,
-    serverId,
-    clearClipboard,
-    changeSftpDirectory,
-    showToast,
-  ]);
+  } catch (err) {
+    console.error("Paste error:", err);
+    showToast("Error pasting files", "error");
+  }
+}, [
+  clipboard,
+  files?.currentDirectory,
+  serverId,
+  clearClipboard,
+  changeSftpDirectory,
+  showToast,
+  token,
+]);
 
   // ---------------------------------------------------------------------------
   // Utilities
