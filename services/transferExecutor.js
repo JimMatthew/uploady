@@ -148,7 +148,7 @@ class TransferExecutor extends EventEmitter {
 
     this.emit(`jobStart:${jobId}`, {
       totalFiles: items.size,
-      rootCounts, 
+      rootCounts,
     });
 
     // ── Phase 3: execute ──────────────────────────────────────────────────────
