@@ -8,6 +8,7 @@ import {
   FiLink,
   FiX,
   FiMonitor,
+  FiRepeat
 } from "react-icons/fi";
 import ServerCard from "../components/ServerCard";
 
@@ -57,6 +58,7 @@ const Sidebar = memo(function Sidebar ({
   handleNewServer,
   handleSshLaunch,
   handleSharedLinks,
+  handleTransfers,
   deleteServer,
   sftpServers,
   serverStatuses,
@@ -108,6 +110,7 @@ const Sidebar = memo(function Sidebar ({
           label="Shared Links"
           onClick={handleSharedLinks}
         />
+        <NavButton icon={FiRepeat} label="Transfers" onClick={handleTransfers} /> 
         <NavButton
           icon={FiPlusCircle}
           label="Add Server"

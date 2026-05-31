@@ -5,6 +5,7 @@ import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
 import FileList from "../pages/FileList";
 import SharedLinks from "../components/SharedLinks";
+import TransfersPage from "../pages/Transfers";
 import { useNavigate } from "react-router-dom";
 import {
   SaveServer,
@@ -92,6 +93,13 @@ export function useSftpList({ toast }) {
       content: <AddServer handleSaveServer={handleSaveServer} />,
     });
   }, [addTabItem]);
+
+  const handleTransfers = useCallback(() => {
+  addTabItem({
+    label: "Transfers",
+    content: <TransfersPage toast={toast} />,
+  });
+}, [addTabItem, toast]);
 
   const handleLocalTab = useCallback(() => {
     addTabItem({
@@ -211,5 +219,6 @@ export function useSftpList({ toast }) {
     handleLocalTab,
     handleSharedLinks,
     deleteServer,
+    handleTransfers
   };
 }

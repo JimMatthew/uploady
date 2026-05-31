@@ -111,9 +111,9 @@ const expandJobItems = async (jobId) => {
       for (const dir of dirs) {
         const walked = isLocal
           ? walkLocalDir(
-              dir.sourcePath,
-              dir.destinationPath,
-            )
+            dir.sourcePath,
+            dir.destinationPath,
+          )
           : await walkSftpDir(sftp, dir.sourcePath, dir.destinationPath);
 
         for (const f of walked) {

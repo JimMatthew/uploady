@@ -29,6 +29,7 @@ const SFTPApp = ({ toast }) => {
     activeTabIndex,
     setActiveTabIndex,
     handleSharedLinks,
+    handleTransfers
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -144,6 +145,7 @@ const SFTPApp = ({ toast }) => {
               handleNewServer={handleNewServer}
               handleSshLaunch={handleSshLaunch}
               handleSharedLinks={handleSharedLinks}
+              handleTransfers={handleTransfers}
               deleteServer={deleteServer}
               sftpServers={sftpServers}
               serverStatuses={serverStatuses}

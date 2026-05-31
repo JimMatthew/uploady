@@ -598,7 +598,5 @@ module.exports = {
   uploadFile,
   archiveFolder,
   sftpCopyFilesBatch,
-  //copySftpFileToLocal,
-  // copyFtpFolderToLocal,
   zipClipboardFiles
 };
