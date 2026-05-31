@@ -50,16 +50,28 @@ const list_jobs_get = async (req, res) => {
     for (const id of sourceServers) serverIds.add(id);
 
     const nameMap = await resolveServerNames(serverIds);
+    const sourceByJob = await TransferItem.aggregate([
+  { $match: { jobId: { $in: jobIds } } },
+  { $group: { _id: "$jobId", sourceServerIds: { $addToSet: "$sourceServerId" } } }
+]);
 
+const sourceMap = Object.fromEntries(
+  sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds])
+);
     // overlay live state for running jobs
     const result = jobs.map((job) => {
       const liveJob = executor.getJob(job._id.toString());
+      const sourceIds = sourceMap[job._id.toString()] ?? [];
+  const sourceServers = [...new Set(
+    sourceIds.map((id) => id ? (nameMap[id] ?? id) : "local")
+  )];
       return {
         ...job,
         completedFiles: liveJob?.completedFiles ?? job.completedFiles,
         failedFiles: liveJob?.failedFiles ?? job.failedFiles,
         currentFile: liveJob?.currentFile ?? job.currentFile,
         destServer: formatServer(job.destServerId, nameMap),
+        sourceServers, 
       };
     });
 

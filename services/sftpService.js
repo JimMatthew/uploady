@@ -414,36 +414,36 @@ const transferSingleFile = async ({
   }
 
   if (isLocalSource && isLocalDest) {
-  // local → local
-  const destDir = path.dirname(item.destinationPath);
-  await fs.promises.mkdir(destDir, { recursive: true });
+    // local → local
+    const destDir = path.dirname(item.destinationPath);
+    await fs.promises.mkdir(destDir, { recursive: true });
 
-  const stat = await fs.promises.stat(item.sourcePath);
-  const totalSize = stat.size;
-  let transferred = 0;
-  let lastUpdate = Date.now();
+    const stat = await fs.promises.stat(item.sourcePath);
+    const totalSize = stat.size;
+    let transferred = 0;
+    let lastUpdate = Date.now();
 
-  const readStream = fs.createReadStream(item.sourcePath);
-  const writeStream = fs.createWriteStream(item.destinationPath);
-  const passthrough = new PassThrough();
+    const readStream = fs.createReadStream(item.sourcePath);
+    const writeStream = fs.createWriteStream(item.destinationPath);
+    const passthrough = new PassThrough();
 
-  passthrough.on("data", (chunk) => {
-    transferred += chunk.length;
-    const now = Date.now();
-    if (now - lastUpdate > 100) {
-      lastUpdate = now;
-      onProgress(Math.min((transferred / totalSize) * 100, 100));
-    }
-  });
+    passthrough.on("data", (chunk) => {
+      transferred += chunk.length;
+      const now = Date.now();
+      if (now - lastUpdate > 100) {
+        lastUpdate = now;
+        onProgress(Math.min((transferred / totalSize) * 100, 100));
+      }
+    });
 
-  await new Promise((resolve, reject) => {
-    readStream
-      .pipe(passthrough)
-      .pipe(writeStream)
-      .on("finish", resolve)
-      .on("error", reject);
-  });
-} else if (isLocalSource && !isLocalDest) {
+    await new Promise((resolve, reject) => {
+      readStream
+        .pipe(passthrough)
+        .pipe(writeStream)
+        .on("finish", resolve)
+        .on("error", reject);
+    });
+  } else if (isLocalSource && !isLocalDest) {
     // local → sftp
     await uploadLocalFileToSftp(
       item.sourcePath,
@@ -454,12 +454,28 @@ const transferSingleFile = async ({
     );
   } else if (!isLocalSource && isLocalDest) {
     // sftp → local
-    await copyFileToLocal({
-      filename: item.filename,
-      currentPath: path.posix.dirname(item.sourcePath),
-      newPath: path.dirname(item.destinationPath),
-      sftp: sftpSource,
-      onProgress,
+    await fs.promises.mkdir(path.dirname(item.destinationPath), { recursive: true });
+
+    const passthrough = new PassThrough();
+    const writeStream = fs.createWriteStream(item.destinationPath);
+    const stat = await sftpSource.stat(item.sourcePath);
+    const totalSize = stat.size;
+    let transferred = 0;
+    let lastUpdate = Date.now();
+
+    passthrough.on("data", (chunk) => {
+      transferred += chunk.length;
+      const now = Date.now();
+      if (now - lastUpdate > 100) {
+        lastUpdate = now;
+        onProgress(Math.min((transferred / totalSize) * 100, 100));
+      }
+    });
+
+    sftpSource.get(item.sourcePath, passthrough).catch((err) => passthrough.destroy(err));
+
+    await new Promise((resolve, reject) => {
+      passthrough.pipe(writeStream).on("finish", resolve).on("error", reject);
     });
   } else if (isSameServer) {
     // same server — rcopy, no byte level progress available
