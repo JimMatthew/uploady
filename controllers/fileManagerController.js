@@ -390,7 +390,7 @@ const paste_files_post = async (req, res, next) => {
         sourcePath: f.serverId
           ? path.posix.join(f.path, f.file)
           : path.join(uploadsDir, f.path, f.file),
-        destinationPath: path.join(newPath, f.file),
+        destinationPath: path.join(uploadsDir, newPath, f.file),
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
         size: f.size ?? 0,
       }))

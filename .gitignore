@@ -38,3 +38,5 @@ cert.pem
 uploadyrust
 key.pem
 .envr
+newtest/buildn.zip
+.gitignore
