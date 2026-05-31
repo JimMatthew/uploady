@@ -52,7 +52,7 @@ const NavButton = ({ icon, label, onClick, to, active }) => {
   );
 };
 
-const Sidebar = memo(function Sidebar ({
+const Sidebar = memo(function Sidebar({
   handleConnect,
   handleLocalTab,
   handleNewServer,
@@ -110,7 +110,7 @@ const Sidebar = memo(function Sidebar ({
           label="Shared Links"
           onClick={handleSharedLinks}
         />
-        <NavButton icon={FiRepeat} label="Transfers" onClick={handleTransfers} /> 
+        <NavButton icon={FiRepeat} label="Transfers" onClick={handleTransfers} />
         <NavButton
           icon={FiPlusCircle}
           label="Add Server"

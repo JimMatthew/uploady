@@ -274,37 +274,6 @@ const uploadLocalFileToSftp = async (localPath, destPath, sftpDest, filename, on
   });
 };
 
-// ─── SFTP → Local ─────────────────────────────────────────────────────────────
-const copyFileToLocal = async ({ filename, currentPath, newPath, sftp, onProgress }) => {
-  const remotePath = path.posix.join(currentPath, filename);
-  const localDest = path.join(uploadsDir, newPath, filename);
-  await fs.promises.mkdir(path.dirname(localDest), { recursive: true });
-
-  const stat = await sftp.stat(remotePath);
-  const totalSize = stat.size;
-  let transferred = 0;
-  let lastUpdate = Date.now();
-
-  const passthrough = new PassThrough();
-  const writeStream = fs.createWriteStream(localDest);
-
-  passthrough.on("data", (chunk) => {
-    transferred += chunk.length;
-    const now = Date.now();
-    if (now - lastUpdate > 100) {
-      lastUpdate = now;
-      const percent = Math.min((transferred / totalSize) * 100, 100);
-      onProgress?.(percent);
-    }
-  });
-
-  sftp.get(remotePath, passthrough).catch((err) => passthrough.destroy(err));
-
-  await new Promise((resolve, reject) => {
-    passthrough.pipe(writeStream).on("finish", resolve).on("error", reject);
-  });
-};
-
 /**
  * Executes a transfer job by iterating flat file items grouped by source server.
  * Directories have already been expanded by the expansion phase — every item

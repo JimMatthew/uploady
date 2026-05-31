@@ -95,11 +95,11 @@ export function useSftpList({ toast }) {
   }, [addTabItem]);
 
   const handleTransfers = useCallback(() => {
-  addTabItem({
-    label: "Transfers",
-    content: <TransfersPage toast={toast} />,
-  });
-}, [addTabItem, toast]);
+    addTabItem({
+      label: "Transfers",
+      content: <TransfersPage toast={toast} />,
+    });
+  }, [addTabItem, toast]);
 
   const handleLocalTab = useCallback(() => {
     addTabItem({
