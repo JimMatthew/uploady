@@ -386,6 +386,7 @@ const paste_files_post = async (req, res, next) => {
         jobId: job._id,
         sourceServerId: f.serverId ?? null,
         filename: f.file,
+        rootItem: f.file,
         sourcePath: f.serverId
           ? path.posix.join(f.path, f.file)
           : path.join(uploadsDir, f.path, f.file),

@@ -287,6 +287,7 @@ const sftp_copy_files_post = async (req, res) => {
         jobId: job._id,
         sourceServerId: f.serverId ?? null,
         filename: f.file,
+        rootItem: f.file,
         sourcePath: f.serverId
       ? path.posix.join(f.path, f.file)   // remote — posix
       : path.join(uploadsDir,f.path, f.file), 

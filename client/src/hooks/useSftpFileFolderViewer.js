@@ -307,99 +307,113 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     [handleCopy],
   );
 
- const handlePaste = useCallback(async () => {
-  if (!clipboard.length) return;
+  const handlePaste = useCallback(async () => {
+    if (!clipboard.length) return;
 
-  try {
-    // POST first — server creates the job and returns jobId
-    const res = await fetch("/sftp/api/copy-files", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        files: clipboard,
-        newPath: files.currentDirectory,
-        newServerId: serverId,
-      }),
-    });
+    try {
+      // POST first — server creates the job and returns jobId
+      const res = await fetch("/sftp/api/copy-files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: clipboard,
+          newPath: files.currentDirectory,
+          newServerId: serverId,
+        }),
+      });
 
-    if (!res.ok) {
-      showToast("Error pasting files", "error");
-      return;
-    }
-
-    const { jobId } = await res.json();
-
-    // pre-populate progress map from clipboard (we still know the files)
-    const initialTransfers = Object.fromEntries(
-      clipboard.map(({ file }) => [
-        `${jobId}-${file}`,
-        { file, progress: 0 },
-      ]),
-    );
-    setStartedTransfers(initialTransfers);
-
-    clearClipboard();
-
-    // open SSE after we have jobId
-    const eventSource = new EventSource(`/sftp/api/progress/${jobId}?token=${token}`);
-
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.ready) {
-        // channel open, job already running — nothing to do
+      if (!res.ok) {
+        showToast("Error pasting files", "error");
         return;
       }
 
-      if (data.type === "fileProgress") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: {
-            file: data.file,
-            progress: Math.round(data.percent),
-          },
-        }));
-      } else if (data.type === "fileDone") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: { file: data.file, progress: 100 },
-        }));
-      } else if (data.type === "fileFail") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: { file: data.file, progress: 0, error: data.error },
-        }));
-      } else if (data.type === "jobDone") {
+      const { jobId } = await res.json();
+
+      const initialTransfers = Object.fromEntries(
+        clipboard.map(({ file }) => [
+          `${jobId}-${file}`,
+          { file, progress: 0 },
+        ]),
+      );
+      setStartedTransfers(initialTransfers);
+      setProgressMap({ ...initialTransfers }); 
+
+      clearClipboard();
+
+      const eventSource = new EventSource(`/sftp/api/progress/${jobId}?token=${token}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.ready) return;
+
+        if (data.type === "jobStart") {
+          setProgressMap((prev) => {
+            const next = { ...prev };
+            Object.keys(initialTransfers).forEach((key) => {
+              const itemName = initialTransfers[key].file;
+              next[key] = {
+                ...next[key],
+                total: data.rootCounts?.[itemName] ?? 1,
+              };
+            });
+            return next;
+          });
+
+        } else if (data.type === "fileProgress") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: { ...prev[rootKey], progress: Math.round(data.percent) },
+          }));
+
+        } else if (data.type === "fileDone") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          const isTopLevel = data.file === data.rootItem;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: isTopLevel
+              ? { ...prev[rootKey], progress: 100 }
+              : { ...prev[rootKey], completed: (prev[rootKey]?.completed || 0) + 1 },
+          }));
+
+        } else if (data.type === "fileFail") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: { ...prev[rootKey], error: data.error },
+          }));
+
+        } else if (data.type === "jobDone") {
+          eventSource.close();
+          changeSftpDirectory(files.currentDirectory);
+          setTimeout(() => {
+            setProgressMap({});
+            setStartedTransfers({});
+          }, 1500);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("SSE error:", err);
         eventSource.close();
-        changeSftpDirectory(files.currentDirectory);
-        setTimeout(() => {
-          setProgressMap({});
-          setStartedTransfers({});
-        }, 400);
-      }
-    };
+        showToast("Transfer connection lost", "error");
+        setProgressMap({});
+        setStartedTransfers({});
+      };
 
-    eventSource.onerror = (err) => {
-      console.error("SSE error:", err);
-      eventSource.close();
-      showToast("Transfer connection lost", "error");
-      setProgressMap({});
-      setStartedTransfers({});
-    };
-
-  } catch (err) {
-    console.error("Paste error:", err);
-    showToast("Error pasting files", "error");
-  }
-}, [
-  clipboard,
-  files?.currentDirectory,
-  serverId,
-  clearClipboard,
-  changeSftpDirectory,
-  showToast,
-  token,
-]);
+    } catch (err) {
+      console.error("Paste error:", err);
+      showToast("Error pasting files", "error");
+    }
+  }, [
+    clipboard,
+    files?.currentDirectory,
+    serverId,
+    clearClipboard,
+    changeSftpDirectory,
+    showToast,
+    token,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Utilities

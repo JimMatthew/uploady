@@ -214,50 +214,67 @@ const FileController = ({ toast, onRefresh }) => {
 
     const { jobId } = await res.json();
 
-    const initialTransfers = Object.fromEntries(
-      clipboard.map(({ file }) => [
-        `${jobId}-${file}`,
-        { file, progress: 0 },
-      ]),
-    );
-    setStartedTransfers(initialTransfers);
+const initialTransfers = Object.fromEntries(
+  clipboard.map(({ file }) => [
+    `${jobId}-${file}`,
+    { file, progress: 0 },
+  ]),
+);
+setStartedTransfers(initialTransfers);
+setProgressMap({ ...initialTransfers });
+clearClipboard();
 
-    clearClipboard();
+const eventSource = new EventSource(`/api/progress/${jobId}`);
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.ready) return;
 
-    const eventSource = new EventSource(`/api/progress/${jobId}`);
+  if (data.type === "jobStart") {
+    setProgressMap((prev) => {
+      const next = { ...prev };
+      Object.keys(initialTransfers).forEach((key) => {
+        const itemName = initialTransfers[key].file;
+        next[key] = {
+          ...next[key],
+          total: data.rootCounts?.[itemName] ?? 1,
+        };
+      });
+      return next;
+    });
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+  } else if (data.type === "fileProgress") {
+    const rootKey = `${jobId}-${data.rootItem}`;
+    setProgressMap((prev) => ({
+      ...prev,
+      [rootKey]: { ...prev[rootKey], progress: Math.round(data.percent) },
+    }));
 
-      if (data.ready) return;
+  } else if (data.type === "fileDone") {
+    const rootKey = `${jobId}-${data.rootItem}`;
+    const isTopLevel = data.file === data.rootItem;
+    setProgressMap((prev) => ({
+      ...prev,
+      [rootKey]: isTopLevel
+        ? { ...prev[rootKey], progress: 100 }
+        : { ...prev[rootKey], completed: (prev[rootKey]?.completed || 0) + 1 },
+    }));
 
-      if (data.type === "fileProgress") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: {
-            file: data.file,
-            progress: Math.round(data.percent),
-          },
-        }));
-      } else if (data.type === "fileDone") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: { file: data.file, progress: 100 },
-        }));
-      } else if (data.type === "fileFail") {
-        setProgressMap((prev) => ({
-          ...prev,
-          [`${jobId}-${data.file}`]: { file: data.file, progress: 0, error: data.error },
-        }));
-      } else if (data.type === "jobDone") {
-        eventSource.close();
-        onRefresh(rp);
-        setTimeout(() => {
-          setProgressMap({});
-          setStartedTransfers({});
-        }, 400);
-      }
-    };
+  } else if (data.type === "fileFail") {
+    const rootKey = `${jobId}-${data.rootItem}`;
+    setProgressMap((prev) => ({
+      ...prev,
+      [rootKey]: { ...prev[rootKey], error: data.error },
+    }));
+
+  } else if (data.type === "jobDone") {
+    eventSource.close();
+    onRefresh(rp);
+    setTimeout(() => {
+      setProgressMap({});
+      setStartedTransfers({});
+    }, 1500);
+  }
+};
 
     eventSource.onerror = () => {
       eventSource.close();

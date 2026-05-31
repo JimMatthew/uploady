@@ -1,11 +1,18 @@
 import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-import { FiArrowRight } from "react-icons/fi";
+import { FiArrowRight, FiFolder } from "react-icons/fi";
 
 const TransferProgress = ({ transfers, progressMap }) => (
   <Box mb={3} display="flex" flexDirection="column" gap={2}>
     {Object.entries(transfers).map(([id, { file }]) => {
-      const pct = progressMap[id]?.progress || 0;
-      const done = pct >= 100;
+      const entry = progressMap[id] || {};
+      const pct = entry.progress || 0;
+      const completed = entry.completed || 0;
+      const total = entry.total || 0;
+      const isFolder = completed > 0 || (total > 0 && pct === 0 && completed === 0);
+      const done = isFolder
+  ? total > 0 && completed === total
+  : pct >= 100;
+
       return (
         <Box
           key={id}
@@ -19,7 +26,7 @@ const TransferProgress = ({ transfers, progressMap }) => (
           <Flex align="center" justify="space-between" mb={2}>
             <Flex align="center" gap={2} minW={0}>
               <Icon
-                as={FiArrowRight}
+                as={isFolder ? FiFolder : FiArrowRight}
                 boxSize="12px"
                 color={done ? "#22C55E" : "#6366F1"}
                 flexShrink={0}
@@ -44,20 +51,22 @@ const TransferProgress = ({ transfers, progressMap }) => (
               ml={3}
               transition="color 0.3s"
             >
-              {done ? "done" : `${Math.round(pct)}%`}
+              {done
+                ? "done"
+                : isFolder
+                  ? `${completed} / ${total || "?"} files`
+                  : `${Math.round(pct)}%`
+              }
             </Text>
           </Flex>
 
-          {/* Progress track */}
-          <Box
-            h="2px"
-            bg="rgba(255,255,255,0.06)"
-            borderRadius="full"
-            overflow="hidden"
-          >
+          <Box h="2px" bg="rgba(255,255,255,0.06)" borderRadius="full" overflow="hidden">
             <Box
               h="100%"
-              w={`${pct}%`}
+              w={isFolder
+                ? total > 0 ? `${(completed / total) * 100}%` : "0%"
+                : `${pct}%`
+              }
               bg={done
                 ? "linear-gradient(90deg, #22C55E, #4ADE80)"
                 : "linear-gradient(90deg, #6366F1, #818CF8)"

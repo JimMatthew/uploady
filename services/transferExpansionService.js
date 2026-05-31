@@ -121,6 +121,7 @@ const expandJobItems = async (jobId) => {
             jobId,
             sourceServerId: isLocal ? null : sourceServerId,
             filename: f.filename,
+            rootItem: dir.rootItem,
             sourcePath: f.sourcePath,
             destinationPath: f.destinationPath,
             size: f.size,

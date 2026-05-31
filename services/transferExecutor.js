@@ -109,6 +109,7 @@ class TransferExecutor extends EventEmitter {
         {
           itemId: doc._id.toString(),
           filename: doc.filename,
+          rootItem: doc.rootItem,
           sourceServerId: doc.sourceServerId,
           sourcePath: doc.sourcePath,
           destinationPath: doc.destinationPath,
@@ -140,8 +141,14 @@ class TransferExecutor extends EventEmitter {
       totalFiles: items.size,
     });
 
+    const rootCounts = {};
+    for (const item of items.values()) {
+      rootCounts[item.rootItem] = (rootCounts[item.rootItem] || 0) + 1;
+    }
+
     this.emit(`jobStart:${jobId}`, {
       totalFiles: items.size,
+      rootCounts, 
     });
 
     // ── Phase 3: execute ──────────────────────────────────────────────────────
@@ -209,6 +216,7 @@ class TransferExecutor extends EventEmitter {
         ]);
         this.emit(`fileStart:${job.jobId}`, {
           file: item.filename,
+          rootItem: item.rootItem,
           size: item.size,
         });
       },
@@ -217,6 +225,7 @@ class TransferExecutor extends EventEmitter {
         item.percent = percent;
         this.emit(`fileProgress:${job.jobId}`, {
           file: item.filename,
+          rootItem: item.rootItem,
           percent,
         });
       },
@@ -236,6 +245,7 @@ class TransferExecutor extends EventEmitter {
         ]);
         this.emit(`fileDone:${job.jobId}`, {
           file: item.filename,
+          rootItem: item.rootItem,
           completed: job.completedFiles,
           total: job.totalFiles,
         });
@@ -257,6 +267,7 @@ class TransferExecutor extends EventEmitter {
         ]);
         this.emit(`fileFail:${job.jobId}`, {
           file: item.filename,
+          rootItem: item.rootItem,
           error: err.message,
         });
       },

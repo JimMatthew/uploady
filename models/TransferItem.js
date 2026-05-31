@@ -26,6 +26,8 @@ const transferJobItemSchema = new mongoose.Schema({
     default: ItemStatus.PENDING,
   },
 
+  rootItem: { type: String, required: true },
+
   size: {type: Number,default: 0},
   bytesTransferred: {type: Number,default: 0},
 
