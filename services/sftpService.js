@@ -332,7 +332,7 @@ const sftpCopyFilesBatch = async (job, callbacks = {}) => {
         await onFileStart(item);
 
         try {
-          await transferSingleFile({
+          const discoveredSize = await transferSingleFile({
             item,
             sourceServerId,
             destServerId,
@@ -340,6 +340,7 @@ const sftpCopyFilesBatch = async (job, callbacks = {}) => {
             sftpDest: isSameServer ? sftpSource : sftpDest,
             onProgress: (percent) => onFileProgress(item, percent),
           });
+          item.size = discoveredSize; 
           await onFileDone(item);
         } catch (err) {
           await onFileFail(item, err);
@@ -371,6 +372,7 @@ const transferSingleFile = async ({
   const isLocalDest = !destServerId;
   const isSameServer = !isLocalSource && sourceServerId === destServerId;
 
+  let discoveredSize = item.size;
   // ensure destination directory exists before writing
   const destDir = path.posix.dirname(item.destinationPath);
   if (!isLocalDest) {
@@ -389,6 +391,7 @@ const transferSingleFile = async ({
 
     const stat = await fs.promises.stat(item.sourcePath);
     const totalSize = stat.size;
+    discoveredSize = stat.size;
     let transferred = 0;
     let lastUpdate = Date.now();
 
@@ -414,6 +417,8 @@ const transferSingleFile = async ({
     });
   } else if (isLocalSource && !isLocalDest) {
     // local → sftp
+     const stat = await fs.promises.stat(item.sourcePath);
+    discoveredSize = stat.size;
     await uploadLocalFileToSftp(
       item.sourcePath,
       item.destinationPath,
@@ -423,11 +428,12 @@ const transferSingleFile = async ({
     );
   } else if (!isLocalSource && isLocalDest) {
     // sftp → local
+    const stat = await sftpSource.stat(item.sourcePath);
+    discoveredSize = stat.size;
     await fs.promises.mkdir(path.dirname(item.destinationPath), { recursive: true });
 
     const passthrough = new PassThrough();
     const writeStream = fs.createWriteStream(item.destinationPath);
-    const stat = await sftpSource.stat(item.sourcePath);
     const totalSize = stat.size;
     let transferred = 0;
     let lastUpdate = Date.now();
@@ -452,6 +458,8 @@ const transferSingleFile = async ({
     onProgress(100);
   } else {
     // cross server — stream through node
+     const { size } = await sftpSource.stat(item.sourcePath);
+    discoveredSize = size;
     await streamFileSftpPair(
       sftpSource,
       sftpDest,
@@ -461,6 +469,7 @@ const transferSingleFile = async ({
       onProgress,
     );
   }
+  return discoveredSize;
 };
 
 /**

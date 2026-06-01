@@ -31,6 +31,7 @@ const formatServer = (serverId, nameMap) => {
  */
 const list_jobs_get = async (req, res) => {
   try {
+    const mongoose = require("mongoose");
     const jobs = await TransferJob.find()
       .sort({ createdAt: -1 })
       .lean();
@@ -51,27 +52,31 @@ const list_jobs_get = async (req, res) => {
 
     const nameMap = await resolveServerNames(serverIds);
     const sourceByJob = await TransferItem.aggregate([
-  { $match: { jobId: { $in: jobIds } } },
-  { $group: { _id: "$jobId", sourceServerIds: { $addToSet: "$sourceServerId" } } }
-]);
+      { $match: { jobId: { $in: jobIds } } },
+      { $group: { _id: "$jobId", sourceServerIds: { $addToSet: "$sourceServerId" } } }
+    ]);
 
-const sourceMap = Object.fromEntries(
-  sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds])
-);
+    const sourceMap = Object.fromEntries(
+      sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds])
+    );
     // overlay live state for running jobs
     const result = jobs.map((job) => {
       const liveJob = executor.getJob(job._id.toString());
       const sourceIds = sourceMap[job._id.toString()] ?? [];
-  const sourceServers = [...new Set(
-    sourceIds.map((id) => id ? (nameMap[id] ?? id) : "local")
-  )];
+      const sourceServers = [...new Set(
+        sourceIds.map((id) => id ? (nameMap[id] ?? id) : "local")
+      )];
+       const durationMs = job.startedAt && job.finishedAt
+        ? new Date(job.finishedAt) - new Date(job.startedAt)
+        : null;
       return {
         ...job,
         completedFiles: liveJob?.completedFiles ?? job.completedFiles,
         failedFiles: liveJob?.failedFiles ?? job.failedFiles,
         currentFile: liveJob?.currentFile ?? job.currentFile,
         destServer: formatServer(job.destServerId, nameMap),
-        sourceServers, 
+        sourceServers,
+        durationMs,
       };
     });
 

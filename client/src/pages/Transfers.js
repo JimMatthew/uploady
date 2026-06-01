@@ -12,10 +12,10 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDuration = (ms) => {
-    if (!ms) return "—";
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+  if (ms === null || ms === undefined) return "—";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
 };
 
 const formatSize = (bytes) => {
@@ -66,11 +66,9 @@ const deriveJobStatus = (job) => {
 };
 
 // ─── Item Row ─────────────────────────────────────────────────────────────────
-
 const ItemRow = ({ item }) => {
     const [expanded, setExpanded] = useState(false);
     const failed = item.status === "failed";
-    const completed = item.status === "completed";
 
     return (
         <Box>
@@ -91,56 +89,69 @@ const ItemRow = ({ item }) => {
                     color={statusColor(item.status)}
                     flexShrink={0}
                 />
-                <Text
-                    fontSize="12px"
-                    fontFamily="'JetBrains Mono', monospace"
-                    color={failed ? "#EF4444" : "rgba(255,255,255,0.7)"}
-                    flex={1}
-                    noOfLines={1}
-                    letterSpacing="-0.01em"
-                >
-                    {item.filename}
-                </Text>
-                <Text
-                    fontSize="11px"
-                    color="rgba(255,255,255,0.25)"
-                    fontFamily="'JetBrains Mono', monospace"
-                    flexShrink={0}
-                >
-                    {item.sourcePath?.split("/").slice(0, -1).join("/") || ""}
-                </Text>
-                <Text
-                    fontSize="11px"
-                    color="rgba(255,255,255,0.3)"
-                    fontFamily="'JetBrains Mono', monospace"
-                    flexShrink={0}
-                    minW="50px"
-                    textAlign="right"
-                >
-                    {formatSize(item.size)}
-                </Text>
-                <Text
-                    fontSize="11px"
-                    color="rgba(255,255,255,0.25)"
-                    fontFamily="'JetBrains Mono', monospace"
-                    flexShrink={0}
-                    minW="40px"
-                    textAlign="right"
-                >
-                    {formatDuration(item.durationMs)}
-                </Text>
-                {item.speedMBs && (
-                    <Flex align="center" gap={1} flexShrink={0}>
-                        <Icon as={FiZap} boxSize="9px" color="rgba(99,102,241,0.5)" />
+
+                {/* Filename + paths */}
+                <Box flex={1} minW={0}>
+                    <Text
+                        fontSize="12px"
+                        fontFamily="'JetBrains Mono', monospace"
+                        color={failed ? "#EF4444" : "rgba(255,255,255,0.7)"}
+                        letterSpacing="-0.01em"
+                        noOfLines={1}
+                        mb="2px"
+                    >
+                        {item.filename}
+                    </Text>
+                    <Flex align="center" gap={2} minW={0}>
                         <Text
-                            fontSize="11px"
-                            color="rgba(99,102,241,0.7)"
+                            fontSize="10px"
                             fontFamily="'JetBrains Mono', monospace"
+                            color="rgba(255,255,255,0.4)"
+                            noOfLines={1}
                         >
-                            {item.speedMBs} MB/s
+                            {item.sourceServer}:{item.sourcePath}
+                        </Text>
+                        <Icon as={FiArrowRight} boxSize="9px" color="rgba(255,255,255,0.15)" flexShrink={0} />
+                        <Text
+                            fontSize="10px"
+                            fontFamily="'JetBrains Mono', monospace"
+                            color="rgba(255,255,255,0.4)"
+                            noOfLines={1}
+                        >
+                            {item.destinationPath}
                         </Text>
                     </Flex>
-                )}
+                </Box>
+
+                {/* Stats */}
+                <Flex align="center" gap={3} flexShrink={0}>
+                    <Text
+                        fontSize="11px"
+                        color="rgba(255,255,255,0.4)"
+                        fontFamily="'JetBrains Mono', monospace"
+                    >
+                        {formatSize(item.size)}
+                    </Text>
+                    <Text
+                        fontSize="11px"
+                        color="rgba(255,255,255,0.4)"
+                        fontFamily="'JetBrains Mono', monospace"
+                    >
+                        {formatDuration(item.durationMs)}
+                    </Text>
+                    {item.speedMBs && (
+                        <Flex align="center" gap={1}>
+                            <Icon as={FiZap} boxSize="9px" color="rgba(99,102,241,0.5)" />
+                            <Text
+                                fontSize="11px"
+                                color="rgba(99,102,241,0.7)"
+                                fontFamily="'JetBrains Mono', monospace"
+                            >
+                                {item.speedMBs} MB/s
+                            </Text>
+                        </Flex>
+                    )}
+                </Flex>
             </Flex>
 
             {/* Error detail */}
@@ -308,7 +319,7 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
                 gap={3}
                 flexShrink={0}
             >
-                {["file", "path", "size", "duration", "speed"].map((h) => (
+                {["file", "size", "duration", "speed"].map((h) => (
                     <Text
                         key={h}
                         fontSize="10px"
@@ -318,7 +329,7 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
                         color="rgba(255,255,255,0.2)"
                         fontFamily="'JetBrains Mono', monospace"
                         flex={h === "file" ? 1 : undefined}
-                        minW={h === "path" ? undefined : h === "size" ? "50px" : "40px"}
+                        minW={h === "size" ? "50px" : "40px"}
                         textAlign={["size", "duration"].includes(h) ? "right" : "left"}
                     >
                         {h}
@@ -443,12 +454,12 @@ const JobRow = ({ job, onClick }) => {
                     </Text>
                 </Flex>
                 <Flex align="center" gap={3}>
-                    <Text fontSize="11px" color="rgba(255,255,255,0.25)"
+                    <Text fontSize="11px" color="rgba(255,255,255,0.5)"
                         fontFamily="'JetBrains Mono', monospace"
                     >
                         {formatTime(job.createdAt)}
                     </Text>
-                    <Text fontSize="11px" color="rgba(255,255,255,0.2)"
+                    <Text fontSize="11px" color="rgba(255,255,255,0.4)"
                         fontFamily="'JetBrains Mono', monospace"
                     >
                         {formatDuration(job.durationMs)}

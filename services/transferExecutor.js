@@ -238,9 +238,13 @@ class TransferExecutor extends EventEmitter {
           TransferItem.findByIdAndUpdate(item.itemId, {
             status: ItemStatus.COMPLETED,
             completedAt: new Date(),
+            size: item.size,
           }),
           TransferJob.findByIdAndUpdate(job.jobId, {
-            $inc: { completedFiles: 1 },
+            $inc: { 
+              completedFiles: 1,
+              transferredBytes: item.size || 0,
+             },
           }),
         ]);
         this.emit(`fileDone:${job.jobId}`, {
