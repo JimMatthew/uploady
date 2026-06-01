@@ -67,7 +67,7 @@ export function useFileList({ toast }) {
     handleCut,
     handlePaste,
     progressMap,
-    startedTransfers
+    startedTransfers,
   } = useFileController({ toast, onRefresh: reload });
 
   // ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ export function useFileList({ toast }) {
 
   const onCreateFolder = useCallback(
     (folder) => createFolder(folder, fileData?.relativePath),
-    [createFolder, fileData?.relativePath], 
+    [createFolder, fileData?.relativePath],
   );
 
   const onGenerateBreadcrumb = useCallback(
@@ -172,6 +172,6 @@ export function useFileList({ toast }) {
     onPaste,
     onGenerateBreadcrumb,
     progressMap,
-    startedTransfers
+    startedTransfers,
   };
 }

@@ -8,15 +8,15 @@ const TransferProgress = ({ transfers, progressMap }) => (
       const pct = entry.progress || 0;
       const completed = entry.completed || 0;
       const total = entry.total || 0;
-      const isFolder = completed > 0 || (total > 0 && pct === 0 && completed === 0);
-      const done = isFolder
-  ? total > 0 && completed === total
-  : pct >= 100;
+      const isFolder =
+        completed > 0 || (total > 0 && pct === 0 && completed === 0);
+      const done = isFolder ? total > 0 && completed === total : pct >= 100;
 
       return (
         <Box
           key={id}
-          px={4} py={3}
+          px={4}
+          py={3}
           bg="rgba(255,255,255,0.02)"
           border="1px solid"
           borderColor={done ? "rgba(34,197,94,0.2)" : "rgba(99,102,241,0.15)"}
@@ -55,21 +55,29 @@ const TransferProgress = ({ transfers, progressMap }) => (
                 ? "done"
                 : isFolder
                   ? `${completed} / ${total || "?"} files`
-                  : `${Math.round(pct)}%`
-              }
+                  : `${Math.round(pct)}%`}
             </Text>
           </Flex>
 
-          <Box h="2px" bg="rgba(255,255,255,0.06)" borderRadius="full" overflow="hidden">
+          <Box
+            h="2px"
+            bg="rgba(255,255,255,0.06)"
+            borderRadius="full"
+            overflow="hidden"
+          >
             <Box
               h="100%"
-              w={isFolder
-                ? total > 0 ? `${(completed / total) * 100}%` : "0%"
-                : `${pct}%`
+              w={
+                isFolder
+                  ? total > 0
+                    ? `${(completed / total) * 100}%`
+                    : "0%"
+                  : `${pct}%`
               }
-              bg={done
-                ? "linear-gradient(90deg, #22C55E, #4ADE80)"
-                : "linear-gradient(90deg, #6366F1, #818CF8)"
+              bg={
+                done
+                  ? "linear-gradient(90deg, #22C55E, #4ADE80)"
+                  : "linear-gradient(90deg, #6366F1, #818CF8)"
               }
               borderRadius="full"
               transition="width 0.2s ease, background 0.3s"

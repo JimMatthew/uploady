@@ -6,10 +6,7 @@ const archiver = require("archiver");
 const serverService = require("./serverService");
 const { sendProgress } = require("./progressService");
 const localFileService = require("./localFileService");
-const {
-  countSftpFiles,
-  streamFileSftpPair,
-} = require("./sftpTransferService");
+const { countSftpFiles, streamFileSftpPair } = require("./sftpTransferService");
 
 const uploadsDir = path.join(__dirname, "../uploads");
 
@@ -70,7 +67,7 @@ const withSftp = async (serverId, fn) => {
     if (sftp) {
       try {
         await sftp.end();
-      } catch (_) { }
+      } catch (_) {}
     }
   }
 };
@@ -244,7 +241,13 @@ const uploadFile = async (serverId, stream, remotePath) => {
   }
 };
 
-const uploadLocalFileToSftp = async (localPath, destPath, sftpDest, filename, onProgress) => {
+const uploadLocalFileToSftp = async (
+  localPath,
+  destPath,
+  sftpDest,
+  filename,
+  onProgress,
+) => {
   const stat = await fs.promises.stat(localPath);
   const totalSize = stat.size;
   let transferred = 0;
@@ -290,10 +293,10 @@ const uploadLocalFileToSftp = async (localPath, destPath, sftpDest, filename, on
 const sftpCopyFilesBatch = async (job, callbacks = {}) => {
   const {
     shouldStop = () => false,
-    onFileStart = async () => { },
-    onFileProgress = () => { },
-    onFileDone = async () => { },
-    onFileFail = async () => { },
+    onFileStart = async () => {},
+    onFileProgress = () => {},
+    onFileDone = async () => {},
+    onFileFail = async () => {},
   } = callbacks;
 
   const { destServerId, destPath } = job;
@@ -340,7 +343,7 @@ const sftpCopyFilesBatch = async (job, callbacks = {}) => {
             sftpDest: isSameServer ? sftpSource : sftpDest,
             onProgress: (percent) => onFileProgress(item, percent),
           });
-          item.size = discoveredSize; 
+          item.size = discoveredSize;
           await onFileDone(item);
         } catch (err) {
           await onFileFail(item, err);
@@ -376,12 +379,11 @@ const transferSingleFile = async ({
   // ensure destination directory exists before writing
   const destDir = path.posix.dirname(item.destinationPath);
   if (!isLocalDest) {
-    await sftpDest.mkdir(destDir, true).catch(() => { });  // true = recursive, ignore if exists
+    await sftpDest.mkdir(destDir, true).catch(() => {}); // true = recursive, ignore if exists
   } else {
-    await fs.promises.mkdir(
-      path.dirname(item.destinationPath),
-      { recursive: true }
-    );
+    await fs.promises.mkdir(path.dirname(item.destinationPath), {
+      recursive: true,
+    });
   }
 
   if (isLocalSource && isLocalDest) {
@@ -417,7 +419,7 @@ const transferSingleFile = async ({
     });
   } else if (isLocalSource && !isLocalDest) {
     // local → sftp
-     const stat = await fs.promises.stat(item.sourcePath);
+    const stat = await fs.promises.stat(item.sourcePath);
     discoveredSize = stat.size;
     await uploadLocalFileToSftp(
       item.sourcePath,
@@ -430,7 +432,9 @@ const transferSingleFile = async ({
     // sftp → local
     const stat = await sftpSource.stat(item.sourcePath);
     discoveredSize = stat.size;
-    await fs.promises.mkdir(path.dirname(item.destinationPath), { recursive: true });
+    await fs.promises.mkdir(path.dirname(item.destinationPath), {
+      recursive: true,
+    });
 
     const passthrough = new PassThrough();
     const writeStream = fs.createWriteStream(item.destinationPath);
@@ -447,7 +451,9 @@ const transferSingleFile = async ({
       }
     });
 
-    sftpSource.get(item.sourcePath, passthrough).catch((err) => passthrough.destroy(err));
+    sftpSource
+      .get(item.sourcePath, passthrough)
+      .catch((err) => passthrough.destroy(err));
 
     await new Promise((resolve, reject) => {
       passthrough.pipe(writeStream).on("finish", resolve).on("error", reject);
@@ -458,7 +464,7 @@ const transferSingleFile = async ({
     onProgress(100);
   } else {
     // cross server — stream through node
-     const { size } = await sftpSource.stat(item.sourcePath);
+    const { size } = await sftpSource.stat(item.sourcePath);
     discoveredSize = size;
     await streamFileSftpPair(
       sftpSource,
@@ -592,5 +598,5 @@ module.exports = {
   uploadFile,
   archiveFolder,
   sftpCopyFilesBatch,
-  zipClipboardFiles
+  zipClipboardFiles,
 };

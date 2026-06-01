@@ -15,9 +15,9 @@ const transferJobItemSchema = new mongoose.Schema({
   destinationPath: String,
 
   kind: {
-    type: String, 
+    type: String,
     enum: Object.values(ItemKind),
-    default: ItemKind.FILE
+    default: ItemKind.FILE,
   },
 
   status: {
@@ -28,8 +28,8 @@ const transferJobItemSchema = new mongoose.Schema({
 
   rootItem: { type: String, required: true },
 
-  size: {type: Number,default: 0},
-  bytesTransferred: {type: Number,default: 0},
+  size: { type: Number, default: 0 },
+  bytesTransferred: { type: Number, default: 0 },
 
   startedAt: Date,
   completedAt: Date,

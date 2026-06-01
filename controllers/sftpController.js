@@ -167,7 +167,11 @@ const sftp_create_folder_post = async (req, res) => {
     return handleError(res, "Missing required fields", 400);
   }
   try {
-    const result = await sftpService.createFolder(currentPath, folderName, serverId);
+    const result = await sftpService.createFolder(
+      currentPath,
+      folderName,
+      serverId,
+    );
     res.status(200).json({ message: "Folder created", path: result.path });
   } catch (err) {
     return handleError(res, `Error creating folder: ${err.message}`);
@@ -243,7 +247,11 @@ const sftp_upload_post = async (req, res) => {
     }
     try {
       const remotePath = path.posix.join(currentDirectory, info.filename);
-      const { close } = await sftpService.uploadFile(serverId, file, remotePath);
+      const { close } = await sftpService.uploadFile(
+        serverId,
+        file,
+        remotePath,
+      );
       await close();
       res.status(200).send("File uploaded successfully");
     } catch (err) {
@@ -289,12 +297,12 @@ const sftp_copy_files_post = async (req, res) => {
         filename: f.file,
         rootItem: f.file,
         sourcePath: f.serverId
-          ? path.posix.join(f.path, f.file)   // remote — posix
+          ? path.posix.join(f.path, f.file) // remote — posix
           : path.join(uploadsDir, f.path, f.file),
         destinationPath: path.posix.join(newPath, f.file),
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
         size: f.size ?? 0,
-      }))
+      })),
     );
 
     executor.enqueue(job._id);
@@ -322,7 +330,11 @@ const sftp_share_file_post = async (req, res) => {
   }
   try {
     const fileName = remotePath.split("/").pop();
-    const { link } = await serverService.share_file(fileName, remotePath, serverId);
+    const { link } = await serverService.share_file(
+      fileName,
+      remotePath,
+      serverId,
+    );
     res.json({ link });
   } catch (err) {
     console.error("Share file error:", err);
@@ -370,12 +382,26 @@ const sftp_server_status_get = async (req, res) => {
  * @param {import('express').Response} res
  */
 const sftp_save_server_post = async (req, res) => {
-  const { host, username, password, authType = "password", key, passphrase } = req.body;
+  const {
+    host,
+    username,
+    password,
+    authType = "password",
+    key,
+    passphrase,
+  } = req.body;
   if (!host || !username || !authType) {
     return handleError(res, "Host, username, and authType are required", 400);
   }
   try {
-    await serverService.save_server(host, username, password, authType, key, passphrase);
+    await serverService.save_server(
+      host,
+      username,
+      password,
+      authType,
+      key,
+      passphrase,
+    );
     res.status(200).json({ message: "Server saved" });
   } catch (err) {
     console.error("Save server error:", err);

@@ -1,7 +1,11 @@
 const EventEmitter = require("events");
 const TransferJob = require("../models/transferJobs");
 const TransferItem = require("../models/TransferItem");
-const { JobStatus, ItemStatus, ItemKind } = require("../controllers/jobs/jobConstants");
+const {
+  JobStatus,
+  ItemStatus,
+  ItemKind,
+} = require("../controllers/jobs/jobConstants");
 const { connectToSftp } = require("./sftpService");
 const { expandJobItems } = require("./transferExpansionService");
 
@@ -63,7 +67,10 @@ class TransferExecutor extends EventEmitter {
   // ─── Queue Processing ────────────────────────────────────────────────────────
 
   _processQueue() {
-    while (this.activeJobs.size < this.MAX_CONCURRENT && this.queue.length > 0) {
+    while (
+      this.activeJobs.size < this.MAX_CONCURRENT &&
+      this.queue.length > 0
+    ) {
       const jobId = this.queue.shift();
       this._runJob(jobId).catch((err) => {
         console.error(`Executor: unhandled error in job ${jobId}:`, err);
@@ -118,7 +125,7 @@ class TransferExecutor extends EventEmitter {
           percent: 0,
           error: null,
         },
-      ])
+      ]),
     );
 
     const job = {
@@ -241,10 +248,10 @@ class TransferExecutor extends EventEmitter {
             size: item.size,
           }),
           TransferJob.findByIdAndUpdate(job.jobId, {
-            $inc: { 
+            $inc: {
               completedFiles: 1,
               transferredBytes: item.size || 0,
-             },
+            },
           }),
         ]);
         this.emit(`fileDone:${job.jobId}`, {

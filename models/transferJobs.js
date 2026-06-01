@@ -9,7 +9,7 @@ const transferJobSchema = new mongoose.Schema({
     default: JobStatus.QUEUED,
   },
 
-  type: {type: String,default: "copy"},
+  type: { type: String, default: "copy" },
 
   destServerId: { type: String, default: null },
   destPath: { type: String, required: true },
@@ -17,13 +17,13 @@ const transferJobSchema = new mongoose.Schema({
 
   totalFiles: { type: Number, default: 0 },
   completedFiles: { type: Number, default: 0 },
-  failedFiles: {type: Number,default: 0},
-  totalBytes: {type: Number,default: 0},
-  transferredBytes: {type: Number,default: 0},
+  failedFiles: { type: Number, default: 0 },
+  totalBytes: { type: Number, default: 0 },
+  transferredBytes: { type: Number, default: 0 },
 
-  error: {type: String,default: null},
+  error: { type: String, default: null },
 
-  createdAt: {type: Date,default: Date.now},
+  createdAt: { type: Date, default: Date.now },
   startedAt: Date,
   finishedAt: Date,
 });

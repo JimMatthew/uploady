@@ -35,7 +35,14 @@ async function countSftpFiles(sftp, dirPath) {
  * @param {string} filename
  * @param {(percent: number) => void} onProgress
  */
-async function streamFileSftpPair(source, dest, sourcePath, destPath, filename, onProgress) {
+async function streamFileSftpPair(
+  source,
+  dest,
+  sourcePath,
+  destPath,
+  filename,
+  onProgress,
+) {
   const passthrough = new PassThrough();
   const { size: totalSize } = await source.stat(sourcePath);
   let transferred = 0;

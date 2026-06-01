@@ -1,4 +1,3 @@
-
 const TransferJob = require("../../models/transferJobs");
 const TransferItem = require("../../models/TransferItem");
 const SftpServer = require("../../models/SftpServer");
@@ -14,7 +13,9 @@ const { JobStatus, ItemStatus } = require("./jobConstants");
 const resolveServerNames = async (serverIds) => {
   const ids = [...serverIds].filter(Boolean);
   if (!ids.length) return {};
-  const servers = await SftpServer.find({ _id: { $in: ids } }).select("_id host");
+  const servers = await SftpServer.find({ _id: { $in: ids } }).select(
+    "_id host",
+  );
   return Object.fromEntries(servers.map((s) => [s._id.toString(), s.host]));
 };
 
@@ -32,9 +33,7 @@ const formatServer = (serverId, nameMap) => {
 const list_jobs_get = async (req, res) => {
   try {
     const mongoose = require("mongoose");
-    const jobs = await TransferJob.find()
-      .sort({ createdAt: -1 })
-      .lean();
+    const jobs = await TransferJob.find().sort({ createdAt: -1 }).lean();
 
     // collect all unique server IDs across jobs
     const serverIds = new Set();
@@ -53,22 +52,28 @@ const list_jobs_get = async (req, res) => {
     const nameMap = await resolveServerNames(serverIds);
     const sourceByJob = await TransferItem.aggregate([
       { $match: { jobId: { $in: jobIds } } },
-      { $group: { _id: "$jobId", sourceServerIds: { $addToSet: "$sourceServerId" } } }
+      {
+        $group: {
+          _id: "$jobId",
+          sourceServerIds: { $addToSet: "$sourceServerId" },
+        },
+      },
     ]);
 
     const sourceMap = Object.fromEntries(
-      sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds])
+      sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds]),
     );
     // overlay live state for running jobs
     const result = jobs.map((job) => {
       const liveJob = executor.getJob(job._id.toString());
       const sourceIds = sourceMap[job._id.toString()] ?? [];
-      const sourceServers = [...new Set(
-        sourceIds.map((id) => id ? (nameMap[id] ?? id) : "local")
-      )];
-       const durationMs = job.startedAt && job.finishedAt
-        ? new Date(job.finishedAt) - new Date(job.startedAt)
-        : null;
+      const sourceServers = [
+        ...new Set(sourceIds.map((id) => (id ? (nameMap[id] ?? id) : "local"))),
+      ];
+      const durationMs =
+        job.startedAt && job.finishedAt
+          ? new Date(job.finishedAt) - new Date(job.startedAt)
+          : null;
       return {
         ...job,
         completedFiles: liveJob?.completedFiles ?? job.completedFiles,
@@ -118,16 +123,19 @@ const get_job_get = async (req, res) => {
 
     const formattedItems = items.map((item) => {
       const live = liveItems?.get(item._id.toString());
-      const durationMs = item.startedAt && item.completedAt
-        ? new Date(item.completedAt) - new Date(item.startedAt)
-        : null;
-      const speedMBs = durationMs && item.size
-        ? ((item.size / 1024 / 1024) / (durationMs / 1000)).toFixed(2)
-        : null;
+      const durationMs =
+        item.startedAt && item.completedAt
+          ? new Date(item.completedAt) - new Date(item.startedAt)
+          : null;
+      const speedMBs =
+        durationMs && item.size
+          ? (item.size / 1024 / 1024 / (durationMs / 1000)).toFixed(2)
+          : null;
 
       return {
         ...item,
-        percent: live?.percent ?? (item.status === ItemStatus.COMPLETED ? 100 : 0),
+        percent:
+          live?.percent ?? (item.status === ItemStatus.COMPLETED ? 100 : 0),
         durationMs,
         speedMBs,
         sourceServer: formatServer(item.sourceServerId, nameMap),
@@ -142,11 +150,14 @@ const get_job_get = async (req, res) => {
       [ItemStatus.COMPLETED]: 3,
       [ItemStatus.SKIPPED]: 4,
     };
-    formattedItems.sort((a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5));
+    formattedItems.sort(
+      (a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5),
+    );
 
-    const durationMs = job.startedAt && job.finishedAt
-      ? new Date(job.finishedAt) - new Date(job.startedAt)
-      : null;
+    const durationMs =
+      job.startedAt && job.finishedAt
+        ? new Date(job.finishedAt) - new Date(job.startedAt)
+        : null;
 
     res.json({
       job: {
@@ -178,7 +189,8 @@ const retry_job_post = async (req, res) => {
     ]);
 
     if (!originalJob) return res.status(404).json({ error: "Job not found" });
-    if (!failedItems.length) return res.status(400).json({ error: "No failed items to retry" });
+    if (!failedItems.length)
+      return res.status(400).json({ error: "No failed items to retry" });
 
     const newJob = await TransferJob.create({
       destServerId: originalJob.destServerId,
@@ -196,7 +208,7 @@ const retry_job_post = async (req, res) => {
         destinationPath: item.destinationPath,
         kind: item.kind,
         size: item.size,
-      }))
+      })),
     );
 
     executor.enqueue(newJob._id);
@@ -221,7 +233,10 @@ const delete_job_delete = async (req, res) => {
     // don't delete running jobs
     const job = await TransferJob.findById(jobId);
     if (!job) return res.status(404).json({ error: "Job not found" });
-    if (job.status === JobStatus.RUNNING || job.status === JobStatus.EXPANDING) {
+    if (
+      job.status === JobStatus.RUNNING ||
+      job.status === JobStatus.EXPANDING
+    ) {
       return res.status(400).json({ error: "Cannot delete a running job" });
     }
 
@@ -247,7 +262,9 @@ const clear_completed_delete = async (req, res) => {
   try {
     const completed = await TransferJob.find({
       status: JobStatus.COMPLETED,
-    }).select("_id").lean();
+    })
+      .select("_id")
+      .lean();
 
     const ids = completed.map((j) => j._id);
 

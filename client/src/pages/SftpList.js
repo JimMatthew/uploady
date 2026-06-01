@@ -29,20 +29,14 @@ const SFTPApp = ({ toast }) => {
     activeTabIndex,
     setActiveTabIndex,
     handleSharedLinks,
-    handleTransfers
+    handleTransfers,
   } = useSftpList({ toast });
 
   const isDesktop = useBreakpointValue({ base: false, lg: true });
 
   if (loading || !sftpServers)
     return (
-      <Flex
-        align="center"
-        justify="center"
-        h="100%"
-        direction="column"
-        gap={3}
-      >
+      <Flex align="center" justify="center" h="100%" direction="column" gap={3}>
         <Box position="relative">
           <Spinner size="sm" color="rgba(99,102,241,0.5)" />
           <Box
