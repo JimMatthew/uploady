@@ -1,8 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const { PassThrough } = require("stream");
-const { streamFileSftpPair } = require("./sftpTransferService");
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +83,9 @@ const sftpToLocal = async (item, { sftpSource }, onProgress) => {
   const track = trackProgress(stat.size, onProgress);
   passthrough.on("data", track);
 
-  sftpSource.get(item.sourcePath, passthrough).catch((err) => passthrough.destroy(err));
+  sftpSource
+    .get(item.sourcePath, passthrough)
+    .catch((err) => passthrough.destroy(err));
 
   await new Promise((resolve, reject) => {
     passthrough
@@ -98,29 +98,35 @@ const sftpToLocal = async (item, { sftpSource }, onProgress) => {
 };
 
 /**
+ * sftp → sftp (cross server, streamed through node)
+ */
+const sftpCrossServer = async (item, { sftpSource, sftpDest }, onProgress) => {
+  const { size } = await sftpSource.stat(item.sourcePath);
+  await ensureRemoteDir(sftpDest, item.destinationPath);
+  const passthrough = new PassThrough();
+  const track = trackProgress(size, onProgress);
+  passthrough.on("data", track);
+
+  try {
+    await Promise.all([
+      sftpSource.get(item.sourcePath, passthrough),
+      sftpDest.put(passthrough, item.destinationPath),
+    ]);
+  } catch (err) {
+    passthrough.destroy(err);
+    throw err;
+  }
+
+  return size;
+};
+
+/**
  * sftp → sftp (same server, server-side rcopy)
  */
 const sftpSameServer = async (item, { sftpSource }, onProgress) => {
   await sftpSource.rcopy(item.sourcePath, item.destinationPath);
   onProgress(100);
   return item.size;
-};
-
-/**
- * sftp → sftp (cross server, streamed through node)
- */
-const sftpCrossServer = async (item, { sftpSource, sftpDest }, onProgress) => {
-  const { size } = await sftpSource.stat(item.sourcePath);
-  await ensureRemoteDir(sftpDest, item.destinationPath);
-  await streamFileSftpPair(
-    sftpSource,
-    sftpDest,
-    item.sourcePath,
-    item.destinationPath,
-    item.filename,
-    onProgress,
-  );
-  return size;
 };
 
 // ─── Strategy Selection ───────────────────────────────────────────────────────
@@ -143,13 +149,18 @@ const STRATEGIES = {
 const selectStrategy = (sourceServerId, destServerId) => {
   const isLocalSource = sourceServerId === "null";
   const isLocalDest = !destServerId;
-  const isSameServer = !isLocalSource && !isLocalDest && sourceServerId === destServerId;
+  const isSameServer =
+    !isLocalSource && !isLocalDest && sourceServerId === destServerId;
 
-  if (isLocalSource && isLocalDest)  return { key: "localToLocal",    label: "local → local" };
-  if (isLocalSource && !isLocalDest) return { key: "localToSftp",     label: "local → sftp" };
-  if (!isLocalSource && isLocalDest) return { key: "sftpToLocal",     label: "sftp → local" };
-  if (isSameServer)                  return { key: "sftpSameServer",  label: "sftp → sftp (same)" };
-  return                                    { key: "sftpCrossServer", label: "sftp → sftp (cross)" };
+  if (isLocalSource && isLocalDest)
+    return { key: "localToLocal", label: "local → local" };
+  if (isLocalSource && !isLocalDest)
+    return { key: "localToSftp", label: "local → sftp" };
+  if (!isLocalSource && isLocalDest)
+    return { key: "sftpToLocal", label: "sftp → local" };
+  if (isSameServer)
+    return { key: "sftpSameServer", label: "sftp → sftp (same)" };
+  return { key: "sftpCrossServer", label: "sftp → sftp (cross)" };
 };
 
 /**
