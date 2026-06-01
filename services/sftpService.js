@@ -241,56 +241,23 @@ const uploadFile = async (serverId, stream, remotePath) => {
   }
 };
 
-const uploadLocalFileToSftp = async (
-  localPath,
-  destPath,
-  sftpDest,
-  filename,
-  onProgress,
-) => {
-  const stat = await fs.promises.stat(localPath);
-  const totalSize = stat.size;
-  let transferred = 0;
-  let lastUpdate = Date.now();
-
-  const readStream = fs.createReadStream(localPath);
-  const writeStream = sftpDest.createWriteStream(destPath);
-  const passthrough = new PassThrough();
-
-  passthrough.on("data", (chunk) => {
-    transferred += chunk.length;
-    const now = Date.now();
-    if (now - lastUpdate > 100) {
-      lastUpdate = now;
-      const percent = Math.min((transferred / totalSize) * 100, 100);
-      onProgress?.(percent);
-    }
-  });
-
-  await new Promise((resolve, reject) => {
-    readStream
-      .pipe(passthrough)
-      .pipe(writeStream)
-      .on("finish", resolve)
-      .on("close", resolve)
-      .on("error", reject);
-  });
-};
-
 /**
- * Executes a transfer job by iterating flat file items grouped by source server.
- * Directories have already been expanded by the expansion phase — every item
- * here is a concrete file. Groups by sourceServerId for connection reuse.
+ * Executes a transfer job as a flat iteration of file items.
+ *
+ * Items are pre-expanded by the expansion phase — every item is a concrete
+ * file with a known source and destination path. Items are grouped by source
+ * server so each server requires only one connection regardless of how many
+ * files originate from it.
  *
  * @param {object} job - In-memory job object from the executor
  * @param {object} callbacks
- * @param {() => boolean} callbacks.shouldStop
- * @param {(item: object) => Promise<void>} callbacks.onFileStart
+ * @param {() => boolean}                          callbacks.shouldStop
+ * @param {(item: object) => Promise<void>}        callbacks.onFileStart
  * @param {(item: object, percent: number) => void} callbacks.onFileProgress
- * @param {(item: object) => Promise<void>} callbacks.onFileDone
+ * @param {(item: object) => Promise<void>}        callbacks.onFileDone
  * @param {(item: object, err: Error) => Promise<void>} callbacks.onFileFail
  */
-const sftpCopyFilesBatch = async (job, callbacks = {}) => {
+const executeTransferJob = async (job, callbacks = {}) => {
   const {
     shouldStop = () => false,
     onFileStart = async () => {},
@@ -299,70 +266,140 @@ const sftpCopyFilesBatch = async (job, callbacks = {}) => {
     onFileFail = async () => {},
   } = callbacks;
 
-  const { destServerId, destPath } = job;
+  const itemsBySource = groupItemsBySource(job.items);
 
-  // group items by sourceServerId for connection reuse
-  const grouped = new Map();
-  for (const item of job.items.values()) {
-    const key = item.sourceServerId ?? "null";
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push(item);
-  }
-
-  for (const [sourceServerId, items] of grouped) {
+  for (const [sourceServerId, items] of itemsBySource) {
     if (shouldStop()) break;
-
-    const isLocal = sourceServerId === "null";
-    const isSameServer = !isLocal && sourceServerId === destServerId;
-
-    // open connections needed for this group
-    const sftpSource = !isLocal ? await connectToSftp(sourceServerId) : null;
-    let sftpDest = null;
-
-    if (!isSameServer && destServerId) {
-      try {
-        sftpDest = await connectToSftp(destServerId);
-      } catch (err) {
-        await sftpSource?.end();
-        throw err;
-      }
-    }
-
-    try {
-      for (const item of items) {
-        if (shouldStop()) break;
-
-        await onFileStart(item);
-
-        try {
-          const discoveredSize = await transferSingleFile({
-            item,
-            sourceServerId,
-            destServerId,
-            sftpSource,
-            sftpDest: isSameServer ? sftpSource : sftpDest,
-            onProgress: (percent) => onFileProgress(item, percent),
-          });
-          item.size = discoveredSize;
-          await onFileDone(item);
-        } catch (err) {
-          await onFileFail(item, err);
-        }
-      }
-    } finally {
-      await sftpSource?.end();
-      // only end sftpDest if it's a separate connection
-      if (sftpDest && sftpDest !== sftpSource) {
-        await sftpDest.end();
-      }
-    }
+    await executeSourceGroup(
+      sourceServerId,
+      items,
+      job.destServerId,
+      callbacks,
+    );
   }
 };
 
+// ─── Grouping ─────────────────────────────────────────────────────────────────
+
+/**
+ * Groups in-memory job items by their source server.
+ * "null" key represents local source.
+ */
+const groupItemsBySource = (itemsMap) => {
+  const groups = new Map();
+  for (const item of itemsMap.values()) {
+    const key = item.sourceServerId ?? "null";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  return groups;
+};
+
+// ─── Source Group Execution ───────────────────────────────────────────────────
+
+/**
+ * Executes all items from a single source server.
+ * Opens the minimum connections needed and closes them when done.
+ */
+const executeSourceGroup = async (
+  sourceServerId,
+  items,
+  destServerId,
+  callbacks,
+) => {
+  const { shouldStop, onFileStart, onFileProgress, onFileDone, onFileFail } =
+    callbacks;
+  const { sftpSource, sftpDest } = await openConnections(
+    sourceServerId,
+    destServerId,
+  );
+
+  try {
+    for (const item of items) {
+      if (shouldStop()) break;
+      await executeItem(
+        item,
+        { sourceServerId, destServerId, sftpSource, sftpDest },
+        callbacks,
+      );
+    }
+  } finally {
+    await closeConnections(sftpSource, sftpDest);
+  }
+};
+
+// ─── Connection Management ────────────────────────────────────────────────────
+
+/**
+ * Opens the SFTP connections needed for a source → dest pair.
+ * Same-server transfers reuse the source connection for both sides.
+ * Local endpoints require no connection.
+ *
+ * @returns {{ sftpSource: SftpClient|null, sftpDest: SftpClient|null }}
+ */
+const openConnections = async (sourceServerId, destServerId) => {
+  const isLocalSource = sourceServerId === "null";
+  const isLocalDest = !destServerId;
+  const isSameServer =
+    !isLocalSource && !isLocalDest && sourceServerId === destServerId;
+
+  const sftpSource = isLocalSource ? null : await connectToSftp(sourceServerId);
+
+  let sftpDest = null;
+  if (isSameServer) {
+    sftpDest = sftpSource; // reuse — rcopy only needs one connection
+  } else if (!isLocalDest) {
+    try {
+      sftpDest = await connectToSftp(destServerId);
+    } catch (err) {
+      await sftpSource?.end(); // clean up source if dest connection fails
+      throw err;
+    }
+  }
+
+  return { sftpSource, sftpDest };
+};
+
+/**
+ * Closes SFTP connections opened for a source group.
+ * Guards against closing a shared connection twice (same-server case).
+ */
+const closeConnections = async (sftpSource, sftpDest) => {
+  await sftpSource?.end();
+  if (sftpDest && sftpDest !== sftpSource) {
+    await sftpDest.end();
+  }
+};
+
+// ─── Item Execution ───────────────────────────────────────────────────────────
+
+/**
+ * Executes a single file transfer, calling lifecycle callbacks throughout.
+ * Failures are caught and reported via onFileFail — they do not abort the job.
+ */
+const executeItem = async (item, connections, callbacks) => {
+  const { onFileStart, onFileProgress, onFileDone, onFileFail } = callbacks;
+
+  await onFileStart(item);
+
+  try {
+    const discoveredSize = await transferSingleFile({
+      item,
+      ...connections,
+      onProgress: (percent) => onFileProgress(item, percent),
+    });
+    item.size = discoveredSize;
+    await onFileDone(item);
+  } catch (err) {
+    await onFileFail(item, err);
+  }
+};
 /**
  * Routes a single file item to the correct transfer function.
  * @param {{ item, sourceServerId, destServerId, sftpSource, sftpDest, onProgress }} params
  */
+const { dispatch } = require("./transferStrategies");
+
 const transferSingleFile = async ({
   item,
   sourceServerId,
@@ -371,111 +408,7 @@ const transferSingleFile = async ({
   sftpDest,
   onProgress,
 }) => {
-  const isLocalSource = sourceServerId === "null";
-  const isLocalDest = !destServerId;
-  const isSameServer = !isLocalSource && sourceServerId === destServerId;
-
-  let discoveredSize = item.size;
-  // ensure destination directory exists before writing
-  const destDir = path.posix.dirname(item.destinationPath);
-  if (!isLocalDest) {
-    await sftpDest.mkdir(destDir, true).catch(() => {}); // true = recursive, ignore if exists
-  } else {
-    await fs.promises.mkdir(path.dirname(item.destinationPath), {
-      recursive: true,
-    });
-  }
-
-  if (isLocalSource && isLocalDest) {
-    // local → local
-    const destDir = path.dirname(item.destinationPath);
-    await fs.promises.mkdir(destDir, { recursive: true });
-
-    const stat = await fs.promises.stat(item.sourcePath);
-    const totalSize = stat.size;
-    discoveredSize = stat.size;
-    let transferred = 0;
-    let lastUpdate = Date.now();
-
-    const readStream = fs.createReadStream(item.sourcePath);
-    const writeStream = fs.createWriteStream(item.destinationPath);
-    const passthrough = new PassThrough();
-
-    passthrough.on("data", (chunk) => {
-      transferred += chunk.length;
-      const now = Date.now();
-      if (now - lastUpdate > 100) {
-        lastUpdate = now;
-        onProgress(Math.min((transferred / totalSize) * 100, 100));
-      }
-    });
-
-    await new Promise((resolve, reject) => {
-      readStream
-        .pipe(passthrough)
-        .pipe(writeStream)
-        .on("finish", resolve)
-        .on("error", reject);
-    });
-  } else if (isLocalSource && !isLocalDest) {
-    // local → sftp
-    const stat = await fs.promises.stat(item.sourcePath);
-    discoveredSize = stat.size;
-    await uploadLocalFileToSftp(
-      item.sourcePath,
-      item.destinationPath,
-      sftpDest,
-      item.filename,
-      onProgress,
-    );
-  } else if (!isLocalSource && isLocalDest) {
-    // sftp → local
-    const stat = await sftpSource.stat(item.sourcePath);
-    discoveredSize = stat.size;
-    await fs.promises.mkdir(path.dirname(item.destinationPath), {
-      recursive: true,
-    });
-
-    const passthrough = new PassThrough();
-    const writeStream = fs.createWriteStream(item.destinationPath);
-    const totalSize = stat.size;
-    let transferred = 0;
-    let lastUpdate = Date.now();
-
-    passthrough.on("data", (chunk) => {
-      transferred += chunk.length;
-      const now = Date.now();
-      if (now - lastUpdate > 100) {
-        lastUpdate = now;
-        onProgress(Math.min((transferred / totalSize) * 100, 100));
-      }
-    });
-
-    sftpSource
-      .get(item.sourcePath, passthrough)
-      .catch((err) => passthrough.destroy(err));
-
-    await new Promise((resolve, reject) => {
-      passthrough.pipe(writeStream).on("finish", resolve).on("error", reject);
-    });
-  } else if (isSameServer) {
-    // same server — rcopy, no byte level progress available
-    await sftpSource.rcopy(item.sourcePath, item.destinationPath);
-    onProgress(100);
-  } else {
-    // cross server — stream through node
-    const { size } = await sftpSource.stat(item.sourcePath);
-    discoveredSize = size;
-    await streamFileSftpPair(
-      sftpSource,
-      sftpDest,
-      item.sourcePath,
-      item.destinationPath,
-      item.filename,
-      onProgress,
-    );
-  }
-  return discoveredSize;
+  return dispatch(item, { sftpSource, sftpDest, destServerId }, onProgress);
 };
 
 /**
@@ -597,6 +530,6 @@ module.exports = {
   downloadFile,
   uploadFile,
   archiveFolder,
-  sftpCopyFilesBatch,
+  executeTransferJob,
   zipClipboardFiles,
 };

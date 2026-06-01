@@ -204,9 +204,9 @@ class TransferExecutor extends EventEmitter {
   // ─── Execution Loop ──────────────────────────────────────────────────────────
 
   async _executeJob(job) {
-    const { sftpCopyFilesBatch } = require("./sftpService");
+    const { executeTransferJob} = require("./sftpService");
 
-    await sftpCopyFilesBatch(job, {
+    await executeTransferJob(job, {
       shouldStop: () => job.stopRequested,
 
       onFileStart: async (item) => {
