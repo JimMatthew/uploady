@@ -12,7 +12,11 @@ const WebSocket = require("ws");
 const sshSessionHandler = require("./controllers/ssh_session");
 const setupRoutes = require("./routes/route");
 const setupSftpRoutes = require("./routes/sftpRouter");
-
+const { 
+  login_post, 
+  setup_post,
+  requireSetupComplete 
+} = require("./controllers/setupController");
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001;
@@ -38,45 +42,6 @@ mongoose.connect(MONGO_URI).catch((err) => {
   process.exit(1);
 });
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-/**
- * Hashes a plaintext password using PBKDF2 with a random salt.
- * @param {string} password
- * @returns {{ salt: string, hash: string }}
- */
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto
-    .pbkdf2Sync(password, salt, 10000, 64, "sha512")
-    .toString("hex");
-  return { salt, hash };
-}
-
-/**
- * Verifies a plaintext password against a stored salt and hash.
- * @param {string} password
- * @param {string} salt
- * @param {string} storedHash
- * @returns {boolean}
- */
-function verifyPassword(password, salt, storedHash) {
-  const hash = crypto
-    .pbkdf2Sync(password, salt, 10000, 64, "sha512")
-    .toString("hex");
-  return hash === storedHash;
-}
-
-const { salt, hash } = hashPassword(process.env.PASSWORD);
-const users = [
-  {
-    id: 1,
-    username: process.env.USERNAME,
-    passwordSalt: salt,
-    passwordHash: hash,
-  },
-];
-
 // ─── Express App ──────────────────────────────────────────────────────────────
 
 const app = express();
@@ -91,30 +56,13 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "client/build")));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+app.post("/apilogin", login_post);
+app.post("/setup", setup_post);
+
+app.use(requireSetupComplete);
 
 app.use("/", setupRoutes);
 app.use("/sftp", setupSftpRoutes);
-
-// ─── Login ────────────────────────────────────────────────────────────────────
-
-app.post("/apilogin", (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find((u) => u.username === username);
-
-  if (
-    !user ||
-    !verifyPassword(password, user.passwordSalt, user.passwordHash)
-  ) {
-    return res.status(401).json({ message: "Invalid username or password" });
-  }
-
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: "8h",
-  });
-
-  res.json({ token });
-});
 
 // ─── Catch-all ────────────────────────────────────────────────────────────────
 

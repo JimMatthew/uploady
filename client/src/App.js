@@ -7,7 +7,7 @@ import AppLayout from "./AppLayout";
 import SftpList from "./pages/SftpList";
 import About from "./pages/About";
 import useAppToast from "./hooks/useAppToast";
-
+import Setup from "./pages/Setup";
 const App = () => {
   const toast = useAppToast();
 
@@ -27,6 +27,7 @@ const App = () => {
     <Router>
       <AppLayout>
         <Routes>
+          <Route path="/setup" element={<Setup />} />
           <Route path="/" element={<Login />} />
           <Route path="/app/files" element={<FileList toast={toast} />} />
           <Route path="/api/sftp" element={<SftpList toast={toast} />} />
