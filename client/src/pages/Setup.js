@@ -103,10 +103,42 @@ const Setup = () => {
             boxShadow="0 0 24px rgba(99,102,241,0.35)"
           >
             <svg width="22" height="22" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.9" />
-              <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.5" />
-              <rect x="1" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.5" />
-              <rect x="7" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.9" />
+              <rect
+                x="1"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
+              <rect
+                x="7"
+                y="1"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="1"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.5"
+              />
+              <rect
+                x="7"
+                y="7"
+                width="4"
+                height="4"
+                rx="1"
+                fill="white"
+                fillOpacity="0.9"
+              />
             </svg>
           </Box>
           <Box textAlign="center">
@@ -148,8 +180,13 @@ const Setup = () => {
             borderRadius="7px"
           >
             <Icon as={FiCheck} boxSize="13px" color="#818CF8" flexShrink={0} />
-            <Text fontSize="11px" color="rgba(255,255,255,0.4)" lineHeight="1.5">
-              First run — set up your admin account. This screen will not appear again.
+            <Text
+              fontSize="11px"
+              color="rgba(255,255,255,0.4)"
+              lineHeight="1.5"
+            >
+              First run — set up your admin account. This screen will not appear
+              again.
             </Text>
           </Flex>
 
@@ -274,7 +311,12 @@ const Setup = () => {
               border="1px solid rgba(239,68,68,0.2)"
               borderRadius="7px"
             >
-              <Icon as={FiAlertCircle} boxSize="13px" color="#EF4444" flexShrink={0} />
+              <Icon
+                as={FiAlertCircle}
+                boxSize="13px"
+                color="#EF4444"
+                flexShrink={0}
+              />
               <Text fontSize="12px" color="rgba(239,68,68,0.9)">
                 {error}
               </Text>
