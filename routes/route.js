@@ -120,4 +120,5 @@ router.post("/api/jobs/:jobId/retry", authenticateJWT, transferJobController.ret
 router.delete("/api/jobs/:jobId", authenticateJWT, transferJobController.delete_job_delete);
 router.delete("/api/jobs", authenticateJWT, transferJobController.clear_completed_delete);
 router.get("/api/progress/:transferId", progressController.get_transfer_progress);
+router.get("/api/jobs/:jobId/items", authenticateJWT, transferJobController.get_job_items_chunk);
 module.exports = router;

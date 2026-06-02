@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, Flex, Text, Icon, Spinner, Badge } from "@chakra-ui/react";
+import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
 import {
   FiArrowRight,
   FiCheck,
@@ -9,12 +9,9 @@ import {
   FiTrash2,
   FiChevronLeft,
   FiClock,
-  FiFile,
   FiLoader,
   FiZap,
 } from "react-icons/fi";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDuration = (ms) => {
   if (ms === null || ms === undefined) return "—";
@@ -52,6 +49,8 @@ const statusColor = (status) =>
     partial: "#F59E0B",
     queued: "rgba(255,255,255,0.3)",
     cancelled: "rgba(255,255,255,0.3)",
+    pending: "rgba(255,255,255,0.3)",
+    in_progress: "#6366F1",
   })[status] ?? "rgba(255,255,255,0.3)";
 
 const statusIcon = (status) =>
@@ -63,6 +62,8 @@ const statusIcon = (status) =>
     partial: FiAlertTriangle,
     queued: FiClock,
     cancelled: FiX,
+    pending: FiClock,
+    in_progress: FiLoader,
   })[status] ?? FiClock;
 
 const deriveJobStatus = (job) => {
@@ -71,11 +72,26 @@ const deriveJobStatus = (job) => {
   if (job.failedFiles > 0 && job.completedFiles === 0) return "failed";
   return "completed";
 };
+const getItemDurationMs = (item) => {
+  if (item.durationMs !== null && item.durationMs !== undefined) {
+    return item.durationMs;
+  }
 
-// ─── Item Row ─────────────────────────────────────────────────────────────────
+  if (item.startedAt && item.completedAt) {
+    return new Date(item.completedAt) - new Date(item.startedAt);
+  }
+
+  if (item.startedAt && item.status === "in_progress") {
+    return new Date() - new Date(item.startedAt);
+  }
+
+  return null;
+};
+
 const ItemRow = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
   const failed = item.status === "failed";
+  const durationMs = getItemDurationMs(item);
 
   return (
     <Box>
@@ -97,7 +113,6 @@ const ItemRow = ({ item }) => {
           flexShrink={0}
         />
 
-        {/* Filename + paths */}
         <Box flex={1} minW={0}>
           <Text
             fontSize="12px"
@@ -109,6 +124,7 @@ const ItemRow = ({ item }) => {
           >
             {item.filename}
           </Text>
+
           <Flex align="center" gap={2} minW={0}>
             <Text
               fontSize="10px"
@@ -116,14 +132,17 @@ const ItemRow = ({ item }) => {
               color="rgba(255,255,255,0.4)"
               noOfLines={1}
             >
-              {item.sourceServer}:{item.sourcePath}
+              {item.sourceServer || item.sourceServerId || "source"}:
+              {item.sourcePath}
             </Text>
+
             <Icon
               as={FiArrowRight}
               boxSize="9px"
               color="rgba(255,255,255,0.15)"
               flexShrink={0}
             />
+
             <Text
               fontSize="10px"
               fontFamily="'JetBrains Mono', monospace"
@@ -135,7 +154,6 @@ const ItemRow = ({ item }) => {
           </Flex>
         </Box>
 
-        {/* Stats */}
         <Flex align="center" gap={3} flexShrink={0}>
           <Text
             fontSize="11px"
@@ -144,13 +162,15 @@ const ItemRow = ({ item }) => {
           >
             {formatSize(item.size)}
           </Text>
+
           <Text
             fontSize="11px"
             color="rgba(255,255,255,0.4)"
             fontFamily="'JetBrains Mono', monospace"
           >
-            {formatDuration(item.durationMs)}
+            {formatDuration(durationMs)}
           </Text>
+
           {item.speedMBs && (
             <Flex align="center" gap={1}>
               <Icon as={FiZap} boxSize="9px" color="rgba(99,102,241,0.5)" />
@@ -166,7 +186,6 @@ const ItemRow = ({ item }) => {
         </Flex>
       </Flex>
 
-      {/* Error detail */}
       {expanded && item.error && (
         <Box
           px={8}
@@ -187,47 +206,47 @@ const ItemRow = ({ item }) => {
   );
 };
 
-// ─── Job Detail ───────────────────────────────────────────────────────────────
-
-const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
+  const jobId = job._id;
+  const [loadingItems, setLoadingItems] = useState(true);
   const [retrying, setRetrying] = useState(false);
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const fetch_ = useCallback(async () => {
+  const fetchItems = useCallback(async () => {
+    setLoadingItems(true);
+
     try {
-      const res = await fetch(`/api/jobs/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `/api/jobs/${jobId}/items?page=${page}&limit=100&status=${statusFilter}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       const json = await res.json();
-      setData(json);
+
+      setItems(json.items ?? []);
+      setTotalPages(json.totalPages ?? 1);
+      setTotalItems(json.total ?? 0);
     } catch (err) {
       console.error(err);
+      setItems([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
-      setLoading(false);
+      setLoadingItems(false);
     }
-  }, [jobId, token]);
+  }, [jobId, token, page, statusFilter]);
 
   useEffect(() => {
-    fetch_();
-  }, [fetch_]);
+    fetchItems();
+  }, [fetchItems]);
 
-  if (loading)
-    return (
-      <Flex align="center" justify="center" h="200px">
-        <Spinner size="sm" color="rgba(99,102,241,0.5)" />
-      </Flex>
-    );
-
-  if (!data) return null;
-
-  const { job, items } = data;
   const status = deriveJobStatus(job);
-  const failed = items.filter((i) => i.status === "failed");
-  const completed = items.filter((i) => i.status === "completed");
-  const other = items.filter(
-    (i) => i.status !== "failed" && i.status !== "completed",
-  );
 
   const handleRetry = async () => {
     setRetrying(true);
@@ -241,7 +260,6 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
 
   return (
     <Box h="100%" display="flex" flexDirection="column">
-      {/* Header */}
       <Flex
         align="center"
         gap={3}
@@ -271,6 +289,7 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
           boxSize="12px"
           color={statusColor(status)}
         />
+
         <Text
           fontSize="13px"
           fontWeight={600}
@@ -280,15 +299,25 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
         >
           {job.destServer}
         </Text>
+
         <Text fontSize="12px" color="rgba(255,255,255,0.3)">
           {formatTime(job.createdAt)}
         </Text>
+
         <Text fontSize="12px" color="rgba(255,255,255,0.25)">
           {formatDuration(job.durationMs)}
         </Text>
 
+        <Text
+          fontSize="11px"
+          color="rgba(255,255,255,0.35)"
+          fontFamily="'JetBrains Mono', monospace"
+        >
+          {job.completedFiles}/{job.totalFiles}
+        </Text>
+
         <Flex gap={2} ml="auto">
-          {failed.length > 0 && (
+          {job.failedFiles > 0 && (
             <Flex
               align="center"
               gap={2}
@@ -305,10 +334,11 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
             >
               <Icon as={FiRefreshCw} boxSize="11px" color="#EF4444" />
               <Text fontSize="11px" fontWeight={600} color="#EF4444">
-                Retry {failed.length} failed
+                Retry {job.failedFiles} failed
               </Text>
             </Flex>
           )}
+
           <Flex
             align="center"
             gap={2}
@@ -330,7 +360,59 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
         </Flex>
       </Flex>
 
-      {/* Column headers */}
+      <Flex
+        align="center"
+        gap={3}
+        px={4}
+        py={2}
+        borderBottom="1px solid rgba(255,255,255,0.05)"
+        flexShrink={0}
+      >
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="all">All</option>
+          <option value="failed">Failed</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="skipped">Skipped</option>
+        </select>
+
+        <Text
+          fontSize="11px"
+          color="rgba(255,255,255,0.35)"
+          fontFamily="'JetBrains Mono', monospace"
+        >
+          {totalItems} items
+        </Text>
+
+        <Flex ml="auto" gap={2} align="center">
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </button>
+
+          <Text
+            fontSize="11px"
+            color="rgba(255,255,255,0.4)"
+            fontFamily="'JetBrains Mono', monospace"
+          >
+            Page {page} of {totalPages}
+          </Text>
+
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </Flex>
+      </Flex>
+
       <Flex
         px={4}
         py={2}
@@ -356,97 +438,28 @@ const JobDetail = ({ jobId, token, onBack, onRetry, onDelete }) => {
         ))}
       </Flex>
 
-      {/* Items */}
       <Box flex={1} overflowY="auto">
-        {/* Failed */}
-        {failed.length > 0 && (
-          <Box>
-            <Flex
-              px={4}
-              py={2}
-              align="center"
-              gap={2}
-              bg="rgba(239,68,68,0.04)"
-              borderBottom="1px solid rgba(239,68,68,0.08)"
+        {loadingItems ? (
+          <Flex align="center" justify="center" h="160px">
+            <Spinner size="sm" color="rgba(99,102,241,0.5)" />
+          </Flex>
+        ) : items.length === 0 ? (
+          <Flex align="center" justify="center" h="160px">
+            <Text
+              fontSize="12px"
+              color="rgba(255,255,255,0.25)"
+              fontFamily="'JetBrains Mono', monospace"
             >
-              <Icon as={FiX} boxSize="10px" color="#EF4444" />
-              <Text
-                fontSize="10px"
-                fontWeight={700}
-                letterSpacing="0.08em"
-                textTransform="uppercase"
-                color="rgba(239,68,68,0.7)"
-                fontFamily="'JetBrains Mono', monospace"
-              >
-                Failed — {failed.length}
-              </Text>
-            </Flex>
-            {failed.map((item) => (
-              <ItemRow key={item._id} item={item} />
-            ))}
-          </Box>
-        )}
-
-        {/* Other (pending/in_progress) */}
-        {other.length > 0 && (
-          <Box>
-            <Flex
-              px={4}
-              py={2}
-              align="center"
-              gap={2}
-              borderBottom="1px solid rgba(255,255,255,0.05)"
-            >
-              <Text
-                fontSize="10px"
-                fontWeight={700}
-                letterSpacing="0.08em"
-                textTransform="uppercase"
-                color="rgba(255,255,255,0.2)"
-                fontFamily="'JetBrains Mono', monospace"
-              >
-                In Progress — {other.length}
-              </Text>
-            </Flex>
-            {other.map((item) => (
-              <ItemRow key={item._id} item={item} />
-            ))}
-          </Box>
-        )}
-
-        {/* Completed */}
-        {completed.length > 0 && (
-          <Box>
-            <Flex
-              px={4}
-              py={2}
-              align="center"
-              gap={2}
-              borderBottom="1px solid rgba(255,255,255,0.05)"
-            >
-              <Icon as={FiCheck} boxSize="10px" color="#22C55E" />
-              <Text
-                fontSize="10px"
-                fontWeight={700}
-                letterSpacing="0.08em"
-                textTransform="uppercase"
-                color="rgba(34,197,94,0.6)"
-                fontFamily="'JetBrains Mono', monospace"
-              >
-                Completed — {completed.length}
-              </Text>
-            </Flex>
-            {completed.map((item) => (
-              <ItemRow key={item._id} item={item} />
-            ))}
-          </Box>
+              No items for this filter
+            </Text>
+          </Flex>
+        ) : (
+          items.map((item) => <ItemRow key={item._id} item={item} />)
         )}
       </Box>
     </Box>
   );
 };
-
-// ─── Job Row ──────────────────────────────────────────────────────────────────
 
 const JobRow = ({ job, onClick }) => {
   const status = deriveJobStatus(job);
@@ -467,7 +480,6 @@ const JobRow = ({ job, onClick }) => {
     >
       <Icon as={StatusIcon} boxSize="12px" color={color} flexShrink={0} />
 
-      {/* Status + servers */}
       <Box flex={1} minW={0}>
         <Flex align="center" gap={2} mb="2px">
           <Text
@@ -479,11 +491,13 @@ const JobRow = ({ job, onClick }) => {
           >
             {job.sourceServers?.join(", ") || "local"}
           </Text>
+
           <Icon
             as={FiArrowRight}
             boxSize="10px"
             color="rgba(255,255,255,0.2)"
           />
+
           <Text
             fontSize="12px"
             fontWeight={600}
@@ -493,6 +507,7 @@ const JobRow = ({ job, onClick }) => {
           >
             {job.destServer}
           </Text>
+
           <Text
             fontSize="11px"
             color="rgba(255,255,255,0.35)"
@@ -502,6 +517,7 @@ const JobRow = ({ job, onClick }) => {
             {job.destPath}
           </Text>
         </Flex>
+
         <Flex align="center" gap={3}>
           <Text
             fontSize="11px"
@@ -510,6 +526,7 @@ const JobRow = ({ job, onClick }) => {
           >
             {formatTime(job.createdAt)}
           </Text>
+
           <Text
             fontSize="11px"
             color="rgba(255,255,255,0.4)"
@@ -520,7 +537,6 @@ const JobRow = ({ job, onClick }) => {
         </Flex>
       </Box>
 
-      {/* File counts */}
       <Flex direction="column" align="flex-end" gap="2px" flexShrink={0}>
         <Text
           fontSize="12px"
@@ -530,6 +546,7 @@ const JobRow = ({ job, onClick }) => {
         >
           {job.completedFiles}/{job.totalFiles}
         </Text>
+
         {job.failedFiles > 0 && (
           <Text
             fontSize="10px"
@@ -544,13 +561,11 @@ const JobRow = ({ job, onClick }) => {
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 const Transfers = ({ toast }) => {
   const token = localStorage.getItem("token");
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [clearing, setClearing] = useState(false);
 
   const fetchJobs = useCallback(async () => {
@@ -558,12 +573,13 @@ const Transfers = ({ toast }) => {
       const res = await fetch("/api/jobs", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const data = await res.json();
       setJobs(data.jobs ?? []);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setLoadingJobs(false);
     }
   }, [token]);
 
@@ -577,7 +593,9 @@ const Transfers = ({ toast }) => {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (!res.ok) throw new Error();
+
       await fetchJobs();
       toast({ title: "Retry job created", status: "success", duration: 2000 });
     } catch {
@@ -591,7 +609,8 @@ const Transfers = ({ toast }) => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSelectedJobId(null);
+
+      setSelectedJob(null);
       await fetchJobs();
     } catch {
       toast({ title: "Failed to delete", status: "error", duration: 2000 });
@@ -600,11 +619,13 @@ const Transfers = ({ toast }) => {
 
   const handleClearCompleted = async () => {
     setClearing(true);
+
     try {
       await fetch("/api/jobs", {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+
       await fetchJobs();
     } catch {
       toast({ title: "Failed to clear", status: "error", duration: 2000 });
@@ -615,26 +636,23 @@ const Transfers = ({ toast }) => {
 
   const hasCompleted = jobs.some((j) => deriveJobStatus(j) === "completed");
 
-  if (selectedJobId) {
+  if (selectedJob) {
     return (
       <JobDetail
-        jobId={selectedJobId}
+        job={selectedJob}
         token={token}
         onBack={() => {
-          setSelectedJobId(null);
+          setSelectedJob(null);
           fetchJobs();
         }}
         onRetry={handleRetry}
-        onDelete={async (id) => {
-          await handleDelete(id);
-        }}
+        onDelete={handleDelete}
       />
     );
   }
 
   return (
     <Box h="100%" display="flex" flexDirection="column">
-      {/* Header */}
       <Flex
         align="center"
         justify="space-between"
@@ -653,6 +671,7 @@ const Transfers = ({ toast }) => {
           >
             Transfers
           </Text>
+
           <Text
             fontSize="11px"
             color="rgba(255,255,255,0.25)"
@@ -706,9 +725,8 @@ const Transfers = ({ toast }) => {
         </Flex>
       </Flex>
 
-      {/* Job list */}
       <Box flex={1} overflowY="auto">
-        {loading ? (
+        {loadingJobs ? (
           <Flex align="center" justify="center" h="200px">
             <Spinner size="sm" color="rgba(99,102,241,0.5)" />
           </Flex>
@@ -738,7 +756,7 @@ const Transfers = ({ toast }) => {
             <JobRow
               key={job._id}
               job={job}
-              onClick={() => setSelectedJobId(job._id)}
+              onClick={() => setSelectedJob(job)}
             />
           ))
         )}

@@ -93,6 +93,83 @@ const list_jobs_get = async (req, res) => {
 };
 
 // ─── Job Detail ───────────────────────────────────────────────────────────────
+const get_job_items_chunk = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit || "100", 10), 1),
+      500
+    );
+
+    const status = req.query.status;
+
+    const filter = { jobId };
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    const [items, total] = await Promise.all([
+      TransferItem.find(filter)
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+
+      TransferItem.countDocuments(filter),
+    ]);
+
+    const serverIds = new Set();
+
+    for (const item of items) {
+      if (item.sourceServerId) {
+        serverIds.add(item.sourceServerId);
+      }
+    }
+
+    const nameMap = await resolveServerNames(serverIds);
+
+    const liveJob = executor.getJob(jobId);
+    const liveItems = liveJob?.items;
+
+    const formattedItems = items.map((item) => {
+      const live = liveItems?.get(item._id.toString());
+
+      const durationMs =
+        item.startedAt && item.completedAt
+          ? new Date(item.completedAt) - new Date(item.startedAt)
+          : null;
+
+      const speedMBs =
+        durationMs && item.size
+          ? (item.size / 1024 / 1024 / (durationMs / 1000)).toFixed(2)
+          : null;
+
+      return {
+        ...item,
+        percent:
+          live?.percent ?? (item.status === ItemStatus.COMPLETED ? 100 : 0),
+        durationMs,
+        speedMBs,
+        sourceServer: formatServer(item.sourceServerId, nameMap),
+      };
+    });
+
+    res.json({
+      items: formattedItems,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+      hasPrevPage: page > 1,
+    });
+  } catch (err) {
+    console.error("Get job items chunk error:", err);
+    res.status(500).json({ error: "Failed to get job items" });
+  }
+};
 
 /**
  * GET /api/jobs/:jobId
@@ -288,4 +365,5 @@ module.exports = {
   retry_job_post,
   delete_job_delete,
   clear_completed_delete,
+  get_job_items_chunk
 };
