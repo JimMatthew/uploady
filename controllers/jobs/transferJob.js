@@ -100,7 +100,7 @@ const get_job_items_chunk = async (req, res) => {
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
     const limit = Math.min(
       Math.max(parseInt(req.query.limit || "100", 10), 1),
-      500
+      500,
     );
 
     const status = req.query.status;
@@ -365,5 +365,5 @@ module.exports = {
   retry_job_post,
   delete_job_delete,
   clear_completed_delete,
-  get_job_items_chunk
+  get_job_items_chunk,
 };
