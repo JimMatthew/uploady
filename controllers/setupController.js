@@ -6,7 +6,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * Hashes a plaintext password using PBKDF2 with a random salt.
- * Identical to the function previously in app.js.
  * @param {string} password
  * @returns {{ salt: string, hash: string }}
  */
@@ -34,8 +33,6 @@ const verifyPassword = (password, salt, storedHash) => {
 
 /**
  * GET /setup
- * Redirects to app if already set up.
- * The actual setup page is served by the React catch-all.
  */
 const setup_get = async (req, res) => {
   const exists = await User.exists({});
@@ -48,7 +45,6 @@ const setup_get = async (req, res) => {
 /**
  * POST /setup
  * Creates the initial admin user.
- * Returns a JWT so the user is immediately logged in after setup.
  */
 const setup_post = async (req, res) => {
   try {
@@ -78,7 +74,7 @@ const setup_post = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username },
       JWT_SECRET,
-      { expiresIn: "8h" },
+      { expiresIn: "24h" },
     );
 
     res.status(201).json({ token });
