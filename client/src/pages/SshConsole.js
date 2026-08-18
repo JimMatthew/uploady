@@ -6,8 +6,9 @@ import { Box, Flex, Text, Icon } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
 import { FiTerminal } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
 
-const SshConsole = ({ serverId, host }) => {
+const SshConsole = ({ serverId, host, isPopout = false }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
   const fitAddon = useRef(null);
@@ -15,6 +16,19 @@ const SshConsole = ({ serverId, host }) => {
   const [isInit, setIsInit] = useState(false);
   const [connState, setConnState] = useState("connecting");
   const isHttps = window.location.protocol === "https:";
+
+  const handlePopOut = () => {
+    const params = new URLSearchParams({
+      serverId,
+      host: host ?? "",
+    });
+
+    window.open(
+      `/ssh-popout?${params.toString()}`,
+      `ssh-${serverId}`,
+      "width=1000,height=700,resizable=yes,scrollbars=no",
+    );
+  };
 
   useEffect(() => {
     // ── Terminal setup ──────────────────────────────────────────────────────
@@ -238,6 +252,26 @@ const SshConsole = ({ serverId, host }) => {
         )}
 
         <Box flex={1} />
+        {!isPopout && (
+          <Box
+            as="button"
+            onClick={handlePopOut}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            w="28px"
+            h="28px"
+            borderRadius="md"
+            color="rgba(255,255,255,0.45)"
+            _hover={{
+              color: "white",
+              bg: "rgba(255,255,255,0.08)",
+            }}
+            title="Pop out terminal"
+          >
+            <FiExternalLink size={14} />
+          </Box>
+        )}
       </Flex>
 
       {/* Terminal — fills remaining height */}

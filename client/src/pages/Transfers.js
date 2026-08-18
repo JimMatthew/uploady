@@ -423,6 +423,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
 
         <Text fontSize="11px" color="rgba(255,255,255,0.3)" fontFamily={mono}>
           {job.completedFiles}/{job.totalFiles} files
+          {job.totalBytes > 0 && ` · ${formatSize(job.totalBytes)}`}
         </Text>
 
         <Flex gap={2} ml="auto" flexShrink={0}>
@@ -654,12 +655,21 @@ const JobRow = ({ job, onClick }) => {
           </Text>
         </Flex>
         <Flex align="center" gap={3}>
-          <Text fontSize="11px" color="rgba(255,255,255,0.3)" fontFamily={mono}>
+          <Text fontSize="11px" color="rgba(255,255,255,0.4)" fontFamily={mono}>
             {formatTime(job.createdAt)}
           </Text>
-          <Text fontSize="11px" color="rgba(255,255,255,0.2)" fontFamily={mono}>
+          <Text fontSize="11px" color="rgba(255,255,255,0.3)" fontFamily={mono}>
             {formatDuration(job.durationMs)}
           </Text>
+          {job.totalBytes > 0 && (
+            <Text
+              fontSize="11px"
+              color="rgba(255,255,255,0.3)"
+              fontFamily={mono}
+            >
+              {formatSize(job.totalBytes)}
+            </Text>
+          )}
         </Flex>
       </Box>
 

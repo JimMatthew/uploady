@@ -8,6 +8,7 @@ import SftpList from "./pages/SftpList";
 import About from "./pages/About";
 import useAppToast from "./hooks/useAppToast";
 import Setup from "./pages/Setup";
+import SshPopout from "./pages/SshPopout";
 const App = () => {
   const toast = useAppToast();
 
@@ -31,6 +32,7 @@ const App = () => {
           <Route path="/" element={<Login />} />
           <Route path="/app/files" element={<FileList toast={toast} />} />
           <Route path="/api/sftp" element={<SftpList toast={toast} />} />
+          <Route path="/ssh-popout" element={<SshPopout />} />
           <Route path="/about" element={<About />} />
         </Routes>
       </AppLayout>
