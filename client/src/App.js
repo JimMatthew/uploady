@@ -16,7 +16,7 @@ const App = () => {
     const setVh = () => {
       document.documentElement.style.setProperty(
         "--vh",
-        `${window.innerHeight * 0.01}px`
+        `${window.innerHeight * 0.01}px`,
       );
     };
     setVh();
@@ -26,16 +26,24 @@ const App = () => {
 
   return (
     <Router>
-      <AppLayout>
-        <Routes>
-          <Route path="/setup" element={<Setup />} />
-          <Route path="/" element={<Login />} />
-          <Route path="/app/files" element={<FileList toast={toast} />} />
-          <Route path="/api/sftp" element={<SftpList toast={toast} />} />
-          <Route path="/ssh-popout" element={<SshPopout />} />
-          <Route path="/about" element={<About />} />
-        </Routes>
-      </AppLayout>
+      <Routes>
+        <Route path="/ssh-popout" element={<SshPopout />} />
+
+        <Route
+          path="*"
+          element={
+            <AppLayout>
+              <Routes>
+                <Route path="/setup" element={<Setup />} />
+                <Route path="/" element={<Login />} />
+                <Route path="/app/files" element={<FileList toast={toast} />} />
+                <Route path="/api/sftp" element={<SftpList toast={toast} />} />
+                <Route path="/about" element={<About />} />
+              </Routes>
+            </AppLayout>
+          }
+        />
+      </Routes>
     </Router>
   );
 };
