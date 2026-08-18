@@ -81,7 +81,12 @@ export function useSftpList({ toast }) {
     (server) => {
       addTabItem({
         label: `${server.host} - SSH`,
-        content: <SshConsole serverId={server._id} />,
+        content: (
+          <SshConsole
+            serverId={server._id}
+            host={server.host}
+          />
+        ),
       });
     },
     [addTabItem],
