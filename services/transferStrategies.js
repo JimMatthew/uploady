@@ -221,6 +221,8 @@ const sftpCrossServer = async (item, { sftpSource, sftpDest }, onProgress) => {
  * @returns {Promise<number>} File size (as known from expansion, not re-statted)
  */
 const sftpSameServer = async (item, { sftpSource }, onProgress) => {
+  await ensureRemoteDir(sftpSource, item.destinationPath);
+  
   await sftpSource.rcopy(item.sourcePath, item.destinationPath);
   onProgress(100);
   return item.size;
