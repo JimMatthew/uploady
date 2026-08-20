@@ -24,7 +24,6 @@ router.get(
   filemanagerController.list_directory_get,
 );
 
-
 router.post(
   "/api/cut-file",
   authenticateJWT,
@@ -32,7 +31,10 @@ router.post(
 );
 
 //download file from public link - not authenticated
-router.get("/share/:token/:filename", filemanagerController.serve_shared_file_get);
+router.get(
+  "/share/:token/:filename",
+  filemanagerController.serve_shared_file_get,
+);
 
 router.get(
   "/api/links",
@@ -115,10 +117,33 @@ router.get(
 );
 
 router.get("/api/jobs", transferJobController.list_jobs_get);
-router.get("/api/jobs/:jobId", authenticateJWT, transferJobController.get_job_get);
-router.post("/api/jobs/:jobId/retry", authenticateJWT, transferJobController.retry_job_post);
-router.delete("/api/jobs/:jobId", authenticateJWT, transferJobController.delete_job_delete);
-router.delete("/api/jobs", authenticateJWT, transferJobController.clear_completed_delete);
-router.get("/api/progress/:transferId", progressController.get_transfer_progress);
-router.get("/api/jobs/:jobId/items", authenticateJWT, transferJobController.get_job_items_chunk);
+router.get(
+  "/api/jobs/:jobId",
+  authenticateJWT,
+  transferJobController.get_job_get,
+);
+router.post(
+  "/api/jobs/:jobId/retry",
+  authenticateJWT,
+  transferJobController.retry_job_post,
+);
+router.delete(
+  "/api/jobs/:jobId",
+  authenticateJWT,
+  transferJobController.delete_job_delete,
+);
+router.delete(
+  "/api/jobs",
+  authenticateJWT,
+  transferJobController.clear_completed_delete,
+);
+router.get(
+  "/api/progress/:transferId",
+  progressController.get_transfer_progress,
+);
+router.get(
+  "/api/jobs/:jobId/items",
+  authenticateJWT,
+  transferJobController.get_job_items_chunk,
+);
 module.exports = router;

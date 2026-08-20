@@ -9,7 +9,7 @@ const SshPopout = () => {
   const host = params.get("host");
 
   return (
-    <Box w="100vw" h="100%" overflow="hidden">
+    <Box w="100%" h="100%" overflow="hidden">
       <SshConsole serverId={serverId} host={host} isPopout />
     </Box>
   );
