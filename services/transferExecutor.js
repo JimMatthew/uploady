@@ -36,6 +36,22 @@ const { expandJobItems } = require("./transferExpansionService");
 //   error:          string | null,
 // }
 
+/**
+ * TransferExecutor
+ *
+ * Singleton, in-process job runner for file transfer jobs. It owns:
+ *   - a FIFO queue of pending job IDs (`this.queue`)
+ *   - a map of currently-running jobs and their live progress state (`this.activeJobs`)
+ *
+ * Jobs are persisted to Mongo (TransferJob / TransferItem), but the executor also
+ * keeps a parallel in-memory representation so that per-file progress (percent,
+ * current status, etc.) can be tracked and broadcast via events without hitting
+ * the DB on every progress tick.
+ *
+ * Because it extends EventEmitter, consumers (e.g. a websocket/SSE layer) can
+ * subscribe to per-job events using the job ID as a namespace, e.g.:
+ *   executor.on(`fileProgress:${jobId}`, (payload) => { ... })
+ */
 class TransferExecutor extends EventEmitter {
   constructor() {
     super();
@@ -46,19 +62,38 @@ class TransferExecutor extends EventEmitter {
 
   // ─── Public API ─────────────────────────────────────────────────────────────
 
+  /**
+   * Add a job to the back of the queue and immediately try to start processing.
+   * Safe to call even if the executor is currently busy — the job will simply
+   * wait in `this.queue` until a slot frees up.
+   */
   enqueue(jobId) {
     this.queue.push(jobId.toString());
     this._processQueue();
   }
 
+  /**
+   * Look up the live in-memory state for a currently-running job.
+   * Returns null if the job isn't active (e.g. queued but not started,
+   * already finished, or never existed).
+   */
   getJob(jobId) {
     return this.activeJobs.get(jobId.toString()) ?? null;
   }
 
+  /** Return a snapshot array of all currently-active (running) jobs. */
   listActive() {
     return [...this.activeJobs.values()];
   }
 
+  /**
+   * Request cancellation of a running job. This is cooperative: it just flips
+   * a flag that `_executeJob`'s `shouldStop` callback checks between files.
+   * It does NOT interrupt a file transfer that's already in progress, and it
+   * has no effect on a job that's still sitting in `this.queue` (not yet active) —
+   * a queued-but-not-started job can't be stopped this way since it has no
+   * in-memory entry yet.
+   */
   stopJob(jobId) {
     const job = this.activeJobs.get(jobId.toString());
     if (job) job.stopRequested = true;
@@ -66,6 +101,12 @@ class TransferExecutor extends EventEmitter {
 
   // ─── Queue Processing ────────────────────────────────────────────────────────
 
+  /**
+   * Pull jobs off the front of the queue and start running them, up to
+   * MAX_CONCURRENT at a time. Called after enqueue() and again at the end of
+   * every job (success, failure, or cancellation) so the next queued job
+   * picks up automatically.
+   */
   _processQueue() {
     while (
       this.activeJobs.size < this.MAX_CONCURRENT &&
@@ -78,6 +119,12 @@ class TransferExecutor extends EventEmitter {
     }
   }
 
+  /**
+  * Full lifecycle for a single job: expand -> load -> execute -> finalize.
+  * Each phase persists status changes to Mongo so the job's state survives
+  * even if this process restarts mid-run (though in-memory progress, like
+  * per-file percent, would be lost).
+  */
   async _runJob(jobId) {
     // ── Phase 1: expand directories into file items ──────────────────────────
     await TransferJob.findByIdAndUpdate(jobId, {
@@ -99,6 +146,9 @@ class TransferExecutor extends EventEmitter {
     }
 
     // ── Phase 2: load expanded items from DB into memory ─────────────────────
+    // Re-fetch the job doc (in case expansion updated it) plus every expanded
+    // file-kind item (directory items are excluded — only actual files get
+    // transferred).
     const [jobDoc, itemDocs] = await Promise.all([
       TransferJob.findById(jobId),
       TransferItem.find({ jobId, kind: ItemKind.FILE }),
@@ -148,6 +198,9 @@ class TransferExecutor extends EventEmitter {
       totalFiles: items.size,
     });
 
+    // Tally how many items belong to each "root" (top-level selected
+    // file/folder), useful for UI progress grouped by original selection
+    // rather than by individual expanded file.
     const rootCounts = {};
     for (const item of items.values()) {
       rootCounts[item.rootItem] = (rootCounts[item.rootItem] || 0) + 1;
@@ -162,6 +215,10 @@ class TransferExecutor extends EventEmitter {
     try {
       await this._executeJob(job);
     } catch (err) {
+      // A thrown error here means the transfer machinery itself blew up
+      // (e.g. couldn't connect to source/dest server) — distinct from an
+      // individual file failing, which is handled via onFileFail instead
+      // and does NOT throw.
       console.error(`Executor: job ${jobId} failed:`, err);
       await TransferJob.findByIdAndUpdate(jobId, {
         status: JobStatus.FAILED,
@@ -179,6 +236,13 @@ class TransferExecutor extends EventEmitter {
     }
 
     // ── Phase 4: finalize ─────────────────────────────────────────────────────
+    // Determine the terminal status:
+    //   - CANCELLED if a stop was requested (regardless of how far it got)
+    //   - FAILED only if EVERY file failed (zero completions)
+    //   - COMPLETED otherwise — including partial success where some files
+    //     failed but at least one succeeded. Callers relying on job.status
+    //     alone won't be able to distinguish "fully clean" from "completed
+    //     with some failures" — they need to also check failedFiles > 0.
     const finalStatus = job.stopRequested
       ? JobStatus.CANCELLED
       : job.failedFiles > 0 && job.completedFiles === 0
@@ -202,9 +266,13 @@ class TransferExecutor extends EventEmitter {
   }
 
   // ─── Execution Loop ──────────────────────────────────────────────────────────
-
+  /**
+    * Delegates the actual file-by-file transfer work to sftpService, wiring up
+    * callbacks that keep both the in-memory `job`/`item` state and the
+    * persisted DB records in sync, and re-broadcast progress as events.
+    */
   async _executeJob(job) {
-    const { executeTransferJob} = require("./sftpService");
+    const { executeTransferJob } = require("./sftpService");
 
     await executeTransferJob(job, {
       shouldStop: () => job.stopRequested,
@@ -263,6 +331,10 @@ class TransferExecutor extends EventEmitter {
       },
 
       onFileFail: async (item, err) => {
+        // A single file failing does NOT throw / abort the whole job — it's
+        // recorded and the loop continues to the next file. Only an error
+        // thrown out of executeTransferJob itself (caught in _runJob's
+        // Phase 3) aborts the whole job.
         item.status = ItemStatus.FAILED;
         item.error = err.message;
         job.failedFiles++;
