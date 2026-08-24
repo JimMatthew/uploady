@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const SharedFile = require("../models/SharedFile");
 const net = require("net");
 const { encrypt, decrypt } = require("../controllers/encryption");
-
+const { servers } = require("../db");
 const domain = process.env.HOSTNAME;
 
 // ─── Share Links ──────────────────────────────────────────────────────────────
@@ -21,7 +21,8 @@ async function share_file(fileName, filePath, serverId) {
   const existing = await SharedFile.findOne({ fileName, filePath, serverId });
   if (existing) return { link: existing.link };
 
-  const server = await SftpServer.findById(serverId);
+  //const server = await SftpServer.findById(serverId);
+  const server = await servers.findById(serverId);
   const token = crypto.randomBytes(5).toString("hex");
   const link = `https://${domain}/share/${token}/${fileName}`;
 
@@ -69,10 +70,14 @@ async function save_server(
   };
 
   if (authType === "password") {
-    if (!password) throw new Error("Password required for password auth");
+    if (!password) {
+      throw new Error("Password required for password auth")
+    }
     server.credentials.password = encrypt(password);
   } else if (authType === "key") {
-    if (!key) throw new Error("Private key required for key auth");
+    if (!key) {
+      throw new Error("Private key required for key auth")
+    }
     server.credentials.privateKey = encrypt(key);
     if (passphrase) {
       server.credentials.passphrase = encrypt(passphrase);
@@ -81,7 +86,8 @@ async function save_server(
     throw new Error(`Unsupported authType: ${authType}`);
   }
 
-  await new SftpServer(server).save();
+  //await new SftpServer(server).save();
+  await servers.create(server);
 }
 
 /**
@@ -92,8 +98,8 @@ async function save_server(
  * @returns {Promise<'online'|'offline'>}
  */
 const checkServerStatus = async (serverId, port = 22) => {
-  const server = await SftpServer.findById(serverId);
-
+  //const server = await SftpServer.findById(serverId);
+  const server = await servers.findById(serverId);
   if (!server) return "offline";
 
   return new Promise((resolve) => {
@@ -131,7 +137,8 @@ const checkServerStatus = async (serverId, port = 22) => {
  * @throws {Error} If the server is not found or has an invalid authType
  */
 const getServerOptions = async (serverId) => {
-  const server = await SftpServer.findById(serverId);
+  //const server = await SftpServer.findById(serverId);
+  const server = await servers.findById(serverId);
   if (!server) throw new Error(`Server not found: ${serverId}`);
 
   const options = {
