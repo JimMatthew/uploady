@@ -6,6 +6,10 @@ class MongoServerStore extends ServerStore {
     return SftpServer.find();
   }
 
+  async listSummary() {
+    return SftpServer.find().select("_id host");
+  }
+
   async findById(id) {
     return SftpServer.findById(id);
   }
@@ -15,11 +19,7 @@ class MongoServerStore extends ServerStore {
   }
 
   async findByIdAndUpdate(id, update) {
-    return SftpServer.findByIdAndUpdate(
-      id,
-      update,
-      { new: true },
-    );
+    return SftpServer.findByIdAndUpdate(id, update, { new: true });
   }
 
   async deleteById(id) {

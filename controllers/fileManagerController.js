@@ -5,6 +5,7 @@ const { execSync } = require("child_process");
 const archiver = require("archiver");
 const mime = require("mime-types");
 const SharedFile = require("../models/SharedFile");
+const { shares } = require("../db");
 const sftpService = require("../services/sftpService");
 const executor = require("../services/transferExecutor");
 const TransferJob = require("../models/transferJobs");
@@ -282,10 +283,10 @@ const delete_file_post = async (req, res, next) => {
     await fs.promises.unlink(filePath);
 
     // Clean up any share links pointing to this file
-    await SharedFile.findOneAndDelete({
+    await shares.deleteByPath({
       filePath,
       fileName: path.basename(filePath),
-    });
+    })
 
     res.status(200).json({ message: "File deleted" });
   } catch (err) {
@@ -418,7 +419,7 @@ const paste_files_post = async (req, res, next) => {
 const storeLinkInfo = async (fileName, filePath, link, token) => {
   const existing = await SharedFile.findOne({ fileName, filePath });
   if (existing) return false;
-  await new SharedFile({ fileName, filePath, link, token }).save();
+  await shares.create({ fileName, filePath, link, token });
   return true;
 };
 
@@ -464,7 +465,7 @@ const generate_share_link_post = async (req, res, next) => {
 const serve_shared_file_get = async (req, res) => {
   const { token, filename } = req.params;
 
-  const sharedFile = await SharedFile.findOne({ token });
+  const sharedFile = await shares.findByToken(token)
   if (!sharedFile) return res.status(404).send("File not found");
 
   if (sharedFile.isRemote) {
@@ -527,7 +528,7 @@ const serve_shared_file_get = async (req, res) => {
  */
 const get_share_links_get = async (req, res) => {
   try {
-    const links = await SharedFile.find();
+    const links = await shares.list();
     res.json({ links });
   } catch (err) {
     console.error("Get share links error:", err);
@@ -545,7 +546,7 @@ const stop_sharing_post = async (req, res) => {
   if (!token) return res.status(400).json({ error: "Missing token" });
 
   try {
-    await SharedFile.deleteOne({ token });
+    await shares.deleteByToken(token);
     res.status(200).json({ message: "Link deleted" });
   } catch (err) {
     console.error("Stop sharing error:", err);

@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-
+const { users } = require("../db");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
@@ -35,7 +34,7 @@ const verifyPassword = (password, salt, storedHash) => {
  * GET /setup
  */
 const setup_get = async (req, res) => {
-  const exists = await User.exists({});
+  const exists = await users.exists();
   if (exists) return res.redirect("/");
   res.sendFile(
     require("path").join(__dirname, "../client/build", "index.html"),
@@ -48,7 +47,7 @@ const setup_get = async (req, res) => {
  */
 const setup_post = async (req, res) => {
   try {
-    const exists = await User.exists({});
+     const exists = await users.exists();
     if (exists) {
       return res.status(403).json({ error: "Setup already complete" });
     }
@@ -64,7 +63,7 @@ const setup_post = async (req, res) => {
     }
 
     const { salt, hash } = hashPassword(password);
-    const user = await User.create({
+     const user = await users.create({
       username: username.trim(),
       passwordHash: hash,
       passwordSalt: salt,
@@ -91,8 +90,7 @@ const setup_post = async (req, res) => {
 const login_post = async (req, res) => {
   try {
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
-
+    const user = await users.findByUsername(username);
     if (
       !user ||
       !verifyPassword(password, user.passwordSalt, user.passwordHash)
@@ -128,8 +126,7 @@ const requireSetupComplete = async (req, res, next) => {
     return next();
   }
 
-  const exists = await User.exists({});
-
+  const exists = await users.exists();
   if (!exists) {
     if (req.accepts("html")) return res.redirect("/setup");
     return res.status(428).json({ error: "Setup required" });

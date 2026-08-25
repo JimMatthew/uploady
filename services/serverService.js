@@ -1,6 +1,6 @@
-const SftpServer = require("../models/SftpServer");
+//const SftpServer = require("../models/SftpServer");
 const crypto = require("crypto");
-const SharedFile = require("../models/SharedFile");
+const { shares } = require("../db");
 const net = require("net");
 const { encrypt, decrypt } = require("../controllers/encryption");
 const { servers } = require("../db");
@@ -26,7 +26,7 @@ async function share_file(fileName, filePath, serverId) {
   const token = crypto.randomBytes(5).toString("hex");
   const link = `https://${domain}/share/${token}/${fileName}`;
 
-  const sharedFile = new SharedFile({
+  await shares.create({
     fileName,
     filePath,
     link,
@@ -35,8 +35,6 @@ async function share_file(fileName, filePath, serverId) {
     serverId,
     ...(server && { serverName: server.host }),
   });
-
-  await sharedFile.save();
   return { link };
 }
 

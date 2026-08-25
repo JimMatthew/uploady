@@ -1,5 +1,5 @@
 const path = require("path");
-const SftpServer = require("../models/SftpServer");
+const { servers } = require("../db");
 const Busboy = require("busboy");
 const sftpService = require("../services/sftpService");
 const serverService = require("../services/serverService");
@@ -78,7 +78,7 @@ const sftp_list_directory_get = async (req, res) => {
   const { serverId } = req.params;
   const currentDirectory = "/" + (req.params[0] || "/");
   try {
-    const server = await SftpServer.findById(serverId);
+    const server = await servers.findById(serverId);
     if (!server) return handleError(res, "Server not found", 404);
 
     const { files, folders } = await sftpService.listDirectory(
@@ -351,8 +351,8 @@ const sftp_share_file_post = async (req, res) => {
  */
 const sftp_get_servers_get = async (req, res) => {
   try {
-    const servers = await SftpServer.find().select("_id host");
-    res.json({ servers });
+    const server = await servers.listSummary();
+    res.json({ servers: server });
   } catch (err) {
     console.error("Get servers error:", err);
     res.json({ status: "offline" });
@@ -418,7 +418,7 @@ const sftp_delete_server_post = async (req, res) => {
   const { serverId } = req.body;
   if (!serverId) return handleError(res, "Missing serverId", 400);
   try {
-    await SftpServer.findByIdAndDelete(serverId);
+    await servers.deleteById(serverId);
     res.status(200).json({ message: "Server deleted" });
   } catch (err) {
     console.error("Delete server error:", err);
