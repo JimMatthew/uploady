@@ -17,7 +17,12 @@ const domain = process.env.HOSTNAME;
  * @returns {Promise<{ link: string }>}
  */
 async function share_file(fileName, filePath, serverId) {
-  const existing = await SharedFile.findOne({ fileName, filePath, serverId });
+   const existing = await shares.findRemoteShare(
+    fileName,
+    filePath,
+    serverId,
+  );
+ 
   if (existing) return { link: existing.link };
 
   const server = await servers.findById(serverId);

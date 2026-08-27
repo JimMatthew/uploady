@@ -1,13 +1,11 @@
 const path = require("path");
-const { servers } = require("../db");
+const { servers, transferJobs, transferItems } = require("../db");
 const Busboy = require("busboy");
 const sftpService = require("../services/sftpService");
 const serverService = require("../services/serverService");
-const { sftpCopyFilesBatch } = require("../services/sftpService");
-const { complete } = require("../services/progressService");
+//const { sftpCopyFilesBatch } = require("../services/sftpService");
+//const { complete } = require("../services/progressService");
 const executor = require("../services/transferExecutor");
-const TransferJob = require("../models/transferJobs");
-const TransferItem = require("../models/TransferItem");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
 const uploadsDir = path.join(__dirname, "../uploads");
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -278,26 +276,26 @@ const sftp_upload_post = async (req, res) => {
  * @param {import('express').Response} res
  */
 const sftp_copy_files_post = async (req, res) => {
-  const { files, newPath, newServerId, transferId } = req.body;
+  const { files, newPath, newServerId } = req.body;
 
   if (!files?.length || !newPath) {
     return handleError(res, "Missing required fields", 400);
   }
 
   try {
-    const job = await TransferJob.create({
+    const job = await transferJobs.create({
       destServerId: newServerId ?? null,
       destPath: newPath,
     });
 
-    await TransferItem.insertMany(
+    await transferItems.createMany(
       files.map((f) => ({
         jobId: job._id,
         sourceServerId: f.serverId ?? null,
         filename: f.file,
         rootItem: f.file,
         sourcePath: f.serverId
-          ? path.posix.join(f.path, f.file) // remote — posix
+          ? path.posix.join(f.path, f.file)
           : path.join(uploadsDir, f.path, f.file),
         destinationPath: path.posix.join(newPath, f.file),
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
@@ -305,11 +303,14 @@ const sftp_copy_files_post = async (req, res) => {
       })),
     );
 
-    executor.enqueue(job._id);
+    executor.enqueue(job._id.toString());
 
-    res.status(201).json({ jobId: job._id });
+    res.status(201).json({
+      jobId: job._id,
+    });
   } catch (err) {
     console.error("Failed to create transfer job:", err);
+
     res.status(500).send("Failed to create transfer job");
   }
 };

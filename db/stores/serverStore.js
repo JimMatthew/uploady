@@ -87,6 +87,18 @@ class ServerStore {
   async deleteById(id) {
     throw new Error("ServerStore.deleteById() not implemented");
   }
+
+  /**
+ * Returns server ID/hostname pairs for the supplied IDs.
+ *
+ * @param {string[]} ids
+ * @returns {Promise<Array<{_id: string, host: string}>>}
+ */
+  async findSummariesByIds(ids) {
+    throw new Error(
+      "ServerStore.findSummariesByIds() not implemented",
+    );
+  }
 }
 
 module.exports = ServerStore;

@@ -1,22 +1,27 @@
-const TransferJob = require("../../models/transferJobs");
-const TransferItem = require("../../models/TransferItem");
 const SftpServer = require("../../models/SftpServer");
 const executor = require("../../services/transferExecutor");
 const { JobStatus, ItemStatus } = require("./jobConstants");
-
+const { transferJobs, transferItems, servers } = require("../../db");
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
  * Resolves server IDs to hostnames for display.
- * Returns a map of serverId → host, plus "local" for null.
+ *
+ * @param {Set<string>|string[]} serverIds
+ * @returns {Promise<Object<string, string>>}
  */
 const resolveServerNames = async (serverIds) => {
   const ids = [...serverIds].filter(Boolean);
-  if (!ids.length) return {};
-  const servers = await SftpServer.find({ _id: { $in: ids } }).select(
-    "_id host",
+
+  if (!ids.length) {
+    return {};
+  }
+
+  const serverList = await servers.findSummariesByIds(ids);
+
+  return Object.fromEntries(
+    serverList.map((server) => [server._id.toString(), server.host]),
   );
-  return Object.fromEntries(servers.map((s) => [s._id.toString(), s.host]));
 };
 
 const formatServer = (serverId, nameMap) => {
@@ -32,48 +37,46 @@ const formatServer = (serverId, nameMap) => {
  */
 const list_jobs_get = async (req, res) => {
   try {
-    const mongoose = require("mongoose");
-    const jobs = await TransferJob.find().sort({ createdAt: -1 }).lean();
+    const jobs = await transferJobs.listNewest();
 
-    // collect all unique server IDs across jobs
     const serverIds = new Set();
+
     for (const job of jobs) {
-      if (job.destServerId) serverIds.add(job.destServerId);
+      if (job.destServerId) {
+        serverIds.add(job.destServerId);
+      }
     }
 
-    // also get source server IDs from items for display
-    const jobIds = jobs.map((j) => j._id);
-    const sourceServers = await TransferItem.distinct("sourceServerId", {
-      jobId: { $in: jobIds },
-      sourceServerId: { $ne: null },
-    });
-    for (const id of sourceServers) serverIds.add(id);
+    const jobIds = jobs.map((job) => job._id.toString());
+
+    const sourceMap = await transferItems.getSourceServerIdsByJobIds(jobIds);
+
+    for (const sourceIds of Object.values(sourceMap)) {
+      for (const id of sourceIds) {
+        if (id) {
+          serverIds.add(id);
+        }
+      }
+    }
 
     const nameMap = await resolveServerNames(serverIds);
-    const sourceByJob = await TransferItem.aggregate([
-      { $match: { jobId: { $in: jobIds } } },
-      {
-        $group: {
-          _id: "$jobId",
-          sourceServerIds: { $addToSet: "$sourceServerId" },
-        },
-      },
-    ]);
 
-    const sourceMap = Object.fromEntries(
-      sourceByJob.map((r) => [r._id.toString(), r.sourceServerIds]),
-    );
-    // overlay live state for running jobs
     const result = jobs.map((job) => {
-      const liveJob = executor.getJob(job._id.toString());
-      const sourceIds = sourceMap[job._id.toString()] ?? [];
+      const jobId = job._id.toString();
+
+      const liveJob = executor.getJob(jobId);
+
+      const sourceIds = sourceMap[jobId] ?? [];
+
       const sourceServers = [
         ...new Set(sourceIds.map((id) => (id ? (nameMap[id] ?? id) : "local"))),
       ];
+
       const durationMs =
         job.startedAt && job.finishedAt
           ? new Date(job.finishedAt) - new Date(job.startedAt)
           : null;
+
       return {
         ...job,
         completedFiles: liveJob?.completedFiles ?? job.completedFiles,
@@ -85,10 +88,16 @@ const list_jobs_get = async (req, res) => {
       };
     });
 
-    res.json({ jobs: result, nameMap });
+    res.json({
+      jobs: result,
+      nameMap,
+    });
   } catch (err) {
     console.error("List jobs error:", err);
-    res.status(500).json({ error: "Failed to list jobs" });
+
+    res.status(500).json({
+      error: "Failed to list jobs",
+    });
   }
 };
 
@@ -98,6 +107,7 @@ const get_job_items_chunk = async (req, res) => {
     const { jobId } = req.params;
 
     const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+
     const limit = Math.min(
       Math.max(parseInt(req.query.limit || "100", 10), 1),
       500,
@@ -105,20 +115,11 @@ const get_job_items_chunk = async (req, res) => {
 
     const status = req.query.status;
 
-    const filter = { jobId };
-    if (status && status !== "all") {
-      filter.status = status;
-    }
-
-    const [items, total] = await Promise.all([
-      TransferItem.find(filter)
-        .sort({ createdAt: 1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-
-      TransferItem.countDocuments(filter),
-    ]);
+    const { items, total } = await transferItems.findPageByJobId(jobId, {
+      status,
+      page,
+      limit,
+    });
 
     const serverIds = new Set();
 
@@ -131,6 +132,7 @@ const get_job_items_chunk = async (req, res) => {
     const nameMap = await resolveServerNames(serverIds);
 
     const liveJob = executor.getJob(jobId);
+
     const liveItems = liveJob?.items;
 
     const formattedItems = items.map((item) => {
@@ -167,7 +169,10 @@ const get_job_items_chunk = async (req, res) => {
     });
   } catch (err) {
     console.error("Get job items chunk error:", err);
-    res.status(500).json({ error: "Failed to get job items" });
+
+    res.status(500).json({
+      error: "Failed to get job items",
+    });
   }
 };
 
@@ -180,30 +185,42 @@ const get_job_get = async (req, res) => {
     const { jobId } = req.params;
 
     const [job, items] = await Promise.all([
-      TransferJob.findById(jobId).lean(),
-      TransferItem.find({ jobId }).sort({ status: 1 }).lean(),
+      transferJobs.findById(jobId),
+      transferItems.findByJobId(jobId),
     ]);
 
-    if (!job) return res.status(404).json({ error: "Job not found" });
-
-    // collect server IDs
-    const serverIds = new Set();
-    if (job.destServerId) serverIds.add(job.destServerId);
-    for (const item of items) {
-      if (item.sourceServerId) serverIds.add(item.sourceServerId);
+    if (!job) {
+      return res.status(404).json({
+        error: "Job not found",
+      });
     }
+
+    const serverIds = new Set();
+
+    if (job.destServerId) {
+      serverIds.add(job.destServerId);
+    }
+
+    for (const item of items) {
+      if (item.sourceServerId) {
+        serverIds.add(item.sourceServerId);
+      }
+    }
+
     const nameMap = await resolveServerNames(serverIds);
 
-    // overlay live state if job is active
     const liveJob = executor.getJob(jobId);
+
     const liveItems = liveJob?.items;
 
     const formattedItems = items.map((item) => {
       const live = liveItems?.get(item._id.toString());
+
       const durationMs =
         item.startedAt && item.completedAt
           ? new Date(item.completedAt) - new Date(item.startedAt)
           : null;
+
       const speedMBs =
         durationMs && item.size
           ? (item.size / 1024 / 1024 / (durationMs / 1000)).toFixed(2)
@@ -219,7 +236,6 @@ const get_job_get = async (req, res) => {
       };
     });
 
-    // sort — failed first, then in_progress, then completed
     const order = {
       [ItemStatus.FAILED]: 0,
       [ItemStatus.IN_PROGRESS]: 1,
@@ -227,6 +243,7 @@ const get_job_get = async (req, res) => {
       [ItemStatus.COMPLETED]: 3,
       [ItemStatus.SKIPPED]: 4,
     };
+
     formattedItems.sort(
       (a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5),
     );
@@ -240,13 +257,18 @@ const get_job_get = async (req, res) => {
       job: {
         ...job,
         durationMs,
+
         destServer: formatServer(job.destServerId, nameMap),
       },
+
       items: formattedItems,
     });
   } catch (err) {
     console.error("Get job error:", err);
-    res.status(500).json({ error: "Failed to get job" });
+
+    res.status(500).json({
+      error: "Failed to get job",
+    });
   }
 };
 
@@ -261,21 +283,29 @@ const retry_job_post = async (req, res) => {
     const { jobId } = req.params;
 
     const [originalJob, failedItems] = await Promise.all([
-      TransferJob.findById(jobId).lean(),
-      TransferItem.find({ jobId, status: ItemStatus.FAILED }).lean(),
+      transferJobs.findById(jobId),
+      transferItems.findFailedByJobId(jobId),
     ]);
 
-    if (!originalJob) return res.status(404).json({ error: "Job not found" });
-    if (!failedItems.length)
-      return res.status(400).json({ error: "No failed items to retry" });
+    if (!originalJob) {
+      return res.status(404).json({
+        error: "Job not found",
+      });
+    }
 
-    const newJob = await TransferJob.create({
+    if (!failedItems.length) {
+      return res.status(400).json({
+        error: "No failed items to retry",
+      });
+    }
+
+    const newJob = await transferJobs.create({
       destServerId: originalJob.destServerId,
       destPath: originalJob.destPath,
       totalFiles: failedItems.length,
     });
 
-    await TransferItem.insertMany(
+    await transferItems.createMany(
       failedItems.map((item) => ({
         jobId: newJob._id,
         sourceServerId: item.sourceServerId,
@@ -288,12 +318,17 @@ const retry_job_post = async (req, res) => {
       })),
     );
 
-    executor.enqueue(newJob._id);
+    executor.enqueue(newJob._id.toString());
 
-    res.status(201).json({ jobId: newJob._id });
+    res.status(201).json({
+      jobId: newJob._id,
+    });
   } catch (err) {
     console.error("Retry job error:", err);
-    res.status(500).json({ error: "Failed to retry job" });
+
+    res.status(500).json({
+      error: "Failed to retry job",
+    });
   }
 };
 
@@ -307,25 +342,37 @@ const delete_job_delete = async (req, res) => {
   try {
     const { jobId } = req.params;
 
-    // don't delete running jobs
-    const job = await TransferJob.findById(jobId);
-    if (!job) return res.status(404).json({ error: "Job not found" });
+    const job = await transferJobs.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({
+        error: "Job not found",
+      });
+    }
+
     if (
       job.status === JobStatus.RUNNING ||
       job.status === JobStatus.EXPANDING
     ) {
-      return res.status(400).json({ error: "Cannot delete a running job" });
+      return res.status(400).json({
+        error: "Cannot delete a running job",
+      });
     }
 
     await Promise.all([
-      TransferJob.findByIdAndDelete(jobId),
-      TransferItem.deleteMany({ jobId }),
+      transferJobs.deleteById(jobId),
+      transferItems.deleteByJobId(jobId),
     ]);
 
-    res.json({ message: "Job deleted" });
+    res.json({
+      message: "Job deleted",
+    });
   } catch (err) {
     console.error("Delete job error:", err);
-    res.status(500).json({ error: "Failed to delete job" });
+
+    res.status(500).json({
+      error: "Failed to delete job",
+    });
   }
 };
 
@@ -337,23 +384,24 @@ const delete_job_delete = async (req, res) => {
  */
 const clear_completed_delete = async (req, res) => {
   try {
-    const completed = await TransferJob.find({
-      status: JobStatus.COMPLETED,
-    })
-      .select("_id")
-      .lean();
+    const ids = await transferJobs.findCompletedIds();
 
-    const ids = completed.map((j) => j._id);
+    if (ids.length) {
+      await Promise.all([
+        transferJobs.deleteByIds(ids),
+        transferItems.deleteByJobIds(ids),
+      ]);
+    }
 
-    await Promise.all([
-      TransferJob.deleteMany({ _id: { $in: ids } }),
-      TransferItem.deleteMany({ jobId: { $in: ids } }),
-    ]);
-
-    res.json({ deleted: ids.length });
+    res.json({
+      deleted: ids.length,
+    });
   } catch (err) {
     console.error("Clear completed error:", err);
-    res.status(500).json({ error: "Failed to clear completed jobs" });
+
+    res.status(500).json({
+      error: "Failed to clear completed jobs",
+    });
   }
 };
 

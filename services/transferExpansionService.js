@@ -1,21 +1,25 @@
 const path = require("path");
 const fs = require("fs");
-const TransferItem = require("../models/TransferItem");
-const TransferJob = require("../models/transferJobs");
+const { transferJobs, transferItems } = require("../db");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
 const { connectToSftp } = require("./sftpService");
 const localFileService = require("./localFileService");
-
 const uploadsDir = path.join(__dirname, "../uploads");
 
 // ─── Remote Walking ───────────────────────────────────────────────────────────
 
 /**
  * Recursively walks a remote SFTP directory and returns a flat list of files.
+ *
  * @param {import('ssh2-sftp-client')} sftp
  * @param {string} dirPath - Remote directory path
  * @param {string} destBasePath - Destination base path to compute dest per file
- * @returns {Promise<Array<{ filename, sourcePath, destinationPath, size }>>}
+ * @returns {Promise<Array<{
+ *   filename: string,
+ *   sourcePath: string,
+ *   destinationPath: string,
+ *   size: number
+ * }>>}
  */
 const walkSftpDir = async (sftp, dirPath, destBasePath) => {
   const entries = await sftp.list(dirPath);
@@ -45,9 +49,15 @@ const walkSftpDir = async (sftp, dirPath, destBasePath) => {
 
 /**
  * Recursively walks a local directory and returns a flat list of files.
+ *
  * @param {string} dirPath - Absolute local directory path
  * @param {string} destBasePath - Destination base path to compute dest per file
- * @returns {Array<{ filename, sourcePath, destinationPath, size }>}
+ * @returns {Array<{
+ *   filename: string,
+ *   sourcePath: string,
+ *   destinationPath: string,
+ *   size: number
+ * }>}
  */
 const walkLocalDir = (dirPath, destBasePath) => {
   const { files, folders } = localFileService.listLocalDir(dirPath);
@@ -78,16 +88,18 @@ const walkLocalDir = (dirPath, destBasePath) => {
 // ─── Expansion ────────────────────────────────────────────────────────────────
 
 /**
- * Expands all directory items in a job into individual file items.
- * Directories are walked recursively, file rows inserted, directory rows deleted.
- * File items that are already files are left untouched.
- * Updates totalFiles and totalBytes on the job when done.
+ * Expands all directory items in a transfer job into individual file items.
  *
- * @param {string|import('mongoose').Types.ObjectId} jobId
+ * Directory placeholders are recursively walked, expanded file items are
+ * created, and the original directory placeholder items are removed.
+ *
+ * When expansion is complete, the job's totalFiles and totalBytes values
+ * are recalculated from all file items belonging to the job.
+ *
+ * @param {string} jobId
  */
 const expandJobItems = async (jobId) => {
-  const job = await TransferJob.findById(jobId);
-  const items = await TransferItem.find({ jobId });
+  const items = await transferItems.findByJobId(jobId);
 
   // group directory items by sourceServerId so we open one connection per server
   const dirItems = items.filter((i) => i.kind === ItemKind.DIRECTORY);
@@ -126,8 +138,9 @@ const expandJobItems = async (jobId) => {
           });
         }
 
-        // remove the directory placeholder
-        await TransferItem.deleteOne({ _id: dir._id });
+        // The directory has now been flattened into file items,
+        // so its placeholder is no longer needed.
+        await transferItems.deleteById(dir._id.toString());
       }
     } finally {
       await sftp?.end();
@@ -135,15 +148,15 @@ const expandJobItems = async (jobId) => {
   }
 
   if (newFileItems.length > 0) {
-    await TransferItem.insertMany(newFileItems);
+    await transferItems.createMany(newFileItems);
   }
 
   // recount everything — original file items + newly expanded
-  const allFileItems = await TransferItem.find({ jobId, kind: ItemKind.FILE });
+  const allFileItems = await transferItems.findFilesByJobId(jobId);
   const totalFiles = allFileItems.length;
   const totalBytes = allFileItems.reduce((sum, i) => sum + (i.size || 0), 0);
 
-  await TransferJob.findByIdAndUpdate(jobId, { totalFiles, totalBytes });
+  await transferJobs.updateTotals(jobId, totalFiles, totalBytes);
 };
 
 module.exports = { expandJobItems };

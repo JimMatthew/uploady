@@ -4,12 +4,9 @@ const crypto = require("crypto");
 const { execSync } = require("child_process");
 const archiver = require("archiver");
 const mime = require("mime-types");
-const SharedFile = require("../models/SharedFile");
-const { shares } = require("../db");
+const { shares, transferJobs, transferItems } = require("../db");
 const sftpService = require("../services/sftpService");
 const executor = require("../services/transferExecutor");
-const TransferJob = require("../models/transferJobs");
-const TransferItem = require("../models/TransferItem");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
 const localFileService = require("../services/localFileService");
 
@@ -275,23 +272,32 @@ const delete_file_post = async (req, res, next) => {
   const relativeFilePath = req.params[0];
 
   if (!relativeFilePath) {
-    return next({ message: "Missing file path", status: 400 });
+    return next({
+      message: "Missing file path",
+      status: 400,
+    });
   }
 
   try {
-    const filePath = path.join(uploadsDir, relativeFilePath);
-    await fs.promises.unlink(filePath);
+    const absoluteFilePath = path.join(uploadsDir, relativeFilePath);
 
-    // Clean up any share links pointing to this file
-    await shares.deleteByPath({
-      filePath,
-      fileName: path.basename(filePath),
-    })
+    await fs.promises.unlink(absoluteFilePath);
 
-    res.status(200).json({ message: "File deleted" });
+    await shares.deleteByPath(
+      relativeFilePath,
+      path.basename(relativeFilePath),
+    );
+
+    res.status(200).json({
+      message: "File deleted",
+    });
   } catch (err) {
     console.error("Delete file error:", err);
-    next({ message: "Error deleting file", status: 400 });
+
+    next({
+      message: "Error deleting file",
+      status: 400,
+    });
   }
 };
 
@@ -377,24 +383,28 @@ const paste_files_post = async (req, res, next) => {
   }
 
   try {
-    const job = await TransferJob.create({
-      destServerId: null,  // local destination
+    const job = await transferJobs.create({
+      destServerId: null,
       destPath: newPath,
     });
 
-    await TransferItem.insertMany(
+    await transferItems.createMany(
       files.map((f) => ({
         jobId: job._id,
         sourceServerId: f.serverId ?? null,
         filename: f.file,
         rootItem: f.file,
+
         sourcePath: f.serverId
           ? path.posix.join(f.path, f.file)
           : path.join(uploadsDir, f.path, f.file),
+
         destinationPath: path.join(uploadsDir, newPath, f.file),
+
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
+
         size: f.size ?? 0,
-      }))
+      })),
     );
 
     executor.enqueue(job._id);
@@ -417,9 +427,19 @@ const paste_files_post = async (req, res, next) => {
  * @returns {Promise<boolean>}
  */
 const storeLinkInfo = async (fileName, filePath, link, token) => {
-  const existing = await SharedFile.findOne({ fileName, filePath });
-  if (existing) return false;
-  await shares.create({ fileName, filePath, link, token });
+  const existing = await shares.findByFile(fileName, filePath);
+
+  if (existing) {
+    return false;
+  }
+
+  await shares.create({
+    fileName,
+    filePath,
+    link,
+    token,
+  });
+
   return true;
 };
 
@@ -465,11 +485,11 @@ const generate_share_link_post = async (req, res, next) => {
 const serve_shared_file_get = async (req, res) => {
   const { token, filename } = req.params;
 
-  const sharedFile = await shares.findByToken(token)
-  if (!sharedFile) return res.status(404).send("File not found");
+  const sharedFile = await shares.findByToken(token);
+  if (!sharedFile) return res.status(404).send("File not found by token");
 
   if (sharedFile.isRemote) {
-    const { remotePath, serverId } = sharedFile;
+    const { filePath: remotePath, serverId } = sharedFile;
     if (!serverId || !remotePath) return res.status(404).send("File not found");
 
     // Stream directly from SFTP server to client — file never touches local disk

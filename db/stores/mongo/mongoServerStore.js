@@ -25,6 +25,18 @@ class MongoServerStore extends ServerStore {
   async deleteById(id) {
     return SftpServer.findByIdAndDelete(id);
   }
+
+  async findSummariesByIds(ids) {
+    if (!ids.length) {
+      return [];
+    }
+
+    return SftpServer.find({
+      _id: { $in: ids },
+    })
+      .select("_id host")
+      .lean();
+  }
 }
 
 module.exports = MongoServerStore;
