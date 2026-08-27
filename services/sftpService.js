@@ -67,7 +67,7 @@ const withSftp = async (serverId, fn) => {
     if (sftp) {
       try {
         await sftp.end();
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 };
@@ -260,10 +260,10 @@ const uploadFile = async (serverId, stream, remotePath) => {
 const executeTransferJob = async (job, callbacks = {}) => {
   const {
     shouldStop = () => false,
-    onFileStart = async () => {},
-    onFileProgress = () => {},
-    onFileDone = async () => {},
-    onFileFail = async () => {},
+    onFileStart = async () => { },
+    onFileProgress = () => { },
+    onFileDone = async () => { },
+    onFileFail = async () => { },
   } = callbacks;
 
   const itemsBySource = groupItemsBySource(job.items);
