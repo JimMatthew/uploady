@@ -77,38 +77,6 @@ router.get("/server-stats/:serverId", getServerStatsHandler);
 
 router.post("/api/copy-files", sftpController.sftp_copy_files_post);
 
-router.get(
-  "/api/progress/:transferId",
-  progressController.get_transfer_progress,
-);
-
 router.post("/api/zip-clipboard", authenticateJWT, zipController.zipDownload);
-
-router.get("/api/jobs/:jobId", authenticateJWT, async (req, res) => {
-  const TransferJob = require("../models/transferJobs");
-  const TransferItem = require("../models/TransferItem");
-  const executor = require("../services/transferExecutor");
-
-  const { jobId } = req.params;
-  const job = await TransferJob.findById(jobId);
-  if (!job) return res.status(404).json({ error: "Job not found" });
-
-  const items = await TransferItem.find({ jobId });
-
-  // overlay live state if job is active
-  const liveJob = executor.getJob(jobId);
-  const liveItems = liveJob ? liveJob.items : null;
-
-  res.json({
-    job,
-    items: items.map((item) => {
-      const live = liveItems?.get(item._id.toString());
-      return {
-        ...item.toObject(),
-        percent: live?.percent ?? (item.status === "completed" ? 100 : 0),
-      };
-    }),
-  });
-});
 
 module.exports = router;

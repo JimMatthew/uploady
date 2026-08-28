@@ -340,7 +340,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
 
       clearClipboard();
 
-      const eventSource = new EventSource(`/sftp/api/progress/${jobId}?token=${token}`);
+      const eventSource = new EventSource(`/api/progress/${jobId}?token=${token}`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);

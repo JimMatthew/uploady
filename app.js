@@ -13,6 +13,7 @@ const sshSessionHandler = require("./controllers/ssh_session");
 
 const setupRoutes = require("./routes/route");
 const setupSftpRoutes = require("./routes/sftpRouter");
+const setupJobRoutes = require("./routes/jobRouter");
 
 const {
   login_post,
@@ -60,6 +61,7 @@ app.post("/setup", setup_post);
 app.use(requireSetupComplete);
 
 app.use("/", setupRoutes);
+app.use("/", setupJobRoutes);
 app.use("/sftp", setupSftpRoutes);
 
 // ─── Catch-all ────────────────────────────────────────────────────────────────
