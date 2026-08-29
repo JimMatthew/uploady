@@ -4,6 +4,7 @@ import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
 import FileEdit from "../pages/FileEdit";
 import FileList from "../pages/FileList";
+import ServerInfo from "../pages/ServerInfo";
 import SharedLinks from "../components/SharedLinks";
 import TransfersPage from "../pages/Transfers";
 import { useNavigate } from "react-router-dom";
@@ -91,6 +92,21 @@ export function useSftpList({ toast }) {
     },
     [addTabItem],
   );
+
+  const handleServerInfoLaunch = useCallback(
+  (server) => {
+    addTabItem({
+      label: `${server.host} - Info`,
+      content: (
+        <ServerInfo
+          serverId={server._id}
+          host={server.host}
+        />
+      ),
+    });
+  },
+  [addTabItem],
+);
 
   const handleNewServer = useCallback(() => {
     addTabItem({
@@ -224,6 +240,7 @@ export function useSftpList({ toast }) {
     handleLocalTab,
     handleSharedLinks,
     deleteServer,
-    handleTransfers
+    handleTransfers, 
+    handleServerInfoLaunch,
   };
 }

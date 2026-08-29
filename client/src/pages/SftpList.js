@@ -22,8 +22,9 @@ const SFTPApp = ({ toast }) => {
     serverStatuses,
     closeTab,
     handleNewServer,
-    handleSshLaunch,
+    handleSshLaunch,h,
     deleteServer,
+    handleServerInfoLaunch,
     handleConnect,
     handleLocalTab,
     activeTabIndex,
@@ -138,6 +139,7 @@ const SFTPApp = ({ toast }) => {
               handleLocalTab={handleLocalTab}
               handleNewServer={handleNewServer}
               handleSshLaunch={handleSshLaunch}
+              handleServerInfoLaunch={handleServerInfoLaunch}
               handleSharedLinks={handleSharedLinks}
               handleTransfers={handleTransfers}
               deleteServer={deleteServer}

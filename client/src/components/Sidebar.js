@@ -57,6 +57,7 @@ const Sidebar = memo(function Sidebar({
   handleLocalTab,
   handleNewServer,
   handleSshLaunch,
+  handleServerInfoLaunch,
   handleSharedLinks,
   handleTransfers,
   deleteServer,
@@ -147,6 +148,9 @@ const Sidebar = memo(function Sidebar({
               serverStatuses={serverStatuses}
               handleConnect={() => handleConnect(server)}
               handleSshLaunch={() => handleSshLaunch(server)}
+              handleServerInfoLaunch={() =>
+    handleServerInfoLaunch(server)
+  }
               deleteServer={() => deleteServer(server._id)}
             />
           ))
