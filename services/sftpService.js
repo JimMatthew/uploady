@@ -66,7 +66,7 @@ const withSftp = async (serverId, fn) => {
     if (sftp) {
       try {
         await sftp.end();
-      } catch (_) { }
+      } catch (_) {}
     }
   }
 };
@@ -267,10 +267,10 @@ const uploadFile = async (serverId, stream, remotePath) => {
 const executeTransferJob = async (job, callbacks = {}) => {
   const {
     shouldStop = () => false,
-    onFileStart = async () => { },
-    onFileProgress = () => { },
-    onFileDone = async () => { },
-    onFileFail = async () => { },
+    onFileStart = async () => {},
+    onFileProgress = () => {},
+    onFileDone = async () => {},
+    onFileFail = async () => {},
   } = callbacks;
 
   /**
@@ -293,7 +293,7 @@ const executeTransferJob = async (job, callbacks = {}) => {
       items,
       job.destServerId,
       callbacks,
-      context
+      context,
     );
   }
 };
@@ -325,7 +325,6 @@ const groupItemsBySource = (itemsMap) => {
   return groups;
 };
 
-
 // ─── Source Group Execution ───────────────────────────────────────────────────
 
 /**
@@ -352,13 +351,8 @@ const executeSourceGroup = async (
   callbacks,
   context,
 ) => {
-  const { 
-    shouldStop, 
-    onFileStart, 
-    onFileProgress, 
-    onFileDone, 
-    onFileFail 
-  } = callbacks;
+  const { shouldStop, onFileStart, onFileProgress, onFileDone, onFileFail } =
+    callbacks;
 
   const { sftpSource, sftpDest } = await openConnections(
     sourceServerId,
@@ -371,12 +365,12 @@ const executeSourceGroup = async (
 
       await executeItem(
         item,
-        { 
-          sourceServerId, 
-          destServerId, 
-          sftpSource, 
+        {
+          sourceServerId,
+          destServerId,
+          sftpSource,
           sftpDest,
-          context, 
+          context,
         },
         callbacks,
       );
@@ -402,21 +396,14 @@ const executeSourceGroup = async (
  *   sftpDest: import("ssh2-sftp-client")|null
  * }>}
  */
-const openConnections = async (
-  sourceServerId,
-  destServerId,
-) => {
+const openConnections = async (sourceServerId, destServerId) => {
   const isLocalSource = sourceServerId === "null";
   const isLocalDest = !destServerId;
 
   const isSameServer =
-    !isLocalSource &&
-    !isLocalDest &&
-    sourceServerId === destServerId;
+    !isLocalSource && !isLocalDest && sourceServerId === destServerId;
 
-  const sftpSource = isLocalSource
-    ? null
-    : await connectToSftp(sourceServerId);
+  const sftpSource = isLocalSource ? null : await connectToSftp(sourceServerId);
 
   let sftpDest = null;
 
@@ -532,14 +519,16 @@ const transferSingleFile = async ({
   context,
   onProgress,
 }) => {
-  return dispatch(item, 
-    { 
-      sftpSource, 
-      sftpDest, 
+  return dispatch(
+    item,
+    {
+      sftpSource,
+      sftpDest,
       destServerId,
-      context, 
-    }, 
-    onProgress);
+      context,
+    },
+    onProgress,
+  );
 };
 
 /**
