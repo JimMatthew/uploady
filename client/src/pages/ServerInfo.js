@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Flex,
-  Text,
-  Icon,
-  Progress,
-  Button
-} from "@chakra-ui/react";
+import { Box, Flex, Text, Icon, Progress, Button } from "@chakra-ui/react";
 import {
   FiServer,
   FiHardDrive,
@@ -22,9 +15,7 @@ import {
 const formatBytes = (gb) => {
   if (gb === undefined || gb === null) return "—";
 
-  return gb >= 1
-    ? `${gb.toFixed(1)} GB`
-    : `${(gb * 1024).toFixed(0)} MB`;
+  return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(gb * 1024).toFixed(0)} MB`;
 };
 
 const formatUptime = (seconds) => {
@@ -45,10 +36,7 @@ const getStateGroup = (service) => {
     return "failed";
   }
 
-  if (
-    service.state === "active" &&
-    service.status === "running"
-  ) {
+  if (service.state === "active" && service.status === "running") {
     return "running";
   }
 
@@ -64,10 +52,7 @@ const getStateLabel = (service) => {
     return "Failed";
   }
 
-  if (
-    service.state === "active" &&
-    service.status === "running"
-  ) {
+  if (service.state === "active" && service.status === "running") {
     return "Running";
   }
 
@@ -87,10 +72,7 @@ const getStateColor = (service) => {
     return "#EF4444";
   }
 
-  if (
-    service.state === "active" &&
-    service.status === "running"
-  ) {
+  if (service.state === "active" && service.status === "running") {
     return "#22C55E";
   }
 
@@ -105,12 +87,7 @@ const getStateColor = (service) => {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const StatCard = ({
-  icon,
-  label,
-  value,
-  children,
-}) => (
+const StatCard = ({ icon, label, value, children }) => (
   <Box
     p={4}
     bg="rgba(255,255,255,0.02)"
@@ -118,11 +95,7 @@ const StatCard = ({
     borderRadius="10px"
   >
     <Flex align="center" gap={2} mb={3}>
-      <Icon
-        as={icon}
-        boxSize="13px"
-        color="rgba(99,102,241,0.75)"
-      />
+      <Icon as={icon} boxSize="13px" color="rgba(99,102,241,0.75)" />
 
       <Text
         fontSize="11px"
@@ -148,10 +121,7 @@ const StatCard = ({
   </Box>
 );
 
-const DiskUsage = ({
-  used,
-  total,
-}) => {
+const DiskUsage = ({ used, total }) => {
   if (
     used === undefined ||
     used === null ||
@@ -170,20 +140,11 @@ const DiskUsage = ({
   }
 
   const pct = Math.round((used / total) * 100);
-  const color =
-    pct > 90
-      ? "#EF4444"
-      : pct > 70
-        ? "#F59E0B"
-        : "#22C55E";
+  const color = pct > 90 ? "#EF4444" : pct > 70 ? "#F59E0B" : "#22C55E";
 
   return (
     <Box>
-      <Flex
-        align="baseline"
-        justify="space-between"
-        mb={2}
-      >
+      <Flex align="baseline" justify="space-between" mb={2}>
         <Text
           fontSize="18px"
           fontWeight={600}
@@ -243,26 +204,13 @@ const ServiceRow = ({ service }) => (
         {service.name}
       </Text>
 
-      <Text
-        fontSize="11px"
-        color="rgba(255,255,255,0.3)"
-        mt="2px"
-      >
+      <Text fontSize="11px" color="rgba(255,255,255,0.3)" mt="2px">
         {service.description}
       </Text>
     </Box>
 
-    <Flex
-      align="center"
-      gap={2}
-      flexShrink={0}
-    >
-      <Box
-        w="6px"
-        h="6px"
-        borderRadius="full"
-        bg={getStateColor(service)}
-      />
+    <Flex align="center" gap={2} flexShrink={0}>
+      <Box w="6px" h="6px" borderRadius="full" bg={getStateColor(service)} />
 
       <Text
         fontSize="11px"
@@ -280,32 +228,17 @@ const ServiceRow = ({ service }) => (
 // Component
 // ---------------------------------------------------------------------------
 
-const ServerInfo = ({
-  serverId,
-  host,
-}) => {
+const ServerInfo = ({ serverId, host }) => {
   const [stats, setStats] = useState(null);
-  const [statsLoading, setStatsLoading] =
-    useState(true);
-  const [statsUnavailable, setStatsUnavailable] =
-    useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsUnavailable, setStatsUnavailable] = useState(false);
 
-  const [serviceData, setServiceData] =
-    useState(null);
-  const [servicesLoading, setServicesLoading] =
-    useState(true);
-  const [
-    servicesUnavailable,
-    setServicesUnavailable,
-  ] = useState(false);
+  const [serviceData, setServiceData] = useState(null);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesUnavailable, setServicesUnavailable] = useState(false);
 
   const [visibleStates, setVisibleStates] = useState(
-    new Set([
-      "running",
-      "active",
-      "inactive",
-      "failed",
-    ]),
+    new Set(["running", "active", "inactive", "failed"]),
   );
 
   const toggleState = (state) => {
@@ -327,26 +260,25 @@ const ServerInfo = ({
       visibleStates.has(getStateGroup(service)),
     ) ?? [];
 
-  const serviceCounts =
-    serviceData?.services?.reduce(
-      (counts, service) => {
-        const state = getStateGroup(service);
+  const serviceCounts = serviceData?.services?.reduce(
+    (counts, service) => {
+      const state = getStateGroup(service);
 
-        counts[state]++;
-        return counts;
-      },
-      {
-        running: 0,
-        active: 0,
-        inactive: 0,
-        failed: 0,
-      },
-    ) ?? {
+      counts[state]++;
+      return counts;
+    },
+    {
       running: 0,
       active: 0,
       inactive: 0,
       failed: 0,
-    };
+    },
+  ) ?? {
+    running: 0,
+    active: 0,
+    inactive: 0,
+    failed: 0,
+  };
   useEffect(() => {
     let cancelled = false;
 
@@ -355,20 +287,14 @@ const ServerInfo = ({
       setStatsUnavailable(false);
 
       try {
-        const response = await fetch(
-          `/sftp/server-stats/${serverId}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${localStorage.getItem("token")}`,
-            },
+        const response = await fetch(`/sftp/server-stats/${serverId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        );
+        });
 
         if (!response.ok) {
-          throw new Error(
-            "Failed to load server stats",
-          );
+          throw new Error("Failed to load server stats");
         }
 
         const data = await response.json();
@@ -378,10 +304,7 @@ const ServerInfo = ({
         }
       } catch (err) {
         if (!cancelled) {
-          console.error(
-            "Failed to load server stats:",
-            err,
-          );
+          console.error("Failed to load server stats:", err);
 
           setStatsUnavailable(true);
         }
@@ -397,20 +320,14 @@ const ServerInfo = ({
       setServicesUnavailable(false);
 
       try {
-        const response = await fetch(
-          `/sftp/server-services/${serverId}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${localStorage.getItem("token")}`,
-            },
+        const response = await fetch(`/sftp/server-services/${serverId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        );
+        });
 
         if (!response.ok) {
-          throw new Error(
-            "Failed to load server services",
-          );
+          throw new Error("Failed to load server services");
         }
 
         const data = await response.json();
@@ -420,10 +337,7 @@ const ServerInfo = ({
         }
       } catch (err) {
         if (!cancelled) {
-          console.error(
-            "Failed to load server services:",
-            err,
-          );
+          console.error("Failed to load server services:", err);
 
           setServicesUnavailable(true);
         }
@@ -443,20 +357,9 @@ const ServerInfo = ({
   }, [serverId]);
 
   return (
-    <Box
-      maxW="900px"
-      w="100%"
-      mx="auto"
-      px={6}
-      pb={6}
-    >
+    <Box maxW="900px" w="100%" mx="auto" px={6} pb={6}>
       {/* Header */}
-      <Flex
-        align="center"
-        gap={3}
-        mb={5}
-        pt={4}
-      >
+      <Flex align="center" gap={3} mb={5} pt={4}>
         <Box
           w="36px"
           h="36px"
@@ -468,11 +371,7 @@ const ServerInfo = ({
           justifyContent="center"
           flexShrink={0}
         >
-          <Icon
-            as={FiServer}
-            boxSize="16px"
-            color="#818CF8"
-          />
+          <Icon as={FiServer} boxSize="16px" color="#818CF8" />
         </Box>
 
         <Box>
@@ -486,11 +385,7 @@ const ServerInfo = ({
             {host}
           </Text>
 
-          <Text
-            fontSize="12px"
-            color="rgba(255,255,255,0.28)"
-            mt="1px"
-          >
+          <Text fontSize="12px" color="rgba(255,255,255,0.28)" mt="1px">
             Server information
           </Text>
         </Box>
@@ -542,8 +437,7 @@ const ServerInfo = ({
             icon={FiCpu}
             label="CPU"
             value={
-              stats.cpu !== undefined &&
-                stats.cpu !== null
+              stats.cpu !== undefined && stats.cpu !== null
                 ? `${stats.cpu}%`
                 : "—"
             }
@@ -553,8 +447,7 @@ const ServerInfo = ({
             icon={FiActivity}
             label="Memory"
             value={
-              stats.memory !== undefined &&
-                stats.memory !== null
+              stats.memory !== undefined && stats.memory !== null
                 ? `${stats.memory}%`
                 : "—"
             }
@@ -563,30 +456,18 @@ const ServerInfo = ({
           <StatCard
             icon={FiClock}
             label="Uptime"
-            value={formatUptime(
-              stats.uptimeSeconds,
-            )}
+            value={formatUptime(stats.uptimeSeconds)}
           />
 
-          <StatCard
-            icon={FiHardDrive}
-            label="Disk"
-          >
-            <DiskUsage
-              used={stats.disk?.usedGb}
-              total={stats.disk?.totalGb}
-            />
+          <StatCard icon={FiHardDrive} label="Disk">
+            <DiskUsage used={stats.disk?.usedGb} total={stats.disk?.totalGb} />
           </StatCard>
         </Box>
       )}
 
       {/* Services */}
       <Box mt={6}>
-        <Flex
-          align="center"
-          justify="space-between"
-          mb={3}
-        >
+        <Flex align="center" justify="space-between" mb={3}>
           <Text
             fontSize="11px"
             fontWeight={600}
@@ -596,11 +477,7 @@ const ServerInfo = ({
           >
             Services
           </Text>
-          <Flex
-            gap={2}
-            mb={3}
-            flexWrap="wrap"
-          >
+          <Flex gap={2} mb={3} flexWrap="wrap">
             {[
               {
                 key: "running",
@@ -619,8 +496,7 @@ const ServerInfo = ({
                 label: "Failed",
               },
             ].map(({ key, label }) => {
-              const selected =
-                visibleStates.has(key);
+              const selected = visibleStates.has(key);
 
               return (
                 <Button
@@ -703,8 +579,7 @@ const ServerInfo = ({
                 color="rgba(255,255,255,0.3)"
                 fontFamily="'JetBrains Mono', monospace"
               >
-                Service management is not supported
-                on this server
+                Service management is not supported on this server
               </Text>
             </Box>
           ) : !serviceData?.services?.length ? (
@@ -729,10 +604,7 @@ const ServerInfo = ({
             </Box>
           ) : (
             filteredServices.map((service) => (
-              <ServiceRow
-                key={service.name}
-                service={service}
-              />
+              <ServiceRow key={service.name} service={service} />
             ))
           )}
         </Box>
