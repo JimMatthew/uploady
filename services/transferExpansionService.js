@@ -101,22 +101,27 @@ const walkLocalDir = (dirPath, destBasePath) => {
 const expandJobItems = async (jobId) => {
   const items = await transferItems.findByJobId(jobId);
 
-  // group directory items by sourceServerId so we open one connection per server
-  const dirItems = items.filter((i) => i.kind === ItemKind.DIRECTORY);
-  const fileItems = items.filter((i) => i.kind === ItemKind.FILE);
+  // Group directory items by source so each remote source
+  // requires only one SFTP connection during expansion.
+  const dirItems = items.filter((item) => item.kind === ItemKind.DIRECTORY);
 
-  // group dirs by sourceServerId
-  const grouped = dirItems.reduce((acc, item) => {
-    const key = item.sourceServerId ?? "null";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
+  const grouped = new Map();
+
+  for (const item of dirItems) {
+    const sourceServerId = item.sourceServerId ?? null;
+
+    if (!grouped.has(sourceServerId)) {
+      grouped.set(sourceServerId, []);
+    }
+
+    grouped.get(sourceServerId).push(item);
+  }
 
   const newFileItems = [];
 
-  for (const [sourceServerId, dirs] of Object.entries(grouped)) {
-    const isLocal = sourceServerId === "null";
+  for (const [sourceServerId, dirs] of grouped) {
+    const isLocal = sourceServerId === null;
+    
     const sftp = isLocal ? null : await connectToSftp(sourceServerId);
 
     try {
@@ -125,20 +130,20 @@ const expandJobItems = async (jobId) => {
           ? walkLocalDir(dir.sourcePath, dir.destinationPath)
           : await walkSftpDir(sftp, dir.sourcePath, dir.destinationPath);
 
-        for (const f of walked) {
+        for (const file of walked) {
           newFileItems.push({
             jobId,
-            sourceServerId: isLocal ? null : sourceServerId,
-            filename: f.filename,
+            sourceServerId,
+            filename: file.filename,
             rootItem: dir.rootItem,
-            sourcePath: f.sourcePath,
-            destinationPath: f.destinationPath,
-            size: f.size,
+            sourcePath: file.sourcePath,
+            destinationPath: file.destinationPath,
+            size: file.size,
             kind: ItemKind.FILE,
           });
         }
 
-        // The directory has now been flattened into file items,
+        // The directory has been flattened into concrete file items,
         // so its placeholder is no longer needed.
         await transferItems.deleteById(dir._id.toString());
       }
@@ -151,10 +156,13 @@ const expandJobItems = async (jobId) => {
     await transferItems.createMany(newFileItems);
   }
 
-  // recount everything — original file items + newly expanded
   const allFileItems = await transferItems.findFilesByJobId(jobId);
+
   const totalFiles = allFileItems.length;
-  const totalBytes = allFileItems.reduce((sum, i) => sum + (i.size || 0), 0);
+  const totalBytes = allFileItems.reduce(
+    (sum, item) => sum + (item.size || 0),
+    0,
+  );
 
   await transferJobs.updateTotals(jobId, totalFiles, totalBytes);
 };

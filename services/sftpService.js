@@ -313,7 +313,7 @@ const groupItemsBySource = (itemsMap) => {
   const groups = new Map();
 
   for (const item of itemsMap.values()) {
-    const key = item.sourceServerId ?? "null";
+    const key = item.sourceServerId ?? null;
 
     if (!groups.has(key)) {
       groups.set(key, []);
@@ -397,7 +397,7 @@ const executeSourceGroup = async (
  * }>}
  */
 const openConnections = async (sourceServerId, destServerId) => {
-  const isLocalSource = sourceServerId === "null";
+  const isLocalSource = sourceServerId === null;
   const isLocalDest = !destServerId;
 
   const isSameServer =

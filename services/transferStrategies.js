@@ -307,21 +307,18 @@ const STRATEGIES = {
  * @returns {{ key: string, label: string }} Strategy key and human readable label
  */
 const selectStrategy = (sourceServerId, destServerId) => {
-  const isLocalSource = sourceServerId === "null";
-  const isLocalDest = !destServerId;
-  const isSameServer =
-    !isLocalSource && !isLocalDest && sourceServerId === destServerId;
+  const isLocalSource = sourceServerId === null;
+  const isLocalDest = destServerId === null;
 
-  if (isLocalSource && isLocalDest)
-    return { key: "localToLocal", label: "local → local" };
-  if (isLocalSource) return { key: "localToSftp", label: "local → sftp" };
-  if (isLocalDest) return { key: "sftpToLocal", label: "sftp → local" };
-  if (isSameServer)
-    return { key: "sftpSameServer", label: "sftp → sftp (same server)" };
-  return {
-    key: "sftpCrossServer",
-    label: "sftp → sftp (cross server)",
-  };
+  if (isLocalSource) {
+    return isLocalDest ? "localToLocal" : "localToSftp";
+  }
+
+  if (isLocalDest) {
+    return "sftpToLocal";
+  }
+
+  return sourceServerId === destServerId ? "sftpSameServer" : "sftpCrossServer";
 };
 
 /**
@@ -353,10 +350,10 @@ const selectStrategy = (sourceServerId, destServerId) => {
  * @throws {Error} If no strategy exists for the source/destination pair
  */
 const dispatch = async (item, connections, onProgress) => {
-  const { key, label } = selectStrategy(
-    item.sourceServerId ?? "null",
-    connections.destServerId,
-  );
+ const key = selectStrategy(
+  item.sourceServerId,
+  execution.destServerId,
+);
 
   const strategy = STRATEGIES[key];
 
