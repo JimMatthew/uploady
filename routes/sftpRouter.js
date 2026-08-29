@@ -3,7 +3,7 @@ const sftpController = require("../controllers/sftpController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const { getServerStatsHandler } = require("../services/serverStatsService");
 const zipController = require("../controllers/zipController");
-
+const { getServerServices } = require("../controllers/serviceManagerController")
 const router = express.Router();
 
 router.get("/api/", authenticateJWT, sftpController.sftp_get_servers_get);
@@ -73,6 +73,8 @@ router.post(
 router.get("/server-status/:serverId", sftpController.sftp_server_status_get);
 
 router.get("/server-stats/:serverId", getServerStatsHandler);
+
+router.get("/server-services/:serverId", getServerServices)
 
 router.post("/api/copy-files", sftpController.sftp_copy_files_post);
 
