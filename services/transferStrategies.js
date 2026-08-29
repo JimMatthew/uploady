@@ -32,11 +32,52 @@ const trackProgress = (totalSize, onProgress) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ensureLocalDir = (filePath) =>
-  fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+/**
+ * Ensures the parent directory for a local destination exists.
+ *
+ * Successfully ensured directories are cached for the current job. A path is
+ * added only after mkdir succeeds, so failed attempts may be retried.
+ *
+ * @param {string} filePath
+ * @param {Set<string>} cache
+ * @returns {Promise<void>}
+ */
+const ensureLocalDir = async (filePath, cache) => {
+  const dir = path.dirname(filePath);
 
-const ensureRemoteDir = (sftp, filePath) =>
-  sftp.mkdir(path.posix.dirname(filePath), true).catch(() => {});
+  if (cache.has(dir)) {
+    return;
+  }
+
+  await fs.promises.mkdir(dir, {
+    recursive: true,
+  });
+
+  cache.add(dir);
+};
+
+/**
+ * Ensures the parent directory for a remote destination exists.
+ *
+ * The cache is job-scoped, and each job has only one destination endpoint,
+ * so the remote directory path itself is sufficient as the cache key.
+ *
+ * @param {import("ssh2-sftp-client")} sftp
+ * @param {string} filePath
+ * @param {Set<string>} cache
+ * @returns {Promise<void>}
+ */
+const ensureRemoteDir = async (sftp, filePath, cache) => {
+  const dir = path.posix.dirname(filePath);
+
+  if (cache.has(dir)) {
+    return;
+  }
+
+  await sftp.mkdir(dir, true);
+
+  cache.add(dir);
+};
 
 // ─── Strategies ───────────────────────────────────────────────────────────────
 
@@ -44,23 +85,23 @@ const ensureRemoteDir = (sftp, filePath) =>
  * local → local
  *
  * Copies a file within Node's local filesystem using a PassThrough stream
- * for byte-level progress tracking. Both source and destination are absolute
- * paths within the uploads directory on the Node server.
+ * for byte-level progress tracking.
  *
- * Note: For truly large local files, fs.copyFile() using kernel-space sendfile
- * would be faster. The PassThrough approach is used here for progress visibility,
- * though large local copies are not a primary use case for this tool.
+ * The destination directory is created lazily and cached for the lifetime
+ * of the job so subsequent files targeting the same directory avoid
+ * redundant mkdir calls.
  *
  * @param {object} item
  * @param {string} item.sourcePath - Absolute local source path
  * @param {string} item.destinationPath - Absolute local destination path
- * @param {object} _connections - Unused for local transfers
+ * @param {object} execution
+ * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
-const localToLocal = async (item, _connections, onProgress) => {
+const localToLocal = async (item, { context }, onProgress) => {
   const stat = await fs.promises.stat(item.sourcePath);
-  await ensureLocalDir(item.destinationPath);
+  await ensureLocalDir(item.destinationPath, context.localDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -79,20 +120,25 @@ const localToLocal = async (item, _connections, onProgress) => {
 /**
  * local → sftp
  *
- * Reads a file from Node's local disk and streams it to a remote SFTP server.
- * A PassThrough sits between the read and write streams so bytes can be
- * counted as they flow without buffering the file in memory.
+ * Streams a local file to a remote SFTP destination. A PassThrough stream
+ * tracks byte-level progress without buffering the entire file in memory.
+ *
+ * Remote destination directories are created lazily and cached for the
+ * lifetime of the job.
+ *
  * @param {object} item
  * @param {string} item.sourcePath - Absolute local source path
  * @param {string} item.destinationPath - Full remote destination path
- * @param {string} item.filename - Display name used for logging
- * @param {{ sftpDest: import('ssh2-sftp-client') }} connections
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")} execution.sftpDest
+ * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
-const localToSftp = async (item, { sftpDest }, onProgress) => {
+const localToSftp = async (item, { sftpDest, context }, onProgress) => {
   const stat = await fs.promises.stat(item.sourcePath);
-  await ensureRemoteDir(sftpDest, item.destinationPath);
+
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.remoteDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -112,25 +158,28 @@ const localToSftp = async (item, { sftpDest }, onProgress) => {
 /**
  * sftp → local
  *
- * Streams a file from a remote SFTP server to Node's local disk.
+ * Streams a remote file to the local filesystem.
  *
- * sftp.get() is intentionally NOT awaited. Awaiting it causes the entire file
- * to be buffered in memory before resolving — for large files this is a
- * serious memory problem. Without await, chunks flow immediately from the
- * server into the PassThrough as they arrive, keeping memory usage flat
- * regardless of file size. Errors from get() are forwarded by destroying
- * the PassThrough, which propagates to the write stream and rejects the promise.
+ * sftp.get() is intentionally not awaited. Awaiting it would allow the
+ * client to buffer the file before resolving; instead, data is written into
+ * the PassThrough as it arrives so memory usage remains bounded. Errors from
+ * get() are forwarded by destroying the stream.
+ *
+ * Local destination directories are created lazily and cached for the
+ * lifetime of the job.
  *
  * @param {object} item
  * @param {string} item.sourcePath - Full remote source path
  * @param {string} item.destinationPath - Absolute local destination path
- * @param {{ sftpSource: import('ssh2-sftp-client') }} connections
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")} execution.sftpSource
+ * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
-const sftpToLocal = async (item, { sftpSource }, onProgress) => {
+const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
   const stat = await sftpSource.stat(item.sourcePath);
-  await ensureLocalDir(item.destinationPath);
+  await ensureLocalDir(item.destinationPath, context.localDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -150,36 +199,37 @@ const sftpToLocal = async (item, { sftpSource }, onProgress) => {
 };
 
 /**
- * sftp → sftp (cross server, streamed through Node)
+ * sftp → sftp (cross server)
  *
- * Streams a file from one SFTP server through Node to another.
- * This is the core broker pattern of this system — neither server needs
- * to know about or have network access to the other. Node is the pipe.
+ * Streams a file from one remote server through Node to another. The source
+ * and destination servers do not require direct connectivity to each other.
  *
- * get() and put() run concurrently via Promise.all because they must —
- * get() feeds data into the PassThrough that put() consumes. Running them
- * sequentially would deadlock: get() would wait for put() to drain a buffer
- * that put() never starts filling.
+ * get() and put() run concurrently because they operate on opposite ends of
+ * the same PassThrough stream. If either side fails, the stream is destroyed
+ * so the other operation is not left waiting indefinitely.
  *
- * If either side errors, the PassThrough is destroyed to unblock the other,
- * preventing the operation from hanging indefinitely.
- *
- * Both source and destination connections are opened by the caller
- * (openConnections in sftpService) and shared across all files in the
- * group — this avoids reconnecting per file for multi-file transfers
- * from the same source server.
+ * Remote destination directories are created lazily and cached for the
+ * lifetime of the job.
  *
  * @param {object} item
- * @param {string} item.sourcePath - Full remote path on source server
- * @param {string} item.destinationPath - Full remote path on destination server
- * @param {string} item.filename - Display name used for logging
- * @param {{ sftpSource: import('ssh2-sftp-client'), sftpDest: import('ssh2-sftp-client') }} connections
+ * @param {string} item.sourcePath - Full remote source path
+ * @param {string} item.destinationPath - Full remote destination path
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")} execution.sftpSource
+ * @param {import("ssh2-sftp-client")} execution.sftpDest
+ * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
-const sftpCrossServer = async (item, { sftpSource, sftpDest }, onProgress) => {
+const sftpCrossServer = async (
+  item,
+  { sftpSource, sftpDest, context },
+  onProgress,
+) => {
   const { size } = await sftpSource.stat(item.sourcePath);
-  await ensureRemoteDir(sftpDest, item.destinationPath);
+
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.remoteDirs);
+
   const passthrough = new PassThrough();
   const track = trackProgress(size, onProgress);
   passthrough.on("data", track);
@@ -198,33 +248,31 @@ const sftpCrossServer = async (item, { sftpSource, sftpDest }, onProgress) => {
 };
 
 /**
- * sftp → sftp (same server, server-side copy)
+ * sftp → sftp (same server)
  *
- * Executes a server-side copy via rcopy. No data flows through Node —
- * the copy happens entirely on the remote server using its own filesystem,
- * making this the fastest and most efficient strategy for same-server transfers.
+ * Performs a server-side copy using rcopy, so file data never passes through
+ * Node. Because rcopy does not expose byte-level progress, progress is
+ * reported only after the copy completes.
  *
- * The tradeoff is that byte-level progress is not available — rcopy is a
- * single blocking operation that returns only on completion. onProgress is
- * called once at 100% when the operation completes.
- *
- * For large same-server transfers where progress visibility matters,
- * a future sftpSameServerRsync strategy could exec rsync over SSH,
- * keeping data on the box while providing real progress via stdout parsing.
+ * Remote destination directories are created lazily and cached for the
+ * lifetime of the job.
  *
  * @param {object} item
  * @param {string} item.sourcePath - Full remote source path
  * @param {string} item.destinationPath - Full remote destination path
- * @param {number} item.size - Known from expansion phase
- * @param {{ sftpSource: import('ssh2-sftp-client') }} connections
+ * @param {number} item.size - Size discovered during expansion
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")} execution.sftpSource
+ * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
- * @returns {Promise<number>} File size (as known from expansion, not re-statted)
+ * @returns {Promise<number>} Known file size in bytes
  */
-const sftpSameServer = async (item, { sftpSource }, onProgress) => {
-  await ensureRemoteDir(sftpSource, item.destinationPath);
-  
+const sftpSameServer = async (item, { sftpSource, context }, onProgress) => {
+  await ensureRemoteDir(sftpSource, item.destinationPath, context.remoteDirs);
+
   await sftpSource.rcopy(item.sourcePath, item.destinationPath);
   onProgress(100);
+
   return item.size;
 };
 
@@ -277,40 +325,43 @@ const selectStrategy = (sourceServerId, destServerId) => {
 };
 
 /**
- * Dispatches a single file transfer to the correct strategy.
+ * Dispatches a file to the transfer strategy matching its source and
+ * destination endpoints.
  *
- * This is the sole public interface of this module. The caller provides
- * the item and open connections; the dispatcher selects and executes the
- * appropriate strategy transparently. The caller never needs to know or
- * care which strategy ran — the result and progress callback contract
- * are identical regardless of strategy.
+ * The execution object contains the open SFTP connections for the current
+ * source group plus job-scoped state such as destination-directory caches.
  *
- * @param {object} item - In-memory transfer item from the executor
- * @param {string|null} item.sourceServerId - Server ID or null for local
- * @param {string}      item.sourcePath     - Full source path
- * @param {string}      item.destinationPath - Full destination path
- * @param {string}      item.filename       - Display name
- * @param {number}      item.size           - Known size (may be 0 if not yet statted)
+ * @param {object} item - In-memory transfer item
+ * @param {string|null} item.sourceServerId - Source server, or null for local
+ * @param {string} item.sourcePath
+ * @param {string} item.destinationPath
+ * @param {string} item.filename
+ * @param {number} item.size
  *
- * @param {object}      connections         - Open connections for this source group
- * @param {import('ssh2-sftp-client')|null} connections.sftpSource - null if local source
- * @param {import('ssh2-sftp-client')|null} connections.sftpDest   - null if local dest
- * @param {string|null} connections.destServerId                    - null if local dest
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")|null} execution.sftpSource
+ * @param {import("ssh2-sftp-client")|null} execution.sftpDest
+ * @param {string|null} execution.destServerId
+ * @param {{
+ *   localDirs: Set<string>,
+ *   remoteDirs: Set<string>
+ * }} execution.context
  *
- * @param {(percent: number) => void} onProgress - Called with 0–100 as bytes flow
+ * @param {(percent: number) => void} onProgress
+ * @returns {Promise<number>} Actual transferred file size in bytes
  *
- * @returns {Promise<number>} Actual file size in bytes discovered during transfer.
- *                            Callers should update item.size with this value.
- *
- * @throws {Error} If no strategy exists for the source/dest combination (should never happen)
+ * @throws {Error} If no strategy exists for the source/destination pair
  */
 const dispatch = async (item, connections, onProgress) => {
   const { key, label } = selectStrategy(
     item.sourceServerId ?? "null",
     connections.destServerId,
   );
+
   const strategy = STRATEGIES[key];
+
   if (!strategy) throw new Error(`No strategy found for: ${label}`);
+
   return strategy(item, connections, onProgress);
 };
 

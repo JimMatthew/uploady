@@ -241,20 +241,28 @@ const uploadFile = async (serverId, stream, remotePath) => {
 };
 
 /**
- * Executes a transfer job as a flat iteration of file items.
+ * Executes all file items belonging to a transfer job.
  *
- * Items are pre-expanded by the expansion phase — every item is a concrete
- * file with a known source and destination path. Items are grouped by source
- * server so each server requires only one connection regardless of how many
- * files originate from it.
+ * Items have already been expanded into concrete files before reaching this
+ * stage. They are grouped by source so each source server requires only one
+ * connection at a time.
  *
- * @param {object} job - In-memory job object from the executor
+ * A small execution context is shared for the lifetime of the job. Directory
+ * caches prevent repeated mkdir calls while still creating directories lazily
+ * as files are actually transferred.
+ *
+ * @param {object} job - In-memory job maintained by the transfer executor
+ * @param {Map<string, object>} job.items - Transfer items keyed by item ID
+ * @param {string|null} job.destServerId - Destination server, or null for local
+ *
  * @param {object} callbacks
- * @param {() => boolean}                          callbacks.shouldStop
- * @param {(item: object) => Promise<void>}        callbacks.onFileStart
+ * @param {() => boolean} callbacks.shouldStop
+ * @param {(item: object) => Promise<void>} callbacks.onFileStart
  * @param {(item: object, percent: number) => void} callbacks.onFileProgress
- * @param {(item: object) => Promise<void>}        callbacks.onFileDone
+ * @param {(item: object) => Promise<void>} callbacks.onFileDone
  * @param {(item: object, err: Error) => Promise<void>} callbacks.onFileFail
+ *
+ * @returns {Promise<void>}
  */
 const executeTransferJob = async (job, callbacks = {}) => {
   const {
@@ -265,15 +273,27 @@ const executeTransferJob = async (job, callbacks = {}) => {
     onFileFail = async () => { },
   } = callbacks;
 
+  /**
+   * Ephemeral state shared by every file in this job.
+   *
+   * Connections are opened and closed per source group, but these caches live
+   * for the entire job so a destination directory is ensured at most once.
+   */
+  const context = {
+    localDirs: new Set(),
+    remoteDirs: new Set(),
+  };
   const itemsBySource = groupItemsBySource(job.items);
 
   for (const [sourceServerId, items] of itemsBySource) {
     if (shouldStop()) break;
+
     await executeSourceGroup(
       sourceServerId,
       items,
       job.destServerId,
       callbacks,
+      context
     );
   }
 };
@@ -281,33 +301,65 @@ const executeTransferJob = async (job, callbacks = {}) => {
 // ─── Grouping ─────────────────────────────────────────────────────────────────
 
 /**
- * Groups in-memory job items by their source server.
- * "null" key represents local source.
+ * Groups transfer items by source endpoint.
+ *
+ * Remote sources are keyed by server ID. The string "null" represents the
+ * local filesystem so local items can participate in the same Map structure.
+ *
+ * @param {Map<string, object>} itemsMap
+ * @returns {Map<string, object[]>}
  */
 const groupItemsBySource = (itemsMap) => {
   const groups = new Map();
+
   for (const item of itemsMap.values()) {
     const key = item.sourceServerId ?? "null";
-    if (!groups.has(key)) groups.set(key, []);
+
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+
     groups.get(key).push(item);
   }
+
   return groups;
 };
+
 
 // ─── Source Group Execution ───────────────────────────────────────────────────
 
 /**
- * Executes all items from a single source server.
- * Opens the minimum connections needed and closes them when done.
+ * Executes all files originating from one source endpoint.
+ *
+ * SFTP connections are scoped to this source group and reused for every item
+ * in it. The job-scoped execution context is passed through unchanged.
+ *
+ * @param {string} sourceServerId - Server ID, or "null" for local
+ * @param {object[]} items - Files originating from this source
+ * @param {string|null} destServerId - Destination server, or null for local
+ * @param {object} callbacks - Transfer lifecycle callbacks
+ * @param {{
+ *   localDirs: Set<string>,
+ *   remoteDirs: Set<string>
+ * }} context - Job-scoped execution state
+ *
+ * @returns {Promise<void>}
  */
 const executeSourceGroup = async (
   sourceServerId,
   items,
   destServerId,
   callbacks,
+  context,
 ) => {
-  const { shouldStop, onFileStart, onFileProgress, onFileDone, onFileFail } =
-    callbacks;
+  const { 
+    shouldStop, 
+    onFileStart, 
+    onFileProgress, 
+    onFileDone, 
+    onFileFail 
+  } = callbacks;
+
   const { sftpSource, sftpDest } = await openConnections(
     sourceServerId,
     destServerId,
@@ -316,9 +368,16 @@ const executeSourceGroup = async (
   try {
     for (const item of items) {
       if (shouldStop()) break;
+
       await executeItem(
         item,
-        { sourceServerId, destServerId, sftpSource, sftpDest },
+        { 
+          sourceServerId, 
+          destServerId, 
+          sftpSource, 
+          sftpDest,
+          context, 
+        },
         callbacks,
       );
     }
@@ -330,38 +389,65 @@ const executeSourceGroup = async (
 // ─── Connection Management ────────────────────────────────────────────────────
 
 /**
- * Opens the SFTP connections needed for a source → dest pair.
- * Same-server transfers reuse the source connection for both sides.
- * Local endpoints require no connection.
+ * Opens the SFTP connections required for one source/destination pair.
  *
- * @returns {{ sftpSource: SftpClient|null, sftpDest: SftpClient|null }}
+ * Local endpoints require no connection. When source and destination are the
+ * same remote server, the source connection is reused for both sides.
+ *
+ * @param {string} sourceServerId - Server ID, or "null" for local
+ * @param {string|null} destServerId - Server ID, or null for local
+ *
+ * @returns {Promise<{
+ *   sftpSource: import("ssh2-sftp-client")|null,
+ *   sftpDest: import("ssh2-sftp-client")|null
+ * }>}
  */
-const openConnections = async (sourceServerId, destServerId) => {
+const openConnections = async (
+  sourceServerId,
+  destServerId,
+) => {
   const isLocalSource = sourceServerId === "null";
   const isLocalDest = !destServerId;
-  const isSameServer =
-    !isLocalSource && !isLocalDest && sourceServerId === destServerId;
 
-  const sftpSource = isLocalSource ? null : await connectToSftp(sourceServerId);
+  const isSameServer =
+    !isLocalSource &&
+    !isLocalDest &&
+    sourceServerId === destServerId;
+
+  const sftpSource = isLocalSource
+    ? null
+    : await connectToSftp(sourceServerId);
 
   let sftpDest = null;
+
   if (isSameServer) {
-    sftpDest = sftpSource; // reuse — rcopy only needs one connection
+    // Same-server copies use one connection for server-side rcopy.
+    sftpDest = sftpSource;
   } else if (!isLocalDest) {
     try {
       sftpDest = await connectToSftp(destServerId);
     } catch (err) {
-      await sftpSource?.end(); // clean up source if dest connection fails
+      // Do not leak the source connection if destination setup fails.
+      await sftpSource?.end();
       throw err;
     }
   }
 
-  return { sftpSource, sftpDest };
+  return {
+    sftpSource,
+    sftpDest,
+  };
 };
 
 /**
- * Closes SFTP connections opened for a source group.
- * Guards against closing a shared connection twice (same-server case).
+ * Closes connections opened for a source group.
+ *
+ * Same-server transfers share one client between source and destination, so
+ * the identity check prevents closing that connection twice.
+ *
+ * @param {import("ssh2-sftp-client")|null} sftpSource
+ * @param {import("ssh2-sftp-client")|null} sftpDest
+ * @returns {Promise<void>}
  */
 const closeConnections = async (sftpSource, sftpDest) => {
   await sftpSource?.end();
@@ -373,8 +459,25 @@ const closeConnections = async (sftpSource, sftpDest) => {
 // ─── Item Execution ───────────────────────────────────────────────────────────
 
 /**
- * Executes a single file transfer, calling lifecycle callbacks throughout.
- * Failures are caught and reported via onFileFail — they do not abort the job.
+ * Executes one file and reports its lifecycle through the supplied callbacks.
+ *
+ * File-level transfer failures are reported through onFileFail rather than
+ * propagated, allowing the remaining files in the job to continue.
+ *
+ * @param {object} item - In-memory transfer item
+ * @param {{
+ *   sourceServerId: string,
+ *   destServerId: string|null,
+ *   sftpSource: import("ssh2-sftp-client")|null,
+ *   sftpDest: import("ssh2-sftp-client")|null,
+ *   context: {
+ *     localDirs: Set<string>,
+ *     remoteDirs: Set<string>
+ *   }
+ * }} connections
+ * @param {object} callbacks - Transfer lifecycle callbacks
+ *
+ * @returns {Promise<void>}
  */
 const executeItem = async (item, connections, callbacks) => {
   const { onFileStart, onFileProgress, onFileDone, onFileFail } = callbacks;
@@ -387,7 +490,9 @@ const executeItem = async (item, connections, callbacks) => {
       ...connections,
       onProgress: (percent) => onFileProgress(item, percent),
     });
+
     item.size = discoveredSize;
+
     await onFileDone(item);
   } catch (err) {
     await onFileFail(item, err);
@@ -400,15 +505,41 @@ const executeItem = async (item, connections, callbacks) => {
  */
 const { dispatch } = require("./transferStrategies");
 
+/**
+ * Dispatches one file to the transfer strategy appropriate for its source and
+ * destination endpoints.
+ *
+ * @param {object} params
+ * @param {object} params.item
+ * @param {string} params.sourceServerId
+ * @param {string|null} params.destServerId
+ * @param {import("ssh2-sftp-client")|null} params.sftpSource
+ * @param {import("ssh2-sftp-client")|null} params.sftpDest
+ * @param {{
+ *   localDirs: Set<string>,
+ *   remoteDirs: Set<string>
+ * }} params.context
+ * @param {(percent: number) => void} params.onProgress
+ *
+ * @returns {Promise<number>} Actual transferred file size in bytes
+ */
 const transferSingleFile = async ({
   item,
   sourceServerId,
   destServerId,
   sftpSource,
   sftpDest,
+  context,
   onProgress,
 }) => {
-  return dispatch(item, { sftpSource, sftpDest, destServerId }, onProgress);
+  return dispatch(item, 
+    { 
+      sftpSource, 
+      sftpDest, 
+      destServerId,
+      context, 
+    }, 
+    onProgress);
 };
 
 /**
