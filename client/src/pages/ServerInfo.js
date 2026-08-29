@@ -5,6 +5,7 @@ import {
   Text,
   Icon,
   Progress,
+  Button
 } from "@chakra-ui/react";
 import {
   FiServer,
@@ -37,6 +38,25 @@ const formatUptime = (seconds) => {
   if (h > 0) return `${h}h ${m}m`;
 
   return `${m}m`;
+};
+
+const getStateGroup = (service) => {
+  if (service.state === "failed") {
+    return "failed";
+  }
+
+  if (
+    service.state === "active" &&
+    service.status === "running"
+  ) {
+    return "running";
+  }
+
+  if (service.state === "active") {
+    return "active";
+  }
+
+  return "inactive";
 };
 
 const getStateLabel = (service) => {
@@ -279,6 +299,54 @@ const ServerInfo = ({
     setServicesUnavailable,
   ] = useState(false);
 
+  const [visibleStates, setVisibleStates] = useState(
+    new Set([
+      "running",
+      "active",
+      "inactive",
+      "failed",
+    ]),
+  );
+
+  const toggleState = (state) => {
+    setVisibleStates((current) => {
+      const next = new Set(current);
+
+      if (next.has(state)) {
+        next.delete(state);
+      } else {
+        next.add(state);
+      }
+
+      return next;
+    });
+  };
+
+  const filteredServices =
+    serviceData?.services?.filter((service) =>
+      visibleStates.has(getStateGroup(service)),
+    ) ?? [];
+
+  const serviceCounts =
+    serviceData?.services?.reduce(
+      (counts, service) => {
+        const state = getStateGroup(service);
+
+        counts[state]++;
+        return counts;
+      },
+      {
+        running: 0,
+        active: 0,
+        inactive: 0,
+        failed: 0,
+      },
+    ) ?? {
+      running: 0,
+      active: 0,
+      inactive: 0,
+      failed: 0,
+    };
   useEffect(() => {
     let cancelled = false;
 
@@ -475,7 +543,7 @@ const ServerInfo = ({
             label="CPU"
             value={
               stats.cpu !== undefined &&
-              stats.cpu !== null
+                stats.cpu !== null
                 ? `${stats.cpu}%`
                 : "—"
             }
@@ -486,7 +554,7 @@ const ServerInfo = ({
             label="Memory"
             value={
               stats.memory !== undefined &&
-              stats.memory !== null
+                stats.memory !== null
                 ? `${stats.memory}%`
                 : "—"
             }
@@ -528,7 +596,69 @@ const ServerInfo = ({
           >
             Services
           </Text>
+          <Flex
+            gap={2}
+            mb={3}
+            flexWrap="wrap"
+          >
+            {[
+              {
+                key: "running",
+                label: "Running",
+              },
+              {
+                key: "active",
+                label: "Active",
+              },
+              {
+                key: "inactive",
+                label: "Inactive",
+              },
+              {
+                key: "failed",
+                label: "Failed",
+              },
+            ].map(({ key, label }) => {
+              const selected =
+                visibleStates.has(key);
 
+              return (
+                <Button
+                  key={key}
+                  size="xs"
+                  h="26px"
+                  px={3}
+                  borderRadius="6px"
+                  fontSize="10px"
+                  fontWeight={600}
+                  fontFamily="'JetBrains Mono', monospace"
+                  bg={
+                    selected
+                      ? "rgba(99,102,241,0.16)"
+                      : "rgba(255,255,255,0.02)"
+                  }
+                  color={
+                    selected
+                      ? "rgba(165,180,252,0.9)"
+                      : "rgba(255,255,255,0.25)"
+                  }
+                  border={
+                    selected
+                      ? "1px solid rgba(99,102,241,0.3)"
+                      : "1px solid rgba(255,255,255,0.07)"
+                  }
+                  _hover={{
+                    bg: selected
+                      ? "rgba(99,102,241,0.22)"
+                      : "rgba(255,255,255,0.05)",
+                  }}
+                  onClick={() => toggleState(key)}
+                >
+                  {label} {serviceCounts[key]}
+                </Button>
+              );
+            })}
+          </Flex>
           {serviceData?.manager && (
             <Text
               fontSize="10px"
@@ -587,8 +717,18 @@ const ServerInfo = ({
                 No services found
               </Text>
             </Box>
+          ) : filteredServices.length === 0 ? (
+            <Box p={4}>
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                No services match the selected states
+              </Text>
+            </Box>
           ) : (
-            serviceData.services.map((service) => (
+            filteredServices.map((service) => (
               <ServiceRow
                 key={service.name}
                 service={service}
