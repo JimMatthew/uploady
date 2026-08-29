@@ -352,7 +352,7 @@ const selectStrategy = (sourceServerId, destServerId) => {
 const dispatch = async (item, connections, onProgress) => {
  const key = selectStrategy(
   item.sourceServerId,
-  execution.destServerId,
+  connections.destServerId,
 );
 
   const strategy = STRATEGIES[key];
