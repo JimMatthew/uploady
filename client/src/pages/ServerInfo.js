@@ -39,6 +39,48 @@ const formatUptime = (seconds) => {
   return `${m}m`;
 };
 
+const getStateLabel = (service) => {
+  if (service.state === "failed") {
+    return "Failed";
+  }
+
+  if (
+    service.state === "active" &&
+    service.status === "running"
+  ) {
+    return "Running";
+  }
+
+  if (service.state === "active") {
+    return "Active";
+  }
+
+  if (service.state === "inactive") {
+    return "Inactive";
+  }
+
+  return service.state ?? service.status ?? "Unknown";
+};
+
+const getStateColor = (service) => {
+  if (service.state === "failed") {
+    return "#EF4444";
+  }
+
+  if (
+    service.state === "active" &&
+    service.status === "running"
+  ) {
+    return "#22C55E";
+  }
+
+  if (service.state === "active") {
+    return "#60A5FA";
+  }
+
+  return "rgba(255,255,255,0.35)";
+};
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -156,6 +198,64 @@ const DiskUsage = ({
   );
 };
 
+const ServiceRow = ({ service }) => (
+  <Flex
+    align="center"
+    justify="space-between"
+    gap={4}
+    px={4}
+    py={3}
+    borderBottom="1px solid rgba(255,255,255,0.05)"
+    _last={{
+      borderBottom: "none",
+    }}
+  >
+    <Box minW={0}>
+      <Text
+        fontSize="12px"
+        fontWeight={600}
+        color="rgba(255,255,255,0.8)"
+        fontFamily="'JetBrains Mono', monospace"
+        overflow="hidden"
+        textOverflow="ellipsis"
+        whiteSpace="nowrap"
+      >
+        {service.name}
+      </Text>
+
+      <Text
+        fontSize="11px"
+        color="rgba(255,255,255,0.3)"
+        mt="2px"
+      >
+        {service.description}
+      </Text>
+    </Box>
+
+    <Flex
+      align="center"
+      gap={2}
+      flexShrink={0}
+    >
+      <Box
+        w="6px"
+        h="6px"
+        borderRadius="full"
+        bg={getStateColor(service)}
+      />
+
+      <Text
+        fontSize="11px"
+        fontWeight={600}
+        color={getStateColor(service)}
+        fontFamily="'JetBrains Mono', monospace"
+      >
+        {getStateLabel(service)}
+      </Text>
+    </Flex>
+  </Flex>
+);
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -165,15 +265,26 @@ const ServerInfo = ({
   host,
 }) => {
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(false);
+  const [statsLoading, setStatsLoading] =
+    useState(true);
+  const [statsUnavailable, setStatsUnavailable] =
+    useState(false);
+
+  const [serviceData, setServiceData] =
+    useState(null);
+  const [servicesLoading, setServicesLoading] =
+    useState(true);
+  const [
+    servicesUnavailable,
+    setServicesUnavailable,
+  ] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchStats = async () => {
-      setLoading(true);
-      setUnavailable(false);
+      setStatsLoading(true);
+      setStatsUnavailable(false);
 
       try {
         const response = await fetch(
@@ -187,7 +298,9 @@ const ServerInfo = ({
         );
 
         if (!response.ok) {
-          throw new Error("Failed to load server stats");
+          throw new Error(
+            "Failed to load server stats",
+          );
         }
 
         const data = await response.json();
@@ -202,16 +315,59 @@ const ServerInfo = ({
             err,
           );
 
-          setUnavailable(true);
+          setStatsUnavailable(true);
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setStatsLoading(false);
+        }
+      }
+    };
+
+    const fetchServices = async () => {
+      setServicesLoading(true);
+      setServicesUnavailable(false);
+
+      try {
+        const response = await fetch(
+          `/sftp/server-services/${serverId}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${localStorage.getItem("token")}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load server services",
+          );
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setServiceData(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(
+            "Failed to load server services:",
+            err,
+          );
+
+          setServicesUnavailable(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setServicesLoading(false);
         }
       }
     };
 
     fetchStats();
+    fetchServices();
 
     return () => {
       cancelled = true;
@@ -272,7 +428,8 @@ const ServerInfo = ({
         </Box>
       </Flex>
 
-      {loading ? (
+      {/* Stats */}
+      {statsLoading ? (
         <Flex
           align="center"
           gap={2}
@@ -281,14 +438,6 @@ const ServerInfo = ({
           border="1px solid rgba(255,255,255,0.07)"
           borderRadius="10px"
         >
-          <Box
-            w="6px"
-            h="6px"
-            borderRadius="full"
-            bg="rgba(255,255,255,0.2)"
-            animation="pulse 1.5s infinite"
-          />
-
           <Text
             fontSize="12px"
             color="rgba(255,255,255,0.3)"
@@ -297,7 +446,7 @@ const ServerInfo = ({
             Loading server information…
           </Text>
         </Flex>
-      ) : unavailable || !stats ? (
+      ) : statsUnavailable || !stats ? (
         <Box
           p={4}
           bg="rgba(255,255,255,0.02)"
@@ -362,6 +511,92 @@ const ServerInfo = ({
           </StatCard>
         </Box>
       )}
+
+      {/* Services */}
+      <Box mt={6}>
+        <Flex
+          align="center"
+          justify="space-between"
+          mb={3}
+        >
+          <Text
+            fontSize="11px"
+            fontWeight={600}
+            color="rgba(255,255,255,0.35)"
+            letterSpacing="0.06em"
+            textTransform="uppercase"
+          >
+            Services
+          </Text>
+
+          {serviceData?.manager && (
+            <Text
+              fontSize="10px"
+              color="rgba(255,255,255,0.22)"
+              fontFamily="'JetBrains Mono', monospace"
+            >
+              {serviceData.manager}
+            </Text>
+          )}
+        </Flex>
+
+        <Box
+          bg="rgba(255,255,255,0.02)"
+          border="1px solid rgba(255,255,255,0.07)"
+          borderRadius="10px"
+          overflow="hidden"
+        >
+          {servicesLoading ? (
+            <Box p={4}>
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                Loading services…
+              </Text>
+            </Box>
+          ) : servicesUnavailable ? (
+            <Box p={4}>
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                Services unavailable
+              </Text>
+            </Box>
+          ) : serviceData?.supported === false ? (
+            <Box p={4}>
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                Service management is not supported
+                on this server
+              </Text>
+            </Box>
+          ) : !serviceData?.services?.length ? (
+            <Box p={4}>
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                No services found
+              </Text>
+            </Box>
+          ) : (
+            serviceData.services.map((service) => (
+              <ServiceRow
+                key={service.name}
+                service={service}
+              />
+            ))
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 };
