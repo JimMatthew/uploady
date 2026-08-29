@@ -1,7 +1,4 @@
-const listServices = async (
-  connectConfig,
-  sshExec,
-) => {
+const listServices = async (connectConfig, sshExec) => {
   const output = await sshExec(
     connectConfig,
     [

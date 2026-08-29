@@ -82,31 +82,21 @@ export function useSftpList({ toast }) {
     (server) => {
       addTabItem({
         label: `${server.host} - SSH`,
-        content: (
-          <SshConsole
-            serverId={server._id}
-            host={server.host}
-          />
-        ),
+        content: <SshConsole serverId={server._id} host={server.host} />,
       });
     },
     [addTabItem],
   );
 
   const handleServerInfoLaunch = useCallback(
-  (server) => {
-    addTabItem({
-      label: `${server.host} - Info`,
-      content: (
-        <ServerInfo
-          serverId={server._id}
-          host={server.host}
-        />
-      ),
-    });
-  },
-  [addTabItem],
-);
+    (server) => {
+      addTabItem({
+        label: `${server.host} - Info`,
+        content: <ServerInfo serverId={server._id} host={server.host} />,
+      });
+    },
+    [addTabItem],
+  );
 
   const handleNewServer = useCallback(() => {
     addTabItem({
@@ -240,7 +230,7 @@ export function useSftpList({ toast }) {
     handleLocalTab,
     handleSharedLinks,
     deleteServer,
-    handleTransfers, 
+    handleTransfers,
     handleServerInfoLaunch,
   };
 }

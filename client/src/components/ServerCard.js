@@ -9,7 +9,7 @@ import {
   FiCpu,
   FiActivity,
   FiClock,
-   FiServer,
+  FiServer,
 } from "react-icons/fi";
 
 // ---------------------------------------------------------------------------
@@ -268,13 +268,13 @@ export default function ServerCard({
           hoverBg="rgba(99,102,241,0.1)"
           onClick={handleSshLaunch}
         />
-          <ActionBtn
-    icon={FiServer}
-    label="Server Info"
-    color="rgba(56,189,248,0.7)"
-    hoverBg="rgba(56,189,248,0.1)"
-    onClick={handleServerInfoLaunch}
-  />
+        <ActionBtn
+          icon={FiServer}
+          label="Server Info"
+          color="rgba(56,189,248,0.7)"
+          hoverBg="rgba(56,189,248,0.1)"
+          onClick={handleServerInfoLaunch}
+        />
         <ActionBtn
           icon={FiTrash2}
           label="Delete"
