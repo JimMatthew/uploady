@@ -8,7 +8,7 @@ const listServices = async (
       "systemctl",
       "list-units",
       "--type=service",
-      "--state=running",
+      "--all",
       "--no-legend",
       "--no-pager",
       "--plain",
@@ -32,6 +32,7 @@ const parseServices = (output) =>
 
       return {
         name: parts[0],
+        state: parts[2],
         status: parts[3],
         description: parts.slice(4).join(" "),
       };

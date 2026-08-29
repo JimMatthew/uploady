@@ -1,19 +1,10 @@
 const serverService = require("./serverService");
-const { sshExec } = require(
-  "../infrastructure/ssh/sshExec",
-);
-const systemd = require(
-  "../infrastructure/serviceManagers/systemdServiceManager",
-);
+const { sshExec } = require("../infrastructure/ssh/sshExec");
+const systemd = require("../infrastructure/serviceManagers/systemdServiceManager");
 
-const detectServiceManager = async (
-  connectConfig,
-) => {
+const detectServiceManager = async (connectConfig) => {
   try {
-    await sshExec(
-      connectConfig,
-      "command -v systemctl >/dev/null 2>&1",
-    );
+    await sshExec(connectConfig, "command -v systemctl >/dev/null 2>&1");
 
     return "systemd";
   } catch {
@@ -22,11 +13,9 @@ const detectServiceManager = async (
 };
 
 const listServices = async (serverId) => {
-  const connectConfig =
-    await serverService.getServerOptions(serverId);
+  const connectConfig = await serverService.getServerOptions(serverId);
 
-  const manager =
-    await detectServiceManager(connectConfig);
+  const manager = await detectServiceManager(connectConfig);
 
   if (!manager) {
     return {
@@ -37,10 +26,7 @@ const listServices = async (serverId) => {
   }
 
   if (manager === "systemd") {
-    const services = await systemd.listServices(
-      connectConfig,
-      sshExec,
-    );
+    const services = await systemd.listServices(connectConfig, sshExec);
 
     return {
       supported: true,
