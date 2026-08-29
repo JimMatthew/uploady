@@ -6,7 +6,6 @@ const archiver = require("archiver");
 const serverService = require("./serverService");
 const { sendProgress } = require("./progressService");
 const localFileService = require("./localFileService");
-const { countSftpFiles, streamFileSftpPair } = require("./sftpTransferService");
 
 const uploadsDir = path.join(__dirname, "../uploads");
 

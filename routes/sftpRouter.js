@@ -1,7 +1,6 @@
 const express = require("express");
 const sftpController = require("../controllers/sftpController");
 const authenticateJWT = require("../middlewares/jwtAuth");
-const progressController = require("../controllers/progressController");
 const { getServerStatsHandler } = require("../services/serverStatsService");
 const zipController = require("../controllers/zipController");
 

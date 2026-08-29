@@ -2,8 +2,6 @@ const express = require("express");
 const storageController = require("../controllers/storageController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const filemanagerController = require("../controllers/fileManagerController");
-const progressController = require("../controllers/progressController");
-const transferJobController = require("../controllers/jobs/transferJob");
 const router = express.Router();
 
 router.get(
