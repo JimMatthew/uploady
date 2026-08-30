@@ -95,13 +95,13 @@ const ensureRemoteDir = async (sftp, filePath, cache) => {
  * @param {string} item.sourcePath - Absolute local source path
  * @param {string} item.destinationPath - Absolute local destination path
  * @param {object} execution
- * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
+ * @param {{ destDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
 const localToLocal = async (item, { context }, onProgress) => {
   const stat = await fs.promises.stat(item.sourcePath);
-  await ensureLocalDir(item.destinationPath, context.localDirs);
+  await ensureLocalDir(item.destinationPath, context.destDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -131,14 +131,14 @@ const localToLocal = async (item, { context }, onProgress) => {
  * @param {string} item.destinationPath - Full remote destination path
  * @param {object} execution
  * @param {import("ssh2-sftp-client")} execution.sftpDest
- * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
+ * @param {{ destDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
 const localToSftp = async (item, { sftpDest, context }, onProgress) => {
   const stat = await fs.promises.stat(item.sourcePath);
 
-  await ensureRemoteDir(sftpDest, item.destinationPath, context.remoteDirs);
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -173,13 +173,13 @@ const localToSftp = async (item, { sftpDest, context }, onProgress) => {
  * @param {string} item.destinationPath - Absolute local destination path
  * @param {object} execution
  * @param {import("ssh2-sftp-client")} execution.sftpSource
- * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
+ * @param {{ destDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
 const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
   const stat = await sftpSource.stat(item.sourcePath);
-  await ensureLocalDir(item.destinationPath, context.localDirs);
+  await ensureLocalDir(item.destinationPath, context.destDirs);
 
   const passthrough = new PassThrough();
   passthrough.on("data", trackProgress(stat.size, onProgress));
@@ -217,7 +217,7 @@ const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
  * @param {object} execution
  * @param {import("ssh2-sftp-client")} execution.sftpSource
  * @param {import("ssh2-sftp-client")} execution.sftpDest
- * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
+ * @param {{ destDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
@@ -228,7 +228,7 @@ const sftpCrossServer = async (
 ) => {
   const { size } = await sftpSource.stat(item.sourcePath);
 
-  await ensureRemoteDir(sftpDest, item.destinationPath, context.remoteDirs);
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
 
   const passthrough = new PassThrough();
   const track = trackProgress(size, onProgress);
@@ -263,12 +263,12 @@ const sftpCrossServer = async (
  * @param {number} item.size - Size discovered during expansion
  * @param {object} execution
  * @param {import("ssh2-sftp-client")} execution.sftpSource
- * @param {{ localDirs: Set<string>, remoteDirs: Set<string> }} execution.context
+ * @param {{ destDirs: Set<string> }} execution.context
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} Known file size in bytes
  */
 const sftpSameServer = async (item, { sftpSource, context }, onProgress) => {
-  await ensureRemoteDir(sftpSource, item.destinationPath, context.remoteDirs);
+  await ensureRemoteDir(sftpSource, item.destinationPath, context.destDirs);
 
   await sftpSource.rcopy(item.sourcePath, item.destinationPath);
   onProgress(100);
@@ -340,8 +340,7 @@ const selectStrategy = (sourceServerId, destServerId) => {
  * @param {import("ssh2-sftp-client")|null} execution.sftpDest
  * @param {string|null} execution.destServerId
  * @param {{
- *   localDirs: Set<string>,
- *   remoteDirs: Set<string>
+ *   destDirs: Set<string>
  * }} execution.context
  *
  * @param {(percent: number) => void} onProgress

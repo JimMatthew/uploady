@@ -280,8 +280,7 @@ const executeTransferJob = async (job, callbacks = {}) => {
    * for the entire job so a destination directory is ensured at most once.
    */
   const context = {
-    localDirs: new Set(),
-    remoteDirs: new Set(),
+    destDirs: new Set(),
   };
   const itemsBySource = groupItemsBySource(job.items);
 
