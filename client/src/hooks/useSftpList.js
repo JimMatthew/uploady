@@ -19,7 +19,7 @@ export function useSftpList({ toast }) {
   const navigate = useNavigate();
   const nextId = useRef(1);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sftpServers, setSftpServers] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState([]);
@@ -150,7 +150,7 @@ export function useSftpList({ toast }) {
   // ---------------------------------------------------------------------------
 
   const fetchServers = useCallback(async () => {
-    setLoading(true);
+    //setLoading(true);
     try {
       const res = await fetch("/sftp/api/", {
         headers: {
@@ -188,7 +188,7 @@ export function useSftpList({ toast }) {
     });
 
     if (result) {
-      //fetchServers();
+      fetchServers();
     }
 
     return result;

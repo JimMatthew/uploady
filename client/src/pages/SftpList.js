@@ -22,7 +22,7 @@ const SFTPApp = ({ toast }) => {
     serverStatuses,
     closeTab,
     handleNewServer,
-    handleSshLaunch,h,
+    handleSshLaunch,
     deleteServer,
     handleServerInfoLaunch,
     handleConnect,
