@@ -6,27 +6,36 @@ async function initDatabase(databaseType) {
       const mongoUri = process.env.DATABASE;
 
       if (!mongoUri) {
-        throw new Error(
-          "DATABASE environment variable is not set",
-        );
+        throw new Error("DATABASE environment variable is not set");
       }
 
       mongoose.set("strictPopulate", false);
+      
+      mongoose.connection.on("error", (err) => {
+        console.error("MongoDB connection error:", err);
+      });
 
-      await mongoose.connect(mongoUri);
+      mongoose.connection.on("disconnected", () => {
+        console.warn("MongoDB disconnected");
+      });
 
+      mongoose.connection.on("reconnected", () => {
+        console.log("MongoDB reconnected");
+      });
+
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 5000,
+      });
+
+      console.log("MongoDB connected");
       return;
     }
 
     case "sqlite":
-      throw new Error(
-        "SQLite database initialization not implemented",
-      );
+      throw new Error("SQLite database initialization not implemented");
 
     default:
-      throw new Error(
-        `Unsupported database type: ${databaseType}`,
-      );
+      throw new Error(`Unsupported database type: ${databaseType}`);
   }
 }
 

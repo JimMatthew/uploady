@@ -38,10 +38,7 @@ export const SaveServer = async ({
         authType,
         keyMode,
         password: authType === "password" ? password : undefined,
-        key:
-          authType === "key" && keyMode === "import"
-            ? key
-            : undefined,
+        key: authType === "key" && keyMode === "import" ? key : undefined,
         passphrase:
           authType === "key" && keyMode === "import"
             ? passphrase || undefined
@@ -65,8 +62,6 @@ export const SaveServer = async ({
     return null;
   }
 };
-
-
 
 // ---------------------------------------------------------------------------
 // Delete server
