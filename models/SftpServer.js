@@ -37,6 +37,7 @@ const sftpServerSchema = new mongoose.Schema(
       password:   { type: encryptedFieldSchema },
       privateKey: { type: encryptedFieldSchema },
       passphrase: { type: encryptedFieldSchema },
+      publicKey:  { type: String, required: false }
     },
   },
   { timestamps: true },

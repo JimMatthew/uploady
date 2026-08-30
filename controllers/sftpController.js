@@ -390,19 +390,21 @@ const sftp_save_server_post = async (req, res) => {
     authType = "password",
     key,
     passphrase,
+    keyMode,
   } = req.body;
   if (!host || !username || !authType) {
     return handleError(res, "Host, username, and authType are required", 400);
   }
   try {
-    await serverService.save_server(
+    const server = await serverService.save_server({
       host,
       username,
       password,
       authType,
       key,
       passphrase,
-    );
+      keyMode,
+    });
     res.status(200).json({ message: "Server saved" });
   } catch (err) {
     console.error("Save server error:", err);

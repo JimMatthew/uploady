@@ -73,6 +73,7 @@ const EMPTY_FORM = {
   host: "",
   username: "",
   authMethod: "password",
+  keyMode: "import",
   password: "",
   privateKey: "",
   passphrase: "",
@@ -96,30 +97,46 @@ const AddServer = ({ handleSaveServer }) => {
 
   const validate = () => {
     const errs = {};
+
     if (!form.host.trim()) errs.host = "Host is required";
     if (!form.username.trim()) errs.username = "Username is required";
-    if (form.authMethod === "password" && !form.password)
+
+    if (form.authMethod === "password" && !form.password) {
       errs.password = "Password is required";
-    if (form.authMethod === "key" && !form.privateKey.trim())
+    }
+
+    if (
+      form.authMethod === "key" &&
+      form.keyMode === "import" &&
+      !form.privateKey.trim()
+    ) {
       errs.privateKey = "Private key is required";
+    }
+
     return errs;
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setSubmitted(true);
+
     const errs = validate();
+
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
-    handleSaveServer(
-      form.host.trim(),
-      form.username.trim(),
-      form.authMethod === "password" ? form.password : form.privateKey,
-      form.authMethod,
-      form.passphrase || null,
-    );
+
+    await handleSaveServer({
+      host: form.host.trim(),
+      username: form.username.trim(),
+      authType: form.authMethod,
+      keyMode: form.keyMode,
+      password: form.password,
+      key: form.privateKey,
+      passphrase: form.passphrase || null,
+    });
+
     setForm(EMPTY_FORM);
     setErrors({});
     setSubmitted(false);
@@ -220,28 +237,52 @@ const AddServer = ({ handleSaveServer }) => {
         {/* Key auth */}
         <Collapse in={form.authMethod === "key"} animateOpacity>
           <VStack spacing={4} align="stretch">
-            <Field label="Private Key" required error={errors.privateKey}>
-              <Textarea
-                name="privateKey"
-                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                value={form.privateKey}
-                onChange={set}
-                rows={7}
-                resize="none"
-                {...inputStyles(!!errors.privateKey)}
-                fontSize="11px"
-              />
-            </Field>
-            <Field label="Passphrase">
-              <Input
-                name="passphrase"
-                type="password"
-                placeholder="Optional"
-                value={form.passphrase}
+            <Field label="Key Mode" required>
+              <Select
+                name="keyMode"
+                value={form.keyMode}
                 onChange={set}
                 {...inputStyles(false)}
-              />
+                sx={{
+                  option: { bg: "#0D0D12", color: "rgba(255,255,255,0.85)" },
+                }}
+              >
+                <option value="import">Use Existing Key</option>
+                <option value="generate">Generate New Key</option>
+              </Select>
             </Field>
+
+            <Collapse in={form.keyMode === "import"} animateOpacity>
+              <VStack spacing={4} align="stretch">
+                <Field
+                  label="Private Key"
+                  required
+                  error={errors.privateKey}
+                >
+                  <Textarea
+                    name="privateKey"
+                    placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                    value={form.privateKey}
+                    onChange={set}
+                    rows={7}
+                    resize="none"
+                    {...inputStyles(!!errors.privateKey)}
+                    fontSize="11px"
+                  />
+                </Field>
+
+                <Field label="Passphrase">
+                  <Input
+                    name="passphrase"
+                    type="password"
+                    placeholder="Optional"
+                    value={form.passphrase}
+                    onChange={set}
+                    {...inputStyles(false)}
+                  />
+                </Field>
+              </VStack>
+            </Collapse>
           </VStack>
         </Collapse>
 

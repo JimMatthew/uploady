@@ -258,11 +258,6 @@ class TransferExecutor extends EventEmitter {
   async _executeJob(job) {
     const { executeTransferJob } = require("./sftpService");
 
-    const context = {
-    localDirs: new Set(),
-    remoteDirs: new Set(),
-    };
-
     await executeTransferJob(job, {
       
 

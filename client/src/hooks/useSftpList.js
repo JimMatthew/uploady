@@ -180,20 +180,21 @@ export function useSftpList({ toast }) {
     }
   }, [token, navigate]);
 
-  const handleSaveServer = useCallback(
-    async (host, username, password, authType, passphrase) => {
-      await SaveServer({
-        host,
-        username,
-        password,
-        authMethod: authType,
-        toast,
-        passphrase,
-      });
+ const handleSaveServer = useCallback(
+  async (server) => {
+    const result = await SaveServer({
+      ...server,
+      toast,
+    });
+
+    if (result) {
       fetchServers();
-    },
-    [toast, fetchServers],
-  );
+    }
+
+    return result;
+  },
+  [toast, fetchServers],
+);
 
   const deleteServer = useCallback(
     async (serverId) => {

@@ -21,36 +21,60 @@ const showToast = (toast, title, status) => {
 export const SaveServer = async ({
   host,
   username,
+  authType,
+  keyMode,
   password,
-  authMethod,
-  toast,
+  key,
   passphrase,
+  toast,
 }) => {
   try {
+    const body = {
+      host,
+      username,
+      authType,
+    };
+
+    if (authType === "password") {
+      body.password = password;
+    }
+
+    if (authType === "key") {
+      body.keyMode = keyMode;
+
+      if (keyMode === "import") {
+        body.key = key;
+
+        if (passphrase) {
+          body.passphrase = passphrase;
+        }
+      }
+    }
+
     const response = await fetch("/sftp/api/save-server", {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({
-        host,
-        username,
-        authType: authMethod,
-        password: authMethod === "password" ? password : undefined,
-        key: authMethod === "key" ? password : undefined,
-        passphrase: authMethod === "key" ? passphrase || undefined : undefined,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       showToast(toast, "Error adding server", "error");
-      return;
+      return null;
     }
 
+    const data = await response.json();
+
     showToast(toast, "Server created", "success");
+
+    return data;
   } catch (err) {
     console.error("SaveServer error:", err);
     showToast(toast, "Error adding server", "error");
+    return null;
   }
 };
+
+
 
 // ---------------------------------------------------------------------------
 // Delete server

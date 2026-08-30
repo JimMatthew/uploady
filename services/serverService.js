@@ -4,7 +4,43 @@ const net = require("net");
 const { encrypt, decrypt } = require("../controllers/encryption");
 const { servers } = require("../db");
 const domain = process.env.HOSTNAME;
+const fs = require("fs/promises");
+const os = require("os");
+const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 
+const execFileAsync = promisify(execFile);
+
+async function generateSshKeyPair() {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "uploady-key-"));
+  const keyPath = path.join(dir, "id_ed25519");
+
+  try {
+    await execFileAsync("ssh-keygen", [
+      "-t",
+      "ed25519",
+      "-N",
+      "",
+      "-f",
+      keyPath,
+      "-q",
+    ]);
+
+    const privateKey = await fs.readFile(keyPath, "utf8");
+    const publicKey = await fs.readFile(`${keyPath}.pub`, "utf8");
+
+    return {
+      privateKey,
+      publicKey: publicKey.trim(),
+    };
+  } finally {
+    await fs.rm(dir, {
+      recursive: true,
+      force: true,
+    });
+  }
+}
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
 /**
@@ -17,12 +53,12 @@ const domain = process.env.HOSTNAME;
  * @returns {Promise<{ link: string }>}
  */
 async function share_file(fileName, filePath, serverId) {
-   const existing = await shares.findRemoteShare(
+  const existing = await shares.findRemoteShare(
     fileName,
     filePath,
     serverId,
   );
- 
+
   if (existing) return { link: existing.link };
 
   const server = await servers.findById(serverId);
@@ -55,14 +91,15 @@ async function share_file(fileName, filePath, serverId) {
  * @param {string} [passphrase] - Optional passphrase for the private key
  * @throws {Error} If required credentials are missing for the given authType
  */
-async function save_server(
+async function save_server({
   host,
   username,
   password,
   authType,
   key,
   passphrase,
-) {
+  keyMode,
+}) {
   const server = {
     host,
     username,
@@ -72,22 +109,32 @@ async function save_server(
 
   if (authType === "password") {
     if (!password) {
-      throw new Error("Password required for password auth")
+      throw new Error("Password required for password auth");
     }
+
     server.credentials.password = encrypt(password);
   } else if (authType === "key") {
-    if (!key) {
-      throw new Error("Private key required for key auth")
-    }
-    server.credentials.privateKey = encrypt(key);
-    if (passphrase) {
-      server.credentials.passphrase = encrypt(passphrase);
+    if (keyMode === "generate") {
+      const generated = await generateSshKeyPair();
+
+      server.credentials.privateKey = encrypt(generated.privateKey);
+      server.credentials.publicKey = generated.publicKey;
+    } else {
+      if (!key) {
+        throw new Error("Private key required for key auth");
+      }
+
+      server.credentials.privateKey = encrypt(key);
+
+      if (passphrase) {
+        server.credentials.passphrase = encrypt(passphrase);
+      }
     }
   } else {
     throw new Error(`Unsupported authType: ${authType}`);
   }
 
-  await servers.create(server);
+  return await servers.create(server);
 }
 
 /**
