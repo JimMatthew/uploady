@@ -85,7 +85,8 @@ const AddServer = ({ handleSaveServer }) => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-
+  const [generatedKey, setGeneratedKey] = useState(null);
+  console.log("AddServer render:", generatedKey);
   const set = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -117,6 +118,7 @@ const AddServer = ({ handleSaveServer }) => {
   };
 
   const handleSave = async (e) => {
+
     e.preventDefault();
     setSubmitted(true);
 
@@ -127,15 +129,34 @@ const AddServer = ({ handleSaveServer }) => {
       return;
     }
 
-    await handleSaveServer({
-      host: form.host.trim(),
-      username: form.username.trim(),
+    const host = form.host.trim();
+    const username = form.username.trim();
+
+    const result = await handleSaveServer({
+      host,
+      username,
       authType: form.authMethod,
       keyMode: form.keyMode,
       password: form.password,
       key: form.privateKey,
       passphrase: form.passphrase || null,
     });
+
+    console.log("SAVE RESULT:", result);
+    if (!result) {
+      return;
+    }
+
+    if (result.server?.publicKey) {
+      console.log("SETTING GENERATED KEY");
+      setGeneratedKey({
+        host,
+        username,
+        publicKey: result.server.publicKey,
+      });
+    } else {
+      setGeneratedKey(null);
+    }
 
     setForm(EMPTY_FORM);
     setErrors({});
@@ -317,6 +338,159 @@ const AddServer = ({ handleSaveServer }) => {
           Save Server
         </Flex>
       </VStack>
+      {generatedKey && (() => {
+        const installCommand =
+          `mkdir -p ~/.ssh && chmod 700 ~/.ssh && ` +
+          `echo '${generatedKey.publicKey}' >> ~/.ssh/authorized_keys && ` +
+          `chmod 600 ~/.ssh/authorized_keys`;
+
+        const copyText = async (text) => {
+          await navigator.clipboard.writeText(text);
+        };
+
+        return (
+          <Box
+            mt={4}
+            p={5}
+            bg="rgba(34,197,94,0.04)"
+            border="1px solid rgba(34,197,94,0.18)"
+            borderRadius="12px"
+          >
+            <Flex align="center" justify="space-between" mb={1}>
+              <Text
+                fontSize="13px"
+                fontWeight={700}
+                color="rgba(255,255,255,0.9)"
+              >
+                SSH Key Generated
+              </Text>
+
+              <Text
+                fontSize="11px"
+                color="rgba(34,197,94,0.75)"
+                fontWeight={600}
+              >
+                Server Saved
+              </Text>
+            </Flex>
+
+            <Text
+              fontSize="12px"
+              color="rgba(255,255,255,0.45)"
+              mb={5}
+            >
+              Install the public key for{" "}
+              <Text
+                as="span"
+                color="rgba(255,255,255,0.7)"
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                {generatedKey.username}@{generatedKey.host}
+              </Text>
+            </Text>
+
+            {/* Public key */}
+            <Box mb={4}>
+              <Flex align="center" justify="space-between" mb="6px">
+                <Text
+                  fontSize="11px"
+                  fontWeight={600}
+                  color="rgba(255,255,255,0.4)"
+                  letterSpacing="0.06em"
+                  textTransform="uppercase"
+                >
+                  Public Key
+                </Text>
+
+                <Flex
+                  as="button"
+                  type="button"
+                  align="center"
+                  gap={1}
+                  px={2}
+                  py="4px"
+                  borderRadius="6px"
+                  bg="rgba(255,255,255,0.05)"
+                  border="1px solid rgba(255,255,255,0.08)"
+                  color="rgba(255,255,255,0.6)"
+                  fontSize="11px"
+                  cursor="pointer"
+                  _hover={{
+                    bg: "rgba(255,255,255,0.09)",
+                    color: "rgba(255,255,255,0.85)",
+                  }}
+                  onClick={() => copyText(generatedKey.publicKey)}
+                >
+                  Copy
+                </Flex>
+              </Flex>
+
+              <Textarea
+                value={generatedKey.publicKey}
+                readOnly
+                rows={3}
+                resize="none"
+                {...inputStyles(false)}
+                fontSize="11px"
+              />
+            </Box>
+
+            {/* Install command */}
+            <Box>
+              <Flex align="center" justify="space-between" mb="6px">
+                <Text
+                  fontSize="11px"
+                  fontWeight={600}
+                  color="rgba(255,255,255,0.4)"
+                  letterSpacing="0.06em"
+                  textTransform="uppercase"
+                >
+                  Install Command
+                </Text>
+
+                <Flex
+                  as="button"
+                  type="button"
+                  align="center"
+                  gap={1}
+                  px={2}
+                  py="4px"
+                  borderRadius="6px"
+                  bg="rgba(255,255,255,0.05)"
+                  border="1px solid rgba(255,255,255,0.08)"
+                  color="rgba(255,255,255,0.6)"
+                  fontSize="11px"
+                  cursor="pointer"
+                  _hover={{
+                    bg: "rgba(255,255,255,0.09)",
+                    color: "rgba(255,255,255,0.85)",
+                  }}
+                  onClick={() => copyText(installCommand)}
+                >
+                  Copy Command
+                </Flex>
+              </Flex>
+
+              <Textarea
+                value={installCommand}
+                readOnly
+                rows={4}
+                resize="none"
+                {...inputStyles(false)}
+                fontSize="11px"
+              />
+
+              <Text
+                mt={2}
+                fontSize="11px"
+                color="rgba(255,255,255,0.28)"
+              >
+                Run this while logged in as {generatedKey.username}.
+              </Text>
+            </Box>
+          </Box>
+        );
+      })()}
     </Box>
   );
 };

@@ -29,32 +29,24 @@ export const SaveServer = async ({
   toast,
 }) => {
   try {
-    const body = {
-      host,
-      username,
-      authType,
-    };
-
-    if (authType === "password") {
-      body.password = password;
-    }
-
-    if (authType === "key") {
-      body.keyMode = keyMode;
-
-      if (keyMode === "import") {
-        body.key = key;
-
-        if (passphrase) {
-          body.passphrase = passphrase;
-        }
-      }
-    }
-
     const response = await fetch("/sftp/api/save-server", {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        host,
+        username,
+        authType,
+        keyMode,
+        password: authType === "password" ? password : undefined,
+        key:
+          authType === "key" && keyMode === "import"
+            ? key
+            : undefined,
+        passphrase:
+          authType === "key" && keyMode === "import"
+            ? passphrase || undefined
+            : undefined,
+      }),
     });
 
     if (!response.ok) {

@@ -134,7 +134,14 @@ async function save_server({
     throw new Error(`Unsupported authType: ${authType}`);
   }
 
-  return await servers.create(server);
+  const savedServer = await servers.create(server);
+   return {
+    id: savedServer._id,
+    host: savedServer.host,
+    username: savedServer.username,
+    authType: savedServer.authType,
+    publicKey: savedServer.credentials?.publicKey ?? null,
+  };
 }
 
 /**

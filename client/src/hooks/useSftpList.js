@@ -188,7 +188,7 @@ export function useSftpList({ toast }) {
     });
 
     if (result) {
-      fetchServers();
+      //fetchServers();
     }
 
     return result;

@@ -405,7 +405,10 @@ const sftp_save_server_post = async (req, res) => {
       passphrase,
       keyMode,
     });
-    res.status(200).json({ message: "Server saved" });
+     res.status(201).json({
+      message: "Server saved",
+      server,
+    });
   } catch (err) {
     console.error("Save server error:", err);
     return handleError(res, "Cannot save server", 400);
