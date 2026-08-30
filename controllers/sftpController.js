@@ -405,7 +405,7 @@ const sftp_save_server_post = async (req, res) => {
       passphrase,
       keyMode,
     });
-     res.status(201).json({
+    res.status(201).json({
       message: "Server saved",
       server,
     });
@@ -432,6 +432,19 @@ const sftp_delete_server_post = async (req, res) => {
   }
 };
 
+const sftp_get_server_public_key = async (req, res) => {
+  const { serverId } = req.params;
+  if (!serverId) return handleError(res, "Missing serverId", 400);
+  try {
+    const publicKey = await serverService.getServerPublicKey(serverId);
+
+    res.json({ publicKey });
+  } catch (err) {
+    console.error("Failed to get server public key:", err);
+    res.status(500).json({ error: "Failed to get server public key" });
+  }
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -449,4 +462,5 @@ module.exports = {
   sftp_server_status_get,
   sftp_save_server_post,
   sftp_delete_server_post,
+  sftp_get_server_public_key,
 };

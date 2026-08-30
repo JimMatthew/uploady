@@ -232,7 +232,8 @@ const ServerInfo = ({ serverId, host }) => {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsUnavailable, setStatsUnavailable] = useState(false);
-
+  const [publicKey, setPublicKey] = useState(null);
+  const [publicKeyLoading, setPublicKeyLoading] = useState(true);
   const [serviceData, setServiceData] = useState(null);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
@@ -348,9 +349,44 @@ const ServerInfo = ({ serverId, host }) => {
       }
     };
 
+    const fetchPublicKey = async () => {
+      setPublicKeyLoading(true);
+
+      try {
+        const response = await fetch(
+          `/sftp/api/servers/${serverId}/public-key`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to load public key");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setPublicKey(data.publicKey ?? null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load public key:", err);
+          setPublicKey(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setPublicKeyLoading(false);
+        }
+      }
+    };
+
     fetchStats();
     fetchServices();
-
+    fetchPublicKey();
+    
     return () => {
       cancelled = true;
     };
@@ -465,6 +501,38 @@ const ServerInfo = ({ serverId, host }) => {
         </Box>
       )}
 
+      {/* SSH Public Key */}
+      {!publicKeyLoading && publicKey && (
+        <Box mt={6}>
+          <Text
+            fontSize="11px"
+            fontWeight={600}
+            color="rgba(255,255,255,0.35)"
+            letterSpacing="0.06em"
+            textTransform="uppercase"
+            mb={3}
+          >
+            SSH Public Key
+          </Text>
+
+          <Box
+            p={4}
+            bg="rgba(255,255,255,0.02)"
+            border="1px solid rgba(255,255,255,0.07)"
+            borderRadius="10px"
+          >
+            <Text
+              fontSize="11px"
+              color="rgba(255,255,255,0.55)"
+              fontFamily="'JetBrains Mono', monospace"
+              wordBreak="break-all"
+              lineHeight={1.7}
+            >
+              {publicKey}
+            </Text>
+          </Box>
+        </Box>
+      )}
       {/* Services */}
       <Box mt={6}>
         <Flex align="center" justify="space-between" mb={3}>

@@ -222,6 +222,16 @@ const getServerOptions = async (serverId) => {
   return options;
 };
 
+const getServerPublicKey = async (serverId) => {
+  const server = await servers.findById(serverId);
+  
+  if (!server) {
+    throw new Error("Server not found");
+  }
+
+  return server.credentials?.publicKey ?? null;
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -229,4 +239,5 @@ module.exports = {
   save_server,
   checkServerStatus,
   getServerOptions,
+  getServerPublicKey,
 };

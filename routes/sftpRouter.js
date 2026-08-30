@@ -70,6 +70,8 @@ router.post(
   sftpController.sftp_delete_folder_post,
 );
 
+router.get("/api/servers/:serverId/public-key", sftpController.sftp_get_server_public_key);
+
 router.get("/server-status/:serverId", sftpController.sftp_server_status_get);
 
 router.get("/server-stats/:serverId", getServerStatsHandler);
