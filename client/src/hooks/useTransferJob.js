@@ -2,8 +2,7 @@ import { useState, useCallback } from "react";
 
 export function useTransferJob({ onError } = {}) {
   const [progressMap, setProgressMap] = useState({});
-  const [startedTransfers, setStartedTransfers] =
-    useState({});
+  const [startedTransfers, setStartedTransfers] = useState({});
 
   const trackJob = useCallback(
     ({ jobId, items, onDone }) => {
@@ -36,13 +35,11 @@ export function useTransferJob({ onError } = {}) {
             const next = { ...prev };
 
             Object.keys(initialTransfers).forEach((key) => {
-              const itemName =
-                initialTransfers[key].file;
+              const itemName = initialTransfers[key].file;
 
               next[key] = {
                 ...next[key],
-                total:
-                  data.rootCounts?.[itemName] ?? 1,
+                total: data.rootCounts?.[itemName] ?? 1,
               };
             });
 
@@ -51,8 +48,7 @@ export function useTransferJob({ onError } = {}) {
         }
 
         if (data.type === "fileProgress") {
-          const rootKey =
-            `${jobId}-${data.rootItem}`;
+          const rootKey = `${jobId}-${data.rootItem}`;
 
           setProgressMap((prev) => ({
             ...prev,
@@ -64,11 +60,9 @@ export function useTransferJob({ onError } = {}) {
         }
 
         if (data.type === "fileDone") {
-          const rootKey =
-            `${jobId}-${data.rootItem}`;
+          const rootKey = `${jobId}-${data.rootItem}`;
 
-          const isTopLevel =
-            data.file === data.rootItem;
+          const isTopLevel = data.file === data.rootItem;
 
           setProgressMap((prev) => ({
             ...prev,
@@ -79,15 +73,13 @@ export function useTransferJob({ onError } = {}) {
                 }
               : {
                   ...prev[rootKey],
-                  completed:
-                    (prev[rootKey]?.completed || 0) + 1,
+                  completed: (prev[rootKey]?.completed || 0) + 1,
                 },
           }));
         }
 
         if (data.type === "fileFail") {
-          const rootKey =
-            `${jobId}-${data.rootItem}`;
+          const rootKey = `${jobId}-${data.rootItem}`;
 
           setProgressMap((prev) => ({
             ...prev,
