@@ -9,8 +9,6 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   const [files, setFiles] = useState([{}]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
-  //const [progressMap, setProgressMap] = useState({});
-  //const [startedTransfers, setStartedTransfers] = useState({});
 
   const {
     progressMap,
