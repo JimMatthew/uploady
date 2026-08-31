@@ -1,35 +1,12 @@
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useState, useEffect, useCallback } from "react";
+import apiClient from "../services/apiClient";
+
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
   const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
   const [progressMap, setProgressMap] = useState({});
   const [startedTransfers, setStartedTransfers] = useState({});
-  /**
-   * Generic API request wrapper
-   */
-  const apiRequest = async (url, options = {}, expectBlob = false) => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Request failed");
-      }
-
-      return expectBlob ? response.blob() : response.json();
-    } catch (error) {
-      console.error("API error:", error);
-      throw error;
-    }
-  };
 
   /**
    * Utility to show toast notifications
@@ -49,9 +26,10 @@ const FileController = ({ toast, onRefresh }) => {
    */
   const handleFileCut = async (filename, currentPath, newPath) => {
     try {
-      await apiRequest("/api/cut-file", {
-        method: "POST",
-        body: JSON.stringify({ filename, currentPath, newPath }),
+      await apiClient.post("/api/cut-file", {
+        filename,
+        currentPath,
+        newPath,
       });
       onRefresh(newPath);
       showToast("File moved", "success");
@@ -67,9 +45,8 @@ const FileController = ({ toast, onRefresh }) => {
 
   const handleFileDelete = async (fileName, path) => {
     try {
-      await apiRequest(`/api/delete/${path}/${fileName}`, {
-        method: "POST",
-        body: JSON.stringify({ fileName }),
+      await apiClient.post(`/api/delete/${path}/${fileName}`, {
+        fileName,
       });
       onRefresh();
       showToast("File deleted", "success");
@@ -80,9 +57,9 @@ const FileController = ({ toast, onRefresh }) => {
 
   const handleFileShareLink = async (fileName, filePath) => {
     try {
-      await apiRequest("/api/share", {
-        method: "POST",
-        body: JSON.stringify({ fileName, filePath }),
+      await apiClient.post("/api/share", {
+        fileName,
+        filePath,
       });
       onRefresh();
       showToast(
@@ -101,9 +78,9 @@ const FileController = ({ toast, onRefresh }) => {
 
   const handleDeleteFolder = async (folderName, path) => {
     try {
-      await apiRequest("/api/delete-folder", {
-        method: "POST",
-        body: JSON.stringify({ folderName, folderPath: path }),
+      await apiClient.post("/api/delete-folder", {
+        folderName,
+        folderPath: path,
       });
       onRefresh(path);
       showToast("Folder deleted", "success");
@@ -114,10 +91,11 @@ const FileController = ({ toast, onRefresh }) => {
 
   const createFolder = async (folderName, currentPath) => {
     try {
-      await apiRequest("/api/create-folder", {
-        method: "POST",
-        body: JSON.stringify({ folderName, currentPath }),
+      await apiClient.post("/api/create-folder", {
+        folderName,
+        currentPath,
       });
+
       onRefresh(currentPath);
       showToast("Folder created", "success");
     } catch {
@@ -131,9 +109,10 @@ const FileController = ({ toast, onRefresh }) => {
       return;
     }
     try {
-      await apiRequest("/api/rename-file", {
-        method: "POST",
-        body: JSON.stringify({ filename, newFilename, currentPath: path }),
+      await apiClient.post("/api/rename-file", {
+        filename,
+        newFilename,
+        currentPath: path,
       });
       onRefresh(path);
       showToast("File renamed", "success");
@@ -180,9 +159,11 @@ const FileController = ({ toast, onRefresh }) => {
     serverId,
   ) => {
     try {
-      await apiRequest("/api/copy-folder", {
-        method: "POST",
-        body: JSON.stringify({ folderName, currentPath, newPath, serverId }),
+      await apiClient.post("/api/copy-folder", {
+        folderName,
+        currentPath,
+        newPath,
+        serverId,
       });
       onRefresh(newPath);
       showToast("Folder copied", "success");
@@ -191,103 +172,92 @@ const FileController = ({ toast, onRefresh }) => {
     }
   };
 
- const handlePaste = async (rp) => {
-  if (!clipboard.length) return;
+  const handlePaste = async (rp) => {
+    if (!clipboard.length) return;
 
-  try {
-    const res = await fetch("/api/paste-files", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        files: clipboard,
-        newPath: rp,
-      }),
-    });
+    try {
+      const { jobId } = await apiClient.post(
+        "/api/paste-files",
+        {
+          files: clipboard,
+          newPath: rp,
+        },
+      );
 
-    if (!res.ok) {
+      const initialTransfers = Object.fromEntries(
+        clipboard.map(({ file }) => [
+          `${jobId}-${file}`,
+          { file, progress: 0 },
+        ]),
+      );
+      setStartedTransfers(initialTransfers);
+      setProgressMap({ ...initialTransfers });
+      clearClipboard();
+
+      const eventSource = new EventSource(`/api/progress/${jobId}`);
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.ready) return;
+
+        if (data.type === "jobStart") {
+          setProgressMap((prev) => {
+            const next = { ...prev };
+            Object.keys(initialTransfers).forEach((key) => {
+              const itemName = initialTransfers[key].file;
+              next[key] = {
+                ...next[key],
+                total: data.rootCounts?.[itemName] ?? 1,
+              };
+            });
+            return next;
+          });
+
+        } else if (data.type === "fileProgress") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: { ...prev[rootKey], progress: Math.round(data.percent) },
+          }));
+
+        } else if (data.type === "fileDone") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          const isTopLevel = data.file === data.rootItem;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: isTopLevel
+              ? { ...prev[rootKey], progress: 100 }
+              : { ...prev[rootKey], completed: (prev[rootKey]?.completed || 0) + 1 },
+          }));
+
+        } else if (data.type === "fileFail") {
+          const rootKey = `${jobId}-${data.rootItem}`;
+          setProgressMap((prev) => ({
+            ...prev,
+            [rootKey]: { ...prev[rootKey], error: data.error },
+          }));
+
+        } else if (data.type === "jobDone") {
+          eventSource.close();
+          onRefresh(rp);
+          setTimeout(() => {
+            setProgressMap({});
+            setStartedTransfers({});
+          }, 1500);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        showToast("Transfer connection lost", "error");
+        setProgressMap({});
+        setStartedTransfers({});
+      };
+
+    } catch (err) {
+      console.error("Paste error:", err);
       showToast("Error pasting files", "error");
-      return;
     }
-
-    const { jobId } = await res.json();
-
-const initialTransfers = Object.fromEntries(
-  clipboard.map(({ file }) => [
-    `${jobId}-${file}`,
-    { file, progress: 0 },
-  ]),
-);
-setStartedTransfers(initialTransfers);
-setProgressMap({ ...initialTransfers });
-clearClipboard();
-
-const eventSource = new EventSource(`/api/progress/${jobId}`);
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.ready) return;
-
-  if (data.type === "jobStart") {
-    setProgressMap((prev) => {
-      const next = { ...prev };
-      Object.keys(initialTransfers).forEach((key) => {
-        const itemName = initialTransfers[key].file;
-        next[key] = {
-          ...next[key],
-          total: data.rootCounts?.[itemName] ?? 1,
-        };
-      });
-      return next;
-    });
-
-  } else if (data.type === "fileProgress") {
-    const rootKey = `${jobId}-${data.rootItem}`;
-    setProgressMap((prev) => ({
-      ...prev,
-      [rootKey]: { ...prev[rootKey], progress: Math.round(data.percent) },
-    }));
-
-  } else if (data.type === "fileDone") {
-    const rootKey = `${jobId}-${data.rootItem}`;
-    const isTopLevel = data.file === data.rootItem;
-    setProgressMap((prev) => ({
-      ...prev,
-      [rootKey]: isTopLevel
-        ? { ...prev[rootKey], progress: 100 }
-        : { ...prev[rootKey], completed: (prev[rootKey]?.completed || 0) + 1 },
-    }));
-
-  } else if (data.type === "fileFail") {
-    const rootKey = `${jobId}-${data.rootItem}`;
-    setProgressMap((prev) => ({
-      ...prev,
-      [rootKey]: { ...prev[rootKey], error: data.error },
-    }));
-
-  } else if (data.type === "jobDone") {
-    eventSource.close();
-    onRefresh(rp);
-    setTimeout(() => {
-      setProgressMap({});
-      setStartedTransfers({});
-    }, 1500);
-  }
-};
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      showToast("Transfer connection lost", "error");
-      setProgressMap({});
-      setStartedTransfers({});
-    };
-
-  } catch (err) {
-    console.error("Paste error:", err);
-    showToast("Error pasting files", "error");
-  }
-};
+  };
 
   return {
     handleFolderCopy,

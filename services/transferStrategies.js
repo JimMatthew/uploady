@@ -263,6 +263,10 @@ const createDestinationFile = async (
   });
 };
 
+// TODO: Investigate request-level SFTP pipelining for cross-server transfers.
+// The current two-stream implementation performs significantly better than a
+// single stream. Further improvement may be possible by using the underlying
+// ssh2 SFTP read/write API to keep multiple positional requests in flight.
 /**
  * sftp → sftp (cross server)
  *
