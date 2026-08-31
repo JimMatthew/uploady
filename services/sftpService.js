@@ -6,7 +6,7 @@ const archiver = require("archiver");
 const serverService = require("./serverService");
 const { sendProgress } = require("./progressService");
 const localFileService = require("./localFileService");
-
+const { connectToSftp } = require("./sftpConnection");
 const uploadsDir = path.join(__dirname, "../uploads");
 
 // ─── Error ────────────────────────────────────────────────────────────────────
@@ -28,22 +28,6 @@ class SftpError extends Error {
     this.details = details;
   }
 }
-
-// ─── Connection ───────────────────────────────────────────────────────────────
-
-/**
- * Connects to an SFTP server and returns the client instance.
- * Caller is responsible for calling sftp.end() when done.
- * For short-lived operations prefer withSftp() instead.
- * @param {string} serverId
- * @returns {Promise<import('ssh2-sftp-client')>}
- */
-const connectToSftp = async (serverId) => {
-  const sftp = new SftpClient();
-  const options = await serverService.getServerOptions(serverId);
-  await sftp.connect(options);
-  return sftp;
-};
 
 /**
  * Connects to an SFTP server, runs fn with the client, then closes the
@@ -484,37 +468,8 @@ const executeItem = async (item, connections, callbacks) => {
   }
 };
 
-/**
- * Routes a single file item to the correct transfer function.
- * @param {{ item, sourceServerId, destServerId, sftpSource, sftpDest, onProgress }} params
- */
 const { dispatch } = require("./transferStrategies");
 
-/**
- * Dispatches one file to the transfer strategy appropriate for its source and
- * destination endpoints.
- *
- * @param {object} params
- * @param {object} params.item
- * @param {string} params.sourceServerId
- * @param {string|null} params.destServerId
- * @param {import("ssh2-sftp-client")|null} params.sftpSource
- * @param {import("ssh2-sftp-client")|null} params.sftpDest
- * @param {{
- *   localDirs: Set<string>,
- *   remoteDirs: Set<string>
- * }} params.context
- * @param {(percent: number) => void} params.onProgress
- *
- * @returns {Promise<number>} Actual transferred file size in bytes
- */
-const transferSingleFile = async ({
-  item,
-  connections,
-  onProgress,
-}) => {
-  return dispatch(item, connections, onProgress);
-};
 
 /**
  * Streams a ZIP of mixed local/remote clipboard files directly to the response.
