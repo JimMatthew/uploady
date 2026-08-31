@@ -289,10 +289,6 @@ const STRATEGIES = {
 /**
  * Determines which transfer strategy applies for a given source and destination.
  *
- * Source is identified by a serverId string. The literal string "null" represents
- * the local filesystem on the Node server — this is how local sources are stored
- * in the database since null cannot be used as a Map key.
- *
  * Destination is identified by a serverId string or null for local.
  *
  * Selection logic (evaluated in order):
@@ -304,7 +300,7 @@ const STRATEGIES = {
  *
  * @param {string} sourceServerId - Server ID or the string "null" for local
  * @param {string|null} destServerId - Server ID or null for local
- * @returns {{ key: string, label: string }} Strategy key and human readable label
+ * @returns {keyof typeof STRATEGIES}
  */
 const selectStrategy = (sourceServerId, destServerId) => {
   const isLocalSource = sourceServerId === null;
@@ -349,14 +345,14 @@ const selectStrategy = (sourceServerId, destServerId) => {
  * @throws {Error} If no strategy exists for the source/destination pair
  */
 const dispatch = async (item, connections, onProgress) => {
- const key = selectStrategy(
-  item.sourceServerId,
-  connections.destServerId,
-);
+  const key = selectStrategy(
+    item.sourceServerId,
+    connections.destServerId,
+  );
 
   const strategy = STRATEGIES[key];
 
-  if (!strategy) throw new Error(`No strategy found for: ${label}`);
+  if (!strategy) throw new Error(`No strategy found for: ${key}`);
 
   return strategy(item, connections, onProgress);
 };

@@ -457,8 +457,7 @@ const closeConnections = async (sftpSource, sftpDest) => {
  *   sftpSource: import("ssh2-sftp-client")|null,
  *   sftpDest: import("ssh2-sftp-client")|null,
  *   context: {
- *     localDirs: Set<string>,
- *     remoteDirs: Set<string>
+ *     destDirs: Set<string>,
  *   }
  * }} connections
  * @param {object} callbacks - Transfer lifecycle callbacks
@@ -471,9 +470,9 @@ const executeItem = async (item, connections, callbacks) => {
   await onFileStart(item);
 
   try {
-    const discoveredSize = await transferSingleFile({
+    const discoveredSize = await dispatch({
       item,
-      ...connections,
+      connections,
       onProgress: (percent) => onFileProgress(item, percent),
     });
 
@@ -511,23 +510,10 @@ const { dispatch } = require("./transferStrategies");
  */
 const transferSingleFile = async ({
   item,
-  sourceServerId,
-  destServerId,
-  sftpSource,
-  sftpDest,
-  context,
+  connections,
   onProgress,
 }) => {
-  return dispatch(
-    item,
-    {
-      sftpSource,
-      sftpDest,
-      destServerId,
-      context,
-    },
-    onProgress,
-  );
+  return dispatch(item, connections, onProgress);
 };
 
 /**
