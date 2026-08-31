@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { FiServer, FiArrowRight } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
+import apiClient from "../services/apiClient";
 
 const FileList = ({ toast, hideLink = false, openFile }) => {
   const {
@@ -24,7 +25,7 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     onPaste,
     onGenerateBreadcrumb,
     progressMap,
-    startedTransfers
+    startedTransfers,
   } = useFileList({ toast });
 
   const token = localStorage.getItem("token");
@@ -42,22 +43,6 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
     openFile(null, fileData.relativePath, filename, null, false, isNew);
   };
 
-  const apiRequest = useCallback(
-    async (url, options = {}, expectBlob = false) => {
-      const res = await fetch(url, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      });
-      if (!res.ok) throw new Error((await res.text()) || "Request failed");
-      return expectBlob ? res.blob() : res.json();
-    },
-    [token],
-  );
-
   const downloadFileBlob = useCallback((blob, filename) => {
     const url = window.URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), {
@@ -72,11 +57,10 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
 
   const handleDownloadFolder = async (foldername) => {
     try {
-      const blob = await apiRequest(
+      const blob = await apiClient.getBlob(
         `/api/download-folder/${fileData.relativePath}/${foldername}`,
-        {},
-        true,
       );
+
       downloadFileBlob(blob, `${foldername}.zip`);
     } catch {}
   };

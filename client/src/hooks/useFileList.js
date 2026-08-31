@@ -1,16 +1,36 @@
 import { useEffect, useState, useCallback } from "react";
-import useFileController from "../controllers/fileController";
 import { useNavigate } from "react-router-dom";
 import { joinPath } from "../utils/path";
+import apiClient from "../services/apiClient";
+import { useClipboard } from "../contexts/ClipboardContext";
+import { useTransferJob } from "../hooks/useTransferJob";
 
 export function useFileList({ toast }) {
   const [fileData, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("files");
   const [loading, setLoading] = useState(true);
-
   const token = localStorage.getItem("token");
+
+  const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
+
+  const { progressMap, startedTransfers, trackJob } = useTransferJob({
+    onError: () => showToast("Transfer connection lost", "error"),
+  });
+
   const navigate = useNavigate();
 
+  const showToast = useCallback(
+    (title, status, description = null) => {
+      toast({
+        title,
+        description,
+        status,
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    [toast],
+  );
   // ---------------------------------------------------------------------------
   // Core fetch
   // ---------------------------------------------------------------------------
@@ -18,57 +38,25 @@ export function useFileList({ toast }) {
   const fetchFiles = useCallback(
     async (path) => {
       try {
-        const response = await fetch(`/api/${path}/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.status === 401 || response.status === 403) {
+        const data = await apiClient.get(`/api/${path}/`);
+        setFileData(data);
+      } catch (err) {
+        if (err.status === 401 || err.status === 403) {
           navigate("/");
           return;
         }
 
-        if (!response.ok) {
-          console.error("Failed to fetch files:", response.status);
-          return;
-        }
-
-        const data = await response.json();
-        setFileData(data);
-      } catch (err) {
         console.error("Error fetching files:", err);
       } finally {
         setLoading(false);
       }
     },
-    [token, navigate],
+    [navigate],
   );
 
   const reload = useCallback(() => {
     fetchFiles(currentPath);
   }, [fetchFiles, currentPath]);
-
-  // ---------------------------------------------------------------------------
-  // Controller — named as a hook so React handles memoization correctly
-  // and function references stay stable across renders
-  // ---------------------------------------------------------------------------
-
-  const {
-    handleFileDownload,
-    handleFileDelete,
-    handleFileShareLink,
-    handleDeleteFolder,
-    generateBreadcrumb,
-    createFolder,
-    handleRenameFile,
-    handleCopy,
-    handleCut,
-    handlePaste,
-    progressMap,
-    startedTransfers,
-  } = useFileController({ toast, onRefresh: reload });
 
   // ---------------------------------------------------------------------------
   // Auth + initial load
@@ -88,59 +76,199 @@ export function useFileList({ toast }) {
   // ---------------------------------------------------------------------------
 
   const onFileDownload = useCallback(
-    (name) => handleFileDownload(name, fileData?.relativePath),
-    [handleFileDownload, fileData?.relativePath],
+    (name) => {
+      const token = localStorage.getItem("token");
+      window.location.href = `/api/download/${fileData?.relativePath}/${name}?token=${token}&t=${Date.now()}`;
+    },
+    [fileData?.relativePath],
   );
 
   const onFileDelete = useCallback(
-    (name) => handleFileDelete(name, fileData?.relativePath),
-    [handleFileDelete, fileData?.relativePath],
+    async (name) => {
+      try {
+        await apiClient.post(`/api/delete/${fileData.relativePath}/${name}`, {
+          fileName: name,
+        });
+
+        reload();
+        showToast("File deleted", "success");
+      } catch {
+        showToast("Error deleting file", "error");
+      }
+    },
+    [fileData?.relativePath, reload, showToast],
   );
 
   const onFileShare = useCallback(
-    (name) => handleFileShareLink(name, fileData?.relativePath),
-    [handleFileShareLink, fileData?.relativePath],
+    async (name) => {
+      try {
+        await apiClient.post("/api/share", {
+          fileName: name,
+          filePath: fileData?.relativePath,
+        });
+
+        reload();
+
+        showToast(
+          "Link generated",
+          "success",
+          `Share link created for ${name}`,
+        );
+      } catch {
+        showToast(
+          "Error generating link",
+          "error",
+          `Failed to generate link for ${name}`,
+        );
+      }
+    },
+    [fileData?.relativePath, reload, showToast],
   );
 
   const onFileCopy = useCallback(
-    (name) => handleCopy(name, fileData?.relativePath, false),
-    [handleCopy, fileData?.relativePath],
+    (name) => {
+      copyFile({
+        file: name,
+        path: fileData?.relativePath,
+        source: "local",
+      });
+    },
+    [copyFile, fileData?.relativePath],
   );
 
   const onFileCut = useCallback(
-    (name) => handleCut(name, fileData?.relativePath),
-    [handleCut, fileData?.relativePath],
+    (name) => {
+      cutFile({
+        file: name,
+        path: fileData?.relativePath,
+        source: "local",
+        serverId: null,
+      });
+    },
+    [cutFile, fileData?.relativePath],
   );
 
   const onFileRename = useCallback(
-    (name, newName) => handleRenameFile(name, newName, fileData?.relativePath),
-    [handleRenameFile, fileData?.relativePath],
+    async (name, newName) => {
+      const path = fileData?.relativePath;
+
+      if (!name || !newName || !path) {
+        showToast("Missing required fields", "error");
+        return;
+      }
+
+      try {
+        await apiClient.post("/api/rename-file", {
+          filename: name,
+          newFilename: newName,
+          currentPath: path,
+        });
+
+        reload();
+        showToast("File renamed", "success");
+      } catch {
+        showToast("Error renaming file", "error");
+      }
+    },
+    [fileData?.relativePath, reload, showToast],
   );
 
   const onFolderDelete = useCallback(
-    (folder) => handleDeleteFolder(folder, fileData?.relativePath),
-    [handleDeleteFolder, fileData?.relativePath],
+    async (folder) => {
+      try {
+        await apiClient.post("/api/delete-folder", {
+          folderName: folder,
+          folderPath: fileData?.relativePath,
+        });
+
+        reload();
+        showToast("Folder deleted", "success");
+      } catch {
+        showToast("Error deleting folder", "error");
+      }
+    },
+    [fileData?.relativePath, reload, showToast],
   );
 
   const onFolderCopy = useCallback(
-    (folder) => handleCopy(folder, fileData?.relativePath, true),
-    [handleCopy, fileData?.relativePath],
+    (folder) => {
+      copyFile({
+        file: folder,
+        path: fileData?.relativePath,
+        source: "local",
+        isDirectory: true,
+      });
+    },
+    [copyFile, fileData?.relativePath],
   );
 
-  const onPaste = useCallback(
-    () => handlePaste(fileData?.relativePath),
-    [handlePaste, fileData?.relativePath],
-  );
+  const onPaste = useCallback(async () => {
+    if (!clipboard.length) return;
+
+    try {
+      const items = [...clipboard];
+
+      const { jobId } = await apiClient.post("/api/paste-files", {
+        files: items,
+        newPath: fileData?.relativePath,
+      });
+
+      clearClipboard();
+
+      trackJob({
+        jobId,
+        items,
+        onDone: reload,
+      });
+    } catch {
+      showToast("Error pasting files", "error");
+    }
+  }, [
+    clipboard,
+    fileData?.relativePath,
+    clearClipboard,
+    trackJob,
+    reload,
+    showToast,
+  ]);
 
   const onCreateFolder = useCallback(
-    (folder) => createFolder(folder, fileData?.relativePath),
-    [createFolder, fileData?.relativePath],
+    async (folder) => {
+      try {
+        await apiClient.post("/api/create-folder", {
+          folderName: folder,
+          currentPath: fileData?.relativePath,
+        });
+
+        reload();
+        showToast("Folder created", "success");
+      } catch {
+        showToast("Error creating folder", "error");
+      }
+    },
+    [fileData?.relativePath, reload, showToast],
   );
 
-  const onGenerateBreadcrumb = useCallback(
-    () => generateBreadcrumb(fileData?.relativePath),
-    [generateBreadcrumb, fileData?.relativePath],
-  );
+  const onGenerateBreadcrumb = useCallback(() => {
+    const path = fileData?.relativePath;
+
+    const breadcrumbs = [{ name: "Home", path: "files" }];
+
+    let current = "files";
+
+    path
+      ?.split("/")
+      .filter(Boolean)
+      .forEach((part) => {
+        current += `/${part}`;
+        breadcrumbs.push({
+          name: part,
+          path: current,
+        });
+      });
+
+    return breadcrumbs;
+  }, [fileData?.relativePath]);
 
   // ---------------------------------------------------------------------------
   // Navigation
