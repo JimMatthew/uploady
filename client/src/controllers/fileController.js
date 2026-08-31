@@ -1,13 +1,22 @@
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useState, useEffect, useCallback } from "react";
 import apiClient from "../services/apiClient";
+import { useTransferJob } from "../hooks/useTransferJob";
 
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
   const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
-  const [progressMap, setProgressMap] = useState({});
-  const [startedTransfers, setStartedTransfers] = useState({});
+  //const [progressMap, setProgressMap] = useState({});
+  //const [startedTransfers, setStartedTransfers] = useState({});
 
+  const {
+    progressMap,
+    startedTransfers,
+    trackJob,
+  } = useTransferJob({
+    onError: () =>
+      showToast("Transfer connection lost", "error"),
+  });
   /**
    * Utility to show toast notifications
    */
@@ -176,85 +185,21 @@ const FileController = ({ toast, onRefresh }) => {
     if (!clipboard.length) return;
 
     try {
-      const { jobId } = await apiClient.post(
-        "/api/paste-files",
-        {
-          files: clipboard,
-          newPath: rp,
-        },
-      );
+      const items = [...clipboard];
 
-      const initialTransfers = Object.fromEntries(
-        clipboard.map(({ file }) => [
-          `${jobId}-${file}`,
-          { file, progress: 0 },
-        ]),
-      );
-      setStartedTransfers(initialTransfers);
-      setProgressMap({ ...initialTransfers });
+      const { jobId } = await apiClient.post("/api/paste-files", {
+        files: items,
+        newPath: rp,
+      });
+
       clearClipboard();
 
-      const eventSource = new EventSource(`/api/progress/${jobId}`);
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.ready) return;
-
-        if (data.type === "jobStart") {
-          setProgressMap((prev) => {
-            const next = { ...prev };
-            Object.keys(initialTransfers).forEach((key) => {
-              const itemName = initialTransfers[key].file;
-              next[key] = {
-                ...next[key],
-                total: data.rootCounts?.[itemName] ?? 1,
-              };
-            });
-            return next;
-          });
-
-        } else if (data.type === "fileProgress") {
-          const rootKey = `${jobId}-${data.rootItem}`;
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: { ...prev[rootKey], progress: Math.round(data.percent) },
-          }));
-
-        } else if (data.type === "fileDone") {
-          const rootKey = `${jobId}-${data.rootItem}`;
-          const isTopLevel = data.file === data.rootItem;
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: isTopLevel
-              ? { ...prev[rootKey], progress: 100 }
-              : { ...prev[rootKey], completed: (prev[rootKey]?.completed || 0) + 1 },
-          }));
-
-        } else if (data.type === "fileFail") {
-          const rootKey = `${jobId}-${data.rootItem}`;
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: { ...prev[rootKey], error: data.error },
-          }));
-
-        } else if (data.type === "jobDone") {
-          eventSource.close();
-          onRefresh(rp);
-          setTimeout(() => {
-            setProgressMap({});
-            setStartedTransfers({});
-          }, 1500);
-        }
-      };
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        showToast("Transfer connection lost", "error");
-        setProgressMap({});
-        setStartedTransfers({});
-      };
-
-    } catch (err) {
-      console.error("Paste error:", err);
+      trackJob({
+        jobId,
+        items,
+        onDone: () => onRefresh(rp),
+      });
+    } catch {
       showToast("Error pasting files", "error");
     }
   };
