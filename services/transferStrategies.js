@@ -295,73 +295,103 @@ const sftpCrossServer3 = async (
   return size;
 };
 
-const sftpCrossServer = async (
+const sftpCrossServer2 = async (
   item,
   {
     sftpSource,
     sftpDest,
-    destServerId,
     context,
   },
   onProgress,
 ) => {
-  const sourceServerId = item.sourceServerId;
+  const CHUNK_SIZE = 16 * 1024 * 1024;
+  const WORKERS = 2;
 
-  const extraSource = await connectToSftp(sourceServerId);
-  const extraDest = await connectToSftp(destServerId);
+  const { size } = await sftpSource.stat(item.sourcePath);
 
-  try {
-    const { size } = await sftpSource.stat(item.sourcePath);
+  await ensureRemoteDir(
+    sftpDest,
+    item.destinationPath,
+    context.destDirs,
+  );
 
-    await ensureRemoteDir(
+  await createDestinationFile(
+    sftpDest,
+    item.destinationPath,
+  );
+
+  const chunks = createChunks(size, CHUNK_SIZE);
+
+  let transferred = 0;
+
+  const onBytes = (bytes) => {
+    transferred += bytes;
+    onProgress((transferred / size) * 100);
+  };
+
+  const runWorker = async () => {
+    while (chunks.length > 0) {
+      const range = chunks.shift();
+
+      if (!range) {
+        return;
+      }
+
+      await copyRange({
+        sftpSource,
+        sftpDest,
+        sourcePath: item.sourcePath,
+        destinationPath: item.destinationPath,
+        start: range.start,
+        end: range.end,
+        onBytes,
+      });
+    }
+  };
+
+  await Promise.all(
+    Array.from(
+      { length: WORKERS },
+      () => runWorker(),
+    ),
+  );
+
+  return size;
+};
+
+const createChunks = (size, chunkSize) => {
+  const chunks = [];
+
+  for (let start = 0; start < size; start += chunkSize) {
+    chunks.push({
+      start,
+      end: Math.min(start + chunkSize - 1, size - 1),
+    });
+  }
+
+  return chunks;
+};
+
+const runWorker = async ({
+  chunks,
+  sftpSource,
+  sftpDest,
+  item,
+  onBytes,
+}) => {
+  while (chunks.length) {
+    const range = chunks.shift();
+
+    if (!range) return;
+
+    await copyRange({
+      sftpSource,
       sftpDest,
-      item.destinationPath,
-      context.destDirs,
-    );
-
-    await createDestinationFile(
-      sftpDest,
-      item.destinationPath,
-    );
-
-    const ranges = createRanges(size, 2);
-
-    let transferred = 0;
-
-    const onBytes = (bytes) => {
-      transferred += bytes;
-      onProgress((transferred / size) * 100);
-    };
-
-    const connectionPairs = [
-      {
-        source: sftpSource,
-        dest: sftpDest,
-      },
-      {
-        source: extraSource,
-        dest: extraDest,
-      },
-    ];
-
-    await Promise.all(
-      ranges.map(({ start, end }, index) =>
-        copyRange({
-          sftpSource: connectionPairs[index].source,
-          sftpDest: connectionPairs[index].dest,
-          sourcePath: item.sourcePath,
-          destinationPath: item.destinationPath,
-          start,
-          end,
-          onBytes,
-        }),
-      ),
-    );
-
-    return size;
-  } finally {
-    await extraSource.end();
-    await extraDest.end();
+      sourcePath: item.sourcePath,
+      destinationPath: item.destinationPath,
+      ...range,
+      onBytes,
+    });
   }
 };
 
@@ -379,73 +409,49 @@ const createDestinationFile = async (
     stream.end();
   });
 };
-const sftpCrossServer2 = async (
+
+const sftpCrossServer = async (
   item,
-  {
-    sftpSource,
-    sftpDest,
-    sourceServerId,
-    destServerId,
-    context,
-  },
+  { sftpSource, sftpDest, context },
   onProgress,
 ) => {
-  const extraSource = await connectToSftp(sourceServerId);
-  const extraDest = await connectToSftp(destServerId);
+  const { size } = await sftpSource.stat(item.sourcePath);
 
-  try {
-    const { size } = await sftpSource.stat(item.sourcePath);
+  await ensureRemoteDir(
+    sftpDest,
+    item.destinationPath,
+    context.destDirs,
+  );
 
-    await ensureRemoteDir(
-      sftpDest,
-      item.destinationPath,
-      context.destDirs,
-    );
+  await createDestinationFile(
+    sftpDest,
+    item.destinationPath,
+  );
 
-    await createDestinationFile(
-      sftpDest,
-      item.destinationPath,
-    );
+  const ranges = createRanges(size, 2);
 
-    const ranges = createRanges(size, 2);
+  let transferred = 0;
 
-    let transferred = 0;
+  const onBytes = (bytes) => {
+    transferred += bytes;
+    onProgress((transferred / size) * 100);
+  };
 
-    const onBytes = (bytes) => {
-      transferred += bytes;
-      onProgress((transferred / size) * 100);
-    };
+  await Promise.all(
+    ranges.map(({ start, end }) =>
+      copyRange({
+        sftpSource,
+        sftpDest,
+        sourcePath: item.sourcePath,
+        destinationPath: item.destinationPath,
+        start,
+        end,
+        onBytes,
+      }),
+    ),
+  );
 
-    const connectionPairs = [
-      {
-        source: sftpSource,
-        dest: sftpDest,
-      },
-      {
-        source: extraSource,
-        dest: extraDest,
-      },
-    ];
-
-    await Promise.all(
-      ranges.map(({ start, end }, index) =>
-        copyRange({
-          sftpSource: connectionPairs[index].source,
-          sftpDest: connectionPairs[index].dest,
-          sourcePath: item.sourcePath,
-          destinationPath: item.destinationPath,
-          start,
-          end,
-          onBytes,
-        }),
-      ),
-    );
-
-    return size;
-  } finally {
-    await extraSource.end();
-    await extraDest.end();
-  }
+  return size;
 };
 
 const createRanges = (size, concurrency) => {
