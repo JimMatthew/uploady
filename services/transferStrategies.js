@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { PassThrough } = require("stream");
-
+const { pipeline } = require("stream/promises");
 /**
  * Returns a data handler that tracks bytes flowing through a stream and
  * reports progress via onProgress at most once every 100ms.
@@ -177,7 +177,7 @@ const localToSftp = async (item, { sftpDest, context }, onProgress) => {
  * @param {(percent: number) => void} onProgress
  * @returns {Promise<number>} File size in bytes
  */
-const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
+const sftpToLocal2 = async (item, { sftpSource, context }, onProgress) => {
   const stat = await sftpSource.stat(item.sourcePath);
   await ensureLocalDir(item.destinationPath, context.destDirs);
 
@@ -194,6 +194,28 @@ const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
       .on("finish", resolve)
       .on("error", reject);
   });
+
+  return stat.size;
+};
+
+const sftpToLocal = async (
+  item,
+  { sftpSource, context },
+  onProgress,
+) => {
+  await ensureLocalDir(item.destinationPath, context.destDirs);
+
+  await sftpSource.fastGet(
+    item.sourcePath,
+    item.destinationPath,
+    {
+      step: (transferred, chunk, total) => {
+        onProgress((transferred / total) * 100);
+      },
+    },
+  );
+
+  const stat = await fs.promises.stat(item.destinationPath);
 
   return stat.size;
 };
@@ -228,21 +250,20 @@ const sftpCrossServer = async (
 ) => {
   const { size } = await sftpSource.stat(item.sourcePath);
 
-  await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
+  await ensureRemoteDir(
+    sftpDest,
+    item.destinationPath,
+    context.destDirs,
+  );
 
   const passthrough = new PassThrough();
-  const track = trackProgress(size, onProgress);
-  passthrough.on("data", track);
+  passthrough.on("data", trackProgress(size, onProgress));
 
-  try {
-    await Promise.all([
-      sftpSource.get(item.sourcePath, passthrough),
-      sftpDest.put(passthrough, item.destinationPath),
-    ]);
-  } catch (err) {
-    passthrough.destroy(err);
-    throw err;
-  }
+  await pipeline(
+    sftpSource.createReadStream(item.sourcePath),
+    passthrough,
+    sftpDest.createWriteStream(item.destinationPath),
+  );
 
   return size;
 };
@@ -344,7 +365,7 @@ const selectStrategy = (sourceServerId, destServerId) => {
  *
  * @throws {Error} If no strategy exists for the source/destination pair
  */
-const dispatch = async (item, connections, onProgress) => {
+const dispatch = async ({ item, connections, onProgress }) => {
   const key = selectStrategy(
     item.sourceServerId,
     connections.destServerId,
