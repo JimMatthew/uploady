@@ -247,153 +247,6 @@ const copyRange = async ({
 
   await pipeline(readStream, writeStream);
 };
-/**
- * sftp → sftp (cross server)
- *
- * Streams a file from one remote server through Node to another. The source
- * and destination servers do not require direct connectivity to each other.
- *
- * get() and put() run concurrently because they operate on opposite ends of
- * the same PassThrough stream. If either side fails, the stream is destroyed
- * so the other operation is not left waiting indefinitely.
- *
- * Remote destination directories are created lazily and cached for the
- * lifetime of the job.
- *
- * @param {object} item
- * @param {string} item.sourcePath - Full remote source path
- * @param {string} item.destinationPath - Full remote destination path
- * @param {object} execution
- * @param {import("ssh2-sftp-client")} execution.sftpSource
- * @param {import("ssh2-sftp-client")} execution.sftpDest
- * @param {{ destDirs: Set<string> }} execution.context
- * @param {(percent: number) => void} onProgress
- * @returns {Promise<number>} File size in bytes
- */
-const sftpCrossServer3 = async (
-  item,
-  { sftpSource, sftpDest, context },
-  onProgress,
-) => {
-  const { size } = await sftpSource.stat(item.sourcePath);
-
-  await ensureRemoteDir(
-    sftpDest,
-    item.destinationPath,
-    context.destDirs,
-  );
-
-  const passthrough = new PassThrough();
-  passthrough.on("data", trackProgress(size, onProgress));
-
-  await pipeline(
-    sftpSource.createReadStream(item.sourcePath),
-    passthrough,
-    sftpDest.createWriteStream(item.destinationPath),
-  );
-
-  return size;
-};
-
-const sftpCrossServer2 = async (
-  item,
-  {
-    sftpSource,
-    sftpDest,
-    context,
-  },
-  onProgress,
-) => {
-  const CHUNK_SIZE = 16 * 1024 * 1024;
-  const WORKERS = 2;
-
-  const { size } = await sftpSource.stat(item.sourcePath);
-
-  await ensureRemoteDir(
-    sftpDest,
-    item.destinationPath,
-    context.destDirs,
-  );
-
-  await createDestinationFile(
-    sftpDest,
-    item.destinationPath,
-  );
-
-  const chunks = createChunks(size, CHUNK_SIZE);
-
-  let transferred = 0;
-
-  const onBytes = (bytes) => {
-    transferred += bytes;
-    onProgress((transferred / size) * 100);
-  };
-
-  const runWorker = async () => {
-    while (chunks.length > 0) {
-      const range = chunks.shift();
-
-      if (!range) {
-        return;
-      }
-
-      await copyRange({
-        sftpSource,
-        sftpDest,
-        sourcePath: item.sourcePath,
-        destinationPath: item.destinationPath,
-        start: range.start,
-        end: range.end,
-        onBytes,
-      });
-    }
-  };
-
-  await Promise.all(
-    Array.from(
-      { length: WORKERS },
-      () => runWorker(),
-    ),
-  );
-
-  return size;
-};
-
-const createChunks = (size, chunkSize) => {
-  const chunks = [];
-
-  for (let start = 0; start < size; start += chunkSize) {
-    chunks.push({
-      start,
-      end: Math.min(start + chunkSize - 1, size - 1),
-    });
-  }
-
-  return chunks;
-};
-
-const runWorker = async ({
-  chunks,
-  sftpSource,
-  sftpDest,
-  item,
-  onBytes,
-}) => {
-  while (chunks.length) {
-    const range = chunks.shift();
-
-    if (!range) return;
-
-    await copyRange({
-      sftpSource,
-      sftpDest,
-      sourcePath: item.sourcePath,
-      destinationPath: item.destinationPath,
-      ...range,
-      onBytes,
-    });
-  }
-};
 
 const createDestinationFile = async (
   sftpDest,
@@ -410,6 +263,36 @@ const createDestinationFile = async (
   });
 };
 
+/**
+ * sftp → sftp (cross server)
+ *
+ * Copies a file between two remote servers through Node. The source and
+ * destination servers do not require direct connectivity to each other.
+ *
+ * The file is divided into two byte ranges which are transferred concurrently
+ * using ranged SFTP read and write streams. Both transfers share the existing
+ * source and destination SFTP sessions. Each range is written directly to its
+ * corresponding offset in the destination file.
+ *
+ * The destination file is created once before starting the ranged transfers.
+ * This ensures it is truncated before copying and prevents individual write
+ * streams from truncating data written by another range.
+ *
+ * Progress is aggregated from the bytes transferred by both ranges.
+ *
+ * Remote destination directories are created lazily and cached for the
+ * lifetime of the job.
+ *
+ * @param {object} item
+ * @param {string} item.sourcePath - Full remote source path
+ * @param {string} item.destinationPath - Full remote destination path
+ * @param {object} execution
+ * @param {import("ssh2-sftp-client")} execution.sftpSource
+ * @param {import("ssh2-sftp-client")} execution.sftpDest
+ * @param {{ destDirs: Set<string> }} execution.context
+ * @param {(percent: number) => void} onProgress
+ * @returns {Promise<number>} File size in bytes
+ */
 const sftpCrossServer = async (
   item,
   { sftpSource, sftpDest, context },
@@ -467,6 +350,7 @@ const createRanges = (size, concurrency) => {
 
   return ranges;
 };
+
 /**
  * sftp → sftp (same server)
  *
