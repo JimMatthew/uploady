@@ -199,20 +199,20 @@ const FilePanel = ({
       <Box flex={1} overflow="auto">
         <FolderList
           folders={files.folders}
-          changeDirectory={openFolder}
+          openFolder={openFolder}
           deleteFolder={deleteFolder}
           downloadFolder={downloadFolder}
-          handleCopy={copyFolder}
+          copyFolder={copyFolder}
         />
         <FileList
           files={files.files}
-          handleFileDownload={downloadFile}
-          handleFileDelete={deleteFile}
-          handleFileShareLink={shareFile}
-          handleRenameFile={renameFile}
-          handleFileCopy={copyFile}
-          handleFileCut={cutFile}
-          handleOpenFile={onOpenFile}
+          downloadFile={downloadFile}
+          deleteFile={deleteFile}
+          shareFile={shareFile}
+          renameFile={renameFile}
+          copyFile={copyFile}
+          cutFile={cutFile}
+          openFile={onOpenFile}
         />
       </Box>
     </Box>
