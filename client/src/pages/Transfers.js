@@ -164,9 +164,9 @@ const PageButton = ({ onClick, disabled, children }) => (
       disabled
         ? {}
         : {
-            borderColor: "rgba(99,102,241,0.3)",
-            color: "#818CF8",
-          }
+          borderColor: "rgba(99,102,241,0.3)",
+          color: "#818CF8",
+        }
     }
   >
     {children}
@@ -202,9 +202,10 @@ const ItemRow = ({ item }) => {
 
         <Box flex={1} minW={0}>
           <Text
-            fontSize="12px"
+            fontSize="13px"
+            fontWeight={500}
             fontFamily={mono}
-            color={failed ? "#EF4444" : "rgba(255,255,255,0.75)"}
+            color={failed ? "#EF4444" : "rgba(255,255,255,0.85)"}
             letterSpacing="-0.01em"
             noOfLines={1}
             mb="3px"
@@ -213,9 +214,9 @@ const ItemRow = ({ item }) => {
           </Text>
           <Flex align="center" gap={2} minW={0}>
             <Text
-              fontSize="10px"
+              fontSize="11px"
               fontFamily={mono}
-              color="rgba(255,255,255,0.35)"
+              color="rgba(255,255,255,0.5)"
               noOfLines={1}
             >
               {item.sourceServer || "local"}:{item.sourcePath}
@@ -223,13 +224,13 @@ const ItemRow = ({ item }) => {
             <Icon
               as={FiArrowRight}
               boxSize="8px"
-              color="rgba(255,255,255,0.15)"
+              color="rgba(255,255,255,0.4)"
               flexShrink={0}
             />
             <Text
-              fontSize="10px"
+              fontSize="11px"
               fontFamily={mono}
-              color="rgba(255,255,255,0.35)"
+              color="rgba(255,255,255,0.5)"
               noOfLines={1}
             >
               {item.destinationPath}
@@ -240,7 +241,7 @@ const ItemRow = ({ item }) => {
         <Flex align="center" gap={4} flexShrink={0}>
           <Text
             fontSize="11px"
-            color="rgba(255,255,255,0.35)"
+            color="rgba(255,255,255,0.5)"
             fontFamily={mono}
             minW="50px"
             textAlign="right"
@@ -249,7 +250,7 @@ const ItemRow = ({ item }) => {
           </Text>
           <Text
             fontSize="11px"
-            color="rgba(255,255,255,0.35)"
+            color="rgba(255,255,255,0.45)"
             fontFamily={mono}
             minW="45px"
             textAlign="right"
@@ -258,11 +259,12 @@ const ItemRow = ({ item }) => {
           </Text>
           {item.speedMBs ? (
             <Flex align="center" gap={1} minW="70px">
-              <Icon as={FiZap} boxSize="9px" color="rgba(99,102,241,0.5)" />
+              <Icon as={FiZap} boxSize="10px" color="#A5B4FC" />
               <Text
                 fontSize="11px"
-                color="rgba(99,102,241,0.7)"
+                color="#A5B4FC"
                 fontFamily={mono}
+                fontWeight={500}
               >
                 {item.speedMBs} MB/s
               </Text>
@@ -413,15 +415,15 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
           {job.destServer}
         </Text>
 
-        <Text fontSize="11px" color="rgba(255,255,255,0.3)" fontFamily={mono}>
+        <Text fontSize="11px" color="rgba(255,255,255,0.5)" fontFamily={mono}>
           {formatTime(job.createdAt)}
         </Text>
 
-        <Text fontSize="11px" color="rgba(255,255,255,0.25)" fontFamily={mono}>
+        <Text fontSize="11px" color="rgba(255,255,255,0.5)" fontFamily={mono}>
           {formatDuration(job.durationMs)}
         </Text>
 
-        <Text fontSize="11px" color="rgba(255,255,255,0.3)" fontFamily={mono}>
+        <Text fontSize="11px" color="rgba(255,255,255,0.5)" fontFamily={mono}>
           {job.completedFiles}/{job.totalFiles} files
           {job.totalBytes > 0 && ` · ${formatSize(job.totalBytes)}`}
         </Text>
@@ -493,7 +495,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
         <Flex align="center" gap={3} flexShrink={0}>
           <Text
             fontSize="11px"
-            color="rgba(255,255,255,0.25)"
+            color="rgba(255,255,255,0.5)"
             fontFamily={mono}
           >
             {totalItems} items
@@ -539,7 +541,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
           fontWeight={700}
           letterSpacing="0.08em"
           textTransform="uppercase"
-          color="rgba(255,255,255,0.18)"
+          color="rgba(255,255,255,0.4)"
           fontFamily={mono}
         >
           file
@@ -549,7 +551,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
           fontWeight={700}
           letterSpacing="0.08em"
           textTransform="uppercase"
-          color="rgba(255,255,255,0.18)"
+          color="rgba(255,255,255,0.4)"
           fontFamily={mono}
           minW="50px"
           textAlign="right"
@@ -561,7 +563,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
           fontWeight={700}
           letterSpacing="0.08em"
           textTransform="uppercase"
-          color="rgba(255,255,255,0.18)"
+          color="rgba(255,255,255,0.4)"
           fontFamily={mono}
           minW="45px"
           textAlign="right"
@@ -794,7 +796,7 @@ const Transfers = ({ toast }) => {
           >
             Transfers
           </Text>
-          <Text fontSize="11px" color="rgba(255,255,255,0.2)" fontFamily={mono}>
+          <Text fontSize="11px" color="rgba(255,255,255,0.45)" fontFamily={mono}>
             {jobs.length}
           </Text>
         </Flex>
