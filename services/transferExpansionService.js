@@ -101,13 +101,11 @@ const walkLocalDir = (dirPath, destBasePath) => {
 const expandJobItems = async (jobId) => {
   const items = await transferItems.findByJobId(jobId);
 
-  // Group directory items by source so each remote source
-  // requires only one SFTP connection during expansion.
-  const dirItems = items.filter((item) => item.kind === ItemKind.DIRECTORY);
-
+  // Group all source items by server so each remote source requires
+  // only one SFTP connection while resolving files and directories.
   const grouped = new Map();
 
-  for (const item of dirItems) {
+  for (const item of items) {
     const sourceServerId = item.sourceServerId ?? null;
 
     if (!grouped.has(sourceServerId)) {
@@ -119,33 +117,63 @@ const expandJobItems = async (jobId) => {
 
   const newFileItems = [];
 
-  for (const [sourceServerId, dirs] of grouped) {
+  for (const [sourceServerId, sourceItems] of grouped) {
     const isLocal = sourceServerId === null;
-    
     const sftp = isLocal ? null : await connectToSftp(sourceServerId);
 
     try {
-      for (const dir of dirs) {
-        const walked = isLocal
-          ? walkLocalDir(dir.sourcePath, dir.destinationPath)
-          : await walkSftpDir(sftp, dir.sourcePath, dir.destinationPath);
+      for (const item of sourceItems) {
+        // ── Direct File ─────────────────────────────────────────────────────
+        if (item.kind === ItemKind.FILE) {
+          const size = isLocal
+            ? fs.statSync(item.sourcePath).size
+            : (await sftp.stat(item.sourcePath)).size;
 
-        for (const file of walked) {
           newFileItems.push({
             jobId,
             sourceServerId,
-            filename: file.filename,
-            rootItem: dir.rootItem,
-            sourcePath: file.sourcePath,
-            destinationPath: file.destinationPath,
-            size: file.size,
+            filename: item.filename,
+            rootItem: item.rootItem,
+            sourcePath: item.sourcePath,
+            destinationPath: item.destinationPath,
+            size,
             kind: ItemKind.FILE,
           });
+
+          // Replace the original file placeholder with the fully-resolved
+          // file item containing the actual source size.
+          await transferItems.deleteById(item._id.toString());
+
+          continue;
         }
 
-        // The directory has been flattened into concrete file items,
-        // so its placeholder is no longer needed.
-        await transferItems.deleteById(dir._id.toString());
+        // ── Directory ───────────────────────────────────────────────────────
+        if (item.kind === ItemKind.DIRECTORY) {
+          const walked = isLocal
+            ? walkLocalDir(item.sourcePath, item.destinationPath)
+            : await walkSftpDir(
+                sftp,
+                item.sourcePath,
+                item.destinationPath,
+              );
+
+          for (const file of walked) {
+            newFileItems.push({
+              jobId,
+              sourceServerId,
+              filename: file.filename,
+              rootItem: item.rootItem,
+              sourcePath: file.sourcePath,
+              destinationPath: file.destinationPath,
+              size: file.size,
+              kind: ItemKind.FILE,
+            });
+          }
+
+          // The directory has been flattened into concrete file items,
+          // so its placeholder is no longer needed.
+          await transferItems.deleteById(item._id.toString());
+        }
       }
     } finally {
       await sftp?.end();
@@ -159,6 +187,7 @@ const expandJobItems = async (jobId) => {
   const allFileItems = await transferItems.findFilesByJobId(jobId);
 
   const totalFiles = allFileItems.length;
+
   const totalBytes = allFileItems.reduce(
     (sum, item) => sum + (item.size || 0),
     0,

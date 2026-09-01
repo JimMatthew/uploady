@@ -52,13 +52,13 @@ function get_transfer_progress(req, res) {
 
   // subscribe to executor events
   const events = [
-    "jobStart",
-    "fileStart",
-    "fileProgress",
-    "fileDone",
-    "fileFail",
-    "jobDone",
-  ];
+  "jobStart",
+  "fileStart",
+  "rootProgress",
+  "fileDone",
+  "fileFail",
+  "jobDone",
+];
 
   const handlers = {};
   for (const event of events) {

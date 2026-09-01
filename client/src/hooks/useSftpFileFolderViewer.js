@@ -221,23 +221,31 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // Clipboard
   // ---------------------------------------------------------------------------
 
-  const handleCopy = useCallback(
-    (filename, isFolder = false) => {
-      copyFile({
-        file: filename,
-        path: files.currentDirectory,
-        source: "sftp",
-        serverId,
-        isDirectory: isFolder,
-      });
-    },
-    [copyFile, files?.currentDirectory, serverId],
-  );
+ const handleCopy = useCallback(
+  (filename) => {
+    copyFile({
+      file: filename,
+      path: files.currentDirectory,
+      source: "sftp",
+      serverId,
+      isDirectory: false,
+    });
+  },
+  [copyFile, files?.currentDirectory, serverId],
+);
 
-  const copyFolder = useCallback(
-    (folder) => handleCopy(folder, true),
-    [handleCopy],
-  );
+const copyFolder = useCallback(
+  (folder) => {
+    copyFile({
+      file: folder,
+      path: files.currentDirectory,
+      source: "sftp",
+      serverId,
+      isDirectory: true,
+    });
+  },
+  [copyFile, files?.currentDirectory, serverId],
+);
 
   const handlePaste = async () => {
     if (!clipboard.length) return;

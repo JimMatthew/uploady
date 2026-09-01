@@ -170,7 +170,26 @@ class TransferExecutor extends EventEmitter {
         },
       ]),
     );
+    const roots = new Map();
 
+    for (const item of items.values()) {
+      let root = roots.get(item.rootItem);
+
+      if (!root) {
+        root = {
+          rootItem: item.rootItem,
+          totalFiles: 0,
+          completedFiles: 0,
+          failedFiles: 0,
+          percent: 0,
+          error: null,
+        };
+
+        roots.set(item.rootItem, root);
+      }
+
+      root.totalFiles++;
+    }
     const job = {
       jobId,
       status: JobStatus.RUNNING,
@@ -181,6 +200,7 @@ class TransferExecutor extends EventEmitter {
       failedFiles: 0,
       currentFile: null,
       stopRequested: false,
+      roots,
       items,
     };
 
@@ -195,8 +215,7 @@ class TransferExecutor extends EventEmitter {
     }
 
     this.emit(`jobStart:${jobId}`, {
-      totalFiles: items.size,
-      rootCounts,
+      roots: [...job.roots.values()],
     });
 
     // ── Phase 3: execute ──────────────────────────────────────────────────────
@@ -259,7 +278,7 @@ class TransferExecutor extends EventEmitter {
     const { executeTransferJob } = require("./sftpService");
 
     await executeTransferJob(job, {
-      
+
 
       shouldStop: () => job.stopRequested,
 
@@ -286,11 +305,17 @@ class TransferExecutor extends EventEmitter {
 
       onFileProgress: (item, percent) => {
         item.percent = percent;
-        this.emit(`fileProgress:${job.jobId}`, {
-          file: item.filename,
-          rootItem: item.rootItem,
-          percent,
-        });
+
+        const root = job.roots.get(item.rootItem);
+
+        // Meaningful for roots that represent a single file.
+        if (root.totalFiles === 1) {
+          root.percent = percent;
+
+          this.emit(`rootProgress:${job.jobId}`, {
+            ...root,
+          });
+        }
       },
 
       // ── File Completed ────────────────────────────────────────────────────
@@ -298,18 +323,19 @@ class TransferExecutor extends EventEmitter {
       onFileDone: async (item) => {
         item.status = ItemStatus.COMPLETED;
         item.percent = 100;
+
         job.completedFiles++;
+
+        const root = job.roots.get(item.rootItem);
+        root.completedFiles++;
+
         await Promise.all([
           transferItems.markCompleted(item.itemId, item.size),
-
           transferJobs.incrementCompleted(job.jobId, item.size),
         ]);
 
-        this.emit(`fileDone:${job.jobId}`, {
-          file: item.filename,
-          rootItem: item.rootItem,
-          completed: job.completedFiles,
-          total: job.totalFiles,
+        this.emit(`rootProgress:${job.jobId}`, {
+          ...root,
         });
       },
 
@@ -322,18 +348,20 @@ class TransferExecutor extends EventEmitter {
         // Phase 3) aborts the whole job.
         item.status = ItemStatus.FAILED;
         item.error = err.message;
+
         job.failedFiles++;
+
+        const root = job.roots.get(item.rootItem);
+        root.failedFiles++;
+        root.error = err.message;
 
         await Promise.all([
           transferItems.markFailed(item.itemId, err.message),
-
           transferJobs.incrementFailed(job.jobId),
         ]);
 
-        this.emit(`fileFail:${job.jobId}`, {
-          file: item.filename,
-          rootItem: item.rootItem,
-          error: err.message,
+        this.emit(`rootProgress:${job.jobId}`, {
+          ...root,
         });
       },
     });

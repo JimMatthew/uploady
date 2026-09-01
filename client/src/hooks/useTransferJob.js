@@ -5,13 +5,19 @@ export function useTransferJob({ onError } = {}) {
   const [startedTransfers, setStartedTransfers] = useState({});
 
   const trackJob = useCallback(
-    ({ jobId, items, onDone }) => {
+    ({ jobId, items = [], onDone }) => {
+      // Give the user immediate feedback before the backend has finished
+      // expanding folders and calculating authoritative root totals.
       const initialTransfers = Object.fromEntries(
         items.map(({ file }) => [
           `${jobId}-${file}`,
           {
             file,
             progress: 0,
+            total: null,
+            completed: 0,
+            failed: 0,
+            error: null,
           },
         ]),
       );
@@ -25,80 +31,76 @@ export function useTransferJob({ onError } = {}) {
         `/api/progress/${jobId}?token=${token}`,
       );
 
+      const rootToProgress = (root) => ({
+        file: root.rootItem,
+        progress: Math.round(root.percent ?? 0),
+        total: root.totalFiles,
+        completed: root.completedFiles,
+        failed: root.failedFiles,
+        error: root.error ?? null,
+      });
+
+      const applyRoots = (roots) => {
+        const rootMap = Object.fromEntries(
+          roots.map((root) => [
+            `${jobId}-${root.rootItem}`,
+            rootToProgress(root),
+          ]),
+        );
+
+        setStartedTransfers(rootMap);
+        setProgressMap(rootMap);
+      };
+
+      const applyRootProgress = (root) => {
+        const rootKey = `${jobId}-${root.rootItem}`;
+
+        setProgressMap((prev) => ({
+          ...prev,
+          [rootKey]: rootToProgress(root),
+        }));
+      };
+
       eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        const message = JSON.parse(event.data);
+        const { type } = message;
 
-        if (data.ready) return;
+        switch (type) {
+          case "jobStart":
+            applyRoots(message.roots);
+            return;
 
-        if (data.type === "jobStart") {
-          setProgressMap((prev) => {
-            const next = { ...prev };
+          case "snapshot":
+            applyRoots(message.roots);
+            return;
 
-            Object.keys(initialTransfers).forEach((key) => {
-              const itemName = initialTransfers[key].file;
+          case "rootProgress":
+            applyRootProgress(message);
+            return;
 
-              next[key] = {
-                ...next[key],
-                total: data.rootCounts?.[itemName] ?? 1,
-              };
-            });
+          case "fileStart":
+          case "fileDone":
+          case "fileFail":
+            // These are currently forwarded by the SSE endpoint but the
+            // root-based progress UI does not need to handle them directly.
+            return;
 
-            return next;
-          });
-        }
+          case "jobDone":
+            eventSource.close();
 
-        if (data.type === "fileProgress") {
-          const rootKey = `${jobId}-${data.rootItem}`;
+            onDone?.();
 
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: {
-              ...prev[rootKey],
-              progress: Math.round(data.percent),
-            },
-          }));
-        }
+            setTimeout(() => {
+              setProgressMap({});
+              setStartedTransfers({});
+            }, 1500);
 
-        if (data.type === "fileDone") {
-          const rootKey = `${jobId}-${data.rootItem}`;
+            return;
 
-          const isTopLevel = data.file === data.rootItem;
-
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: isTopLevel
-              ? {
-                  ...prev[rootKey],
-                  progress: 100,
-                }
-              : {
-                  ...prev[rootKey],
-                  completed: (prev[rootKey]?.completed || 0) + 1,
-                },
-          }));
-        }
-
-        if (data.type === "fileFail") {
-          const rootKey = `${jobId}-${data.rootItem}`;
-
-          setProgressMap((prev) => ({
-            ...prev,
-            [rootKey]: {
-              ...prev[rootKey],
-              error: data.error,
-            },
-          }));
-        }
-
-        if (data.type === "jobDone") {
-          eventSource.close();
-
-          onDone?.();
-
-          setTimeout(() => {
-            setProgressMap({});
-            setStartedTransfers({});
-          }, 1500);
+          default:
+            if (!message.ready) {
+              console.warn(`Unknown transfer progress event: ${type}`);
+            }
         }
       };
 
