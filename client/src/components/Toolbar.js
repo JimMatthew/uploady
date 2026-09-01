@@ -48,10 +48,10 @@ const ToolbarBtn = ({ icon, label, onClick, disabled, danger }) => (
 
 const Toolbar = ({
   selected,
-  handleCopy,
-  handleShare,
-  handleDelete,
-  handleClear,
+  copySelected,
+  shareSelected,
+  deleteSelected,
+  clearSelection,
 }) => {
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const hasSelection = selected.size > 0;
@@ -70,19 +70,19 @@ const Toolbar = ({
       <ToolbarBtn
         icon={FiCopy}
         label="Copy"
-        onClick={handleCopy}
+        onClick={copySelected}
         disabled={!hasSelection}
       />
       <ToolbarBtn
         icon={FiShare2}
         label="Share"
-        onClick={handleShare}
+        onClick={shareSelected}
         disabled={!hasSelection}
       />
       <ToolbarBtn
         icon={FiTrash2}
         label="Delete"
-        onClick={handleDelete}
+        onClick={deleteSelected}
         disabled={!hasSelection}
         danger
       />
@@ -115,7 +115,7 @@ const Toolbar = ({
               bg: "rgba(255,255,255,0.07)",
               color: "rgba(255,255,255,0.7)",
             }}
-            onClick={handleClear}
+            onClick={clearSelection}
           >
             <Icon as={FiX} boxSize="11px" />
           </Flex>

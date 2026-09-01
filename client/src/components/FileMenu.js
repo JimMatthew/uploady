@@ -18,21 +18,27 @@ const MenuItem = ({ icon, label, onClick, danger }) => (
     cursor="pointer"
     transition="all 0.1s"
     role="group"
-    _hover={{ bg: danger ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.07)" }}
+    _hover={{
+      bg: danger ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.07)",
+    }}
     onClick={onClick}
   >
     <Icon
       as={icon}
       boxSize="14px"
       color={danger ? "rgba(239,68,68,0.7)" : "rgba(255,255,255,0.4)"}
-      _groupHover={{ color: danger ? "#EF4444" : "rgba(255,255,255,0.8)" }}
+      _groupHover={{
+        color: danger ? "#EF4444" : "rgba(255,255,255,0.8)",
+      }}
       transition="color 0.1s"
     />
     <Text
       fontSize="13px"
       fontWeight={450}
       color={danger ? "rgba(239,68,68,0.85)" : "rgba(255,255,255,0.65)"}
-      _groupHover={{ color: danger ? "#EF4444" : "rgba(255,255,255,0.95)" }}
+      _groupHover={{
+        color: danger ? "#EF4444" : "rgba(255,255,255,0.95)",
+      }}
       transition="color 0.1s"
       letterSpacing="-0.01em"
     >
@@ -46,29 +52,31 @@ const Divider = () => (
 );
 
 /**
- * Right-click context menu for file items.
+ * Right-click context menu for file or folder items.
+ * Only renders actions supplied by the parent.
+ *
  * Uses forwardRef so the parent can measure dimensions and reposition
  * the menu if it would overflow the viewport edges.
  */
-const FileContextMenu = forwardRef(
+const ItemMenu = forwardRef(
   (
     {
       top,
       left,
-      file,
+      item,
       closeMenu,
-      handleFileCopy,
-      handleFileCut,
-      handleFileDelete,
-      handleFileDownload,
-      handleFileShareLink,
-      handleOpenFile,
-      setRenamingFile,
+      copyItem,
+      cutItem,
+      deleteItem,
+      downloadItem,
+      shareItem,
+      openItem,
+      startRename,
     },
     ref,
   ) => {
-    const wrap = (fn) => () => {
-      fn(file);
+    const wrap = (action) => () => {
+      action(item);
       closeMenu();
     };
 
@@ -89,7 +97,7 @@ const FileContextMenu = forwardRef(
         overflow="hidden"
         py="4px"
       >
-        {/* Filename header */}
+        {/* Item name */}
         <Box px={3} pt={2} pb="6px">
           <Text
             fontSize="11px"
@@ -98,63 +106,78 @@ const FileContextMenu = forwardRef(
             letterSpacing="0.01em"
             fontFamily="'JetBrains Mono', monospace"
           >
-            {file}
+            {item}
           </Text>
         </Box>
+
         <Divider />
 
-        <MenuItem icon={FiCopy} label="Copy" onClick={wrap(handleFileCopy)} />
-        {handleFileCut && (
+        {copyItem && (
+          <MenuItem
+            icon={FiCopy}
+            label="Copy"
+            onClick={wrap(copyItem)}
+          />
+        )}
+
+        {cutItem && (
           <MenuItem
             icon={FiScissors}
             label="Cut"
-            onClick={wrap(handleFileCut)}
+            onClick={wrap(cutItem)}
           />
         )}
-        {setRenamingFile && (
+
+        {startRename && (
           <MenuItem
             icon={FiEdit2}
             label="Rename"
-            onClick={wrap(setRenamingFile)}
+            onClick={wrap(startRename)}
           />
         )}
-        {handleOpenFile && (
+
+        {openItem && (
           <MenuItem
             icon={FiFileText}
             label="Open"
-            onClick={wrap(handleOpenFile)}
+            onClick={wrap(openItem)}
           />
         )}
 
-        {(handleFileDownload || handleFileShareLink) && <Divider />}
+        {(downloadItem || shareItem) && <Divider />}
 
-        {handleFileDownload && (
+        {downloadItem && (
           <MenuItem
             icon={FiDownload}
             label="Download"
-            onClick={wrap(handleFileDownload)}
-          />
-        )}
-        {handleFileShareLink && (
-          <MenuItem
-            icon={FiShare2}
-            label="Share link"
-            onClick={wrap(handleFileShareLink)}
+            onClick={wrap(downloadItem)}
           />
         )}
 
-        <Divider />
-        <MenuItem
-          icon={FiTrash2}
-          label="Delete"
-          onClick={wrap(handleFileDelete)}
-          danger
-        />
+        {shareItem && (
+          <MenuItem
+            icon={FiShare2}
+            label="Share link"
+            onClick={wrap(shareItem)}
+          />
+        )}
+
+        {deleteItem && (
+          <>
+            <Divider />
+            <MenuItem
+              icon={FiTrash2}
+              label="Delete"
+              onClick={wrap(deleteItem)}
+              danger
+            />
+          </>
+        )}
       </Box>
     );
   },
 );
 
-FileContextMenu.displayName = "FileContextMenu";
+ItemMenu.displayName = "ItemMenu";
 
-export default FileContextMenu;
+export default ItemMenu;

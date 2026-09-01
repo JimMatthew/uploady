@@ -1,41 +1,40 @@
 import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
 import { FiChevronUp, FiChevronDown, FiFileText } from "react-icons/fi";
-import { useFileList } from "../hooks/useFileListFile";
+import { useFileListState } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import Toolbar from "./Toolbar";
 import { useState, useCallback, useEffect, useRef } from "react";
-import FileMenu from "./FileMenu";
+import ItemMenu from "./FileMenu";
 
 const SORT_FIELDS = ["name", "size", "date"];
 
 export default function FileList({
   files,
-  handleFileDownload,
-  handleFileDelete,
-  handleFileShareLink,
-  handleRenameFile,
-  handleFileCopy,
-  handleFileCut,
-  handleOpenFile,
+  downloadFile,
+  deleteFile,
+  shareFile,
+  renameFile,
+  copyFile,
+  cutFile,
+  openFile,
 }) {
   const {
     sortedFiles,
-    fileSortDirection,
+    sortDirection,
     sortField,
     setSortField,
     selected,
     toggleSelect,
-    handleCopy,
-    handleDelete,
-    handleShare,
-    isSelected,
+    copySelected,
+    deleteSelected,
+    shareSelected,
     clearSelection,
-    toggleFileSort,
-  } = useFileList({
+    toggleSortDirection,
+  } = useFileListState({
     files,
-    handleFileCopy,
-    handleFileDelete,
-    handleFileShareLink,
+    copyFile,
+    deleteFile,
+    shareFile,
   });
 
   const menuRef = useRef(null);
@@ -66,10 +65,10 @@ export default function FileList({
 
   const onRename = useCallback(
     (name, newName) => {
-      handleRenameFile(name, newName);
+      renameFile(name, newName);
       setRenamingFile(null);
     },
-    [handleRenameFile],
+    [renameFile],
   );
   const onRenameClose = useCallback(() => setRenamingFile(null), []);
 
@@ -97,10 +96,10 @@ export default function FileList({
     <Box>
       <Toolbar
         selected={selected}
-        handleCopy={handleCopy}
-        handleDelete={handleDelete}
-        handleClear={clearSelection}
-        handleShare={handleShare}
+        copySelected={copySelected}
+        deleteSelected={deleteSelected}
+        shareSelected={shareSelected}
+        clearSelection={clearSelection}
       />
 
       {/* Section header + sort controls */}
@@ -145,7 +144,7 @@ export default function FileList({
                 sortField === field ? "rgba(99,102,241,0.35)" : "transparent"
               }
               onClick={() =>
-                sortField === field ? toggleFileSort() : setSortField(field)
+                sortField === field ? toggleSortDirection() : setSortField(field)
               }
               transition="all 0.12s"
               _hover={{ borderColor: "rgba(255,255,255,0.12)" }}
@@ -164,7 +163,7 @@ export default function FileList({
                 {sortField === field && (
                   <Icon
                     as={
-                      fileSortDirection === "asc" ? FiChevronUp : FiChevronDown
+                      sortDirection === "asc" ? FiChevronUp : FiChevronDown
                     }
                     boxSize={3}
                     color="#818CF8"
@@ -209,19 +208,19 @@ export default function FileList({
       )}
 
       {contextMenu.visible && (
-        <FileMenu
+        <ItemMenu
           ref={menuRef}
-          file={contextMenu.file}
+          item={contextMenu.file}
           top={menuPos.y}
           left={menuPos.x}
           closeMenu={closeMenu}
-          handleFileCopy={handleFileCopy}
-          handleFileCut={handleFileCut}
-          handleFileDelete={handleFileDelete}
-          handleFileDownload={handleFileDownload}
-          handleFileShareLink={handleFileShareLink}
-          handleOpenFile={handleOpenFile}
-          setRenamingFile={setRenamingFile}
+          copyItem={copyFile}
+          cutItem={cutFile}
+          deleteItem={deleteFile}
+          downloadItem={downloadFile}
+          shareItem={shareFile}
+          openItem={openFile}
+          startRename={setRenamingFile}
         />
       )}
     </Box>

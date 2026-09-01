@@ -2,14 +2,14 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
 import { FiChevronUp, FiChevronDown, FiFolder } from "react-icons/fi";
 import FolderItem from "./FolderItem";
-import FileMenu from "./FileMenu";
+import ItemMenu from "./FileMenu";
 
 const FolderList = ({
   folders,
-  changeDirectory,
+  openFolder,
   deleteFolder,
   downloadFolder,
-  handleCopy,
+  copyFolder,
 }) => {
   const menuRef = useRef(null);
   const [sortDir, setSortDir] = useState("asc");
@@ -17,13 +17,13 @@ const FolderList = ({
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
-    file: null,
+    folder: null,
     visible: false,
   });
 
   const openMenu = useCallback((e, name) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, file: name, visible: true });
+    setContextMenu({ x: e.clientX, y: e.clientY, folder: name, visible: true });
     setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
@@ -119,21 +119,21 @@ const FolderList = ({
         <FolderItem
           key={folder.name}
           folder={folder.name}
-          changeDirectory={changeDirectory}
+          changeDirectory={openFolder}
           onOpenMenu={openMenu}
         />
       ))}
 
       {contextMenu.visible && (
-        <FileMenu
+        <ItemMenu
           ref={menuRef}
-          file={contextMenu.file}
+          item={contextMenu.folder}
           top={menuPos.y}
           left={menuPos.x}
           closeMenu={closeMenu}
-          handleFileCopy={handleCopy}
-          handleFileDelete={deleteFolder}
-          handleFileDownload={downloadFolder}
+          copyItem={copyFolder}
+          deleteItem={deleteFolder}
+          downloadItem={downloadFolder}
         />
       )}
     </Box>

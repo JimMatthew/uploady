@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 
-export function useFileList({
+export function useFileListState({
   files,
-  handleFileCopy,
-  handleFileDelete,
-  handleFileShareLink,
+  copyFile,
+  deleteFile,
+  shareFile,
 }) {
-  const [fileSortDirection, setFileSortDirection] = useState("asc");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [sortField, setSortField] = useState("name");
   const [selected, setSelected] = useState(new Set());
 
@@ -17,81 +17,78 @@ export function useFileList({
   const toggleSelect = useCallback((fileName) => {
     setSelected((prev) => {
       const next = new Set(prev);
+
       if (next.has(fileName)) {
         next.delete(fileName);
       } else {
         next.add(fileName);
       }
+
       return next;
     });
   }, []);
 
-  const handleCopy = useCallback(() => {
-    selected.forEach((file) => {
-      handleFileCopy(file);
-    });
+  const copySelected = useCallback(() => {
+    selected.forEach(copyFile);
     setSelected(new Set());
-  }, [selected, handleFileCopy]);
+  }, [selected, copyFile]);
 
-  const handleDelete = useCallback(() => {
-    selected.forEach((file) => {
-      handleFileDelete(file);
-    });
+  const deleteSelected = useCallback(() => {
+    selected.forEach(deleteFile);
     setSelected(new Set());
-  }, [selected, handleFileDelete]);
+  }, [selected, deleteFile]);
 
-  const handleShare = useCallback(() => {
-    selected.forEach((file) => {
-      handleFileShareLink(file);
-    });
+  const shareSelected = useCallback(() => {
+    selected.forEach(shareFile);
     setSelected(new Set());
-  }, [selected, handleFileShareLink]);
+  }, [selected, shareFile]);
 
-  const isSelected = useCallback(
-    (fileName) => selected.has(fileName),
-    [selected],
-  );
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+  }, []);
 
-  const clearSelection = useCallback(() => setSelected(new Set()), []);
-
-  const toggleFileSort = useCallback(() => {
-    setFileSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+  const toggleSortDirection = useCallback(() => {
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   }, []);
 
   const sortedFiles = useMemo(() => {
     const arr = [...files];
+
     if (sortField === "size") {
       return arr.sort((a, b) =>
-        fileSortDirection === "asc" ? a.size - b.size : b.size - a.size,
+        sortDirection === "asc" ? a.size - b.size : b.size - a.size,
       );
     }
+
     if (sortField === "date") {
       return arr.sort((a, b) =>
-        fileSortDirection === "asc"
+        sortDirection === "asc"
           ? new Date(a.date).getTime() - new Date(b.date).getTime()
           : new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
     }
+
     return arr.sort((a, b) =>
-      fileSortDirection === "asc"
+      sortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name),
     );
-  }, [files, fileSortDirection, sortField]);
+  }, [files, sortDirection, sortField]);
 
   return {
     sortedFiles,
-    fileSortDirection,
-    setFileSortDirection,
+
     sortField,
+    sortDirection,
     setSortField,
-    toggleSelect,
+    toggleSortDirection,
+
     selected,
-    handleCopy,
-    handleDelete,
-    handleShare,
-    isSelected,
+    toggleSelect,
     clearSelection,
-    toggleFileSort,
+
+    copySelected,
+    deleteSelected,
+    shareSelected,
   };
 }
