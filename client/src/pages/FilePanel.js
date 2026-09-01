@@ -13,27 +13,46 @@ import ClipboardComponent from "../components/ClipboardComponent";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useBreakpointValue } from "@chakra-ui/react";
 
+/**
+ * Shared file browser UI for local and SFTP sources.
+ *
+ * @param {Object} props
+ * @param {import("../types/fileBrowser").FileBrowser} props.browser
+ * @param {(filename: string, isNew?: boolean) => void} props.onOpenFile
+ * @param {Object} props.fileUploadProps
+ * @param {string} props.fileUploadProps.apiEndpoint
+ * @param {Object} props.fileUploadProps.additionalData
+ * @param {() => void} props.fileUploadProps.onUploadSuccess
+ */
 const FilePanel = ({
-  files,
-  handleDownload,
-  onChangeDirectory,
-  onDeleteFolder,
-  handleDownloadFolder,
-  onFolderCopy,
-  handleDelete,
-  handleShare,
-  handleRename,
-  handleCopy,
-  handleCut,
-  handlePaste,
+  browser,
   onOpenFile,
-  changeDirectory,
-  onCreateFolder,
-  startedTransfers,
-  progressMap,
-  generateBreadcrumb,
   fileUploadProps,
 }) => {
+  const {
+    files,
+    openFolder,
+    changeDirectory,
+
+    downloadFile,
+    downloadFolder,
+    deleteFile,
+    renameFile,
+    shareFile,
+
+    copyFile,
+    cutFile,
+    paste,
+
+    createFolder,
+    deleteFolder,
+    copyFolder,
+
+    generateBreadcrumb,
+
+    progressMap,
+    startedTransfers,
+  } = browser;
   const { clipboard } = useClipboard();
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
 
@@ -106,7 +125,7 @@ const FilePanel = ({
               onUploadSuccess={onUploadSuccess}
             />
           )}
-          <CreateFolderComponent handleCreateFolder={onCreateFolder} />
+          <CreateFolderComponent handleCreateFolder={createFolder} />
           <CreateFileComponent onOpenFile={(name) => onOpenFile(name, true)} />
 
           {/* Toggle upload mode — only on large screens */}
@@ -174,25 +193,25 @@ const FilePanel = ({
         </Box>
       )}
 
-      {clipboard[0] && <ClipboardComponent handlePaste={handlePaste} />}
+      {clipboard[0] && <ClipboardComponent handlePaste={paste} />}
 
       {/* File browser */}
       <Box flex={1} overflow="auto">
         <FolderList
           folders={files.folders}
-          changeDirectory={onChangeDirectory}
-          deleteFolder={onDeleteFolder}
-          downloadFolder={handleDownloadFolder}
-          handleCopy={onFolderCopy}
+          changeDirectory={openFolder}
+          deleteFolder={deleteFolder}
+          downloadFolder={downloadFolder}
+          handleCopy={copyFolder}
         />
         <FileList
           files={files.files}
-          handleFileDownload={handleDownload}
-          handleFileDelete={handleDelete}
-          handleFileShareLink={handleShare}
-          handleRenameFile={handleRename}
-          handleFileCopy={handleCopy}
-          handleFileCut={handleCut}
+          handleFileDownload={downloadFile}
+          handleFileDelete={deleteFile}
+          handleFileShareLink={shareFile}
+          handleRenameFile={renameFile}
+          handleFileCopy={copyFile}
+          handleFileCut={cutFile}
           handleOpenFile={onOpenFile}
         />
       </Box>

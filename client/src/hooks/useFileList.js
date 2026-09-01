@@ -5,8 +5,11 @@ import apiClient from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useTransferJob } from "../hooks/useTransferJob";
 
+/**
+ * @returns {import("../types/fileBrowser").FileBrowser}
+ */
 export function useFileList({ toast }) {
-  const [fileData, setFileData] = useState(null);
+  const [files, setFileData] = useState(null);
   const [currentPath, setCurrentPath] = useState("files");
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
@@ -75,18 +78,18 @@ export function useFileList({ toast }) {
   // so callers only need to pass the file/folder name
   // ---------------------------------------------------------------------------
 
-  const onFileDownload = useCallback(
+  const downloadFile = useCallback(
     (name) => {
       const token = localStorage.getItem("token");
-      window.location.href = `/api/download/${fileData?.relativePath}/${name}?token=${token}&t=${Date.now()}`;
+      window.location.href = `/api/download/${files?.relativePath}/${name}?token=${token}&t=${Date.now()}`;
     },
-    [fileData?.relativePath],
+    [files?.relativePath],
   );
 
-  const onFileDelete = useCallback(
+  const deleteFile = useCallback(
     async (name) => {
       try {
-        await apiClient.post(`/api/delete/${fileData.relativePath}/${name}`, {
+        await apiClient.post(`/api/delete/${files.relativePath}/${name}`, {
           fileName: name,
         });
 
@@ -96,15 +99,15 @@ export function useFileList({ toast }) {
         showToast("Error deleting file", "error");
       }
     },
-    [fileData?.relativePath, reload, showToast],
+    [files?.relativePath, reload, showToast],
   );
 
-  const onFileShare = useCallback(
+  const shareFile = useCallback(
     async (name) => {
       try {
         await apiClient.post("/api/share", {
           fileName: name,
-          filePath: fileData?.relativePath,
+          filePath: files?.relativePath,
         });
 
         reload();
@@ -122,35 +125,35 @@ export function useFileList({ toast }) {
         );
       }
     },
-    [fileData?.relativePath, reload, showToast],
+    [files?.relativePath, reload, showToast],
   );
 
   const onFileCopy = useCallback(
     (name) => {
       copyFile({
         file: name,
-        path: fileData?.relativePath,
+        path: files?.relativePath,
         source: "local",
       });
     },
-    [copyFile, fileData?.relativePath],
+    [copyFile, files?.relativePath],
   );
 
   const onFileCut = useCallback(
     (name) => {
       cutFile({
         file: name,
-        path: fileData?.relativePath,
+        path: files?.relativePath,
         source: "local",
         serverId: null,
       });
     },
-    [cutFile, fileData?.relativePath],
+    [cutFile, files?.relativePath],
   );
 
-  const onFileRename = useCallback(
+  const renameFile = useCallback(
     async (name, newName) => {
-      const path = fileData?.relativePath;
+      const path = files?.relativePath;
 
       if (!name || !newName || !path) {
         showToast("Missing required fields", "error");
@@ -170,15 +173,15 @@ export function useFileList({ toast }) {
         showToast("Error renaming file", "error");
       }
     },
-    [fileData?.relativePath, reload, showToast],
+    [files?.relativePath, reload, showToast],
   );
 
-  const onFolderDelete = useCallback(
+  const deleteFolder = useCallback(
     async (folder) => {
       try {
         await apiClient.post("/api/delete-folder", {
           folderName: folder,
-          folderPath: fileData?.relativePath,
+          folderPath: files?.relativePath,
         });
 
         reload();
@@ -187,19 +190,19 @@ export function useFileList({ toast }) {
         showToast("Error deleting folder", "error");
       }
     },
-    [fileData?.relativePath, reload, showToast],
+    [files?.relativePath, reload, showToast],
   );
 
-  const onFolderCopy = useCallback(
+  const copyFolder = useCallback(
     (folder) => {
       copyFile({
         file: folder,
-        path: fileData?.relativePath,
+        path: files?.relativePath,
         source: "local",
         isDirectory: true,
       });
     },
-    [copyFile, fileData?.relativePath],
+    [copyFile, files?.relativePath],
   );
 
   const onPaste = useCallback(async () => {
@@ -210,7 +213,7 @@ export function useFileList({ toast }) {
 
       const { jobId } = await apiClient.post("/api/paste-files", {
         files: items,
-        newPath: fileData?.relativePath,
+        newPath: files?.relativePath,
       });
 
       clearClipboard();
@@ -225,19 +228,19 @@ export function useFileList({ toast }) {
     }
   }, [
     clipboard,
-    fileData?.relativePath,
+    files?.relativePath,
     clearClipboard,
     trackJob,
     reload,
     showToast,
   ]);
 
-  const onCreateFolder = useCallback(
+  const createFolder = useCallback(
     async (folder) => {
       try {
         await apiClient.post("/api/create-folder", {
           folderName: folder,
-          currentPath: fileData?.relativePath,
+          currentPath: files?.relativePath,
         });
 
         reload();
@@ -246,11 +249,11 @@ export function useFileList({ toast }) {
         showToast("Error creating folder", "error");
       }
     },
-    [fileData?.relativePath, reload, showToast],
+    [files?.relativePath, reload, showToast],
   );
 
-  const onGenerateBreadcrumb = useCallback(() => {
-    const path = fileData?.relativePath;
+  const generateBreadcrumb = useCallback(() => {
+    const path = files?.relativePath;
 
     const breadcrumbs = [{ name: "Home", path: "files" }];
 
@@ -268,13 +271,42 @@ export function useFileList({ toast }) {
       });
 
     return breadcrumbs;
-  }, [fileData?.relativePath]);
+  }, [files?.relativePath]);
+
+  const downloadFileBlob = useCallback((blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+  }, []);
+
+  const downloadFolder = useCallback(
+    async (folderName) => {
+      try {
+        const blob = await apiClient.getBlob(
+          `/api/download-folder/${files?.relativePath}/${folderName}`,
+        );
+
+        downloadFileBlob(blob, `${folderName}.zip`);
+      } catch {
+        showToast("Error downloading folder", "error");
+      }
+    },
+    [files?.relativePath, downloadFileBlob, showToast],
+  );
 
   // ---------------------------------------------------------------------------
   // Navigation
   // ---------------------------------------------------------------------------
 
-  const handleFolderClick = useCallback((folderName) => {
+  const openFolder = useCallback((folderName) => {
     setCurrentPath((prev) => joinPath(prev, folderName));
   }, []);
 
@@ -283,22 +315,29 @@ export function useFileList({ toast }) {
   // ---------------------------------------------------------------------------
 
   return {
-    fileData,
+    files,
     loading,
-    setCurrentPath,
-    handleFolderClick,
+
+    openFolder,
+    changeDirectory: setCurrentPath,
     reload,
-    onCreateFolder,
-    onFileCopy,
-    onFileCut,
-    onFileDelete,
-    onFileDownload,
-    onFileRename,
-    onFileShare,
-    onFolderCopy,
-    onFolderDelete,
-    onPaste,
-    onGenerateBreadcrumb,
+
+    downloadFile,
+    downloadFolder,
+    deleteFile,
+    renameFile,
+    shareFile,
+
+    copyFile: onFileCopy,
+    cutFile: onFileCut,
+    paste: onPaste,
+
+    createFolder,
+    deleteFolder,
+    copyFolder,
+
+    generateBreadcrumb,
+
     progressMap,
     startedTransfers,
   };

@@ -5,41 +5,31 @@ import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
 const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
-  const {
-    files,
-    loading,
-    progressMap,
-    startedTransfers,
-    handleCopy,
-    onFolderCopy,
-    handleDownload,
-    handleDownloadFolder,
-    handleRename,
-    handleShare,
-    handleDelete,
-    handlePaste,
-    generateBreadcrumb,
-    onChangeDirectory,
-    onCreateFolder,
-    onDeleteFolder,
-    onUploadSuccess,
-    handleCut,
-    changeSftpDirectory,
-  } = useSftpFileFolderViewer({ serverId, toast });
+  const browser = useSftpFileFolderViewer({ serverId, toast });
 
   const fileUploadProps = useMemo(
     () => ({
       apiEndpoint: "/sftp/api/upload",
-      additionalData: { serverId, currentDirectory: files.currentDirectory },
-      onUploadSuccess,
+      additionalData: {
+        serverId,
+        currentDirectory: browser.files?.currentDirectory,
+      },
+      onUploadSuccess: browser.reload,
     }),
-    [files?.currentDirectory, serverId, onUploadSuccess],
+    [browser.files?.currentDirectory, browser.reload, serverId],
   );
 
   const onOpenFile = (filename, isNew) =>
-    openFile(serverId, files.currentDirectory, filename, host, true, isNew);
+    openFile(
+      serverId,
+      browser.files.currentDirectory,
+      filename,
+      host,
+      true,
+      isNew,
+    );
 
-  if (loading)
+  if (browser.loading)
     return (
       <Flex
         align="center"
@@ -74,7 +64,11 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
       </Flex>
     );
 
-  if (!files || !Array.isArray(files.folders) || !Array.isArray(files.files))
+  if (
+    !browser.files ||
+    !Array.isArray(browser.files.folders) ||
+    !Array.isArray(browser.files.files)
+  )
     return (
       <Flex
         align="center"
@@ -121,24 +115,8 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
 
   return (
     <FilePanel
-      files={files}
-      handleDownload={handleDownload}
-      onChangeDirectory={onChangeDirectory}
-      onDeleteFolder={onDeleteFolder}
-      handleDownloadFolder={handleDownloadFolder}
-      onFolderCopy={onFolderCopy}
-      handleDelete={handleDelete}
-      handleShare={handleShare}
-      handleRename={handleRename}
-      handleCopy={handleCopy}
-      handleCut={handleCut}
-      handlePaste={handlePaste}
+      browser={browser}
       onOpenFile={onOpenFile}
-      changeDirectory={changeSftpDirectory}
-      onCreateFolder={onCreateFolder}
-      startedTransfers={startedTransfers}
-      progressMap={progressMap}
-      generateBreadcrumb={generateBreadcrumb}
       fileUploadProps={fileUploadProps}
     />
   );

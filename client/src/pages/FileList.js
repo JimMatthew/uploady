@@ -4,68 +4,24 @@ import { Link } from "react-router-dom";
 import { FiServer, FiArrowRight } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
-import apiClient from "../services/apiClient";
 
 const FileList = ({ toast, hideLink = false, openFile }) => {
-  const {
-    fileData,
-    setCurrentPath,
-    loading,
-    handleFolderClick,
-    reload,
-    onCreateFolder,
-    onFileCopy,
-    onFileCut,
-    onFileDelete,
-    onFileDownload,
-    onFileRename,
-    onFileShare,
-    onFolderCopy,
-    onFolderDelete,
-    onPaste,
-    onGenerateBreadcrumb,
-    progressMap,
-    startedTransfers,
-  } = useFileList({ toast });
-
-  const token = localStorage.getItem("token");
+  const browser = useFileList({ toast });
 
   const fileUploadProps = useMemo(
     () => ({
       apiEndpoint: "/api/upload",
-      additionalData: { folderPath: fileData?.relativePath },
-      onUploadSuccess: reload,
+      additionalData: { folderPath: browser.files?.relativePath },
+      onUploadSuccess: browser.reload,
     }),
-    [fileData?.relativePath, reload],
+    [browser.files?.relativePath, browser.reload],
   );
 
   const onOpenFile = (filename, isNew) => {
-    openFile(null, fileData.relativePath, filename, null, false, isNew);
+    openFile(null, browser.files.relativePath, filename, null, false, isNew);
   };
 
-  const downloadFileBlob = useCallback((blob, filename) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), {
-      href: url,
-      download: filename,
-    });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  }, []);
-
-  const handleDownloadFolder = async (foldername) => {
-    try {
-      const blob = await apiClient.getBlob(
-        `/api/download-folder/${fileData.relativePath}/${foldername}`,
-      );
-
-      downloadFileBlob(blob, `${foldername}.zip`);
-    } catch {}
-  };
-
-  if (loading || !fileData)
+  if (browser.loading || !browser.files)
     return (
       <Flex
         align="center"
@@ -121,25 +77,9 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
       )}
 
       <FilePanel
-        files={fileData}
-        handleDownload={onFileDownload}
-        onChangeDirectory={handleFolderClick}
-        onDeleteFolder={onFolderDelete}
-        handleDelete={onFileDelete}
-        handleShare={onFileShare}
-        handleRename={onFileRename}
-        handleCopy={onFileCopy}
-        handleCut={onFileCut}
-        handlePaste={onPaste}
-        changeDirectory={setCurrentPath}
-        onCreateFolder={onCreateFolder}
-        generateBreadcrumb={onGenerateBreadcrumb}
-        onFolderCopy={onFolderCopy}
-        fileUploadProps={fileUploadProps}
+        browser={browser}
         onOpenFile={onOpenFile}
-        handleDownloadFolder={handleDownloadFolder}
-        progressMap={progressMap}
-        startedTransfers={startedTransfers}
+        fileUploadProps={fileUploadProps}
       />
     </>
   );
