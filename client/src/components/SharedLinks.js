@@ -27,12 +27,18 @@ const LoadingSkeleton = () => (
 );
 
 const SharedLinks = () => {
-  const { clickLink, deleteLink, copyToClip, links, loading, loadLinks } =
-    useSharedLinks();
+  const {
+    links,
+    loading,
+    loadLinks,
+    deleteLink,
+    copyToClipboard,
+    clickLink,
+  } = useSharedLinks();
 
   useEffect(() => {
     loadLinks();
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadLinks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Box p={6} >
@@ -105,11 +111,11 @@ const SharedLinks = () => {
         >
           {links.map((link, i) => (
             <LinkCard
-              key={i}
+              key={link._id}
               linkItem={link}
               stopSharing={deleteLink}
               clickLink={clickLink}
-              copyToClipboard={copyToClip}
+              copyToClipboard={copyToClipboard}
             />
           ))}
         </SimpleGrid>

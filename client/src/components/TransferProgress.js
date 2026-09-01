@@ -5,12 +5,27 @@ const TransferProgress = ({ transfers, progressMap }) => (
   <Box mb={3} display="flex" flexDirection="column" gap={2}>
     {Object.entries(transfers).map(([id, { file }]) => {
       const entry = progressMap[id] || {};
-      const pct = entry.progress || 0;
-      const completed = entry.completed || 0;
-      const total = entry.total || 0;
+
+      const pct = entry.progress ?? 0;
+      const completed = entry.completed ?? 0;
+      const total = entry.total ?? 0;
+
       const isFolder =
         completed > 0 || (total > 0 && pct === 0 && completed === 0);
+
       const done = isFolder ? total > 0 && completed === total : pct >= 100;
+
+      const displayPct = isFolder
+        ? total > 0
+          ? (completed / total) * 100
+          : 0
+        : pct;
+
+      const statusText = done
+        ? "done"
+        : isFolder
+          ? `${completed} / ${total || "?"} files`
+          : `${Math.round(pct)}%`;
 
       return (
         <Box
@@ -51,11 +66,7 @@ const TransferProgress = ({ transfers, progressMap }) => (
               ml={3}
               transition="color 0.3s"
             >
-              {done
-                ? "done"
-                : isFolder
-                  ? `${completed} / ${total || "?"} files`
-                  : `${Math.round(pct)}%`}
+              {statusText}
             </Text>
           </Flex>
 
@@ -67,13 +78,7 @@ const TransferProgress = ({ transfers, progressMap }) => (
           >
             <Box
               h="100%"
-              w={
-                isFolder
-                  ? total > 0
-                    ? `${(completed / total) * 100}%`
-                    : "0%"
-                  : `${pct}%`
-              }
+              w={`${displayPct}%`}
               bg={
                 done
                   ? "linear-gradient(90deg, #22C55E, #4ADE80)"
