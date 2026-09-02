@@ -4,7 +4,7 @@ import { FiAlertTriangle, FiWifi } from "react-icons/fi";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
-const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
+const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
   const browser = useSftpFileFolderViewer({ serverId, toast });
 
   const fileUploadProps = useMemo(
@@ -122,4 +122,4 @@ const FileFolderViewer = ({ serverId, toast, openFile, host }) => {
   );
 };
 
-export default FileFolderViewer;
+export default SftpFileBrowser;

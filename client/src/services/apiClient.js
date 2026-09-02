@@ -60,21 +60,34 @@ const getToken = () => localStorage.getItem("token");
  * @returns {Promise<Object|Blob>} Parsed JSON response or Blob.
  * @throws {ApiError} When the request fails.
  */
-const request = async (url, options = {}, expectBlob = false) => {
+const request = async (
+  url,
+  options = {},
+  { responseType = "json" } = {},
+) => {
   const token = getToken();
+
+  const headers = new Headers(options.headers);
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  // Let the browser set Content-Type + multipart boundary for FormData.
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
+    headers.set("Content-Type", "application/json");
+  }
 
   let response;
 
   try {
     response = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && {
-          Authorization: `Bearer ${token}`,
-        }),
-        ...options.headers,
-      },
+      headers,
     });
   } catch {
     throw new ApiError(
@@ -99,10 +112,33 @@ const request = async (url, options = {}, expectBlob = false) => {
       response.statusText ||
       `Request failed: ${response.status}`;
 
-    throw new ApiError(message, response.status, data);
+    throw new ApiError(
+      message,
+      response.status,
+      data,
+    );
   }
 
-  return expectBlob ? response.blob() : response.json();
+  if (response.status === 204) {
+    return null;
+  }
+
+  switch (responseType) {
+    case "blob":
+      return response.blob();
+
+    case "arrayBuffer":
+      return response.arrayBuffer();
+
+    case "text":
+      return response.text();
+
+    case "response":
+      return response;
+
+    default:
+      return response.json();
+  }
 };
 
 /**
@@ -116,12 +152,11 @@ const request = async (url, options = {}, expectBlob = false) => {
  * @example
  * const data = await apiClient.get("/api/links");
  */
-const get = (url, options = {}) => {
-  return request(url, {
+const get = (url, options = {}) =>
+  request(url, {
     ...options,
     method: "GET",
   });
-};
 
 /**
  * Sends a JSON POST request.
@@ -161,16 +196,15 @@ const post = (url, body, options = {}) => {
  * @example
  * const blob = await apiClient.getBlob("/api/download/file");
  */
-const getBlob = (url, options = {}) => {
-  return request(
+const getBlob = (url, options = {}) =>
+  request(
     url,
     {
       ...options,
       method: "GET",
     },
-    true,
+    { responseType: "blob" },
   );
-};
 
 /**
  * Sends a DELETE request.
@@ -207,6 +241,34 @@ const postBlob = (url, body, options = {}) => {
     true,
   );
 };
+
+const getArrayBuffer = (url, options = {}) =>
+  request(
+    url,
+    {
+      ...options,
+      method: "GET",
+    },
+    { responseType: "arrayBuffer" },
+  );
+
+  const getResponse = (url, options = {}) =>
+  request(
+    url,
+    {
+      ...options,
+      method: "GET",
+    },
+    { responseType: "response" },
+  );
+
+  const postForm = (url, formData, options = {}) =>
+  request(url, {
+    ...options,
+    method: "POST",
+    body: formData,
+  });
+
 export { ApiError };
 
 export default {
@@ -216,4 +278,7 @@ export default {
   getBlob,
   postBlob,
   delete: del,
+  getArrayBuffer,
+  getResponse,
+  postForm,
 };

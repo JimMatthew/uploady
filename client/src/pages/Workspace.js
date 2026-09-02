@@ -8,38 +8,56 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import { FiSidebar } from "react-icons/fi";
-import { useSftpList } from "../hooks/useSftpList";
+
+import { useWorkspace } from "../hooks/useWorkspace";
 import Sidebar from "../components/Sidebar";
 import TabPanelComp from "../components/TabPanel";
 
-const SFTPApp = ({ toast }) => {
+const Workspace = ({ toast }) => {
   const {
     loading,
     sftpServers,
+    serverStatuses,
+
     showSidebar,
     setShowSidebar,
+
     tabs,
-    serverStatuses,
-    closeTab,
-    handleNewServer,
-    handleSshLaunch,
-    deleteServer,
-    handleServerInfoLaunch,
-    handleConnect,
-    handleLocalTab,
     activeTabIndex,
     setActiveTabIndex,
-    handleSharedLinks,
-    handleTransfers,
-  } = useSftpList({ toast });
+    closeTab,
 
-  const isDesktop = useBreakpointValue({ base: false, lg: true });
+    openSftp,
+    openSsh,
+    openServerInfo,
+    openNewServer,
+    openLocalFiles,
+    openSharedLinks,
+    openTransfers,
 
-  if (loading || !sftpServers)
+    deleteServer,
+  } = useWorkspace({ toast });
+
+  const isDesktop = useBreakpointValue({
+    base: false,
+    lg: true,
+  });
+
+  if (loading || !sftpServers) {
     return (
-      <Flex align="center" justify="center" h="100%" direction="column" gap={3}>
+      <Flex
+        align="center"
+        justify="center"
+        h="100%"
+        direction="column"
+        gap={3}
+      >
         <Box position="relative">
-          <Spinner size="sm" color="rgba(99,102,241,0.5)" />
+          <Spinner
+            size="sm"
+            color="rgba(99,102,241,0.5)"
+          />
+
           <Box
             position="absolute"
             inset={0}
@@ -47,11 +65,16 @@ const SFTPApp = ({ toast }) => {
             boxShadow="0 0 12px rgba(99,102,241,0.3)"
           />
         </Box>
-        <Text fontSize="12px" color="rgba(255,255,255,0.25)">
+
+        <Text
+          fontSize="12px"
+          color="rgba(255,255,255,0.25)"
+        >
           Initializing…
         </Text>
       </Flex>
     );
+  }
 
   return (
     <Flex h="100%" direction="column" overflow="hidden">
@@ -76,6 +99,7 @@ const SFTPApp = ({ toast }) => {
           >
             uploady
           </Text>
+
           <Flex
             align="center"
             gap={2}
@@ -95,14 +119,21 @@ const SFTPApp = ({ toast }) => {
             }}
             onClick={() => setShowSidebar(true)}
           >
-            <Icon as={FiSidebar} boxSize="12px" />
+            <Icon
+              as={FiSidebar}
+              boxSize="12px"
+            />
             Servers
           </Flex>
         </Flex>
       )}
 
-      {/* Body */}
-      <Flex flex={1} overflow="hidden" position="relative">
+      {/* Workspace body */}
+      <Flex
+        flex={1}
+        overflow="hidden"
+        position="relative"
+      >
         {/* Mobile overlay */}
         {!isDesktop && showSidebar && (
           <Box
@@ -125,24 +156,29 @@ const SFTPApp = ({ toast }) => {
             h="100%"
             overflowY="auto"
             flexShrink={0}
-            position={{ base: "absolute", lg: "relative" }}
+            position={{
+              base: "absolute",
+              lg: "relative",
+            }}
             top={0}
             left={0}
             zIndex={20}
             css={{
-              "&::-webkit-scrollbar": { width: "0px" },
+              "&::-webkit-scrollbar": {
+                width: "0px",
+              },
               scrollbarWidth: "none",
             }}
           >
             <Sidebar
-              handleConnect={handleConnect}
-              handleLocalTab={handleLocalTab}
-              handleNewServer={handleNewServer}
-              handleSshLaunch={handleSshLaunch}
-              handleServerInfoLaunch={handleServerInfoLaunch}
-              handleSharedLinks={handleSharedLinks}
-              handleTransfers={handleTransfers}
-              deleteServer={deleteServer}
+              onConnect={openSftp}
+              onLocalFiles={openLocalFiles}
+              onNewServer={openNewServer}
+              onSsh={openSsh}
+              onServerInfo={openServerInfo}
+              onSharedLinks={openSharedLinks}
+              onTransfers={openTransfers}
+              onDeleteServer={deleteServer}
               sftpServers={sftpServers}
               serverStatuses={serverStatuses}
             />
@@ -150,7 +186,12 @@ const SFTPApp = ({ toast }) => {
         )}
 
         {/* Main tab area */}
-        <Box flex={1} h="100%" overflowY="auto" minW={0}>
+        <Box
+          flex={1}
+          h="100%"
+          overflowY="auto"
+          minW={0}
+        >
           <TabPanelComp
             tabs={tabs}
             activeTabIndex={activeTabIndex}
@@ -163,4 +204,4 @@ const SFTPApp = ({ toast }) => {
   );
 };
 
-export default SFTPApp;
+export default Workspace;

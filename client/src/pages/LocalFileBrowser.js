@@ -5,7 +5,7 @@ import { FiServer, FiArrowRight } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 
-const FileList = ({ toast, hideLink = false, openFile }) => {
+const LocalFileBrowser= ({ toast, hideLink = false, openFile }) => {
   const browser = useFileList({ toast });
 
   const fileUploadProps = useMemo(
@@ -85,4 +85,4 @@ const FileList = ({ toast, hideLink = false, openFile }) => {
   );
 };
 
-export default FileList;
+export default LocalFileBrowser;

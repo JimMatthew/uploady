@@ -11,7 +11,7 @@ import { cpp } from "@codemirror/lang-cpp";
 import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
 import ImageViewer from "../components/ImageViewer";
 import EpubViewer from "../components/EpubViewer";
-
+import apiClient from "../services/apiClient";
 const EXT_LANG = {
   js: () => javascript({ jsx: true }),
   ts: () => javascript({ jsx: true, typescript: true }),
@@ -112,7 +112,13 @@ const AudioPlayer = ({ src, filename }) => {
         boxShadow="0 8px 32px rgba(0,0,0,0.3)"
       >
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="rgba(99,102,241,0.4)" strokeWidth="1.5" />
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="rgba(99,102,241,0.4)"
+            strokeWidth="1.5"
+          />
           <circle cx="12" cy="12" r="3" fill="#6366F1" fillOpacity="0.6" />
           <circle cx="12" cy="12" r="1" fill="#818CF8" />
         </svg>
@@ -155,10 +161,18 @@ const AudioPlayer = ({ src, filename }) => {
           />
         </Box>
         <Flex justify="space-between" mt="6px">
-          <Text fontSize="10px" color="rgba(255,255,255,0.25)" fontFamily="'JetBrains Mono', monospace">
+          <Text
+            fontSize="10px"
+            color="rgba(255,255,255,0.25)"
+            fontFamily="'JetBrains Mono', monospace"
+          >
             {formatTime(currentTime)}
           </Text>
-          <Text fontSize="10px" color="rgba(255,255,255,0.25)" fontFamily="'JetBrains Mono', monospace">
+          <Text
+            fontSize="10px"
+            color="rgba(255,255,255,0.25)"
+            fontFamily="'JetBrains Mono', monospace"
+          >
             {formatTime(duration)}
           </Text>
         </Flex>
@@ -178,15 +192,27 @@ const AudioPlayer = ({ src, filename }) => {
         transition="all 0.15s"
         _hover={{
           bg: playing ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.1)",
-          borderColor: playing ? "rgba(99,102,241,0.6)" : "rgba(255,255,255,0.2)",
+          borderColor: playing
+            ? "rgba(99,102,241,0.6)"
+            : "rgba(255,255,255,0.2)",
         }}
         onClick={toggle}
       >
         {playing ? (
           // Pause icon
           <Flex gap="3px">
-            <Box w="3px" h="14px" borderRadius="2px" bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"} />
-            <Box w="3px" h="14px" borderRadius="2px" bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"} />
+            <Box
+              w="3px"
+              h="14px"
+              borderRadius="2px"
+              bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"}
+            />
+            <Box
+              w="3px"
+              h="14px"
+              borderRadius="2px"
+              bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"}
+            />
           </Flex>
         ) : (
           // Play icon
@@ -348,95 +374,149 @@ const FileEdit = ({
   const streamUrl = `/api/downloadstream/${currentDirectory}/${filename}`;
 
   // Fetch file and create a typed object URL for binary types
-  const fetchAsObjectUrl = async (mimeType) => {
-    const res = await fetch(buildUrl(), {
-      headers: { Authorization: `Bearer ${token}` },
+  const fetchAsObjectUrl = async (mimeType, signal) => {
+    const blob = await apiClient.getBlob(buildUrl(), {
+      signal,
     });
-    const blob = await res.blob();
-    const typedBlob = new Blob([blob], { type: mimeType });
+
+    const typedBlob = new Blob([blob], {
+      type: mimeType,
+    });
+
     const url = URL.createObjectURL(typedBlob);
+
     objectUrlRef.current = url;
     setObjectUrl(url);
   };
 
   // Stream text file content progressively into the editor
-  const streamTextFile = async () => {
+  const streamTextFile = async (signal) => {
+    const response = await apiClient.getResponse(buildUrl(), { signal });
+
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    const res = await fetch(buildUrl(), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const reader = res.body.getReader();
+
     let result = "";
+
     while (true) {
       const { done, value } = await reader.read();
+
       if (done) break;
-      result += decoder.decode(value);
+
+      result += decoder.decode(value, {
+        stream: true,
+      });
+
       setText(result);
     }
+
+    result += decoder.decode();
+    setText(result);
   };
+
+  const fetchEpub = async (signal) => {
+  const buffer = await apiClient.getArrayBuffer(
+    buildUrl(),
+    { signal },
+  );
+
+  setEpubData(buffer);
+};
 
   useEffect(() => {
-    // Reset state when file changes
+    const controller = new AbortController();
+    const { signal } = controller;
+
     setText("");
     setObjectUrl(null);
-    if (isNew) return;
-    if (fileType === "image") {
-      fetchAsObjectUrl("image/*");
-      return;
+    setEpubData(null);
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
     }
-    if (fileType === "pdf") {
-      fetchAsObjectUrl("application/pdf");
-      return;
-    }
-    if (fileType === "epub") {
-  const fetchEpub = async () => {
-    const res = await fetch(buildUrl(), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const buffer = await res.arrayBuffer();
-    setEpubData(buffer);
-  };
-  fetchEpub();
-  return;
-}
-    if (fileType === "text") {
-      streamTextFile();
-      return;
-    }
-    // video and audio use direct src URLs — no fetch needed
+
+    const loadFile = async () => {
+      if (isNew) return;
+
+      try {
+        switch (fileType) {
+          case "image":
+            await fetchAsObjectUrl("image/*", signal);
+            break;
+
+          case "pdf":
+            await fetchAsObjectUrl("application/pdf", signal);
+            break;
+
+          case "epub":
+            await fetchEpub(signal);
+            break;
+
+          case "text":
+            await streamTextFile(signal);
+            break;
+
+          // Audio/video are loaded directly by their elements.
+          default:
+            break;
+        }
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Failed to load file:", err);
+        }
+      }
+    };
+
+    loadFile();
 
     return () => {
+      controller.abort();
+
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
       }
     };
-  }, [filename]);
-
+  }, [serverId, currentDirectory, filename, fileType, isNew]);
+  
   const saveFile = async () => {
     setSaving(true);
-    const formData = new FormData();
-    if (remote) {
-      formData.append("currentDirectory", currentDirectory);
-      formData.append("serverId", serverId);
-    } else {
-      formData.append("folderPath", currentDirectory);
-    }
-    formData.append(
-      "files",
-      new Blob([text], { type: "text/plain" }),
-      filename,
-    );
 
     try {
-      const res = await fetch(remote ? "/sftp/api/upload" : "/api/upload", {
-        headers: { Authorization: `Bearer ${token}` },
-        method: "POST",
-        body: formData,
-      });
+      const formData = new FormData();
+
+      if (remote) {
+        formData.append("currentDirectory", currentDirectory);
+        formData.append("serverId", serverId);
+      } else {
+        formData.append("folderPath", currentDirectory);
+      }
+
+      formData.append(
+        "files",
+        new Blob([text], { type: "text/plain" }),
+        filename,
+      );
+
+      await apiClient.postForm(
+        remote ? "/sftp/api/upload" : "/api/upload",
+        formData,
+      );
+
       toast({
-        title: res.ok ? "Saved" : "Save failed",
-        status: res.ok ? "success" : "error",
+        title: "Saved",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("Failed to save file:", err);
+
+      toast({
+        title: "Save failed",
+        description: err.message,
+        status: "error",
         duration: 2000,
         isClosable: true,
       });
@@ -455,7 +535,8 @@ const FileEdit = ({
         return <ImageViewer src={objectUrl} alt={filename} />;
       case "pdf":
         return <PdfViewer src={objectUrl} />;
-      case "epub": return <EpubViewer src={epubData} filename={filename} />;
+      case "epub":
+        return <EpubViewer src={epubData} filename={filename} />;
       default:
         return (
           <TextEditor text={text} onChange={setText} filename={filename} />

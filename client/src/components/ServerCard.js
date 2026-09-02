@@ -11,31 +11,37 @@ import {
   FiClock,
   FiServer,
 } from "react-icons/fi";
+
 import apiClient from "../services/apiClient";
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const formatBytes = (gb) => {
-  if (gb === undefined || gb === null) return "—";
+  if (gb == null) return "—";
+
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(gb * 1024).toFixed(0)} MB`;
 };
 
 const formatUptime = (seconds) => {
-  if (!seconds) return "—";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (seconds == null) return "—";
+
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+
+  return `${minutes}m`;
 };
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const ActionBtn = ({ icon, label, color, hoverBg, onClick }) => (
+const ActionButton = ({ icon, label, color, hoverBg, onClick }) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Flex
       w="28px"
@@ -44,14 +50,14 @@ const ActionBtn = ({ icon, label, color, hoverBg, onClick }) => (
       justify="center"
       borderRadius="6px"
       cursor="pointer"
-      color={color || "rgba(255,255,255,0.35)"}
+      color={color ?? "rgba(255,255,255,0.35)"}
       transition="all 0.12s"
       _hover={{
-        bg: hoverBg || "rgba(255,255,255,0.07)",
-        color: color || "rgba(255,255,255,0.8)",
+        bg: hoverBg ?? "rgba(255,255,255,0.07)",
+        color: color ?? "rgba(255,255,255,0.8)",
       }}
-      onClick={(e) => {
-        e.stopPropagation();
+      onClick={(event) => {
+        event.stopPropagation();
         onClick?.();
       }}
     >
@@ -68,6 +74,7 @@ const StatRow = ({ icon, label, value, children }) => (
       color="rgba(255,255,255,0.2)"
       flexShrink={0}
     />
+
     <Text
       fontSize="11px"
       color="rgba(255,255,255,0.35)"
@@ -77,6 +84,7 @@ const StatRow = ({ icon, label, value, children }) => (
     >
       {label}
     </Text>
+
     {children ?? (
       <Text
         fontSize="11px"
@@ -90,7 +98,7 @@ const StatRow = ({ icon, label, value, children }) => (
 );
 
 const DiskBar = ({ used, total }) => {
-  if (!used || !total)
+  if (used == null || total == null || total === 0) {
     return (
       <Text
         fontSize="11px"
@@ -100,18 +108,28 @@ const DiskBar = ({ used, total }) => {
         —
       </Text>
     );
-  const pct = Math.round((used / total) * 100);
-  const color = pct > 90 ? "#EF4444" : pct > 70 ? "#F59E0B" : "#22C55E";
+  }
+
+  const percent = Math.round((used / total) * 100);
+
+  const color = percent > 90 ? "#EF4444" : percent > 70 ? "#F59E0B" : "#22C55E";
+
   return (
     <Flex align="center" gap={2} flex={1}>
       <Progress
-        value={pct}
+        value={percent}
         size="xs"
         flex={1}
         borderRadius="full"
         bg="rgba(255,255,255,0.06)"
-        sx={{ "& > div": { background: color, borderRadius: "full" } }}
+        sx={{
+          "& > div": {
+            background: color,
+            borderRadius: "full",
+          },
+        }}
       />
+
       <Text
         fontSize="11px"
         color="rgba(255,255,255,0.5)"
@@ -132,10 +150,10 @@ export default function ServerCard({
   serverId,
   serverName,
   serverStatuses,
-  handleConnect,
-  handleSshLaunch,
-  handleServerInfoLaunch,
-  deleteServer,
+  onConnect,
+  onSsh,
+  onServerInfo,
+  onDelete,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [stats, setStats] = useState(null);
@@ -145,9 +163,10 @@ export default function ServerCard({
   const isOnline = status === "online";
   const isLoading = !status;
 
-  // Fetch stats when expanded and online
   useEffect(() => {
-    if (!expanded || !isOnline) return;
+    if (!expanded || !isOnline) {
+      return;
+    }
 
     let cancelled = false;
 
@@ -162,7 +181,8 @@ export default function ServerCard({
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to load server stats:", err);
+          console.error(`Failed to load stats for server ${serverId}:`, err);
+
           setStats(null);
         }
       } finally {
@@ -196,15 +216,14 @@ export default function ServerCard({
         borderColor: "rgba(255,255,255,0.1)",
       }}
     >
-      {/* Header row — clickable to expand */}
+      {/* Header */}
       <Flex
         align="center"
         justify="space-between"
         mb="6px"
         cursor="pointer"
-        onClick={() => setExpanded((p) => !p)}
+        onClick={() => setExpanded((prev) => !prev)}
       >
-        {/* Hostname */}
         <Text
           fontSize="12px"
           fontWeight={600}
@@ -213,14 +232,15 @@ export default function ServerCard({
           noOfLines={1}
           maxW="130px"
           letterSpacing="-0.01em"
-          _groupHover={{ color: "rgba(255,255,255,0.95)" }}
+          _groupHover={{
+            color: "rgba(255,255,255,0.95)",
+          }}
           transition="color 0.12s"
         >
           {serverName}
         </Text>
 
         <Flex align="center" gap={2}>
-          {/* Status */}
           {isLoading ? (
             <Box
               w="6px"
@@ -239,6 +259,7 @@ export default function ServerCard({
                 boxShadow={isOnline ? "0 0 6px rgba(34,197,94,0.6)" : "none"}
                 animation={isOnline ? "pulse 2s infinite" : "none"}
               />
+
               <Text
                 fontSize="10px"
                 color={isOnline ? "#4ADE80" : "rgba(239,68,68,0.7)"}
@@ -249,7 +270,6 @@ export default function ServerCard({
             </Flex>
           )}
 
-          {/* Expand chevron */}
           <Icon
             as={FiChevronDown}
             boxSize="12px"
@@ -262,37 +282,40 @@ export default function ServerCard({
 
       {/* Actions */}
       <Flex gap={1}>
-        <ActionBtn
+        <ActionButton
           icon={FiFileText}
           label="SFTP"
           color="rgba(34,197,94,0.7)"
           hoverBg="rgba(34,197,94,0.1)"
-          onClick={handleConnect}
+          onClick={onConnect}
         />
-        <ActionBtn
+
+        <ActionButton
           icon={FiTerminal}
           label="SSH"
           color="rgba(99,102,241,0.7)"
           hoverBg="rgba(99,102,241,0.1)"
-          onClick={handleSshLaunch}
+          onClick={onSsh}
         />
-        <ActionBtn
+
+        <ActionButton
           icon={FiServer}
           label="Server Info"
           color="rgba(56,189,248,0.7)"
           hoverBg="rgba(56,189,248,0.1)"
-          onClick={handleServerInfoLaunch}
+          onClick={onServerInfo}
         />
-        <ActionBtn
+
+        <ActionButton
           icon={FiTrash2}
           label="Delete"
           color="rgba(239,68,68,0.5)"
           hoverBg="rgba(239,68,68,0.1)"
-          onClick={deleteServer}
+          onClick={onDelete}
         />
       </Flex>
 
-      {/* Expanded stats panel */}
+      {/* Expanded stats */}
       {expanded && (
         <Box mt={3} pt={3} borderTop="1px solid rgba(255,255,255,0.06)">
           {!isOnline ? (
@@ -312,6 +335,7 @@ export default function ServerCard({
                 bg="rgba(255,255,255,0.15)"
                 animation="pulse 1.5s infinite"
               />
+
               <Text
                 fontSize="11px"
                 color="rgba(255,255,255,0.25)"
@@ -328,16 +352,19 @@ export default function ServerCard({
                   total={stats.disk?.totalGb}
                 />
               </StatRow>
+
               <StatRow
                 icon={FiCpu}
                 label="cpu"
-                value={stats.cpu ? `${stats.cpu}%` : "—"}
+                value={stats.cpu != null ? `${stats.cpu}%` : "—"}
               />
+
               <StatRow
                 icon={FiActivity}
                 label="mem"
-                value={stats.memory ? `${stats.memory}%` : "—"}
+                value={stats.memory != null ? `${stats.memory}%` : "—"}
               />
+
               <StatRow
                 icon={FiClock}
                 label="uptime"
