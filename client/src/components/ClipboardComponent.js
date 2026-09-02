@@ -9,30 +9,29 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useClipboard } from "../contexts/ClipboardContext";
-
+import apiClient from "../services/apiClient";
 const ClipboardComponent = ({ handlePaste }) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
-  const token = localStorage.getItem("token");
+
   const downloadAsZip = async () => {
-    const res = await fetch("/sftp/api/zip-clipboard", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ files: clipboard }),
-    });
+    try {
+      const blob = await apiClient.postBlob("/sftp/api/zip-clipboard", {
+        files: clipboard,
+      });
 
-    if (!res.ok) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `uploady-${Date.now()}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = `uploady-${Date.now()}.zip`;
+      a.click();
+
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download clipboard as ZIP:", err);
+    }
   };
+
   return (
     <Box
       px={{ base: 3, md: 5 }}

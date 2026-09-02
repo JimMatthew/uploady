@@ -7,7 +7,7 @@ import {
   FiActivity,
   FiClock,
 } from "react-icons/fi";
-
+import apiClient from "../services/apiClient";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -280,6 +280,7 @@ const ServerInfo = ({ serverId, host }) => {
     inactive: 0,
     failed: 0,
   };
+  
   useEffect(() => {
     let cancelled = false;
 
@@ -288,17 +289,9 @@ const ServerInfo = ({ serverId, host }) => {
       setStatsUnavailable(false);
 
       try {
-        const response = await fetch(`/sftp/server-stats/${serverId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load server stats");
-        }
-
-        const data = await response.json();
+        const data = await apiClient.get(
+          `/sftp/server-stats/${serverId}`,
+        );
 
         if (!cancelled) {
           setStats(data);
@@ -306,7 +299,6 @@ const ServerInfo = ({ serverId, host }) => {
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to load server stats:", err);
-
           setStatsUnavailable(true);
         }
       } finally {
@@ -321,17 +313,9 @@ const ServerInfo = ({ serverId, host }) => {
       setServicesUnavailable(false);
 
       try {
-        const response = await fetch(`/sftp/server-services/${serverId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load server services");
-        }
-
-        const data = await response.json();
+        const data = await apiClient.get(
+          `/sftp/server-services/${serverId}`,
+        );
 
         if (!cancelled) {
           setServiceData(data);
@@ -339,7 +323,6 @@ const ServerInfo = ({ serverId, host }) => {
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to load server services:", err);
-
           setServicesUnavailable(true);
         }
       } finally {
@@ -353,20 +336,9 @@ const ServerInfo = ({ serverId, host }) => {
       setPublicKeyLoading(true);
 
       try {
-        const response = await fetch(
+        const data = await apiClient.get(
           `/sftp/api/servers/${serverId}/public-key`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          },
         );
-
-        if (!response.ok) {
-          throw new Error("Failed to load public key");
-        }
-
-        const data = await response.json();
 
         if (!cancelled) {
           setPublicKey(data.publicKey ?? null);
@@ -386,7 +358,7 @@ const ServerInfo = ({ serverId, host }) => {
     fetchStats();
     fetchServices();
     fetchPublicKey();
-    
+
     return () => {
       cancelled = true;
     };

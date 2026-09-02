@@ -11,7 +11,7 @@ import {
   FiClock,
   FiServer,
 } from "react-icons/fi";
-
+import apiClient from "../services/apiClient";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -150,21 +150,29 @@ export default function ServerCard({
     if (!expanded || !isOnline) return;
 
     let cancelled = false;
-    setStatsLoading(true);
 
-    fetch(`/sftp/server-stats/${serverId}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+    const fetchStats = async () => {
+      setStatsLoading(true);
+
+      try {
+        const data = await apiClient.get(`/sftp/server-stats/${serverId}`);
+
         if (!cancelled) {
           setStats(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load server stats:", err);
+          setStats(null);
+        }
+      } finally {
+        if (!cancelled) {
           setStatsLoading(false);
         }
-      })
-      .catch(() => {
-        if (!cancelled) setStatsLoading(false);
-      });
+      }
+    };
+
+    fetchStats();
 
     return () => {
       cancelled = true;

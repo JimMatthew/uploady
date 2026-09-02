@@ -6,8 +6,6 @@ import { useTransferJob } from "../hooks/useTransferJob";
 const FileController = ({ toast, onRefresh }) => {
   const token = localStorage.getItem("token");
   const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
-  //const [progressMap, setProgressMap] = useState({});
-  //const [startedTransfers, setStartedTransfers] = useState({});
 
   const {
     progressMap,

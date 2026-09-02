@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
 import { FiGithub, FiFolder, FiCpu, FiHardDrive } from "react-icons/fi";
-
+import apiClient, { ApiError } from "../services/apiClient";
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatRow = ({ label, value, accent }) => (
@@ -112,26 +112,23 @@ const About = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    if (!token) {
-      navigate("/");
-      return;
-    }
-    fetch("/api/pstats", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((r) => {
-        if (r.status === 401) {
+   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await apiClient.get("/api/pstats");
+        setStats(data);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
           navigate("/");
-          return null;
+          return;
         }
-        return r.json();
-      })
-      .then((data) => data && setStats(data));
-  }, []);
+
+        console.error("Failed to fetch stats:", err);
+      }
+    };
+
+    fetchStats();
+  }, [navigate]);
 
   const formatUptime = (up) => {
     if (!up) return "—";

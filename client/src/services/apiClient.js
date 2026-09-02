@@ -186,6 +186,27 @@ const del = (url, options = {}) => {
     method: "DELETE",
   });
 };
+
+/**
+ * Sends a POST request and returns the response body as a Blob.
+ *
+ * @param {string} url Request URL.
+ * @param {Object} body JSON request body.
+ * @param {RequestInit} [options={}] Additional fetch options.
+ * @returns {Promise<Blob>}
+ * @throws {ApiError}
+ */
+const postBlob = (url, body, options = {}) => {
+  return request(
+    url,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+    true,
+  );
+};
 export { ApiError };
 
 export default {
@@ -193,5 +214,6 @@ export default {
   get,
   post,
   getBlob,
+  postBlob,
   delete: del,
 };
