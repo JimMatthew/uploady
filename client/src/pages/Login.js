@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Flex, Text, Input, Icon } from "@chakra-ui/react";
 import { FiUser, FiLock, FiLogIn, FiAlertCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-
+import apiClient, {ApiError} from "../services/apiClient";
 const inputStyles = {
   bg: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.09)",
@@ -30,25 +30,30 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/apilogin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      localStorage.setItem("token", data.token);
-      navigate("/app/files");
-    } catch {
+  e.preventDefault();
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const data = await apiClient.post("/apilogin", {
+      username,
+      password,
+    });
+
+    localStorage.setItem("token", data.token);
+    navigate("/api/sftp");
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
       setError("Invalid username or password");
-    } finally {
-      setLoading(false);
+    } else {
+      console.error("Login failed:", err);
+      setError("Unable to connect to Uploady");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Flex

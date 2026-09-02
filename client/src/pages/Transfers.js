@@ -13,7 +13,7 @@ import {
   FiZap,
   FiChevronRight,
 } from "react-icons/fi";
-
+import apiClient from "../services/apiClient";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDuration = (ms) => {
@@ -164,9 +164,9 @@ const PageButton = ({ onClick, disabled, children }) => (
       disabled
         ? {}
         : {
-          borderColor: "rgba(99,102,241,0.3)",
-          color: "#818CF8",
-        }
+            borderColor: "rgba(99,102,241,0.3)",
+            color: "#818CF8",
+          }
     }
   >
     {children}
@@ -331,21 +331,22 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
   const fetchItems = useCallback(async () => {
     setLoadingItems(true);
     try {
-      const res = await fetch(
+      const data = await apiClient.get(
         `/api/jobs/${jobId}/items?page=${page}&limit=100&status=${statusFilter}`,
-        { headers: { Authorization: `Bearer ${token}` } },
       );
-      const json = await res.json();
-      setItems(json.items ?? []);
-      setTotalPages(json.totalPages ?? 1);
-      setTotalItems(json.total ?? 0);
+
+      setItems(data.items ?? []);
+      setTotalPages(data.totalPages ?? 1);
+      setTotalItems(data.total ?? 0);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch job items:", err);
       setItems([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoadingItems(false);
     }
-  }, [jobId, token, page, statusFilter]);
+  }, [jobId, page, statusFilter]);
 
   useEffect(() => {
     fetchItems();
@@ -493,11 +494,7 @@ const JobDetail = ({ job, token, onBack, onRetry, onDelete }) => {
 
         {/* Item count + pagination */}
         <Flex align="center" gap={3} flexShrink={0}>
-          <Text
-            fontSize="11px"
-            color="rgba(255,255,255,0.5)"
-            fontFamily={mono}
-          >
+          <Text fontSize="11px" color="rgba(255,255,255,0.5)" fontFamily={mono}>
             {totalItems} items
           </Text>
 
@@ -700,17 +697,15 @@ const Transfers = ({ toast }) => {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch("/api/jobs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+      const data = await apiClient.get("/api/jobs");
       setJobs(data.jobs ?? []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch jobs:", err);
+      setJobs([]);
     } finally {
       setLoadingJobs(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchJobs();
@@ -718,41 +713,57 @@ const Transfers = ({ toast }) => {
 
   const handleRetry = async (jobId) => {
     try {
-      const res = await fetch(`/api/jobs/${jobId}/retry`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.post(`/api/jobs/${jobId}/retry`);
+
       await fetchJobs();
-      toast({ title: "Retry job created", status: "success", duration: 2000 });
-    } catch {
-      toast({ title: "Failed to retry", status: "error", duration: 2000 });
+
+      toast({
+        title: "Retry job created",
+        status: "success",
+        duration: 2000,
+      });
+    } catch (err) {
+      console.error("Failed to retry job:", err);
+
+      toast({
+        title: err.message || "Failed to retry",
+        status: "error",
+        duration: 2000,
+      });
     }
   };
 
   const handleDelete = async (jobId) => {
     try {
-      await fetch(`/api/jobs/${jobId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete(`/api/jobs/${jobId}`);
+
       setSelectedJob(null);
       await fetchJobs();
-    } catch {
-      toast({ title: "Failed to delete", status: "error", duration: 2000 });
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+
+      toast({
+        title: err.message || "Failed to delete",
+        status: "error",
+        duration: 2000,
+      });
     }
   };
 
   const handleClearCompleted = async () => {
     setClearing(true);
+
     try {
-      await fetch("/api/jobs", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete("/api/jobs");
       await fetchJobs();
-    } catch {
-      toast({ title: "Failed to clear", status: "error", duration: 2000 });
+    } catch (err) {
+      console.error("Failed to clear completed jobs:", err);
+
+      toast({
+        title: err.message || "Failed to clear",
+        status: "error",
+        duration: 2000,
+      });
     } finally {
       setClearing(false);
     }
@@ -796,7 +807,11 @@ const Transfers = ({ toast }) => {
           >
             Transfers
           </Text>
-          <Text fontSize="11px" color="rgba(255,255,255,0.45)" fontFamily={mono}>
+          <Text
+            fontSize="11px"
+            color="rgba(255,255,255,0.45)"
+            fontFamily={mono}
+          >
             {jobs.length}
           </Text>
         </Flex>

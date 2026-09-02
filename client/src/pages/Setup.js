@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Flex, Text, Input, Icon } from "@chakra-ui/react";
 import { FiUser, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-
+import apiClient from "../services/apiClient";
 const inputStyles = {
   bg: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.09)",
@@ -31,41 +31,35 @@ const Setup = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
+  if (password !== confirm) {
+    setError("Passwords do not match");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const res = await fetch("/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+  if (password.length < 8) {
+    setError("Password must be at least 8 characters");
+    return;
+  }
 
-      const data = await res.json();
+  setLoading(true);
 
-      if (!res.ok) {
-        setError(data.error || "Setup failed");
-        return;
-      }
+  try {
+    const data = await apiClient.post("/setup", {
+      username,
+      password,
+    });
 
-      localStorage.setItem("token", data.token);
-      navigate("/api/sftp");
-    } catch {
-      setError("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+    localStorage.setItem("token", data.token);
+    navigate("/api/sftp");
+  } catch (err) {
+    setError(err.message || "Setup failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Flex
