@@ -3,7 +3,7 @@ const storageController = require("../controllers/storageController");
 const authenticateJWT = require("../middlewares/jwtAuth");
 const filemanagerController = require("../controllers/fileManagerController");
 const router = express.Router();
-
+const keyController = require("../controllers/keyController");
 router.get(
   "/api/files/*",
   authenticateJWT,
@@ -108,5 +108,20 @@ router.post(
   authenticateJWT,
   filemanagerController.paste_files_post,
 );
+
+router.get(
+  "/api/keys/shared",
+  keyController.getSharedKeys
+)
+
+router.post(
+  "/api/keys/generate",
+  keyController.generateKey
+)
+
+router.delete(
+  "/api/keys/:id",
+  keyController.deleteKey
+)
 
 module.exports = router;

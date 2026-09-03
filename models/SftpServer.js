@@ -1,19 +1,5 @@
 const mongoose = require("mongoose");
-
-// ─── Sub-schemas ──────────────────────────────────────────────────────────────
-
-/**
- * Shape of an AES-256-GCM encrypted value as stored in the database.
- * Matches the object returned by encrypt() in controllers/encryption.js.
- */
-const encryptedFieldSchema = new mongoose.Schema(
-  {
-    iv:      { type: String, required: true },
-    content: { type: String, required: true },
-    tag:     { type: String, required: true },
-  },
-  { _id: false },
-);
+const encryptedFieldSchema = require("./encryptedField");
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 

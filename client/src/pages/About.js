@@ -222,7 +222,7 @@ const About = () => {
             icon={FiFolder}
             label="File Manager"
             accent
-            onClick={() => navigate("/app/files")}
+            onClick={() => navigate("/sftp")}
           />
           <NavButton
             icon={FiGithub}
