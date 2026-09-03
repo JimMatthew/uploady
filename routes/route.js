@@ -111,16 +111,19 @@ router.post(
 
 router.get(
   "/api/keys/shared",
+  authenticateJWT,
   keyController.getSharedKeys
 )
 
 router.post(
   "/api/keys/generate",
+  authenticateJWT,
   keyController.generateKey
 )
 
 router.delete(
   "/api/keys/:id",
+  authenticateJWT,
   keyController.deleteKey
 )
 

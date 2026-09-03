@@ -470,7 +470,6 @@ const executeItem = async (item, connections, callbacks) => {
 
 const { dispatch } = require("./transferStrategies");
 
-
 /**
  * Streams a ZIP of mixed local/remote clipboard files directly to the response.
  * Groups SFTP files by serverId to reuse connections across files from the same server.
