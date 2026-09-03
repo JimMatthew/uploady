@@ -35,7 +35,7 @@ const App = () => {
               <Routes>
                 <Route path="/setup" element={<Setup />} />
                 <Route path="/" element={<Login />} />
-                <Route path="/api/sftp" element={<Workspace toast={toast} />} />
+                <Route path="/sftp" element={<Workspace toast={toast} />} />
                 <Route path="/about" element={<About />} />
               </Routes>
             </AppLayout>

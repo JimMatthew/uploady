@@ -42,7 +42,7 @@ const Login = () => {
     });
 
     localStorage.setItem("token", data.token);
-    navigate("/api/sftp");
+    navigate("/sftp");
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       setError("Invalid username or password");

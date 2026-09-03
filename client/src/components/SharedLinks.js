@@ -13,7 +13,10 @@ import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 
 const LoadingSkeleton = () => (
-  <SimpleGrid spacing={3} templateColumns="repeat(auto-fill, minmax(280px, 1fr))">
+  <SimpleGrid
+    spacing={3}
+    templateColumns="repeat(auto-fill, minmax(280px, 1fr))"
+  >
     {[...Array(3)].map((_, i) => (
       <Skeleton
         key={i}
@@ -27,21 +30,15 @@ const LoadingSkeleton = () => (
 );
 
 const SharedLinks = () => {
-  const {
-    links,
-    loading,
-    loadLinks,
-    deleteLink,
-    copyToClipboard,
-    clickLink,
-  } = useSharedLinks();
+  const { links, loading, loadLinks, deleteLink, copyToClipboard, clickLink } =
+    useSharedLinks();
 
   useEffect(() => {
     loadLinks();
   }, [loadLinks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box p={6} >
+    <Box p={6}>
       {/* Header */}
       <Flex align="center" justify="space-between" mb={6}>
         <Flex align="center" gap={3}>
@@ -69,7 +66,9 @@ const SharedLinks = () => {
               Shared Links
             </Text>
             <Text fontSize="11px" color="rgba(255,255,255,0.28)" mt="1px">
-              {loading ? "Loading…" : `${links.length} active link${links.length !== 1 ? "s" : ""}`}
+              {loading
+                ? "Loading…"
+                : `${links.length} active link${links.length !== 1 ? "s" : ""}`}
             </Text>
           </Box>
         </Flex>
@@ -114,7 +113,7 @@ const SharedLinks = () => {
               key={link._id}
               linkItem={link}
               stopSharing={deleteLink}
-              clickLink={clickLink}
+              downloadLink={clickLink}
               copyToClipboard={copyToClipboard}
             />
           ))}
@@ -143,10 +142,19 @@ const SharedLinks = () => {
             <FiShare2 color="rgba(99,102,241,0.5)" size={18} />
           </Box>
           <VStack spacing={1}>
-            <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.3)">
+            <Text
+              fontSize="13px"
+              fontWeight={600}
+              color="rgba(255,255,255,0.3)"
+            >
               No shared links
             </Text>
-            <Text fontSize="11px" color="rgba(255,255,255,0.15)" textAlign="center" maxW="200px">
+            <Text
+              fontSize="11px"
+              color="rgba(255,255,255,0.15)"
+              textAlign="center"
+              maxW="200px"
+            >
               Right-click any file and select Share Link to get started
             </Text>
           </VStack>

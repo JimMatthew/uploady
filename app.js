@@ -64,6 +64,25 @@ app.use("/", setupRoutes);
 app.use("/", setupJobRoutes);
 app.use("/sftp", setupSftpRoutes);
 
+// ─── API 404 guard ────────────────────────────────────────────────────────────
+
+app.use((req, res, next) => {
+  const isApiRequest =
+    req.path.startsWith("/api/") ||
+    req.path.startsWith("/sftp/api/") ||
+    req.path.startsWith("/sftp/server-") ||
+    req.path === "/apilogin" ||
+    req.path === "/setup";
+
+  if (!isApiRequest) {
+    return next();
+  }
+
+  return res.status(404).json({
+    error: "API endpoint not found",
+  });
+});
+
 // ─── Catch-all ────────────────────────────────────────────────────────────────
 
 app.get("*", (req, res) => {

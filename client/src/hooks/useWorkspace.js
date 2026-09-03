@@ -21,7 +21,7 @@ export function useWorkspace({ toast }) {
   const nextTabId = useRef(1);
 
   const [loading, setLoading] = useState(true);
-  const [sftpServers, setSftpServers] = useState(null);
+  const [sftpServers, setSftpServers] = useState([]);
   const [serverStatuses, setServerStatuses] = useState({});
 
   const [showSidebar, setShowSidebar] = useState(false);
@@ -83,14 +83,16 @@ export function useWorkspace({ toast }) {
       const data = await apiClient.get("/sftp/api/");
 
       setSftpServers(data);
+      setLoading(false);
 
-      await fetchServerStatuses({
+      fetchServerStatuses({
         data,
         setServerStatuses,
+      }).catch((err) => {
+        console.error("Failed to fetch server statuses:", err);
       });
     } catch (err) {
       console.error("Failed to fetch servers:", err);
-    } finally {
       setLoading(false);
     }
   }, []);

@@ -68,8 +68,8 @@ const request = async (
   const token = getToken();
 
   const headers = new Headers(options.headers);
-
-  if (token) {
+  const isLoginRequest = url === "/apilogin";
+  if (!isLoginRequest && token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -97,6 +97,11 @@ const request = async (
     );
   }
 
+  if (!isLoginRequest && response.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/";
+    throw new ApiError("Unauthorized", 401);
+  }
   if (!response.ok) {
     let data = null;
 
@@ -252,7 +257,7 @@ const getArrayBuffer = (url, options = {}) =>
     { responseType: "arrayBuffer" },
   );
 
-  const getResponse = (url, options = {}) =>
+const getResponse = (url, options = {}) =>
   request(
     url,
     {
@@ -262,7 +267,7 @@ const getArrayBuffer = (url, options = {}) =>
     { responseType: "response" },
   );
 
-  const postForm = (url, formData, options = {}) =>
+const postForm = (url, formData, options = {}) =>
   request(url, {
     ...options,
     method: "POST",
