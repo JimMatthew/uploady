@@ -76,26 +76,30 @@ export function useWorkspace({ toast }) {
   // Server management
   // ---------------------------------------------------------------------------
 
-  const fetchServers = useCallback(async () => {
+ const fetchServers = useCallback(async ({ showLoading = false } = {}) => {
+  if (showLoading) {
     setLoading(true);
+  }
 
-    try {
-      const data = await apiClient.get("/sftp/api/");
+  try {
+    const data = await apiClient.get("/sftp/api/");
 
-      setSftpServers(data);
-      setLoading(false);
+    setSftpServers(data);
 
-      fetchServerStatuses({
-        data,
-        setServerStatuses,
-      }).catch((err) => {
-        console.error("Failed to fetch server statuses:", err);
-      });
-    } catch (err) {
-      console.error("Failed to fetch servers:", err);
+    fetchServerStatuses({
+      data,
+      setServerStatuses,
+    }).catch((err) => {
+      console.error("Failed to fetch server statuses:", err);
+    });
+  } catch (err) {
+    console.error("Failed to fetch servers:", err);
+  } finally {
+    if (showLoading) {
       setLoading(false);
     }
-  }, []);
+  }
+}, []);
 
   const saveServer = useCallback(
     async (server) => {
@@ -237,8 +241,8 @@ export function useWorkspace({ toast }) {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    fetchServers();
-  }, [fetchServers]);
+  fetchServers({ showLoading: true });
+}, [fetchServers]);
 
   return {
     loading,
@@ -262,7 +266,7 @@ export function useWorkspace({ toast }) {
     openSharedLinks,
     openTransfers,
     openSettings,
-    
+
     deleteServer,
   };
 }

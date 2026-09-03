@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   VStack,
@@ -11,7 +11,7 @@ import {
   Collapse,
 } from "@chakra-ui/react";
 import { FiServer, FiSave, FiAlertCircle } from "react-icons/fi";
-
+import apiClient from "../services/apiClient";
 // ─── Field wrapper ────────────────────────────────────────────────────────────
 
 const Field = ({ label, required, error, children }) => (
@@ -74,6 +74,7 @@ const EMPTY_FORM = {
   username: "",
   authMethod: "password",
   keyMode: "import",
+  keyId: "",
   password: "",
   privateKey: "",
   passphrase: "",
@@ -86,7 +87,30 @@ const AddServer = ({ handleSaveServer }) => {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [generatedKey, setGeneratedKey] = useState(null);
+  const [sharedKeys, setSharedKeys] = useState([]);
+  const [loadingKeys, setLoadingKeys] = useState(false);
   console.log("AddServer render:", generatedKey);
+
+  useEffect(() => {
+    const loadSharedKeys = async () => {
+      setLoadingKeys(true);
+
+      try {
+        const keys = await apiClient.get("/api/keys/shared");
+        setSharedKeys(keys);
+      } catch (err) {
+        console.error(
+          "Failed to load shared SSH keys:",
+          err,
+        );
+      } finally {
+        setLoadingKeys(false);
+      }
+    };
+
+    loadSharedKeys();
+  }, []);
+
   const set = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -114,6 +138,14 @@ const AddServer = ({ handleSaveServer }) => {
       errs.privateKey = "Private key is required";
     }
 
+    if (
+      form.authMethod === "key" &&
+      form.keyMode === "saved" &&
+      !form.keyId
+    ) {
+      errs.keyId = "Select an SSH key";
+    }
+
     return errs;
   };
 
@@ -131,12 +163,13 @@ const AddServer = ({ handleSaveServer }) => {
 
     const host = form.host.trim();
     const username = form.username.trim();
-
+console.log("FORM:", form);
     const result = await handleSaveServer({
       host,
       username,
       authType: form.authMethod,
       keyMode: form.keyMode,
+      keyId: form.keyId || null,
       password: form.password,
       key: form.privateKey,
       passphrase: form.passphrase || null,
@@ -147,8 +180,10 @@ const AddServer = ({ handleSaveServer }) => {
       return;
     }
 
-    if (result.server?.publicKey) {
-      console.log("SETTING GENERATED KEY");
+    if (
+      form.keyMode === "generate" &&
+      result.server?.publicKey
+    ) {
       setGeneratedKey({
         host,
         username,
@@ -268,6 +303,7 @@ const AddServer = ({ handleSaveServer }) => {
                   option: { bg: "#0D0D12", color: "rgba(255,255,255,0.85)" },
                 }}
               >
+                <option value="saved">Use Saved Key</option>
                 <option value="import">Use Existing Key</option>
                 <option value="generate">Generate New Key</option>
               </Select>
@@ -303,6 +339,54 @@ const AddServer = ({ handleSaveServer }) => {
                   />
                 </Field>
               </VStack>
+            </Collapse>
+            <Collapse
+              in={form.keyMode === "saved"}
+              animateOpacity
+            >
+              <Field
+                label="Saved Key"
+                required
+                error={errors.keyId}
+              >
+                <Select
+                  name="keyId"
+                  value={form.keyId}
+                  onChange={set}
+                  {...inputStyles(!!errors.keyId)}
+                  sx={{
+                    option: {
+                      bg: "#0D0D12",
+                      color: "rgba(255,255,255,0.85)",
+                    },
+                  }}
+                >
+                  <option value="">
+                    {loadingKeys
+                      ? "Loading keys..."
+                      : "Select SSH key"}
+                  </option>
+
+                  {sharedKeys.map((key) => (
+                    <option
+                      key={key.id}
+                      value={key.id}
+                    >
+                      {key.name}
+                    </option>
+                  ))}
+                </Select>
+
+                {!loadingKeys && sharedKeys.length === 0 && (
+                  <Text
+                    mt={2}
+                    fontSize="11px"
+                    color="rgba(255,255,255,0.28)"
+                  >
+                    No shared SSH keys are available.
+                  </Text>
+                )}
+              </Field>
             </Collapse>
           </VStack>
         </Collapse>

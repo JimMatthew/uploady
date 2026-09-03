@@ -26,6 +26,7 @@ export const SaveServer = async ({
   username,
   authType,
   keyMode,
+  keyId,
   password,
   key,
   passphrase,
@@ -37,8 +38,22 @@ export const SaveServer = async ({
       username,
       authType,
       keyMode,
-      password: authType === "password" ? password : undefined,
-      key: authType === "key" && keyMode === "import" ? key : undefined,
+
+      password:
+        authType === "password"
+          ? password
+          : undefined,
+
+      keyId:
+        authType === "key" && keyMode === "saved"
+          ? keyId
+          : undefined,
+
+      key:
+        authType === "key" && keyMode === "import"
+          ? key
+          : undefined,
+
       passphrase:
         authType === "key" && keyMode === "import"
           ? passphrase || undefined
@@ -50,7 +65,11 @@ export const SaveServer = async ({
     return data;
   } catch (err) {
     console.error("SaveServer error:", err);
-    showToast(toast, err.message || "Error adding server", "error");
+    showToast(
+      toast,
+      err.message || "Error adding server",
+      "error",
+    );
 
     return null;
   }

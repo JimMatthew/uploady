@@ -11,7 +11,7 @@ const { execFile } = require("child_process");
 const { promisify } = require("util");
 const {generateSshKeyPair} = require("./sshKeyGenerator")
 const execFileAsync = promisify(execFile);
-
+const SshKey = require("../models/SshKey");
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
 /**
@@ -67,6 +67,7 @@ async function save_server({
   username,
   password,
   authType,
+  keyId,
   key,
   passphrase,
   keyMode,
@@ -78,6 +79,8 @@ async function save_server({
     credentials: {},
   };
 
+  let publicKey = null;
+
   if (authType === "password") {
     if (!password) {
       throw new Error("Password required for password auth");
@@ -85,33 +88,72 @@ async function save_server({
 
     server.credentials.password = encrypt(password);
   } else if (authType === "key") {
-    if (keyMode === "generate") {
+    if (keyMode === "saved") {
+      if (!keyId) {
+        throw new Error("SSH key required for key auth");
+      }
+
+      const sshKey = await SshKey.findOne({
+        _id: keyId,
+        scope: "shared",
+      });
+
+      if (!sshKey) {
+        throw new Error("SSH key not found");
+      }
+
+      server.keyId = sshKey._id;
+      publicKey = sshKey.publicKey ?? null;
+    } else if (keyMode === "generate") {
       const generated = await generateSshKeyPair();
 
-      server.credentials.privateKey = encrypt(generated.privateKey);
-      server.credentials.publicKey = generated.publicKey;
-    } else {
+      const sshKey = await SshKey.create({
+        name: `${username}@${host}`,
+        scope: "server",
+        privateKey: encrypt(generated.privateKey),
+        publicKey: generated.publicKey,
+      });
+
+      server.keyId = sshKey._id;
+
+      // Preserve value for API response.
+      publicKey = generated.publicKey;
+    } else if (keyMode === "import") {
       if (!key) {
         throw new Error("Private key required for key auth");
       }
 
-      server.credentials.privateKey = encrypt(key);
+      const sshKeyData = {
+        name: `${username}@${host}`,
+        scope: "server",
+        privateKey: encrypt(key),
+      };
 
       if (passphrase) {
-        server.credentials.passphrase = encrypt(passphrase);
+        sshKeyData.passphrase = encrypt(passphrase);
       }
+
+      const sshKey = await SshKey.create(sshKeyData);
+
+      server.keyId = sshKey._id;
+    } else {
+      throw new Error(`Unsupported keyMode: ${keyMode}`);
     }
   } else {
     throw new Error(`Unsupported authType: ${authType}`);
   }
 
   const savedServer = await servers.create(server);
-   return {
+
+  return {
     id: savedServer._id,
     host: savedServer.host,
     username: savedServer.username,
     authType: savedServer.authType,
-    publicKey: savedServer.credentials?.publicKey ?? null,
+    keyId: savedServer.keyId ?? null,
+
+    // Keep old frontend contract working.
+    publicKey,
   };
 }
 
@@ -145,10 +187,11 @@ const checkServerStatus = async (serverId, port = 22) => {
 };
 
 // ─── Connection Options ───────────────────────────────────────────────────────
-
 /**
  * Retrieves and decrypts the connection options for an SFTP server.
- * Returns an options object ready to pass directly to ssh2-sftp-client.connect().
+ * Returns an options object ready to pass directly to
+ * ssh2-sftp-client.connect().
+ *
  * @param {string} serverId
  * @returns {Promise<{
  *   host: string,
@@ -158,31 +201,63 @@ const checkServerStatus = async (serverId, port = 22) => {
  *   privateKey?: string,
  *   passphrase?: string
  * }>}
- * @throws {Error} If the server is not found or has an invalid authType
+ * @throws {Error} If the server or SSH key is not found,
+ *                 or authType is invalid.
  */
 const getServerOptions = async (serverId) => {
   const server = await servers.findById(serverId);
-  if (!server) throw new Error(`Server not found: ${serverId}`);
+
+  if (!server) {
+    throw new Error(`Server not found: ${serverId}`);
+  }
 
   const options = {
     host: server.host,
-    port: 22,
+    port: server.port ?? 22,
     username: server.username,
   };
 
   if (server.authType === "password") {
-    options.password = decrypt(server.credentials.password);
+    if (!server.credentials?.password) {
+      throw new Error(
+        `Password missing for server: ${serverId}`,
+      );
+    }
+
+    options.password = decrypt(
+      server.credentials.password,
+    );
   } else if (server.authType === "key") {
-    // Normalize escaped newlines that may have been introduced during storage
-    let privateKey = decrypt(server.credentials.privateKey).trim();
+    if (!server.keyId) {
+      throw new Error(
+        `SSH key reference missing for server: ${serverId}`,
+      );
+    }
+
+    const sshKey = await SshKey.findById(server.keyId);
+
+    if (!sshKey) {
+      throw new Error(
+        `SSH key not found for server: ${serverId}`,
+      );
+    }
+
+    let privateKey = decrypt(
+      sshKey.privateKey,
+    ).trim();
+
+    // Normalize escaped newlines that may have been
+    // introduced during import/storage.
     if (privateKey.includes("\\n")) {
       privateKey = privateKey.replace(/\\n/g, "\n");
     }
+
     options.privateKey = privateKey;
 
-    // Only decrypt passphrase if it was actually stored
-    if (server.credentials.passphrase?.iv) {
-      options.passphrase = decrypt(server.credentials.passphrase);
+    if (sshKey.passphrase?.iv) {
+      options.passphrase = decrypt(
+        sshKey.passphrase,
+      );
     }
   } else {
     throw new Error(
@@ -195,12 +270,28 @@ const getServerOptions = async (serverId) => {
 
 const getServerPublicKey = async (serverId) => {
   const server = await servers.findById(serverId);
-  
+
   if (!server) {
     throw new Error("Server not found");
   }
 
-  return server.credentials?.publicKey ?? null;
+  if (server.authType !== "key") {
+    return null;
+  }
+
+  if (!server.keyId) {
+    return null;
+  }
+
+  const sshKey = await SshKey.findById(server.keyId);
+
+  if (!sshKey) {
+    throw new Error(
+      `SSH key not found for server: ${serverId}`,
+    );
+  }
+
+  return sshKey.publicKey ?? null;
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
