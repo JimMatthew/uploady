@@ -1,17 +1,17 @@
 const crypto = require("crypto");
-const { shares } = require("../db");
 const net = require("net");
 const { encrypt, decrypt } = require("../controllers/encryption");
-const { servers } = require("../db");
+const { servers, shares, sshKeyStore } = require("../db");
+
 const domain = process.env.HOSTNAME;
 const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
-const {generateSshKeyPair} = require("./sshKeyGenerator")
+const { generateSshKeyPair } = require("./sshKeyGenerator");
 const execFileAsync = promisify(execFile);
-const SshKey = require("../models/SshKey");
+
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
 /**
@@ -24,11 +24,7 @@ const SshKey = require("../models/SshKey");
  * @returns {Promise<{ link: string }>}
  */
 async function share_file(fileName, filePath, serverId) {
-  const existing = await shares.findRemoteShare(
-    fileName,
-    filePath,
-    serverId,
-  );
+  const existing = await shares.findRemoteShare(fileName, filePath, serverId);
 
   if (existing) return { link: existing.link };
 
@@ -93,10 +89,7 @@ async function save_server({
         throw new Error("SSH key required for key auth");
       }
 
-      const sshKey = await SshKey.findOne({
-        _id: keyId,
-        scope: "shared",
-      });
+      const sshKey = await sshKeyStore.findSharedById(keyId);
 
       if (!sshKey) {
         throw new Error("SSH key not found");
@@ -107,7 +100,7 @@ async function save_server({
     } else if (keyMode === "generate") {
       const generated = await generateSshKeyPair();
 
-      const sshKey = await SshKey.create({
+      const sshKey = await sshKeyStore.create({
         name: `${username}@${host}`,
         scope: "server",
         privateKey: encrypt(generated.privateKey),
@@ -188,11 +181,16 @@ const checkServerStatus = async (serverId, port = 22) => {
 
 // ─── Connection Options ───────────────────────────────────────────────────────
 /**
- * Retrieves and decrypts the connection options for an SFTP server.
+ * Retrieves the connection options for a saved SFTP server.
+ *
+ * Password credentials are decrypted directly from the server record.
+ * For key authentication, the referenced SSH key is loaded from the
+ * key store and its private key and optional passphrase are decrypted.
+ *
  * Returns an options object ready to pass directly to
  * ssh2-sftp-client.connect().
  *
- * @param {string} serverId
+ * @param {string} serverId - ID of the saved server.
  * @returns {Promise<{
  *   host: string,
  *   port: number,
@@ -201,8 +199,11 @@ const checkServerStatus = async (serverId, port = 22) => {
  *   privateKey?: string,
  *   passphrase?: string
  * }>}
- * @throws {Error} If the server or SSH key is not found,
- *                 or authType is invalid.
+ * @throws {Error} If the server is not found.
+ * @throws {Error} If the required password credential is missing.
+ * @throws {Error} If the server has no SSH key reference.
+ * @throws {Error} If the referenced SSH key is not found.
+ * @throws {Error} If the server has an invalid authentication type.
  */
 const getServerOptions = async (serverId) => {
   const server = await servers.findById(serverId);
@@ -219,32 +220,22 @@ const getServerOptions = async (serverId) => {
 
   if (server.authType === "password") {
     if (!server.credentials?.password) {
-      throw new Error(
-        `Password missing for server: ${serverId}`,
-      );
+      throw new Error(`Password missing for server: ${serverId}`);
     }
 
-    options.password = decrypt(
-      server.credentials.password,
-    );
+    options.password = decrypt(server.credentials.password);
   } else if (server.authType === "key") {
     if (!server.keyId) {
-      throw new Error(
-        `SSH key reference missing for server: ${serverId}`,
-      );
+      throw new Error(`SSH key reference missing for server: ${serverId}`);
     }
 
-    const sshKey = await SshKey.findById(server.keyId);
+    const sshKey = await sshKeyStore.findById(server.keyId);
 
     if (!sshKey) {
-      throw new Error(
-        `SSH key not found for server: ${serverId}`,
-      );
+      throw new Error(`SSH key not found for server: ${serverId}`);
     }
 
-    let privateKey = decrypt(
-      sshKey.privateKey,
-    ).trim();
+    let privateKey = decrypt(sshKey.privateKey).trim();
 
     // Normalize escaped newlines that may have been
     // introduced during import/storage.
@@ -255,9 +246,7 @@ const getServerOptions = async (serverId) => {
     options.privateKey = privateKey;
 
     if (sshKey.passphrase?.iv) {
-      options.passphrase = decrypt(
-        sshKey.passphrase,
-      );
+      options.passphrase = decrypt(sshKey.passphrase);
     }
   } else {
     throw new Error(
@@ -268,6 +257,19 @@ const getServerOptions = async (serverId) => {
   return options;
 };
 
+/**
+ * Returns the public SSH key associated with a saved server.
+ *
+ * Returns null when the server does not use key authentication or
+ * does not have an SSH key reference. The private key and passphrase
+ * are never returned by this operation.
+ *
+ * @param {string} serverId - ID of the saved server.
+ * @returns {Promise<string|null>} The server's public SSH key,
+ * or null if no public key is associated with the server.
+ * @throws {Error} If the server is not found.
+ * @throws {Error} If the referenced SSH key is not found.
+ */
 const getServerPublicKey = async (serverId) => {
   const server = await servers.findById(serverId);
 
@@ -283,12 +285,10 @@ const getServerPublicKey = async (serverId) => {
     return null;
   }
 
-  const sshKey = await SshKey.findById(server.keyId);
+  const sshKey = await sshKeyStore.findById(server.keyId);
 
   if (!sshKey) {
-    throw new Error(
-      `SSH key not found for server: ${serverId}`,
-    );
+    throw new Error(`SSH key not found for server: ${serverId}`);
   }
 
   return sshKey.publicKey ?? null;
