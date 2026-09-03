@@ -99,10 +99,7 @@ const AddServer = ({ handleSaveServer }) => {
         const keys = await apiClient.get("/api/keys/shared");
         setSharedKeys(keys);
       } catch (err) {
-        console.error(
-          "Failed to load shared SSH keys:",
-          err,
-        );
+        console.error("Failed to load shared SSH keys:", err);
       } finally {
         setLoadingKeys(false);
       }
@@ -138,11 +135,7 @@ const AddServer = ({ handleSaveServer }) => {
       errs.privateKey = "Private key is required";
     }
 
-    if (
-      form.authMethod === "key" &&
-      form.keyMode === "saved" &&
-      !form.keyId
-    ) {
+    if (form.authMethod === "key" && form.keyMode === "saved" && !form.keyId) {
       errs.keyId = "Select an SSH key";
     }
 
@@ -150,7 +143,6 @@ const AddServer = ({ handleSaveServer }) => {
   };
 
   const handleSave = async (e) => {
-
     e.preventDefault();
     setSubmitted(true);
 
@@ -163,7 +155,7 @@ const AddServer = ({ handleSaveServer }) => {
 
     const host = form.host.trim();
     const username = form.username.trim();
-console.log("FORM:", form);
+    console.log("FORM:", form);
     const result = await handleSaveServer({
       host,
       username,
@@ -180,10 +172,7 @@ console.log("FORM:", form);
       return;
     }
 
-    if (
-      form.keyMode === "generate" &&
-      result.server?.publicKey
-    ) {
+    if (form.keyMode === "generate" && result.server?.publicKey) {
       setGeneratedKey({
         host,
         username,
@@ -311,11 +300,7 @@ console.log("FORM:", form);
 
             <Collapse in={form.keyMode === "import"} animateOpacity>
               <VStack spacing={4} align="stretch">
-                <Field
-                  label="Private Key"
-                  required
-                  error={errors.privateKey}
-                >
+                <Field label="Private Key" required error={errors.privateKey}>
                   <Textarea
                     name="privateKey"
                     placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
@@ -340,15 +325,8 @@ console.log("FORM:", form);
                 </Field>
               </VStack>
             </Collapse>
-            <Collapse
-              in={form.keyMode === "saved"}
-              animateOpacity
-            >
-              <Field
-                label="Saved Key"
-                required
-                error={errors.keyId}
-              >
+            <Collapse in={form.keyMode === "saved"} animateOpacity>
+              <Field label="Saved Key" required error={errors.keyId}>
                 <Select
                   name="keyId"
                   value={form.keyId}
@@ -362,27 +340,18 @@ console.log("FORM:", form);
                   }}
                 >
                   <option value="">
-                    {loadingKeys
-                      ? "Loading keys..."
-                      : "Select SSH key"}
+                    {loadingKeys ? "Loading keys..." : "Select SSH key"}
                   </option>
 
                   {sharedKeys.map((key) => (
-                    <option
-                      key={key.id}
-                      value={key.id}
-                    >
+                    <option key={key.id} value={key.id}>
                       {key.name}
                     </option>
                   ))}
                 </Select>
 
                 {!loadingKeys && sharedKeys.length === 0 && (
-                  <Text
-                    mt={2}
-                    fontSize="11px"
-                    color="rgba(255,255,255,0.28)"
-                  >
+                  <Text mt={2} fontSize="11px" color="rgba(255,255,255,0.28)">
                     No shared SSH keys are available.
                   </Text>
                 )}
@@ -422,159 +391,152 @@ console.log("FORM:", form);
           Save Server
         </Flex>
       </VStack>
-      {generatedKey && (() => {
-        const installCommand =
-          `mkdir -p ~/.ssh && chmod 700 ~/.ssh && ` +
-          `echo '${generatedKey.publicKey}' >> ~/.ssh/authorized_keys && ` +
-          `chmod 600 ~/.ssh/authorized_keys`;
+      {generatedKey &&
+        (() => {
+          const installCommand =
+            `mkdir -p ~/.ssh && chmod 700 ~/.ssh && ` +
+            `echo '${generatedKey.publicKey}' >> ~/.ssh/authorized_keys && ` +
+            `chmod 600 ~/.ssh/authorized_keys`;
 
-        const copyText = async (text) => {
-          await navigator.clipboard.writeText(text);
-        };
+          const copyText = async (text) => {
+            await navigator.clipboard.writeText(text);
+          };
 
-        return (
-          <Box
-            mt={4}
-            p={5}
-            bg="rgba(34,197,94,0.04)"
-            border="1px solid rgba(34,197,94,0.18)"
-            borderRadius="12px"
-          >
-            <Flex align="center" justify="space-between" mb={1}>
-              <Text
-                fontSize="13px"
-                fontWeight={700}
-                color="rgba(255,255,255,0.9)"
-              >
-                SSH Key Generated
-              </Text>
-
-              <Text
-                fontSize="11px"
-                color="rgba(34,197,94,0.75)"
-                fontWeight={600}
-              >
-                Server Saved
-              </Text>
-            </Flex>
-
-            <Text
-              fontSize="12px"
-              color="rgba(255,255,255,0.45)"
-              mb={5}
+          return (
+            <Box
+              mt={4}
+              p={5}
+              bg="rgba(34,197,94,0.04)"
+              border="1px solid rgba(34,197,94,0.18)"
+              borderRadius="12px"
             >
-              Install the public key for{" "}
-              <Text
-                as="span"
-                color="rgba(255,255,255,0.7)"
-                fontFamily="'JetBrains Mono', monospace"
-              >
-                {generatedKey.username}@{generatedKey.host}
-              </Text>
-            </Text>
-
-            {/* Public key */}
-            <Box mb={4}>
-              <Flex align="center" justify="space-between" mb="6px">
+              <Flex align="center" justify="space-between" mb={1}>
                 <Text
-                  fontSize="11px"
-                  fontWeight={600}
-                  color="rgba(255,255,255,0.4)"
-                  letterSpacing="0.06em"
-                  textTransform="uppercase"
+                  fontSize="13px"
+                  fontWeight={700}
+                  color="rgba(255,255,255,0.9)"
                 >
-                  Public Key
+                  SSH Key Generated
                 </Text>
 
-                <Flex
-                  as="button"
-                  type="button"
-                  align="center"
-                  gap={1}
-                  px={2}
-                  py="4px"
-                  borderRadius="6px"
-                  bg="rgba(255,255,255,0.05)"
-                  border="1px solid rgba(255,255,255,0.08)"
-                  color="rgba(255,255,255,0.6)"
-                  fontSize="11px"
-                  cursor="pointer"
-                  _hover={{
-                    bg: "rgba(255,255,255,0.09)",
-                    color: "rgba(255,255,255,0.85)",
-                  }}
-                  onClick={() => copyText(generatedKey.publicKey)}
-                >
-                  Copy
-                </Flex>
-              </Flex>
-
-              <Textarea
-                value={generatedKey.publicKey}
-                readOnly
-                rows={3}
-                resize="none"
-                {...inputStyles(false)}
-                fontSize="11px"
-              />
-            </Box>
-
-            {/* Install command */}
-            <Box>
-              <Flex align="center" justify="space-between" mb="6px">
                 <Text
                   fontSize="11px"
+                  color="rgba(34,197,94,0.75)"
                   fontWeight={600}
-                  color="rgba(255,255,255,0.4)"
-                  letterSpacing="0.06em"
-                  textTransform="uppercase"
                 >
-                  Install Command
+                  Server Saved
                 </Text>
-
-                <Flex
-                  as="button"
-                  type="button"
-                  align="center"
-                  gap={1}
-                  px={2}
-                  py="4px"
-                  borderRadius="6px"
-                  bg="rgba(255,255,255,0.05)"
-                  border="1px solid rgba(255,255,255,0.08)"
-                  color="rgba(255,255,255,0.6)"
-                  fontSize="11px"
-                  cursor="pointer"
-                  _hover={{
-                    bg: "rgba(255,255,255,0.09)",
-                    color: "rgba(255,255,255,0.85)",
-                  }}
-                  onClick={() => copyText(installCommand)}
-                >
-                  Copy Command
-                </Flex>
               </Flex>
 
-              <Textarea
-                value={installCommand}
-                readOnly
-                rows={4}
-                resize="none"
-                {...inputStyles(false)}
-                fontSize="11px"
-              />
-
-              <Text
-                mt={2}
-                fontSize="11px"
-                color="rgba(255,255,255,0.28)"
-              >
-                Run this while logged in as {generatedKey.username}.
+              <Text fontSize="12px" color="rgba(255,255,255,0.45)" mb={5}>
+                Install the public key for{" "}
+                <Text
+                  as="span"
+                  color="rgba(255,255,255,0.7)"
+                  fontFamily="'JetBrains Mono', monospace"
+                >
+                  {generatedKey.username}@{generatedKey.host}
+                </Text>
               </Text>
+
+              {/* Public key */}
+              <Box mb={4}>
+                <Flex align="center" justify="space-between" mb="6px">
+                  <Text
+                    fontSize="11px"
+                    fontWeight={600}
+                    color="rgba(255,255,255,0.4)"
+                    letterSpacing="0.06em"
+                    textTransform="uppercase"
+                  >
+                    Public Key
+                  </Text>
+
+                  <Flex
+                    as="button"
+                    type="button"
+                    align="center"
+                    gap={1}
+                    px={2}
+                    py="4px"
+                    borderRadius="6px"
+                    bg="rgba(255,255,255,0.05)"
+                    border="1px solid rgba(255,255,255,0.08)"
+                    color="rgba(255,255,255,0.6)"
+                    fontSize="11px"
+                    cursor="pointer"
+                    _hover={{
+                      bg: "rgba(255,255,255,0.09)",
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                    onClick={() => copyText(generatedKey.publicKey)}
+                  >
+                    Copy
+                  </Flex>
+                </Flex>
+
+                <Textarea
+                  value={generatedKey.publicKey}
+                  readOnly
+                  rows={3}
+                  resize="none"
+                  {...inputStyles(false)}
+                  fontSize="11px"
+                />
+              </Box>
+
+              {/* Install command */}
+              <Box>
+                <Flex align="center" justify="space-between" mb="6px">
+                  <Text
+                    fontSize="11px"
+                    fontWeight={600}
+                    color="rgba(255,255,255,0.4)"
+                    letterSpacing="0.06em"
+                    textTransform="uppercase"
+                  >
+                    Install Command
+                  </Text>
+
+                  <Flex
+                    as="button"
+                    type="button"
+                    align="center"
+                    gap={1}
+                    px={2}
+                    py="4px"
+                    borderRadius="6px"
+                    bg="rgba(255,255,255,0.05)"
+                    border="1px solid rgba(255,255,255,0.08)"
+                    color="rgba(255,255,255,0.6)"
+                    fontSize="11px"
+                    cursor="pointer"
+                    _hover={{
+                      bg: "rgba(255,255,255,0.09)",
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                    onClick={() => copyText(installCommand)}
+                  >
+                    Copy Command
+                  </Flex>
+                </Flex>
+
+                <Textarea
+                  value={installCommand}
+                  readOnly
+                  rows={4}
+                  resize="none"
+                  {...inputStyles(false)}
+                  fontSize="11px"
+                />
+
+                <Text mt={2} fontSize="11px" color="rgba(255,255,255,0.28)">
+                  Run this while logged in as {generatedKey.username}.
+                </Text>
+              </Box>
             </Box>
-          </Box>
-        );
-      })()}
+          );
+        })()}
     </Box>
   );
 };

@@ -76,30 +76,30 @@ export function useWorkspace({ toast }) {
   // Server management
   // ---------------------------------------------------------------------------
 
- const fetchServers = useCallback(async ({ showLoading = false } = {}) => {
-  if (showLoading) {
-    setLoading(true);
-  }
-
-  try {
-    const data = await apiClient.get("/sftp/api/");
-
-    setSftpServers(data);
-
-    fetchServerStatuses({
-      data,
-      setServerStatuses,
-    }).catch((err) => {
-      console.error("Failed to fetch server statuses:", err);
-    });
-  } catch (err) {
-    console.error("Failed to fetch servers:", err);
-  } finally {
+  const fetchServers = useCallback(async ({ showLoading = false } = {}) => {
     if (showLoading) {
-      setLoading(false);
+      setLoading(true);
     }
-  }
-}, []);
+
+    try {
+      const data = await apiClient.get("/sftp/api/");
+
+      setSftpServers(data);
+
+      fetchServerStatuses({
+        data,
+        setServerStatuses,
+      }).catch((err) => {
+        console.error("Failed to fetch server statuses:", err);
+      });
+    } catch (err) {
+      console.error("Failed to fetch servers:", err);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   const saveServer = useCallback(
     async (server) => {
@@ -134,11 +134,11 @@ export function useWorkspace({ toast }) {
   );
 
   const openSettings = useCallback(() => {
-  openTab({
-    label: "Settings",
-    content: <Settings toast={toast} />,
-  });
-}, [openTab, toast]);
+    openTab({
+      label: "Settings",
+      content: <Settings toast={toast} />,
+    });
+  }, [openTab, toast]);
   // ---------------------------------------------------------------------------
   // File tabs
   // ---------------------------------------------------------------------------
@@ -241,8 +241,8 @@ export function useWorkspace({ toast }) {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-  fetchServers({ showLoading: true });
-}, [fetchServers]);
+    fetchServers({ showLoading: true });
+  }, [fetchServers]);
 
   return {
     loading,

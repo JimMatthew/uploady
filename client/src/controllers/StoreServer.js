@@ -39,20 +39,11 @@ export const SaveServer = async ({
       authType,
       keyMode,
 
-      password:
-        authType === "password"
-          ? password
-          : undefined,
+      password: authType === "password" ? password : undefined,
 
-      keyId:
-        authType === "key" && keyMode === "saved"
-          ? keyId
-          : undefined,
+      keyId: authType === "key" && keyMode === "saved" ? keyId : undefined,
 
-      key:
-        authType === "key" && keyMode === "import"
-          ? key
-          : undefined,
+      key: authType === "key" && keyMode === "import" ? key : undefined,
 
       passphrase:
         authType === "key" && keyMode === "import"
@@ -65,11 +56,7 @@ export const SaveServer = async ({
     return data;
   } catch (err) {
     console.error("SaveServer error:", err);
-    showToast(
-      toast,
-      err.message || "Error adding server",
-      "error",
-    );
+    showToast(toast, err.message || "Error adding server", "error");
 
     return null;
   }
@@ -112,26 +99,18 @@ export const DeleteServer = async ({ serverId, toast }) => {
  * allowing the UI to update progressively instead of waiting
  * for every status request to finish.
  */
-export const fetchServerStatuses = async ({
-  data,
-  setServerStatuses,
-}) => {
+export const fetchServerStatuses = async ({ data, setServerStatuses }) => {
   await Promise.all(
     data.servers.map(async (server) => {
       try {
-        const result = await apiClient.get(
-          `/sftp/server-status/${server._id}`,
-        );
+        const result = await apiClient.get(`/sftp/server-status/${server._id}`);
 
         setServerStatuses((prev) => ({
           ...prev,
           [server._id]: result.status,
         }));
       } catch (err) {
-        console.error(
-          `Status check failed for server ${server._id}:`,
-          err,
-        );
+        console.error(`Status check failed for server ${server._id}:`, err);
 
         setServerStatuses((prev) => ({
           ...prev,

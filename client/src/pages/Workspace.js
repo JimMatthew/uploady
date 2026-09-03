@@ -45,18 +45,9 @@ const Workspace = ({ toast }) => {
 
   if (loading || !sftpServers) {
     return (
-      <Flex
-        align="center"
-        justify="center"
-        h="100%"
-        direction="column"
-        gap={3}
-      >
+      <Flex align="center" justify="center" h="100%" direction="column" gap={3}>
         <Box position="relative">
-          <Spinner
-            size="sm"
-            color="rgba(99,102,241,0.5)"
-          />
+          <Spinner size="sm" color="rgba(99,102,241,0.5)" />
 
           <Box
             position="absolute"
@@ -66,10 +57,7 @@ const Workspace = ({ toast }) => {
           />
         </Box>
 
-        <Text
-          fontSize="12px"
-          color="rgba(255,255,255,0.25)"
-        >
+        <Text fontSize="12px" color="rgba(255,255,255,0.25)">
           Initializing…
         </Text>
       </Flex>
@@ -119,21 +107,14 @@ const Workspace = ({ toast }) => {
             }}
             onClick={() => setShowSidebar(true)}
           >
-            <Icon
-              as={FiSidebar}
-              boxSize="12px"
-            />
+            <Icon as={FiSidebar} boxSize="12px" />
             Servers
           </Flex>
         </Flex>
       )}
 
       {/* Workspace body */}
-      <Flex
-        flex={1}
-        overflow="hidden"
-        position="relative"
-      >
+      <Flex flex={1} overflow="hidden" position="relative">
         {/* Mobile overlay */}
         {!isDesktop && showSidebar && (
           <Box
@@ -187,12 +168,7 @@ const Workspace = ({ toast }) => {
         )}
 
         {/* Main tab area */}
-        <Box
-          flex={1}
-          h="100%"
-          overflowY="auto"
-          minW={0}
-        >
+        <Box flex={1} h="100%" overflowY="auto" minW={0}>
           <TabPanelComp
             tabs={tabs}
             activeTabIndex={activeTabIndex}

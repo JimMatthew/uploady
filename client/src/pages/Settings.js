@@ -92,9 +92,7 @@ const Settings = ({ toast }) => {
   };
 
   const deleteKey = async (key) => {
-    const confirmed = window.confirm(
-      `Delete SSH key "${key.name}"?`,
-    );
+    const confirmed = window.confirm(`Delete SSH key "${key.name}"?`);
 
     if (!confirmed) {
       return;
@@ -103,9 +101,7 @@ const Settings = ({ toast }) => {
     try {
       await apiClient.delete(`/api/keys/${key.id}`);
 
-      setKeys((prev) =>
-        prev.filter((item) => item.id !== key.id),
-      );
+      setKeys((prev) => prev.filter((item) => item.id !== key.id));
 
       toast?.({
         title: "SSH key deleted",
@@ -149,27 +145,14 @@ const Settings = ({ toast }) => {
   // ---------------------------------------------------------------------------
 
   return (
-    <Box
-      h="100%"
-      overflowY="auto"
-      px={{ base: 4, md: 8 }}
-      py={6}
-    >
+    <Box h="100%" overflowY="auto" px={{ base: 4, md: 8 }} py={6}>
       <Box maxW="900px" mx="auto">
         <Box mb={8}>
-          <Text
-            fontSize="20px"
-            fontWeight={600}
-            color="rgba(255,255,255,0.9)"
-          >
+          <Text fontSize="20px" fontWeight={600} color="rgba(255,255,255,0.9)">
             Settings
           </Text>
 
-          <Text
-            mt={1}
-            fontSize="13px"
-            color="rgba(255,255,255,0.35)"
-          >
+          <Text mt={1} fontSize="13px" color="rgba(255,255,255,0.35)">
             Configure Uploady and manage shared resources.
           </Text>
         </Box>
@@ -180,16 +163,10 @@ const Settings = ({ toast }) => {
           title="SSH Keys"
           description="Manage reusable SSH keys available to servers."
         >
-          <Flex
-            gap={2}
-            mb={5}
-            direction={{ base: "column", sm: "row" }}
-          >
+          <Flex gap={2} mb={5} direction={{ base: "column", sm: "row" }}>
             <Input
               value={keyName}
-              onChange={(event) =>
-                setKeyName(event.target.value)
-              }
+              onChange={(event) => setKeyName(event.target.value)}
               placeholder="Key name"
               size="sm"
               maxW="320px"
@@ -226,18 +203,10 @@ const Settings = ({ toast }) => {
           </Flex>
 
           {loadingKeys ? (
-            <Flex
-              align="center"
-              justify="center"
-              py={8}
-              gap={3}
-            >
+            <Flex align="center" justify="center" py={8} gap={3}>
               <Spinner size="sm" />
 
-              <Text
-                fontSize="12px"
-                color="rgba(255,255,255,0.3)"
-              >
+              <Text fontSize="12px" color="rgba(255,255,255,0.3)">
                 Loading keys...
               </Text>
             </Flex>
@@ -248,10 +217,7 @@ const Settings = ({ toast }) => {
               border="1px dashed rgba(255,255,255,0.08)"
               borderRadius="8px"
             >
-              <Text
-                fontSize="13px"
-                color="rgba(255,255,255,0.3)"
-              >
+              <Text fontSize="13px" color="rgba(255,255,255,0.3)">
                 No shared SSH keys.
               </Text>
             </Box>
@@ -275,10 +241,7 @@ const Settings = ({ toast }) => {
           title="Session"
           description="Authentication and session behavior."
         >
-          <FutureSetting
-            title="Session lifetime"
-            value="Default"
-          />
+          <FutureSetting title="Session lifetime" value="Default" />
         </SettingsSection>
 
         {/* Logging */}
@@ -287,27 +250,16 @@ const Settings = ({ toast }) => {
           title="Logging"
           description="Backend diagnostic logging."
         >
-          <FutureSetting
-            title="Log level"
-            value="Coming later"
-          />
+          <FutureSetting title="Log level" value="Coming later" />
 
-          <FutureSetting
-            title="Log retention"
-            value="Coming later"
-          />
+          <FutureSetting title="Log retention" value="Coming later" />
         </SettingsSection>
       </Box>
     </Box>
   );
 };
 
-const SettingsSection = ({
-  icon,
-  title,
-  description,
-  children,
-}) => {
+const SettingsSection = ({ icon, title, description, children }) => {
   return (
     <Box
       mb={5}
@@ -337,35 +289,22 @@ const SettingsSection = ({
         </Flex>
 
         <Box>
-          <Text
-            fontSize="13px"
-            fontWeight={600}
-            color="rgba(255,255,255,0.8)"
-          >
+          <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.8)">
             {title}
           </Text>
 
-          <Text
-            fontSize="11px"
-            color="rgba(255,255,255,0.3)"
-          >
+          <Text fontSize="11px" color="rgba(255,255,255,0.3)">
             {description}
           </Text>
         </Box>
       </Flex>
 
-      <Box p={5}>
-        {children}
-      </Box>
+      <Box p={5}>{children}</Box>
     </Box>
   );
 };
 
-const KeyRow = ({
-  sshKey,
-  onCopy,
-  onDelete,
-}) => {
+const KeyRow = ({ sshKey, onCopy, onDelete }) => {
   return (
     <Flex
       align={{ base: "stretch", md: "center" }}
@@ -379,11 +318,7 @@ const KeyRow = ({
       bg="rgba(0,0,0,0.12)"
     >
       <Box minW={0} flex={1}>
-        <Text
-          fontSize="13px"
-          fontWeight={600}
-          color="rgba(255,255,255,0.8)"
-        >
+        <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.8)">
           {sshKey.name}
         </Text>
 
@@ -434,10 +369,7 @@ const KeyRow = ({
   );
 };
 
-const FutureSetting = ({
-  title,
-  value,
-}) => {
+const FutureSetting = ({ title, value }) => {
   return (
     <Flex
       align="center"
@@ -448,17 +380,11 @@ const FutureSetting = ({
         borderBottom: "none",
       }}
     >
-      <Text
-        fontSize="12px"
-        color="rgba(255,255,255,0.55)"
-      >
+      <Text fontSize="12px" color="rgba(255,255,255,0.55)">
         {title}
       </Text>
 
-      <Text
-        fontSize="11px"
-        color="rgba(255,255,255,0.25)"
-      >
+      <Text fontSize="11px" color="rgba(255,255,255,0.25)">
         {value}
       </Text>
     </Flex>
