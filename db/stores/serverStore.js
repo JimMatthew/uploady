@@ -10,6 +10,10 @@
 /**
  * Canonical saved server object returned by the persistence layer.
  *
+ * Password-authenticated servers store their encrypted password in
+ * credentials. Key-authenticated servers reference an SSH key stored
+ * separately in the SSH key store through keyId.
+ *
  * @typedef {Object} Server
  * @property {string} _id
  * @property {string} host
@@ -18,8 +22,7 @@
  * @property {"password"|"key"} authType
  * @property {Object} credentials
  * @property {EncryptedField} [credentials.password]
- * @property {EncryptedField} [credentials.privateKey]
- * @property {EncryptedField} [credentials.passphrase]
+ * @property {string} [keyId] - ID of the referenced SSH key.
  * @property {Date} createdAt
  * @property {Date} updatedAt
  */
@@ -28,11 +31,11 @@ class ServerStore {
     throw new Error("ServerStore.find() not implemented");
   }
 
-  /**
-  * Returns the saved servers needed for the server list.
-  *
-  * @returns {Promise<Array<{_id: string, host: string}>>}
-  */
+   /**
+   * Returns the saved servers needed for the server list.
+   *
+   * @returns {Promise<Array<{_id: string, host: string}>>}
+   */
   async listSummary() {
     throw new Error("ServerStore.findById() not implemented");
   }
@@ -47,22 +50,23 @@ class ServerStore {
     throw new Error("ServerStore.findById() not implemented");
   }
 
-  /**
-  * Creates a saved server.
-  *
-  * Credentials must already be encrypted before reaching the store.
-  *
-  * @param {Object} data
-  * @param {string} data.host
-  * @param {number} [data.port=22]
-  * @param {string} data.username
-  * @param {"password"|"key"} data.authType
-  * @param {Object} data.credentials
-  * @param {EncryptedField} [data.credentials.password]
-  * @param {EncryptedField} [data.credentials.privateKey]
-  * @param {EncryptedField} [data.credentials.passphrase]
-  * @returns {Promise<Server>}
-  */
+   /**
+   * Creates a saved server.
+   *
+   * Password credentials must already be encrypted before reaching
+   * the store. Key-authenticated servers reference a separately
+   * stored SSH key through keyId.
+   *
+   * @param {Object} data
+   * @param {string} data.host
+   * @param {number} [data.port=22]
+   * @param {string} data.username
+   * @param {"password"|"key"} data.authType
+   * @param {Object} data.credentials
+   * @param {EncryptedField} [data.credentials.password]
+   * @param {string} [data.keyId] - ID of the referenced SSH key.
+   * @returns {Promise<Server>}
+   */
   async create(data) {
     throw new Error("ServerStore.create() not implemented");
   }

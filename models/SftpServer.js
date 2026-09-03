@@ -5,26 +5,44 @@ const encryptedFieldSchema = require("./encryptedField");
 
 /**
  * Represents a saved SFTP server configuration.
- * Credentials are stored encrypted — never in plaintext.
- * Use getServerOptions() in serverService to retrieve decrypted connection options.
+ *
+ * Password credentials are stored encrypted on the server record.
+ * SSH key credentials are stored separately in the SSH key store and
+ * referenced by keyId.
+ *
+ * Use getServerOptions() in serverService to retrieve decrypted
+ * connection options.
  */
 const sftpServerSchema = new mongoose.Schema(
   {
-    host:     { type: String, required: true },
-    port:     { type: Number, default: 22 },
-    username: { type: String, required: true },
-    authType: {
-      type:     String,
-      enum:     ["password", "key"],
+    host: {
+      type: String,
       required: true,
-      default:  "password",
     },
+
+    port: {
+      type: Number,
+      default: 22,
+    },
+
+    username: {
+      type: String,
+      required: true,
+    },
+
+    authType: {
+      type: String,
+      enum: ["password", "key"],
+      required: true,
+      default: "password",
+    },
+
     credentials: {
-      password:   { type: encryptedFieldSchema },
-      privateKey: { type: encryptedFieldSchema },
-      passphrase: { type: encryptedFieldSchema },
-      publicKey:  { type: String, required: false }
+      password: {
+        type: encryptedFieldSchema,
+      },
     },
+
     keyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SshKey",
