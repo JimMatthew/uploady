@@ -34,7 +34,7 @@ const Workspace = ({ toast }) => {
     openLocalFiles,
     openSharedLinks,
     openTransfers,
-
+    openSettings,
     deleteServer,
   } = useWorkspace({ toast });
 
@@ -181,6 +181,7 @@ const Workspace = ({ toast }) => {
               onDeleteServer={deleteServer}
               sftpServers={sftpServers}
               serverStatuses={serverStatuses}
+              onSettings={openSettings}
             />
           </Box>
         )}

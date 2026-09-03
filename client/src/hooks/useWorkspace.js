@@ -8,7 +8,7 @@ import FileEdit from "../pages/FileEdit";
 import ServerInfo from "../pages/ServerInfo";
 import SharedLinks from "../components/SharedLinks";
 import TransfersPage from "../pages/Transfers";
-
+import Settings from "../pages/Settings";
 import apiClient from "../services/apiClient";
 
 import {
@@ -129,6 +129,12 @@ export function useWorkspace({ toast }) {
     [toast, fetchServers],
   );
 
+  const openSettings = useCallback(() => {
+  openTab({
+    label: "Settings",
+    content: <Settings toast={toast} />,
+  });
+}, [openTab, toast]);
   // ---------------------------------------------------------------------------
   // File tabs
   // ---------------------------------------------------------------------------
@@ -255,7 +261,8 @@ export function useWorkspace({ toast }) {
     openLocalFiles,
     openSharedLinks,
     openTransfers,
-
+    openSettings,
+    
     deleteServer,
   };
 }

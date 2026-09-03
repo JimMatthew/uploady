@@ -25,6 +25,11 @@ const sftpServerSchema = new mongoose.Schema(
       passphrase: { type: encryptedFieldSchema },
       publicKey:  { type: String, required: false }
     },
+    keyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SshKey",
+      required: false,
+    },
   },
   { timestamps: true },
 );
