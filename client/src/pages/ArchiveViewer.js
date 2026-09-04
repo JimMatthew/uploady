@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 
 import { Box, Flex, Text, Spinner, Icon } from "@chakra-ui/react";
-
+import FileItem from "../components/FileItem";
+import FolderItem from "../components/FolderItem";
 import {
   FiArchive,
   FiFolder,
@@ -9,6 +10,7 @@ import {
   FiArrowLeft,
   FiCopy,
 } from "react-icons/fi";
+import ItemMenu from "../components/FileMenu";
 import ClipboardComponent from "../components/ClipboardComponent";
 import apiClient from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
@@ -17,7 +19,14 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   const [currentDirectory, setCurrentDirectory] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedEntries, setSelectedEntries] = useState([]);
+  const [contextMenu, setContextMenu] = useState({
+    x: 0,
+    y: 0,
+    entry: null,
+    visible: false,
+  });
   const { copyFile, clipboard } = useClipboard();
+
   const loadArchive = useCallback(async () => {
     setLoading(true);
 
@@ -121,6 +130,47 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     copyFile(items);
   }, [selectedEntries, copyFile, archivePath]);
 
+  const copyArchiveEntry = useCallback(
+    (entry) => {
+      if (!entry) {
+        return;
+      }
+
+      const entryPath = entry.directory
+        ? entry.name.replace(/\/+$/, "")
+        : entry.name;
+
+      const parts = entryPath.split("/");
+      const file = parts.pop();
+      const path = parts.length ? `${parts.join("/")}/` : "";
+
+      copyFile({
+        file,
+        path,
+        source: "archive",
+        archivePath,
+        isDirectory: entry.directory,
+      });
+    },
+    [copyFile, archivePath],
+  );
+  const openMenu = useCallback((e, entry) => {
+    e.preventDefault();
+
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      entry,
+      visible: true,
+    });
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setContextMenu((m) => ({
+      ...m,
+      visible: false,
+    }));
+  }, []);
   return (
     <Box h="100%" display="flex" flexDirection="column" bg="gray.800">
       <ArchiveHeader
@@ -149,6 +199,17 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
             onOpen={openEntry}
             selectedEntries={selectedEntries}
             onSelect={toggleEntrySelection}
+            onOpenMenu={openMenu}
+          />
+        )}
+        {contextMenu.visible && (
+          <ItemMenu
+            top={contextMenu.y}
+            left={contextMenu.x}
+            item={getEntryName(contextMenu.entry.name)}
+            closeMenu={closeMenu}
+            openItem={() => openEntry(contextMenu.entry)}
+            copyItem={() => copyArchiveEntry(contextMenu.entry)}
           />
         )}
       </Box>
@@ -249,7 +310,13 @@ const ArchiveHeader = ({
   );
 };
 
-const ArchiveContents = ({ entries, onOpen, selectedEntries, onSelect }) => {
+const ArchiveContents = ({
+  entries,
+  onOpen,
+  selectedEntries,
+  onSelect,
+  onOpenMenu,
+}) => {
   if (entries.length === 0) {
     return (
       <Flex align="center" justify="center" py={12}>
@@ -261,65 +328,37 @@ const ArchiveContents = ({ entries, onOpen, selectedEntries, onSelect }) => {
   }
 
   return (
-    <Flex direction="column" px={3} py={3} gap={1}>
-      {entries.map((entry) => (
-        <ArchiveEntry
-          key={entry.name}
-          entry={entry}
-          onOpen={() => onOpen(entry)}
-          selected={selectedEntries.some(
-            (selected) => selected.name === entry.name,
-          )}
-          onSelect={() => onSelect(entry)}
-        />
-      ))}
-    </Flex>
-  );
-};
+    <Box>
+      {entries.map((entry) => {
+        if (entry.directory) {
+          return (
+            <FolderItem
+              key={entry.name}
+              folder={getEntryName(entry.name)}
+              changeDirectory={() => onOpen(entry)}
+              onOpenMenu={(e) => onOpenMenu(e, entry)}
+            />
+          );
+        }
 
-const ArchiveEntry = ({ entry, onOpen, onSelect, selected }) => {
-  const name = getEntryName(entry.name);
-
-  return (
-    <Flex
-      align="center"
-      gap={3}
-      px={3}
-      py={2}
-      borderRadius="6px"
-      cursor="pointer"
-      bg={selected ? "rgba(99,102,241,0.15)" : "transparent"}
-      _hover={{
-        bg: selected ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)",
-      }}
-      onClick={onSelect}
-      onDoubleClick={onOpen}
-    >
-      <Icon
-        as={entry.directory ? FiFolder : FiFile}
-        boxSize="15px"
-        color={entry.directory ? "#A5B4FC" : "rgba(255,255,255,0.4)"}
-        flexShrink={0}
-      />
-
-      <Text
-        flex={1}
-        minW={0}
-        fontSize="12px"
-        color="rgba(255,255,255,0.7)"
-        whiteSpace="nowrap"
-        overflow="hidden"
-        textOverflow="ellipsis"
-      >
-        {name}
-      </Text>
-
-      {!entry.directory && (
-        <Text fontSize="10px" color="rgba(255,255,255,0.25)" flexShrink={0}>
-          {formatBytes(entry.size)}
-        </Text>
-      )}
-    </Flex>
+        return (
+          <FileItem
+            key={entry.name}
+            name={getEntryName(entry.name)}
+            size={entry.size / 1024}
+            date={null}
+            isSelected={selectedEntries.some(
+              (selected) => selected.name === entry.name,
+            )}
+            onSelect={() => onSelect(entry)}
+            onOpenMenu={(e) => onOpenMenu(e, entry)}
+            isRenaming={false}
+            onRename={() => {}}
+            onRenameClose={() => {}}
+          />
+        );
+      })}
+    </Box>
   );
 };
 
