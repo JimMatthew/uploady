@@ -150,6 +150,43 @@ class MongoTransferItemStore extends TransferItemStore {
     );
   }
 
+  async getSourcesByJobIds(jobIds) {
+  if (!jobIds.length) {
+    return {};
+  }
+
+  const rows = await TransferItem.aggregate([
+    {
+      $match: {
+        jobId: {
+          $in: jobIds.map(
+            (id) =>
+              new mongoose.Types.ObjectId(id),
+          ),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$jobId",
+        sources: {
+          $addToSet: {
+            sourceType: "$sourceType",
+            sourceServerId: "$sourceServerId",
+          },
+        },
+      },
+    },
+  ]);
+
+  return Object.fromEntries(
+    rows.map((row) => [
+      row._id.toString(),
+      row.sources,
+    ]),
+  );
+}
+
   /**
    * Returns one page of items belonging to a job.
    *

@@ -128,6 +128,12 @@ class TransferItemStore {
         );
     }
 
+    async getSourcesByJobIds(jobIds) {
+         throw new Error(
+            "TransferItemStore.getSourceByJobIds() not implemented",
+        );
+    }
+
     /**
      * Returns one page of items belonging to a job.
      *

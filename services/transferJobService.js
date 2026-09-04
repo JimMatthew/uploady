@@ -63,6 +63,17 @@ const formatServer = (serverId, nameMap) => {
   return nameMap[serverId] ?? serverId;
 };
 
+const formatSource = (sourceType, serverId, nameMap) => {
+  if (sourceType === "archive") {
+    return "archive";
+  }
+
+  if (sourceType === "sftp" || serverId) {
+    return nameMap[serverId] ?? serverId;
+  }
+
+  return "local";
+};
 /**
  * Retrieves all transfer jobs for the jobs list view.
  *
@@ -104,12 +115,12 @@ const listJobs = async () => {
 
   // Source servers belong to individual transfer items, so retrieve the
   // distinct source server IDs associated with each job.
-  const sourceMap = await transferItems.getSourceServerIdsByJobIds(jobIds);
+  const sourceMap = await transferItems.getSourcesByJobIds(jobIds);
 
-  for (const sourceIds of Object.values(sourceMap)) {
-    for (const id of sourceIds) {
-      if (id) {
-        serverIds.add(id);
+  for (const sources of Object.values(sourceMap)) {
+    for (const source of sources) {
+      if (source?.sourceServerId) {
+        serverIds.add(source.sourceServerId);
       }
     }
   }
@@ -124,9 +135,21 @@ const listJobs = async () => {
     const liveJob = executor.getJob(jobId);
 
     const sourceIds = sourceMap[jobId] ?? [];
-
+    const sources = sourceMap[jobId] ?? [];
     const sourceServers = [
-      ...new Set(sourceIds.map((id) => (id ? (nameMap[id] ?? id) : "local"))),
+      ...new Set(
+        sources.map((source) => {
+          if (!source) {
+            return "local";
+          }
+
+          return formatSource(
+            source.sourceType,
+            source.sourceServerId,
+            nameMap,
+          );
+        }),
+      ),
     ];
 
     const durationMs =
@@ -233,7 +256,7 @@ const getJobItemsChunk = async (jobId, { page = 1, limit = 100, status }) => {
         live?.percent ?? (item.status === ItemStatus.COMPLETED ? 100 : 0),
       durationMs,
       speedMBs,
-      sourceServer: formatServer(item.sourceServerId, nameMap),
+      sourceServer: formatSource(item.sourceType, item.sourceServerId, nameMap),
     };
   });
 
@@ -324,7 +347,7 @@ const getJob = async (jobId) => {
         live?.percent ?? (item.status === ItemStatus.COMPLETED ? 100 : 0),
       durationMs,
       speedMBs,
-      sourceServer: formatServer(item.sourceServerId, nameMap),
+      sourceServer: formatSource(item.sourceType, item.sourceServerId, nameMap),
     };
   });
 
