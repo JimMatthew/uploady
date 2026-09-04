@@ -10,7 +10,7 @@ import {
 } from "react-icons/fi";
 import { useClipboard } from "../contexts/ClipboardContext";
 import apiClient from "../services/apiClient";
-const ClipboardComponent = ({ handlePaste }) => {
+const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
 
   const downloadAsZip = async () => {
@@ -110,25 +110,27 @@ const ClipboardComponent = ({ handlePaste }) => {
 
         {/* Actions */}
         <HStack spacing={2} flexShrink={0}>
-          <Flex
-            align="center"
-            gap={2}
-            px={3}
-            h="26px"
-            borderRadius="6px"
-            bg="rgba(251,191,36,0.1)"
-            border="1px solid rgba(251,191,36,0.2)"
-            color="#FBBF24"
-            cursor="pointer"
-            fontSize="12px"
-            fontWeight={600}
-            transition="all 0.12s"
-            _hover={{ bg: "rgba(251,191,36,0.18)" }}
-            onClick={handlePaste}
-          >
-            <FiClipboard size={11} />
-            Paste
-          </Flex>
+          {pasteable && (
+            <Flex
+              align="center"
+              gap={2}
+              px={3}
+              h="26px"
+              borderRadius="6px"
+              bg="rgba(251,191,36,0.1)"
+              border="1px solid rgba(251,191,36,0.2)"
+              color="#FBBF24"
+              cursor="pointer"
+              fontSize="12px"
+              fontWeight={600}
+              transition="all 0.12s"
+              _hover={{ bg: "rgba(251,191,36,0.18)" }}
+              onClick={handlePaste}
+            >
+              <FiClipboard size={11} />
+              Paste
+            </Flex>
+          )}
           <Flex
             align="center"
             gap={2}

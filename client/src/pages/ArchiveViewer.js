@@ -2,15 +2,22 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { Box, Flex, Text, Spinner, Icon } from "@chakra-ui/react";
 
-import { FiArchive, FiFolder, FiFile, FiArrowLeft } from "react-icons/fi";
-
+import {
+  FiArchive,
+  FiFolder,
+  FiFile,
+  FiArrowLeft,
+  FiCopy,
+} from "react-icons/fi";
+import ClipboardComponent from "../components/ClipboardComponent";
 import apiClient from "../services/apiClient";
-
+import { useClipboard } from "../contexts/ClipboardContext";
 const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   const [entries, setEntries] = useState([]);
   const [currentDirectory, setCurrentDirectory] = useState("");
   const [loading, setLoading] = useState(true);
-
+  const [selectedEntries, setSelectedEntries] = useState([]);
+  const { copyFile, clipboard } = useClipboard();
   const loadArchive = useCallback(async () => {
     setLoading(true);
 
@@ -43,6 +50,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   const openEntry = (entry) => {
     if (entry.directory) {
       setCurrentDirectory(entry.name);
+      setSelectedEntries([]);
       return;
     }
 
@@ -50,13 +58,11 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
 
     openFile({
       filename: entryFilename,
-
       source: {
         type: "archive",
         archivePath,
         entry: entry.name,
       },
-
       readOnly: true,
     });
   };
@@ -73,7 +79,47 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     const parent = path.length ? `${path.join("/")}/` : "";
 
     setCurrentDirectory(parent);
+    setSelectedEntries([]);
   };
+
+  const toggleEntrySelection = useCallback((entry) => {
+    setSelectedEntries((prev) => {
+      const exists = prev.some((selected) => selected.name === entry.name);
+
+      if (exists) {
+        return prev.filter((selected) => selected.name !== entry.name);
+      }
+
+      return [...prev, entry];
+    });
+  }, []);
+
+  const copySelected = useCallback(() => {
+    if (selectedEntries.length === 0) {
+      return;
+    }
+
+    const items = selectedEntries.map((entry) => {
+      const entryPath = entry.directory
+        ? entry.name.replace(/\/+$/, "")
+        : entry.name;
+
+      const parts = entryPath.split("/");
+      const file = parts.pop();
+
+      const path = parts.length ? `${parts.join("/")}/` : "";
+
+      return {
+        file,
+        path,
+        source: "archive",
+        archivePath,
+        isDirectory: entry.directory,
+      };
+    });
+
+    copyFile(items);
+  }, [selectedEntries, copyFile, archivePath]);
 
   return (
     <Box h="100%" display="flex" flexDirection="column" bg="gray.800">
@@ -82,7 +128,11 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
         currentDirectory={currentDirectory}
         canGoBack={currentDirectory !== ""}
         onBack={goBack}
+        onCopy={copySelected}
+        selectedCount={selectedEntries.length}
       />
+
+      {clipboard[0] && <ClipboardComponent pasteable={false} />}
 
       <Box flex={1} overflowY="auto">
         {loading ? (
@@ -94,14 +144,26 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
             </Text>
           </Flex>
         ) : (
-          <ArchiveContents entries={visibleEntries} onOpen={openEntry} />
+          <ArchiveContents
+            entries={visibleEntries}
+            onOpen={openEntry}
+            selectedEntries={selectedEntries}
+            onSelect={toggleEntrySelection}
+          />
         )}
       </Box>
     </Box>
   );
 };
 
-const ArchiveHeader = ({ filename, currentDirectory, canGoBack, onBack }) => {
+const ArchiveHeader = ({
+  filename,
+  currentDirectory,
+  canGoBack,
+  onBack,
+  onCopy,
+  selectedCount,
+}) => {
   return (
     <Flex
       align="center"
@@ -140,6 +202,29 @@ const ArchiveHeader = ({ filename, currentDirectory, canGoBack, onBack }) => {
         </Text>
       </Box>
 
+      {selectedCount > 0 && (
+        <Flex
+          as="button"
+          align="center"
+          gap={2}
+          px={3}
+          py={1.5}
+          borderRadius="6px"
+          color="rgba(255,255,255,0.45)"
+          _hover={{
+            bg: "rgba(255,255,255,0.05)",
+            color: "rgba(255,255,255,0.8)",
+          }}
+          onClick={onCopy}
+        >
+          <Icon as={FiCopy} boxSize="13px" />
+
+          <Text fontSize="11px">
+            Copy
+            {selectedCount > 1 ? ` (${selectedCount})` : ""}
+          </Text>
+        </Flex>
+      )}
       {canGoBack && (
         <Flex
           as="button"
@@ -164,7 +249,7 @@ const ArchiveHeader = ({ filename, currentDirectory, canGoBack, onBack }) => {
   );
 };
 
-const ArchiveContents = ({ entries, onOpen }) => {
+const ArchiveContents = ({ entries, onOpen, selectedEntries, onSelect }) => {
   if (entries.length === 0) {
     return (
       <Flex align="center" justify="center" py={12}>
@@ -182,13 +267,17 @@ const ArchiveContents = ({ entries, onOpen }) => {
           key={entry.name}
           entry={entry}
           onOpen={() => onOpen(entry)}
+          selected={selectedEntries.some(
+            (selected) => selected.name === entry.name,
+          )}
+          onSelect={() => onSelect(entry)}
         />
       ))}
     </Flex>
   );
 };
 
-const ArchiveEntry = ({ entry, onOpen }) => {
+const ArchiveEntry = ({ entry, onOpen, onSelect, selected }) => {
   const name = getEntryName(entry.name);
 
   return (
@@ -199,9 +288,11 @@ const ArchiveEntry = ({ entry, onOpen }) => {
       py={2}
       borderRadius="6px"
       cursor="pointer"
+      bg={selected ? "rgba(99,102,241,0.15)" : "transparent"}
       _hover={{
-        bg: "rgba(255,255,255,0.04)",
+        bg: selected ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)",
       }}
+      onClick={onSelect}
       onDoubleClick={onOpen}
     >
       <Icon
