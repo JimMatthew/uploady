@@ -291,14 +291,27 @@ const sftp_copy_files_post = async (req, res) => {
     await transferItems.createMany(
       files.map((f) => ({
         jobId: job._id,
+
+        sourceType: f.source,
         sourceServerId: f.serverId ?? null,
+
+        archivePath:
+          f.source === "archive" ? path.join(uploadsDir, f.archivePath) : null,
+
         filename: f.file,
         rootItem: f.file,
-        sourcePath: f.serverId
-          ? path.posix.join(f.path, f.file)
-          : path.join(uploadsDir, f.path, f.file),
+
+        sourcePath:
+          f.source === "archive"
+            ? path.posix.join(f.path, f.file)
+            : f.serverId
+              ? path.posix.join(f.path, f.file)
+              : path.join(uploadsDir, f.path, f.file),
+
         destinationPath: path.posix.join(newPath, f.file),
+
         kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
+
         size: f.size ?? 0,
       })),
     );
@@ -395,11 +408,7 @@ const sftp_save_server_post = async (req, res) => {
   } = req.body;
 
   if (!host || !username || !authType) {
-    return handleError(
-      res,
-      "Host, username, and authType are required",
-      400,
-    );
+    return handleError(res, "Host, username, and authType are required", 400);
   }
 
   try {
@@ -421,11 +430,7 @@ const sftp_save_server_post = async (req, res) => {
   } catch (err) {
     console.error("Save server error:", err);
 
-    return handleError(
-      res,
-      err.message || "Cannot save server",
-      400,
-    );
+    return handleError(res, err.message || "Cannot save server", 400);
   }
 };
 

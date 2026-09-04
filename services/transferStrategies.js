@@ -381,6 +381,21 @@ const archiveToLocal = async (item, { context }, onProgress) => {
   return data.length;
 };
 
+const archiveToSftp = async (item, { sftpDest, context }, onProgress) => {
+  const data = await archiveService.readZipEntry(
+    item.archivePath,
+    item.sourcePath,
+  );
+
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
+
+  await sftpDest.put(data, item.destinationPath);
+
+  onProgress(data.length);
+
+  return data.length;
+};
+
 // ─── Strategy Selection ───────────────────────────────────────────────────────
 
 const STRATEGIES = {
@@ -390,6 +405,7 @@ const STRATEGIES = {
   sftpSameServer,
   sftpCrossServer,
   archiveToLocal,
+  archiveToSftp,
 };
 
 /**
