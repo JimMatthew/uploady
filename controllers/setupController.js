@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { users } = require("../db");
 const JWT_SECRET = process.env.JWT_SECRET;
-
+const settingsService = require("../services/settingsService");
 /**
  * Hashes a plaintext password using PBKDF2 with a random salt.
  * @param {string} password
@@ -47,7 +47,7 @@ const setup_get = async (req, res) => {
  */
 const setup_post = async (req, res) => {
   try {
-     const exists = await users.exists();
+    const exists = await users.exists();
     if (exists) {
       return res.status(403).json({ error: "Setup already complete" });
     }
@@ -63,17 +63,23 @@ const setup_post = async (req, res) => {
     }
 
     const { salt, hash } = hashPassword(password);
-     const user = await users.create({
+    const user = await users.create({
       username: username.trim(),
       passwordHash: hash,
       passwordSalt: salt,
     });
 
+    const settings = await settingsService.getSettings();
     // log the user in immediately
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      {
+        id: user._id,
+        username: user.username,
+      },
       JWT_SECRET,
-      { expiresIn: "24h" },
+      {
+        expiresIn: settings.session.jwtLifetimeMinutes * 60,
+      },
     );
 
     res.status(201).json({ token });
@@ -98,10 +104,17 @@ const login_post = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    const settings = await settingsService.getSettings();
+
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      {
+        id: user._id,
+        username: user.username,
+      },
       JWT_SECRET,
-      { expiresIn: "8h" },
+      {
+        expiresIn: settings.session.jwtLifetimeMinutes * 60,
+      },
     );
 
     res.json({ token });

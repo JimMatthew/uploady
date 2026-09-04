@@ -54,10 +54,13 @@ const getToken = () => localStorage.getItem("token");
  * Authentication is added automatically when a JWT exists in
  * localStorage.
  *
+ /**
  * @param {string} url Request URL.
  * @param {RequestInit} [options={}] Fetch options.
- * @param {boolean} [expectBlob=false] Return the response as a Blob instead of JSON.
- * @returns {Promise<Object|Blob>} Parsed JSON response or Blob.
+ * @param {Object} [responseOptions={}] Response handling options.
+ * @param {"json"|"blob"|"arrayBuffer"|"text"|"response"}
+ *   [responseOptions.responseType="json"]
+ * @returns {Promise<Object|Blob|ArrayBuffer|string|Response|null>}
  * @throws {ApiError} When the request fails.
  */
 const request = async (
@@ -189,6 +192,33 @@ const post = (url, body, options = {}) => {
 };
 
 /**
+ * Sends a JSON PATCH request.
+ *
+ * The body is automatically serialized with JSON.stringify().
+ *
+ * @param {string} url Request URL.
+ * @param {Object} body JSON request body.
+ * @param {RequestInit} [options={}] Additional fetch options.
+ * @returns {Promise<Object>} Parsed JSON response.
+ * @throws {ApiError}
+ *
+ * @example
+ * const data = await apiClient.patch(
+ *   "/api/settings/session",
+ *   {
+ *     jwtLifetimeMinutes: 480,
+ *   },
+ * );
+ */
+const patch = (url, body, options = {}) => {
+  return request(url, {
+    ...options,
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+};
+
+/**
  * Sends a GET request and returns the response body as a Blob.
  *
  * Useful for authenticated file downloads.
@@ -280,6 +310,7 @@ export default {
   request,
   get,
   post,
+  patch,
   getBlob,
   postBlob,
   delete: del,

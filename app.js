@@ -14,7 +14,7 @@ const sshSessionHandler = require("./controllers/ssh_session");
 const setupRoutes = require("./routes/route");
 const setupSftpRoutes = require("./routes/sftpRouter");
 const setupJobRoutes = require("./routes/jobRouter");
-
+const setupSettingsRoutes = require("./routes/settingsRouter")
 const {
   login_post,
   setup_post,
@@ -63,7 +63,7 @@ app.use(requireSetupComplete);
 app.use("/", setupRoutes);
 app.use("/", setupJobRoutes);
 app.use("/sftp", setupSftpRoutes);
-
+app.use("/api/settings", setupSettingsRoutes);
 // ─── API 404 guard ────────────────────────────────────────────────────────────
 
 app.use((req, res, next) => {
@@ -72,7 +72,8 @@ app.use((req, res, next) => {
     req.path.startsWith("/sftp/api/") ||
     req.path.startsWith("/sftp/server-") ||
     req.path === "/apilogin" ||
-    req.path === "/setup";
+    req.path === "/setup" ||
+    req.path.startsWith("/settings");
 
   if (!isApiRequest) {
     return next();

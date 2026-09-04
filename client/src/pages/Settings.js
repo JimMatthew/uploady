@@ -24,7 +24,9 @@ const Settings = ({ toast }) => {
   const [loadingKeys, setLoadingKeys] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [keyName, setKeyName] = useState("");
-
+  const [sessionTimeout, setSessionTimeout] = useState("");
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [savingSession, setSavingSession] = useState(false);
   // ---------------------------------------------------------------------------
   // SSH keys
   // ---------------------------------------------------------------------------
@@ -48,9 +50,34 @@ const Settings = ({ toast }) => {
     }
   }, [toast]);
 
+  const loadSettings = useCallback(async () => {
+    setLoadingSettings(true);
+
+    try {
+      const data = await apiClient.get("/api/settings");
+
+      setSessionTimeout(
+        String(data.session.jwtLifetimeMinutes),
+      );
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+
+      toast?.({
+        title: "Failed to load settings",
+        description: err.message,
+        status: "error",
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     loadKeys();
-  }, [loadKeys]);
+    loadSettings();
+  }, [loadKeys, loadSettings]);
+
+
 
   const generateKey = async () => {
     const name = keyName.trim();
@@ -137,6 +164,57 @@ const Settings = ({ toast }) => {
         title: "Failed to copy public key",
         status: "error",
       });
+    }
+  };
+
+  const saveSessionSettings = async () => {
+    const lifetime = Number(sessionTimeout);
+
+    if (
+      !Number.isFinite(lifetime) ||
+      lifetime <= 0
+    ) {
+      toast?.({
+        title: "Invalid session lifetime",
+        description:
+          "Session lifetime must be greater than 0 minutes.",
+        status: "warning",
+      });
+
+      return;
+    }
+
+    setSavingSession(true);
+
+    try {
+      const data = await apiClient.patch(
+        "/api/settings/session",
+        {
+          jwtLifetimeMinutes: lifetime,
+        },
+      );
+
+      setSessionTimeout(
+        String(data.session.jwtLifetimeMinutes),
+      );
+
+      toast?.({
+        title: "Session settings saved",
+        status: "success",
+      });
+    } catch (err) {
+      console.error(
+        "Failed to save session settings:",
+        err,
+      );
+
+      toast?.({
+        title: "Failed to save session settings",
+        description: err.message,
+        status: "error",
+      });
+    } finally {
+      setSavingSession(false);
     }
   };
 
@@ -241,7 +319,85 @@ const Settings = ({ toast }) => {
           title="Session"
           description="Authentication and session behavior."
         >
-          <FutureSetting title="Session lifetime" value="Default" />
+          {loadingSettings ? (
+            <Flex align="center" gap={3} py={3}>
+              <Spinner size="sm" />
+
+              <Text
+                fontSize="12px"
+                color="rgba(255,255,255,0.3)"
+              >
+                Loading session settings...
+              </Text>
+            </Flex>
+          ) : (
+            <Flex
+              align={{ base: "stretch", sm: "center" }}
+              justify="space-between"
+              direction={{ base: "column", sm: "row" }}
+              gap={4}
+            >
+              <Box>
+                <Text
+                  fontSize="12px"
+                  color="rgba(255,255,255,0.55)"
+                >
+                  Session lifetime
+                </Text>
+
+                <Text
+                  mt={1}
+                  fontSize="10px"
+                  color="rgba(255,255,255,0.25)"
+                >
+                  Lifetime of newly issued login tokens.
+                </Text>
+              </Box>
+
+              <Flex align="center" gap={2}>
+                <Input
+                  type="number"
+                  min="1"
+                  value={sessionTimeout}
+                  onChange={(event) =>
+                    setSessionTimeout(event.target.value)
+                  }
+                  size="sm"
+                  w="120px"
+                  borderColor="rgba(255,255,255,0.08)"
+                  bg="rgba(255,255,255,0.025)"
+                  _hover={{
+                    borderColor: "rgba(255,255,255,0.15)",
+                  }}
+                  _focusVisible={{
+                    borderColor: "#6366F1",
+                    boxShadow: "none",
+                  }}
+                />
+
+                <Text
+                  fontSize="11px"
+                  color="rgba(255,255,255,0.3)"
+                >
+                  minutes
+                </Text>
+
+                <Button
+                  size="sm"
+                  onClick={saveSessionSettings}
+                  isLoading={savingSession}
+                  bg="rgba(99,102,241,0.15)"
+                  color="#A5B4FC"
+                  border="1px solid rgba(99,102,241,0.3)"
+                  _hover={{
+                    bg: "rgba(99,102,241,0.25)",
+                  }}
+                >
+                  Save
+                </Button>
+              </Flex>
+            </Flex>
+          )}
         </SettingsSection>
 
         {/* Logging */}
