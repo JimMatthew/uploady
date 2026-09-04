@@ -14,6 +14,7 @@ import ItemMenu from "../components/FileMenu";
 import ClipboardComponent from "../components/ClipboardComponent";
 import apiClient from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
+
 const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   const [entries, setEntries] = useState([]);
   const [currentDirectory, setCurrentDirectory] = useState("");

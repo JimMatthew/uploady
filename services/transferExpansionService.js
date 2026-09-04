@@ -5,7 +5,7 @@ const { ItemKind } = require("../controllers/jobs/jobConstants");
 const { connectToSftp } = require("./sftpService");
 const localFileService = require("./localFileService");
 const uploadsDir = path.join(__dirname, "../uploads");
-
+const archiveService = require("./archiveService");
 // ─── Remote Walking ───────────────────────────────────────────────────────────
 
 /**
@@ -85,6 +85,39 @@ const walkLocalDir = (dirPath, destBasePath) => {
   return results;
 };
 
+const walkArchiveDir = async (archivePath, dirPath, destBasePath) => {
+  const entries = await archiveService.listZip(archivePath);
+
+  const prefix = dirPath.endsWith("/") ? dirPath : `${dirPath}/`;
+
+  const results = [];
+
+  for (const entry of entries) {
+    if (entry.directory) {
+      continue;
+    }
+
+    if (!entry.name.startsWith(prefix)) {
+      continue;
+    }
+
+    const relativePath = entry.name.slice(prefix.length);
+
+    if (!relativePath) {
+      continue;
+    }
+
+    results.push({
+      filename: path.posix.basename(entry.name),
+      sourcePath: entry.name,
+      destinationPath: path.join(destBasePath, ...relativePath.split("/")),
+      size: entry.size,
+    });
+  }
+
+  return results;
+};
+
 // ─── Expansion ────────────────────────────────────────────────────────────────
 
 /**
@@ -100,7 +133,16 @@ const walkLocalDir = (dirPath, destBasePath) => {
  */
 const expandJobItems = async (jobId) => {
   const items = await transferItems.findByJobId(jobId);
-
+  console.log(
+    "EXPANSION ITEMS:",
+    items.map((item) => ({
+      sourceType: item.sourceType,
+      sourceServerId: item.sourceServerId,
+      archivePath: item.archivePath,
+      sourcePath: item.sourcePath,
+      kind: item.kind,
+    })),
+  );
   // Group all source items by server so each remote source requires
   // only one SFTP connection while resolving files and directories.
   const grouped = new Map();
@@ -125,18 +167,41 @@ const expandJobItems = async (jobId) => {
       for (const item of sourceItems) {
         // ── Direct File ─────────────────────────────────────────────────────
         if (item.kind === ItemKind.FILE) {
-          const size = isLocal
-            ? fs.statSync(item.sourcePath).size
-            : (await sftp.stat(item.sourcePath)).size;
+          let size;
+
+          if (item.sourceType === "archive") {
+            const entries = await archiveService.listZip(item.archivePath);
+
+            const archiveEntry = entries.find(
+              (entry) => entry.name === item.sourcePath,
+            );
+
+            if (!archiveEntry) {
+              throw new Error(`Archive entry not found: ${item.sourcePath}`);
+            }
+
+            size = archiveEntry.size;
+          } else if (isLocal) {
+            size = fs.statSync(item.sourcePath).size;
+          } else {
+            size = (await sftp.stat(item.sourcePath)).size;
+          }
 
           newFileItems.push({
             jobId,
+
+            sourceType: item.sourceType,
             sourceServerId,
+
+            archivePath: item.archivePath,
+
             filename: item.filename,
             rootItem: item.rootItem,
             sourcePath: item.sourcePath,
             destinationPath: item.destinationPath,
+
             size,
+
             kind: ItemKind.FILE,
           });
 
@@ -149,29 +214,43 @@ const expandJobItems = async (jobId) => {
 
         // ── Directory ───────────────────────────────────────────────────────
         if (item.kind === ItemKind.DIRECTORY) {
-          const walked = isLocal
-            ? walkLocalDir(item.sourcePath, item.destinationPath)
-            : await walkSftpDir(
-                sftp,
-                item.sourcePath,
-                item.destinationPath,
-              );
+          let walked;
+
+          if (item.sourceType === "archive") {
+            walked = await walkArchiveDir(
+              item.archivePath,
+              item.sourcePath,
+              item.destinationPath,
+            );
+          } else if (isLocal) {
+            walked = walkLocalDir(item.sourcePath, item.destinationPath);
+          } else {
+            walked = await walkSftpDir(
+              sftp,
+              item.sourcePath,
+              item.destinationPath,
+            );
+          }
 
           for (const file of walked) {
             newFileItems.push({
               jobId,
+
+              sourceType: item.sourceType,
               sourceServerId,
+
+              archivePath: item.archivePath,
+
               filename: file.filename,
               rootItem: item.rootItem,
               sourcePath: file.sourcePath,
               destinationPath: file.destinationPath,
               size: file.size,
+
               kind: ItemKind.FILE,
             });
           }
 
-          // The directory has been flattened into concrete file items,
-          // so its placeholder is no longer needed.
           await transferItems.deleteById(item._id.toString());
         }
       }

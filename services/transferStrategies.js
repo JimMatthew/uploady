@@ -3,7 +3,7 @@ const path = require("path");
 const { PassThrough } = require("stream");
 const { pipeline } = require("stream/promises");
 const { connectToSftp } = require("./sftpConnection");
-
+const archiveService = require("./archiveService");
 /**
  * Returns a data handler that tracks bytes flowing through a stream and
  * reports progress via onProgress at most once every 100ms.
@@ -200,22 +200,14 @@ const sftpToLocal2 = async (item, { sftpSource, context }, onProgress) => {
   return stat.size;
 };
 
-const sftpToLocal = async (
-  item,
-  { sftpSource, context },
-  onProgress,
-) => {
+const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
   await ensureLocalDir(item.destinationPath, context.destDirs);
 
-  await sftpSource.fastGet(
-    item.sourcePath,
-    item.destinationPath,
-    {
-      step: (transferred, chunk, total) => {
-        onProgress((transferred / total) * 100);
-      },
+  await sftpSource.fastGet(item.sourcePath, item.destinationPath, {
+    step: (transferred, chunk, total) => {
+      onProgress((transferred / total) * 100);
     },
-  );
+  });
 
   const stat = await fs.promises.stat(item.destinationPath);
 
@@ -248,10 +240,7 @@ const copyRange = async ({
   await pipeline(readStream, writeStream);
 };
 
-const createDestinationFile = async (
-  sftpDest,
-  destinationPath,
-) => {
+const createDestinationFile = async (sftpDest, destinationPath) => {
   const stream = sftpDest.createWriteStream(destinationPath, {
     flags: "w",
   });
@@ -304,16 +293,9 @@ const sftpCrossServer = async (
 ) => {
   const { size } = await sftpSource.stat(item.sourcePath);
 
-  await ensureRemoteDir(
-    sftpDest,
-    item.destinationPath,
-    context.destDirs,
-  );
+  await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
 
-  await createDestinationFile(
-    sftpDest,
-    item.destinationPath,
-  );
+  await createDestinationFile(sftpDest, item.destinationPath);
 
   const ranges = createRanges(size, 2);
 
@@ -384,6 +366,21 @@ const sftpSameServer = async (item, { sftpSource, context }, onProgress) => {
   return item.size;
 };
 
+const archiveToLocal = async (item, { context }, onProgress) => {
+  await ensureLocalDir(item.destinationPath, context.destDirs);
+
+  const data = await archiveService.readZipEntry(
+    item.archivePath,
+    item.sourcePath,
+  );
+
+  await fs.promises.writeFile(item.destinationPath, data);
+
+  onProgress(100);
+
+  return data.length;
+};
+
 // ─── Strategy Selection ───────────────────────────────────────────────────────
 
 const STRATEGIES = {
@@ -392,6 +389,7 @@ const STRATEGIES = {
   sftpToLocal,
   sftpSameServer,
   sftpCrossServer,
+  archiveToLocal,
 };
 
 /**
@@ -410,9 +408,14 @@ const STRATEGIES = {
  * @param {string|null} destServerId - Server ID or null for local
  * @returns {keyof typeof STRATEGIES}
  */
-const selectStrategy = (sourceServerId, destServerId) => {
-  const isLocalSource = sourceServerId === null;
+const selectStrategy = (sourceType, sourceServerId, destServerId) => {
   const isLocalDest = destServerId === null;
+
+  if (sourceType === "archive") {
+    return isLocalDest ? "archiveToLocal" : "archiveToSftp";
+  }
+
+  const isLocalSource = sourceServerId === null;
 
   if (isLocalSource) {
     return isLocalDest ? "localToLocal" : "localToSftp";
@@ -454,6 +457,7 @@ const selectStrategy = (sourceServerId, destServerId) => {
  */
 const dispatch = async ({ item, connections, onProgress }) => {
   const key = selectStrategy(
+    item.sourceType,
     item.sourceServerId,
     connections.destServerId,
   );

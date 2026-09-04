@@ -391,17 +391,35 @@ const paste_files_post = async (req, res, next) => {
     await transferItems.createMany(
       files.map((f) => ({
         jobId: job._id,
+
+        sourceType: f.source,
         sourceServerId: f.serverId ?? null,
+
         filename: f.file,
         rootItem: f.file,
 
-        sourcePath: f.serverId
-          ? path.posix.join(f.path, f.file)
-          : path.join(uploadsDir, f.path, f.file),
+        sourcePath:
+          f.source === "archive"
+            ? path.posix.join(f.path, f.file)
+            : f.serverId
+              ? path.posix.join(f.path, f.file)
+              : path.join(uploadsDir, f.path, f.file),
 
-        destinationPath: path.join(uploadsDir, newPath, f.file),
+        archivePath:
+          f.source === "archive"
+            ? path.join(uploadsDir, f.archivePath)
+            : null,
 
-        kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
+        destinationPath: path.join(
+          uploadsDir,
+          newPath,
+          f.file,
+        ),
+
+        kind:
+          f.isDirectory
+            ? ItemKind.DIRECTORY
+            : ItemKind.FILE,
 
         size: f.size ?? 0,
       })),

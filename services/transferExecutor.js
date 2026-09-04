@@ -163,6 +163,8 @@ class TransferExecutor extends EventEmitter {
           sourceServerId: doc.sourceServerId,
           sourcePath: doc.sourcePath,
           destinationPath: doc.destinationPath,
+          sourceType: doc.sourceType,
+          archivePath: doc.archivePath,
           size: doc.size,
           status: doc.status,
           percent: 0,
@@ -278,8 +280,6 @@ class TransferExecutor extends EventEmitter {
     const { executeTransferJob } = require("./sftpService");
 
     await executeTransferJob(job, {
-
-
       shouldStop: () => job.stopRequested,
 
       // ── File Start ────────────────────────────────────────────────────────

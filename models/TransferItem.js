@@ -8,7 +8,19 @@ const transferJobItemSchema = new mongoose.Schema({
     index: true,
   },
 
+  sourceType: {
+    type: String,
+    enum: ["local", "sftp", "archive"],
+    default: "local",
+  },
+
   sourceServerId: { type: String, default: null },
+
+  archivePath: {
+    type: String,
+    default: null,
+  },
+
   filename: { type: String, required: true },
 
   sourcePath: String,
