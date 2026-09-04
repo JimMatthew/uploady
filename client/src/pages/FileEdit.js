@@ -245,13 +245,14 @@ const PdfViewer = ({ src }) => (
   />
 );
 
-const TextEditor = ({ text, onChange, filename }) => (
+const TextEditor = ({ text, onChange, filename, readOnly = false }) => (
   <Box sx={EDITOR_STYLES}>
     <CodeMirror
       value={text}
       onChange={onChange}
       theme={githubDark}
       extensions={[getLanguageExtension(filename)].filter(Boolean)}
+      editable={!readOnly}
       style={{ minHeight: "300px" }}
     />
   </Box>
@@ -356,6 +357,8 @@ const FileEdit = ({
   host,
   remote = true,
   isNew = false,
+  source,
+  readOnly = false,
 }) => {
   const token = localStorage.getItem("token");
   const [text, setText] = useState("");
@@ -366,11 +369,20 @@ const FileEdit = ({
 
   const fileType = getFileType(filename);
 
-  const buildUrl = () =>
-    serverId
+  const buildUrl = () => {
+    if (source?.type === "archive") {
+      const params = new URLSearchParams({
+        path: source.archivePath,
+        entry: source.entry,
+      });
+
+      return `/api/archive/local/entry?${params}`;
+    }
+
+    return serverId
       ? `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`
       : `/api/download/${currentDirectory}/${filename}`;
-
+  };
   const streamUrl = `/api/downloadstream/${currentDirectory}/${filename}`;
 
   // Fetch file and create a typed object URL for binary types
@@ -415,13 +427,10 @@ const FileEdit = ({
   };
 
   const fetchEpub = async (signal) => {
-  const buffer = await apiClient.getArrayBuffer(
-    buildUrl(),
-    { signal },
-  );
+    const buffer = await apiClient.getArrayBuffer(buildUrl(), { signal });
 
-  setEpubData(buffer);
-};
+    setEpubData(buffer);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -478,8 +487,16 @@ const FileEdit = ({
         objectUrlRef.current = null;
       }
     };
-  }, [serverId, currentDirectory, filename, fileType, isNew]);
-  
+  }, [
+    serverId,
+    currentDirectory,
+    filename,
+    fileType,
+    isNew,
+    source?.type,
+    source?.archivePath,
+    source?.entry,
+  ]);
   const saveFile = async () => {
     setSaving(true);
 
@@ -539,7 +556,12 @@ const FileEdit = ({
         return <EpubViewer src={epubData} filename={filename} />;
       default:
         return (
-          <TextEditor text={text} onChange={setText} filename={filename} />
+          <TextEditor
+            text={text}
+            onChange={setText}
+            filename={filename}
+            readOnly={readOnly}
+          />
         );
     }
   };
@@ -553,7 +575,7 @@ const FileEdit = ({
         filename={filename}
         saving={saving}
         onSave={saveFile}
-        showSave={fileType === "text"}
+        showSave={fileType === "text" && !readOnly}
       />
       <Box flex={1} overflow="auto">
         {renderContent()}

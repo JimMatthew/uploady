@@ -15,6 +15,7 @@ const setupRoutes = require("./routes/route");
 const setupSftpRoutes = require("./routes/sftpRouter");
 const setupJobRoutes = require("./routes/jobRouter");
 const setupSettingsRoutes = require("./routes/settingsRouter")
+const setupArchiveRoutes = require("./routes/archiveRouter")
 const {
   login_post,
   setup_post,
@@ -64,6 +65,7 @@ app.use("/", setupRoutes);
 app.use("/", setupJobRoutes);
 app.use("/sftp", setupSftpRoutes);
 app.use("/api/settings", setupSettingsRoutes);
+app.use("/api/archive", setupArchiveRoutes);
 // ─── API 404 guard ────────────────────────────────────────────────────────────
 
 app.use((req, res, next) => {

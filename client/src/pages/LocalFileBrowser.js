@@ -5,7 +5,7 @@ import { FiServer, FiArrowRight } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 
-const LocalFileBrowser= ({ toast, hideLink = false, openFile }) => {
+const LocalFileBrowser = ({ toast, hideLink = false, openFile }) => {
   const browser = useFileList({ toast });
 
   const fileUploadProps = useMemo(
@@ -18,7 +18,14 @@ const LocalFileBrowser= ({ toast, hideLink = false, openFile }) => {
   );
 
   const onOpenFile = (filename, isNew) => {
-    openFile(null, browser.files.relativePath, filename, null, false, isNew);
+    openFile({
+      filename,
+      source: {
+        type: "local",
+        currentDirectory: browser.files.relativePath,
+      },
+      isNew,
+    });
   };
 
   if (browser.loading || !browser.files)

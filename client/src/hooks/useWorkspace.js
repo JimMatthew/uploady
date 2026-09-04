@@ -10,7 +10,7 @@ import SharedLinks from "../components/SharedLinks";
 import TransfersPage from "../pages/Transfers";
 import Settings from "../pages/Settings";
 import apiClient from "../services/apiClient";
-
+import ArchiveViewer from "../pages/ArchiveViewer";
 import {
   SaveServer,
   DeleteServer,
@@ -144,20 +144,43 @@ export function useWorkspace({ toast }) {
   // ---------------------------------------------------------------------------
 
   const openFile = useCallback(
-    (serverId, currentDirectory, filename, host, remote, isNew) => {
-      openTab({
-        label: filename,
-        content: (
-          <FileEdit
-            serverId={serverId}
-            currentDirectory={currentDirectory}
+    ({ filename, source, isNew = false, readOnly = false }) => {
+      const extension = filename.split(".").pop()?.toLowerCase();
+
+      let content;
+
+      if (extension === "zip" && source.type === "local") {
+        const archivePath = source.currentDirectory
+          ? `${source.currentDirectory}/${filename}`
+          : filename;
+
+        content = (
+          <ArchiveViewer
+            archivePath={archivePath}
             filename={filename}
             toast={toast}
-            host={host}
-            remote={remote}
-            isNew={isNew}
+            openFile={openFile}
           />
-        ),
+        );
+      } else {
+        content = (
+          <FileEdit
+            serverId={source.serverId}
+            currentDirectory={source.currentDirectory}
+            filename={filename}
+            toast={toast}
+            host={source.host}
+            remote={source.type === "sftp"}
+            isNew={isNew}
+            source={source}
+            readOnly={readOnly}
+          />
+        );
+      }
+
+      openTab({
+        label: filename,
+        content,
       });
     },
     [openTab, toast],

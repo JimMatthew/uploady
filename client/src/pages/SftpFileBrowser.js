@@ -20,14 +20,16 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
   );
 
   const onOpenFile = (filename, isNew) =>
-    openFile(
-      serverId,
-      browser.files.currentDirectory,
+    openFile({
       filename,
-      host,
-      true,
+      source: {
+        type: "sftp",
+        serverId,
+        currentDirectory: browser.files.currentDirectory,
+        host,
+      },
       isNew,
-    );
+    });
 
   if (browser.loading)
     return (

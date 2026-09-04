@@ -49,9 +49,28 @@ const countLocalFiles = (dirPath) => {
   return count;
 };
 
+function resolveLocalPath(relativePath) {
+  const resolved = path.resolve(
+    uploadsDir,
+    relativePath,
+  );
+
+  if (
+    resolved !== uploadsDir &&
+    !resolved.startsWith(
+      `${uploadsDir}${path.sep}`,
+    )
+  ) {
+    throw new Error("Invalid local path");
+  }
+
+  return resolved;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   listLocalDir,
   countLocalFiles,
+  resolveLocalPath
 };
