@@ -12,7 +12,4 @@ const appSettingsSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model(
-  "AppSettings",
-  appSettingsSchema,
-);
+module.exports = mongoose.model("AppSettings", appSettingsSchema);

@@ -56,9 +56,7 @@ const Settings = ({ toast }) => {
     try {
       const data = await apiClient.get("/api/settings");
 
-      setSessionTimeout(
-        String(data.session.jwtLifetimeMinutes),
-      );
+      setSessionTimeout(String(data.session.jwtLifetimeMinutes));
     } catch (err) {
       console.error("Failed to load settings:", err);
 
@@ -76,8 +74,6 @@ const Settings = ({ toast }) => {
     loadKeys();
     loadSettings();
   }, [loadKeys, loadSettings]);
-
-
 
   const generateKey = async () => {
     const name = keyName.trim();
@@ -170,14 +166,10 @@ const Settings = ({ toast }) => {
   const saveSessionSettings = async () => {
     const lifetime = Number(sessionTimeout);
 
-    if (
-      !Number.isFinite(lifetime) ||
-      lifetime <= 0
-    ) {
+    if (!Number.isFinite(lifetime) || lifetime <= 0) {
       toast?.({
         title: "Invalid session lifetime",
-        description:
-          "Session lifetime must be greater than 0 minutes.",
+        description: "Session lifetime must be greater than 0 minutes.",
         status: "warning",
       });
 
@@ -187,26 +179,18 @@ const Settings = ({ toast }) => {
     setSavingSession(true);
 
     try {
-      const data = await apiClient.patch(
-        "/api/settings/session",
-        {
-          jwtLifetimeMinutes: lifetime,
-        },
-      );
+      const data = await apiClient.patch("/api/settings/session", {
+        jwtLifetimeMinutes: lifetime,
+      });
 
-      setSessionTimeout(
-        String(data.session.jwtLifetimeMinutes),
-      );
+      setSessionTimeout(String(data.session.jwtLifetimeMinutes));
 
       toast?.({
         title: "Session settings saved",
         status: "success",
       });
     } catch (err) {
-      console.error(
-        "Failed to save session settings:",
-        err,
-      );
+      console.error("Failed to save session settings:", err);
 
       toast?.({
         title: "Failed to save session settings",
@@ -323,10 +307,7 @@ const Settings = ({ toast }) => {
             <Flex align="center" gap={3} py={3}>
               <Spinner size="sm" />
 
-              <Text
-                fontSize="12px"
-                color="rgba(255,255,255,0.3)"
-              >
+              <Text fontSize="12px" color="rgba(255,255,255,0.3)">
                 Loading session settings...
               </Text>
             </Flex>
@@ -338,18 +319,11 @@ const Settings = ({ toast }) => {
               gap={4}
             >
               <Box>
-                <Text
-                  fontSize="12px"
-                  color="rgba(255,255,255,0.55)"
-                >
+                <Text fontSize="12px" color="rgba(255,255,255,0.55)">
                   Session lifetime
                 </Text>
 
-                <Text
-                  mt={1}
-                  fontSize="10px"
-                  color="rgba(255,255,255,0.25)"
-                >
+                <Text mt={1} fontSize="10px" color="rgba(255,255,255,0.25)">
                   Lifetime of newly issued login tokens.
                 </Text>
               </Box>
@@ -359,9 +333,7 @@ const Settings = ({ toast }) => {
                   type="number"
                   min="1"
                   value={sessionTimeout}
-                  onChange={(event) =>
-                    setSessionTimeout(event.target.value)
-                  }
+                  onChange={(event) => setSessionTimeout(event.target.value)}
                   size="sm"
                   w="120px"
                   borderColor="rgba(255,255,255,0.08)"
@@ -375,10 +347,7 @@ const Settings = ({ toast }) => {
                   }}
                 />
 
-                <Text
-                  fontSize="11px"
-                  color="rgba(255,255,255,0.3)"
-                >
+                <Text fontSize="11px" color="rgba(255,255,255,0.3)">
                   minutes
                 </Text>
 

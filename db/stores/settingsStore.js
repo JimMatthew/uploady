@@ -7,7 +7,7 @@ class SettingsStore {
     throw new Error("Not implemented");
   }
 
-   async update(settings) {
+  async update(settings) {
     throw new Error("Not implemented");
   }
 }
