@@ -366,34 +366,79 @@ const sftpSameServer = async (item, { sftpSource, context }, onProgress) => {
   return item.size;
 };
 
+/**
+ * Transfers a file from a ZIP archive to the local filesystem.
+ *
+ * Streams the archive entry directly to the destination file without
+ * buffering the entire entry in memory. Transfer progress is reported
+ * as decompressed bytes pass through the stream.
+ *
+ * @param {Object} item - Transfer item describing the archive entry.
+ * @param {string} item.archivePath - Path to the source ZIP archive.
+ * @param {string} item.sourcePath - Entry path within the ZIP archive.
+ * @param {string} item.destinationPath - Local destination file path.
+ * @param {Object} options - Transfer execution options.
+ * @param {Object} options.context - Shared transfer execution context.
+ * @param {Function} onProgress - Callback for reporting transfer progress.
+ * @returns {Promise<number>} Number of uncompressed bytes transferred.
+ */
 const archiveToLocal = async (item, { context }, onProgress) => {
   await ensureLocalDir(item.destinationPath, context.destDirs);
 
-  const data = await archiveService.readZipEntry(
+  const { stream, size } = await archiveService.streamZipEntry(
     item.archivePath,
     item.sourcePath,
   );
 
-  await fs.promises.writeFile(item.destinationPath, data);
+  const passthrough = new PassThrough();
 
-  onProgress(100);
+  passthrough.on("data", trackProgress(size, onProgress));
 
-  return data.length;
+  await new Promise((resolve, reject) => {
+    stream
+      .pipe(passthrough)
+      .pipe(fs.createWriteStream(item.destinationPath))
+      .on("finish", resolve)
+      .on("error", reject);
+  });
+
+  return size;
 };
 
+/**
+ * Transfers a file from a ZIP archive to an SFTP destination.
+ *
+ * Streams the archive entry directly to the remote destination without
+ * buffering the entire entry in memory. Transfer progress is reported
+ * as decompressed bytes pass through the stream.
+ *
+ * @param {Object} item - Transfer item describing the archive entry.
+ * @param {string} item.archivePath - Path to the source ZIP archive.
+ * @param {string} item.sourcePath - Entry path within the ZIP archive.
+ * @param {string} item.destinationPath - Remote destination file path.
+ * @param {Object} options - Transfer execution options.
+ * @param {Object} options.sftpDest - Connected SFTP client for the destination.
+ * @param {Object} options.context - Shared transfer execution context.
+ * @param {Function} onProgress - Callback for reporting transfer progress.
+ * @returns {Promise<number>} Number of uncompressed bytes transferred.
+ */
 const archiveToSftp = async (item, { sftpDest, context }, onProgress) => {
-  const data = await archiveService.readZipEntry(
+  const { stream, size } = await archiveService.streamZipEntry(
     item.archivePath,
     item.sourcePath,
   );
 
   await ensureRemoteDir(sftpDest, item.destinationPath, context.destDirs);
 
-  await sftpDest.put(data, item.destinationPath);
+  const passthrough = new PassThrough();
 
-  onProgress(data.length);
+  passthrough.on("data", trackProgress(size, onProgress));
 
-  return data.length;
+  const source = stream.pipe(passthrough);
+
+  await sftpDest.put(source, item.destinationPath);
+
+  return size;
 };
 
 // ─── Strategy Selection ───────────────────────────────────────────────────────

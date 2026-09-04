@@ -116,7 +116,88 @@ async function readZipEntry(path, entryName) {
   });
 }
 
+async function streamZipEntry(
+  path,
+  entryName,
+) {
+  const zipfile = await openZip(path);
+
+  return new Promise((resolve, reject) => {
+    let found = false;
+
+    zipfile.on("entry", (entry) => {
+      if (entry.fileName !== entryName) {
+        zipfile.readEntry();
+        return;
+      }
+
+      found = true;
+
+      if (entry.fileName.endsWith("/")) {
+        zipfile.close();
+
+        reject(
+          new Error(
+            "Cannot stream a directory entry",
+          ),
+        );
+
+        return;
+      }
+
+      zipfile.openReadStream(
+        entry,
+        (err, stream) => {
+          if (err) {
+            zipfile.close();
+            reject(err);
+            return;
+          }
+
+          //
+          // Important:
+          // don't close the ZIP until the
+          // entry stream has finished.
+          //
+          stream.once("end", () => {
+            zipfile.close();
+          });
+
+          stream.once("error", () => {
+            zipfile.close();
+          });
+
+          resolve({
+            stream,
+            size: entry.uncompressedSize,
+          });
+        },
+      );
+    });
+
+    zipfile.on("end", () => {
+      if (!found) {
+        zipfile.close();
+
+        reject(
+          new Error(
+            "Archive entry not found",
+          ),
+        );
+      }
+    });
+
+    zipfile.on("error", (err) => {
+      zipfile.close();
+      reject(err);
+    });
+
+    zipfile.readEntry();
+  });
+}
+
 module.exports = {
   listZip,
   readZipEntry,
+  streamZipEntry
 };

@@ -133,16 +133,7 @@ const walkArchiveDir = async (archivePath, dirPath, destBasePath) => {
  */
 const expandJobItems = async (jobId) => {
   const items = await transferItems.findByJobId(jobId);
-  console.log(
-    "EXPANSION ITEMS:",
-    items.map((item) => ({
-      sourceType: item.sourceType,
-      sourceServerId: item.sourceServerId,
-      archivePath: item.archivePath,
-      sourcePath: item.sourcePath,
-      kind: item.kind,
-    })),
-  );
+  
   // Group all source items by server so each remote source requires
   // only one SFTP connection while resolving files and directories.
   const grouped = new Map();
