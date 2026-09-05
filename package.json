@@ -21,6 +21,6 @@
     "yauzl": "^3.4.0"
   },
   "devDependencies": {
-    "prettier": "^3.9.6"
+    "prettier": "3.9.0"
   }
 }

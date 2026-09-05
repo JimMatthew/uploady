@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
-import { FiGithub, FiFolder, FiCpu, FiHardDrive } from "react-icons/fi";
+import {
+  FiGithub,
+  FiFolder,
+  FiCpu,
+  FiHardDrive,
+  FiServer,
+} from "react-icons/fi";
 import apiClient, { ApiError } from "../services/apiClient";
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatRow = ({ label, value, accent }) => (
@@ -17,13 +24,14 @@ const StatRow = ({ label, value, accent }) => (
     <Text fontSize="12px" color="rgba(255,255,255,0.35)" letterSpacing="0.02em">
       {label}
     </Text>
+
     <Text
       fontSize="12px"
       fontWeight={600}
       fontFamily="'JetBrains Mono', monospace"
       color={accent || "rgba(255,255,255,0.75)"}
     >
-      {value}
+      {value ?? "—"}
     </Text>
   </Flex>
 );
@@ -32,6 +40,7 @@ const SectionHeader = ({ icon, label }) => (
   <Box px={4} py="10px" borderBottom="1px solid rgba(255,255,255,0.06)">
     <Flex align="center" gap={2}>
       <Icon as={icon} boxSize="12px" color="rgba(255,255,255,0.25)" />
+
       <Text
         fontSize="10px"
         fontWeight="700"
@@ -109,13 +118,14 @@ const NavButton = ({ onClick, href, icon, label, accent }) => {
 
 const About = () => {
   const [stats, setStats] = useState(null);
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
-   useEffect(() => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
     const fetchStats = async () => {
       try {
         const data = await apiClient.get("/api/pstats");
+
         setStats(data);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -132,12 +142,33 @@ const About = () => {
 
   const formatUptime = (up) => {
     if (!up) return "—";
-    if (up < 60) return `${Math.round(up)}s`;
-    if (up < 3600) return `${(up / 60).toFixed(1)}m`;
-    return `${(up / 3600).toFixed(2)}h`;
+
+    const days = Math.floor(up / 86400);
+    const hours = Math.floor((up % 86400) / 3600);
+    const minutes = Math.floor((up % 3600) / 60);
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    }
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m`;
+    }
+
+    return `${Math.round(up)}s`;
   };
 
-  const mb = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
+  const mb = (bytes) => {
+    if (bytes === null || bytes === undefined) {
+      return "—";
+    }
+
+    return `${(bytes / 1e6).toFixed(1)} MB`;
+  };
 
   return (
     <Box minH="100%" bg="gray.800" py={10} px={4}>
@@ -164,6 +195,7 @@ const About = () => {
                 fill="white"
                 fillOpacity="0.9"
               />
+
               <rect
                 x="7"
                 y="1"
@@ -173,6 +205,7 @@ const About = () => {
                 fill="white"
                 fillOpacity="0.5"
               />
+
               <rect
                 x="1"
                 y="7"
@@ -182,6 +215,7 @@ const About = () => {
                 fill="white"
                 fillOpacity="0.5"
               />
+
               <rect
                 x="7"
                 y="7"
@@ -193,6 +227,7 @@ const About = () => {
               />
             </svg>
           </Box>
+
           <Box textAlign="center">
             <Text
               fontSize="22px"
@@ -203,6 +238,7 @@ const About = () => {
             >
               uploady
             </Text>
+
             {stats?.version && (
               <Text
                 fontSize="11px"
@@ -224,6 +260,7 @@ const About = () => {
             accent
             onClick={() => navigate("/sftp")}
           />
+
           <NavButton
             icon={FiGithub}
             label="GitHub"
@@ -238,42 +275,74 @@ const About = () => {
           borderRadius="12px"
           overflow="hidden"
         >
-          <SectionHeader icon={FiHardDrive} label="Memory" />
-
           {!stats ? (
             <Flex align="center" justify="center" gap={2} py={8}>
               <Spinner size="xs" color="rgba(99,102,241,0.5)" />
+
               <Text fontSize="12px" color="rgba(255,255,255,0.2)">
                 Loading…
               </Text>
             </Flex>
           ) : (
             <>
-              <StatRow label="RSS" value={mb(stats.memory.rss)} />
-              <StatRow label="Heap total" value={mb(stats.memory.heapTotal)} />
-              <StatRow
-                label="Heap used"
-                value={mb(stats.memory.heapUsed)}
-                accent="#818CF8"
-              />
-              <StatRow label="External" value={mb(stats.memory.external)} />
-              <StatRow
-                label="ArrayBuffers"
-                value={mb(stats.memory.arrayBuffers)}
-              />
+              <SectionHeader icon={FiCpu} label="Runtime" />
 
-              <SectionHeader icon={FiCpu} label="Environment" />
+              <StatRow label="Runtime" value={stats.runtime} accent="#818CF8" />
 
-              <StatRow label="Node" value={stats.nodeVersion} />
-              <StatRow label="V8" value={stats.v8Version} />
-              <StatRow
-                label="OS"
-                value={`${stats.osName} ${stats.osRelease}`}
-              />
+              <StatRow label="Runtime version" value={stats.runtimeVersion} />
+
+              <StatRow label="JavaScript engine" value={stats.engine} />
+
+              {stats.engineVersion && (
+                <StatRow label="Engine version" value={stats.engineVersion} />
+              )}
+
+              <StatRow label="Architecture" value={stats.architecture} />
+
+              <StatRow label="PID" value={stats.pid} />
+
               <StatRow
                 label="Uptime"
                 value={formatUptime(stats.uptime)}
                 accent="#4ADE80"
+              />
+
+              <SectionHeader icon={FiServer} label="System" />
+
+              <StatRow label="Hostname" value={stats.hostname} />
+
+              <StatRow
+                label="OS"
+                value={
+                  stats.osName && stats.osRelease
+                    ? `${stats.osName} ${stats.osRelease}`
+                    : stats.osName
+                }
+              />
+
+              {stats.osVersion && (
+                <StatRow label="OS version" value={stats.osVersion} />
+              )}
+
+              <StatRow label="Platform" value={stats.platform} />
+
+              <SectionHeader icon={FiHardDrive} label="Memory" />
+
+              <StatRow label="RSS" value={mb(stats.memory?.rss)} />
+
+              <StatRow label="Heap total" value={mb(stats.memory?.heapTotal)} />
+
+              <StatRow
+                label="Heap used"
+                value={mb(stats.memory?.heapUsed)}
+                accent="#818CF8"
+              />
+
+              <StatRow label="External" value={mb(stats.memory?.external)} />
+
+              <StatRow
+                label="ArrayBuffers"
+                value={mb(stats.memory?.arrayBuffers)}
               />
             </>
           )}

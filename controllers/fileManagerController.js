@@ -9,7 +9,7 @@ const sftpService = require("../services/sftpService");
 const executor = require("../services/transferExecutor");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
 const localFileService = require("../services/localFileService");
-
+const os = require("os");
 const uploadsDir = path.join(__dirname, "../uploads");
 const tempDir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
@@ -20,28 +20,71 @@ const domain = process.env.HOSTNAME;
  * Returns Node.js process stats, memory usage, and current git commit.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
+/**
+ * Returns runtime, process, system, and current git commit information.
+ * @param {import("express").Request} req
+ * @param {import("express").Response} res
  */
 const get_performance_stats = (req, res) => {
-  try {
-    const mem = process.memoryUsage();
-    const cpu = process.cpuUsage();
-    const report = process.report.getReport();
+  const isBun = typeof Bun !== "undefined";
 
-    res.json({
-      memory: mem,
-      cpu: cpu,
-      uptime: process.uptime(),
-      nodeVersion: process.version,
-      v8Version: report.header.componentVersions.v8,
-      osName: report.header.osName,
-      osRelease: report.header.osRelease,
-      osVersion: report.header.osVersion,
-      version: execSync("git rev-parse --short HEAD").toString().trim(),
-    });
+  const stats = {
+    runtime: isBun ? "Bun" : "Node.js",
+    runtimeVersion: isBun ? Bun.version : process.version,
+
+    engine: isBun ? "JavaScriptCore" : "V8",
+    engineVersion: isBun ? null : (process.versions?.v8 ?? null),
+
+    memory: null,
+    cpu: null,
+    uptime: null,
+
+    pid: process.pid,
+    architecture: process.arch,
+    platform: process.platform,
+
+    osName: null,
+    osRelease: null,
+    osVersion: null,
+    hostname: null,
+
+    version: null,
+  };
+
+  try {
+    stats.memory = process.memoryUsage();
   } catch (err) {
-    console.error("Performance stats error:", err);
-    res.status(500).json({ error: "Failed to retrieve performance stats" });
+    console.warn("Failed to get memory usage:", err.message);
   }
+
+  try {
+    stats.cpu = process.cpuUsage();
+  } catch (err) {
+    console.warn("Failed to get CPU usage:", err.message);
+  }
+
+  try {
+    stats.uptime = process.uptime();
+  } catch (err) {
+    console.warn("Failed to get process uptime:", err.message);
+  }
+
+  try {
+    stats.osName = os.type();
+    stats.osRelease = os.release();
+    stats.osVersion = typeof os.version === "function" ? os.version() : null;
+    stats.hostname = os.hostname();
+  } catch (err) {
+    console.warn("Failed to get OS information:", err.message);
+  }
+
+  try {
+    stats.version = execSync("git rev-parse --short HEAD").toString().trim();
+  } catch (err) {
+    console.warn("Failed to get Git version:", err.message);
+  }
+
+  res.json(stats);
 };
 
 // ─── Directory ────────────────────────────────────────────────────────────────
@@ -406,20 +449,11 @@ const paste_files_post = async (req, res, next) => {
               : path.join(uploadsDir, f.path, f.file),
 
         archivePath:
-          f.source === "archive"
-            ? path.join(uploadsDir, f.archivePath)
-            : null,
+          f.source === "archive" ? path.join(uploadsDir, f.archivePath) : null,
 
-        destinationPath: path.join(
-          uploadsDir,
-          newPath,
-          f.file,
-        ),
+        destinationPath: path.join(uploadsDir, newPath, f.file),
 
-        kind:
-          f.isDirectory
-            ? ItemKind.DIRECTORY
-            : ItemKind.FILE,
+        kind: f.isDirectory ? ItemKind.DIRECTORY : ItemKind.FILE,
 
         size: f.size ?? 0,
       })),
