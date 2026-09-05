@@ -4,7 +4,6 @@ const https = require("https");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const cookieParser = require("cookie-parser");
 const WebSocket = require("ws");
 
 const db = require("./db");
@@ -47,7 +46,6 @@ app.use(
     extended: true,
   }),
 );
-app.use(cookieParser());
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
 
