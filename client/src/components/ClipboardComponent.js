@@ -1,4 +1,5 @@
 import React from "react";
+import {  useCallback } from "react";
 import { Box, HStack, VStack, Text, Flex, Icon } from "@chakra-ui/react";
 import {
   FiCopy,
@@ -13,24 +14,39 @@ import apiClient from "../services/apiClient";
 const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
 
-  const downloadAsZip = async () => {
-    try {
-      const blob = await apiClient.postBlob("/sftp/api/zip-clipboard", {
-        files: clipboard,
-      });
-
-      const url = URL.createObjectURL(blob);
+  const downloadFileBlob = useCallback((blob, filename) => {
+      const url = window.URL.createObjectURL(blob);
+  
       const a = document.createElement("a");
-
       a.href = url;
-      a.download = `uploady-${Date.now()}.zip`;
+      a.download = filename;
+  
+      document.body.appendChild(a);
       a.click();
+      a.remove();
+  
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+    }, []);
+ const downloadAsZip = async () => {
+  try {
+    const blob = await apiClient.postBlob(
+      "/sftp/api/zip-clipboard",
+      {
+        files: clipboard,
+      },
+    );
 
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to download clipboard as ZIP:", err);
-    }
-  };
+    downloadFileBlob(
+      blob,
+      `uploady-${Date.now()}.zip`,
+    );
+  } catch (err) {
+    console.error(
+      "Failed to download clipboard as ZIP:",
+      err,
+    );
+  }
+};
 
   return (
     <Box

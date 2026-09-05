@@ -63,11 +63,7 @@ const getToken = () => localStorage.getItem("token");
  * @returns {Promise<Object|Blob|ArrayBuffer|string|Response|null>}
  * @throws {ApiError} When the request fails.
  */
-const request = async (
-  url,
-  options = {},
-  { responseType = "json" } = {},
-) => {
+const request = async (url, options = {}, { responseType = "json" } = {}) => {
   const token = getToken();
 
   const headers = new Headers(options.headers);
@@ -93,11 +89,7 @@ const request = async (
       headers,
     });
   } catch {
-    throw new ApiError(
-      "Unable to connect to server",
-      0,
-      null,
-    );
+    throw new ApiError("Unable to connect to server", 0, null);
   }
 
   if (!isLoginRequest && response.status === 401) {
@@ -120,11 +112,7 @@ const request = async (
       response.statusText ||
       `Request failed: ${response.status}`;
 
-    throw new ApiError(
-      message,
-      response.status,
-      data,
-    );
+    throw new ApiError(message, response.status, data);
   }
 
   if (response.status === 204) {
@@ -273,10 +261,20 @@ const postBlob = (url, body, options = {}) => {
       method: "POST",
       body: JSON.stringify(body),
     },
-    true,
+    {
+      responseType: "blob",
+    },
   );
 };
 
+/**
+ * Sends a GET request and returns the response body as an ArrayBuffer.
+ *
+ * @param {string} url Request URL.
+ * @param {RequestInit} [options={}] Additional fetch options.
+ * @returns {Promise<ArrayBuffer>}
+ * @throws {ApiError}
+ */
 const getArrayBuffer = (url, options = {}) =>
   request(
     url,
@@ -287,6 +285,17 @@ const getArrayBuffer = (url, options = {}) =>
     { responseType: "arrayBuffer" },
   );
 
+/**
+ * Sends a GET request and returns the raw Fetch Response object.
+ *
+ * The response body is not consumed, allowing the caller to handle
+ * streaming or choose how the response body should be read.
+ *
+ * @param {string} url Request URL.
+ * @param {RequestInit} [options={}] Additional fetch options.
+ * @returns {Promise<Response>}
+ * @throws {ApiError}
+ */
 const getResponse = (url, options = {}) =>
   request(
     url,
@@ -297,6 +306,18 @@ const getResponse = (url, options = {}) =>
     { responseType: "response" },
   );
 
+/**
+ * Sends a POST request with FormData as the request body.
+ *
+ * Content-Type is not set explicitly so the browser can generate the
+ * multipart/form-data boundary automatically.
+ *
+ * @param {string} url Request URL.
+ * @param {FormData} formData Form data to send.
+ * @param {RequestInit} [options={}] Additional fetch options.
+ * @returns {Promise<Object|null>} Parsed JSON response.
+ * @throws {ApiError}
+ */
 const postForm = (url, formData, options = {}) =>
   request(url, {
     ...options,
