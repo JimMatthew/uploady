@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
-import "xterm/css/xterm.css";
+import "@xterm/xterm/css/xterm.css";
 import "../xterm.css";
 
 import { Box, Flex, Text, Icon } from "@chakra-ui/react";

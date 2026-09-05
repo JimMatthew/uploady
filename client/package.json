@@ -25,12 +25,10 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
-    "axios": "^1.7.7",
     "epubjs": "^0.3.93",
     "flat-color-icons": "^1.1.0",
     "framer-motion": "^11.9.0",
     "lucide-react": "^0.577.0",
-    "qrcode.react": "^4.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.9",
@@ -40,10 +38,7 @@
     "react-router-dom": "^6.26.2",
     "react-scripts": "5.0.1",
     "uuid": "^11.1.0",
-    "web-vitals": "^2.1.4",
-    "websocket": "^1.0.35",
-    "ws": "^8.18.0",
-    "xterm-addon-fit": "^0.8.0"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
