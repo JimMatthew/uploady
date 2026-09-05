@@ -1,4 +1,3 @@
-const { addClient, removeClient } = require("../services/progressService");
 const executor = require("../services/transferExecutor");
 /**
  * SSE endpoint for transfer job progress.
