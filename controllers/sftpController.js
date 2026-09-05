@@ -251,7 +251,9 @@ const sftp_upload_post = async (req, res) => {
         remotePath,
       );
       await close();
-      res.status(200).send("File uploaded successfully");
+      res.status(200).json({
+        message: "File uploaded successfully",
+      });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).send("Error uploading file");
