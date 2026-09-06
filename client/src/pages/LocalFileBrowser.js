@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from "react";
-import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
+import { Flex, Text, Icon, Spinner } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { FiServer, FiArrowRight } from "react-icons/fi";
 import { useFileList } from "../hooks/useFileList";

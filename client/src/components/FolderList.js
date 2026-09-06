@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
-import { FiChevronUp, FiChevronDown, FiFolder } from "react-icons/fi";
+import { Box, HStack, Text, Icon } from "@chakra-ui/react";
+import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import FolderItem from "./FolderItem";
 import ItemMenu from "./FileMenu";
 

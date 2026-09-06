@@ -8,7 +8,7 @@ import {
   Skeleton,
 } from "@chakra-ui/react";
 import React, { useEffect } from "react";
-import { FiLink, FiRefreshCw, FiShare2 } from "react-icons/fi";
+import { FiRefreshCw, FiShare2 } from "react-icons/fi";
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 

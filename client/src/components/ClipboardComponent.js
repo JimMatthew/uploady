@@ -1,8 +1,7 @@
 import React from "react";
 import {  useCallback } from "react";
-import { Box, HStack, VStack, Text, Flex, Icon } from "@chakra-ui/react";
+import { Box, HStack, Text, Flex, Icon } from "@chakra-ui/react";
 import {
-  FiCopy,
   FiScissors,
   FiFile,
   FiFolder,

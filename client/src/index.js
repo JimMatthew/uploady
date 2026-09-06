@@ -6,10 +6,7 @@ import { ChakraProvider,extendTheme, ColorModeScript } from '@chakra-ui/react'
 import reportWebVitals from './reportWebVitals';
 import { ClipboardProvider } from './contexts/ClipboardContext';
 const root = ReactDOM.createRoot(document.getElementById('root'));
-const config = {
-  initialColorMode: 'dark', 
-  useSystemColorMode: false, 
-};
+
 const theme = extendTheme({
   config: {
     initialColorMode: 'dark',

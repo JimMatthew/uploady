@@ -3,7 +3,6 @@ import { useDropzone } from "react-dropzone";
 import {
   Box,
   VStack,
-  HStack,
   Text,
   Flex,
   Icon,

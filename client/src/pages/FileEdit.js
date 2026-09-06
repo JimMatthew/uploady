@@ -1,27 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+
 import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-import { githubDark } from "@uiw/codemirror-theme-github";
-import { javascript } from "@codemirror/lang-javascript";
-import { java } from "@codemirror/lang-java";
-import { json } from "@codemirror/lang-json";
-import { rust } from "@codemirror/lang-rust";
-import { html } from "@codemirror/lang-html";
-import { cpp } from "@codemirror/lang-cpp";
+
 import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
-import ImageViewer from "../components/ImageViewer";
-import EpubViewer from "../components/EpubViewer";
+
 import apiClient from "../services/apiClient";
-const EXT_LANG = {
-  js: () => javascript({ jsx: true }),
-  ts: () => javascript({ jsx: true, typescript: true }),
-  java: () => java(),
-  json: () => json(),
-  rs: () => rust(),
-  html: () => html(),
-  cpp: () => cpp(),
-  c: () => cpp(),
-};
+import FileViewer from "../components/fileViewer/FileViewer";
 
 const VIDEO_EXTS = new Set(["mp4", "webm", "ogg"]);
 const AUDIO_EXTS = new Set(["mp3", "wav", "ogg"]);
@@ -40,223 +24,9 @@ const getFileType = (filename) => {
   return "text";
 };
 
-const getLanguageExtension = (filename) =>
-  EXT_LANG[getExt(filename)]?.() ?? null;
-
-const EDITOR_STYLES = {
-  ".cm-editor": {
-    fontSize: "13px",
-    fontFamily: "'JetBrains Mono', monospace",
-    bg: "transparent",
-  },
-  ".cm-editor.cm-focused": { outline: "none" },
-  ".cm-scroller": { fontFamily: "'JetBrains Mono', monospace" },
-  ".cm-gutters": {
-    bg: "rgba(255,255,255,0.02)",
-    borderRight: "1px solid rgba(255,255,255,0.07)",
-  },
-};
-
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-const VideoPlayer = ({ src }) => (
-  <Box bg="#000" borderRadius="8px" overflow="hidden">
-    <video controls style={{ width: "100%", display: "block" }} src={src}>
-      Video not supported
-    </video>
-  </Box>
-);
-
-const AudioPlayer = ({ src, filename }) => {
-  const audioRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  const toggle = () => {
-    if (!audioRef.current) return;
-    playing ? audioRef.current.pause() : audioRef.current.play();
-    setPlaying(!playing);
-  };
-
-  const formatTime = (s) => {
-    if (!s || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
-
-  const progress = duration ? (currentTime / duration) * 100 : 0;
-
-  return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      h="100%"
-      gap={6}
-      px={8}
-    >
-      {/* Album art placeholder */}
-      <Box
-        w="120px"
-        h="120px"
-        borderRadius="16px"
-        bg="rgba(99,102,241,0.08)"
-        border="1px solid rgba(99,102,241,0.2)"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        boxShadow="0 8px 32px rgba(0,0,0,0.3)"
-      >
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="rgba(99,102,241,0.4)"
-            strokeWidth="1.5"
-          />
-          <circle cx="12" cy="12" r="3" fill="#6366F1" fillOpacity="0.6" />
-          <circle cx="12" cy="12" r="1" fill="#818CF8" />
-        </svg>
-      </Box>
-
-      {/* Filename */}
-      <Text
-        fontSize="13px"
-        fontWeight={600}
-        fontFamily="'JetBrains Mono', monospace"
-        color="rgba(255,255,255,0.7)"
-        letterSpacing="-0.01em"
-        noOfLines={1}
-        maxW="320px"
-      >
-        {filename}
-      </Text>
-
-      {/* Progress bar */}
-      <Box w="100%" maxW="360px">
-        <Box
-          w="100%"
-          h="3px"
-          bg="rgba(255,255,255,0.07)"
-          borderRadius="full"
-          cursor="pointer"
-          onClick={(e) => {
-            if (!audioRef.current || !duration) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const pct = (e.clientX - rect.left) / rect.width;
-            audioRef.current.currentTime = pct * duration;
-          }}
-        >
-          <Box
-            h="100%"
-            borderRadius="full"
-            bg="linear-gradient(90deg, #6366F1, #818CF8)"
-            w={`${progress}%`}
-            transition="width 0.1s linear"
-          />
-        </Box>
-        <Flex justify="space-between" mt="6px">
-          <Text
-            fontSize="10px"
-            color="rgba(255,255,255,0.25)"
-            fontFamily="'JetBrains Mono', monospace"
-          >
-            {formatTime(currentTime)}
-          </Text>
-          <Text
-            fontSize="10px"
-            color="rgba(255,255,255,0.25)"
-            fontFamily="'JetBrains Mono', monospace"
-          >
-            {formatTime(duration)}
-          </Text>
-        </Flex>
-      </Box>
-
-      {/* Play/pause */}
-      <Flex
-        w="44px"
-        h="44px"
-        align="center"
-        justify="center"
-        borderRadius="full"
-        bg={playing ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.06)"}
-        border="1px solid"
-        borderColor={playing ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.1)"}
-        cursor="pointer"
-        transition="all 0.15s"
-        _hover={{
-          bg: playing ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.1)",
-          borderColor: playing
-            ? "rgba(99,102,241,0.6)"
-            : "rgba(255,255,255,0.2)",
-        }}
-        onClick={toggle}
-      >
-        {playing ? (
-          // Pause icon
-          <Flex gap="3px">
-            <Box
-              w="3px"
-              h="14px"
-              borderRadius="2px"
-              bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"}
-            />
-            <Box
-              w="3px"
-              h="14px"
-              borderRadius="2px"
-              bg={playing ? "#818CF8" : "rgba(255,255,255,0.6)"}
-            />
-          </Flex>
-        ) : (
-          // Play icon
-          <Box
-            borderStyle="solid"
-            borderColor="transparent transparent transparent rgba(255,255,255,0.7)"
-            borderWidth="7px 0 7px 12px"
-            ml="2px"
-          />
-        )}
-      </Flex>
-
-      <audio
-        ref={audioRef}
-        src={src}
-        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-        onEnded={() => setPlaying(false)}
-        style={{ display: "none" }}
-      />
-    </Flex>
-  );
-};
-
-const PdfViewer = ({ src }) => (
-  <iframe
-    src={src}
-    title="PDF viewer"
-    style={{ width: "100%", height: "100vh", border: "none", display: "block" }}
-  />
-);
-
-const TextEditor = ({ text, onChange, filename, readOnly = false }) => (
-  <Box sx={EDITOR_STYLES}>
-    <CodeMirror
-      value={text}
-      onChange={onChange}
-      theme={githubDark}
-      extensions={[getLanguageExtension(filename)].filter(Boolean)}
-      editable={!readOnly}
-      style={{ minHeight: "300px" }}
-    />
-  </Box>
-);
 
 const SaveButton = ({ saving, onClick }) => (
   <Flex
@@ -360,7 +130,6 @@ const FileEdit = ({
   source,
   readOnly = false,
 }) => {
-  const token = localStorage.getItem("token");
   const [text, setText] = useState("");
   const [objectUrl, setObjectUrl] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -497,6 +266,7 @@ const FileEdit = ({
     source?.archivePath,
     source?.entry,
   ]);
+
   const saveFile = async () => {
     setSaving(true);
 
@@ -542,30 +312,6 @@ const FileEdit = ({
     }
   };
 
-  const renderContent = () => {
-    switch (fileType) {
-      case "video":
-        return <VideoPlayer src={streamUrl} />;
-      case "audio":
-        return <AudioPlayer src={streamUrl} filename={filename} />;
-      case "image":
-        return <ImageViewer src={objectUrl} alt={filename} />;
-      case "pdf":
-        return <PdfViewer src={objectUrl} />;
-      case "epub":
-        return <EpubViewer src={epubData} filename={filename} />;
-      default:
-        return (
-          <TextEditor
-            text={text}
-            onChange={setText}
-            filename={filename}
-            readOnly={readOnly}
-          />
-        );
-    }
-  };
-
   return (
     <Box h="100%" display="flex" flexDirection="column" bg="gray.800">
       <FileHeader
@@ -577,8 +323,18 @@ const FileEdit = ({
         onSave={saveFile}
         showSave={fileType === "text" && !readOnly}
       />
+
       <Box flex={1} overflow="auto">
-        {renderContent()}
+        <FileViewer
+          fileType={fileType}
+          filename={filename}
+          text={text}
+          setText={setText}
+          objectUrl={objectUrl}
+          epubData={epubData}
+          streamUrl={streamUrl}
+          readOnly={readOnly}
+        />
       </Box>
     </Box>
   );

@@ -5,8 +5,6 @@ import FileItem from "../components/FileItem";
 import FolderItem from "../components/FolderItem";
 import {
   FiArchive,
-  FiFolder,
-  FiFile,
   FiArrowLeft,
   FiCopy,
 } from "react-icons/fi";
@@ -391,24 +389,6 @@ function getDirectoryEntries(entries, currentDirectory) {
 
 function getEntryName(path) {
   return path.replace(/\/$/, "").split("/").pop();
-}
-
-function formatBytes(bytes) {
-  if (!bytes) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB"];
-
-  let value = bytes;
-  let unit = 0;
-
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 export default ArchiveViewer;

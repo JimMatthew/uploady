@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Box, HStack, Input, Flex, Icon } from "@chakra-ui/react";
+import { HStack, Input, Flex, Icon } from "@chakra-ui/react";
 import { FiCheck, FiX } from "react-icons/fi";
 
 const RenameComponent = ({ handleRename, onCancel, currentName }) => {
