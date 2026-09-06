@@ -1,16 +1,20 @@
-import React from "react";
+import { lazy, Suspense } from "react";
 import { Box } from "@chakra-ui/react";
-import SshConsole from "./SshConsole";
+
+const SshConsole = lazy(() => import("./SshConsole"));
 
 const SshPopout = () => {
   const params = new URLSearchParams(window.location.search);
 
   const serverId = params.get("serverId");
+
   const host = params.get("host");
 
   return (
     <Box w="100%" h="100%" overflow="hidden">
-      <SshConsole serverId={serverId} host={host} isPopout />
+      <Suspense fallback={null}>
+        <SshConsole serverId={serverId} host={host} isPopout />
+      </Suspense>
     </Box>
   );
 };

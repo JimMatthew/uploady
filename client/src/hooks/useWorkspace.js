@@ -12,6 +12,11 @@ import LocalFileBrowser from "../pages/LocalFileBrowser";
 import AddServer from "../components/AddServer";
 import SharedLinks from "../components/SharedLinks";
 import apiClient from "../services/apiClient";
+import {
+  SaveServer,
+  DeleteServer,
+  fetchServerStatuses,
+} from "../controllers/StoreServer";
 
 const SshConsole = lazy(() => import("../pages/SshConsole"));
 const FileEdit = lazy(() => import("../pages/FileEdit"));
@@ -19,11 +24,6 @@ const ServerInfo = lazy(() => import("../pages/ServerInfo"));
 const TransfersPage = lazy(() => import("../pages/Transfers"));
 const Settings = lazy(() => import("../pages/Settings"));
 const ArchiveViewer = lazy(() => import("../pages/ArchiveViewer"));
-import {
-  SaveServer,
-  DeleteServer,
-  fetchServerStatuses,
-} from "../controllers/StoreServer";
 
 export function useWorkspace({ toast }) {
   const nextTabId = useRef(1);
