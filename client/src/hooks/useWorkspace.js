@@ -1,16 +1,24 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 
 import SftpFileBrowser from "../pages/SftpFileBrowser";
 import LocalFileBrowser from "../pages/LocalFileBrowser";
-import SshConsole from "../pages/SshConsole";
 import AddServer from "../components/AddServer";
-import FileEdit from "../pages/FileEdit";
-import ServerInfo from "../pages/ServerInfo";
 import SharedLinks from "../components/SharedLinks";
-import TransfersPage from "../pages/Transfers";
-import Settings from "../pages/Settings";
 import apiClient from "../services/apiClient";
-import ArchiveViewer from "../pages/ArchiveViewer";
+
+const SshConsole = lazy(() => import("../pages/SshConsole"));
+const FileEdit = lazy(() => import("../pages/FileEdit"));
+const ServerInfo = lazy(() => import("../pages/ServerInfo"));
+const TransfersPage = lazy(() => import("../pages/Transfers"));
+const Settings = lazy(() => import("../pages/Settings"));
+const ArchiveViewer = lazy(() => import("../pages/ArchiveViewer"));
 import {
   SaveServer,
   DeleteServer,
@@ -136,7 +144,11 @@ export function useWorkspace({ toast }) {
   const openSettings = useCallback(() => {
     openTab({
       label: "Settings",
-      content: <Settings toast={toast} />,
+      content: (
+        <Suspense fallback={<div>Loading settings...</div>}>
+          <Settings toast={toast} />
+        </Suspense>
+      ),
     });
   }, [openTab, toast]);
   // ---------------------------------------------------------------------------
@@ -155,26 +167,30 @@ export function useWorkspace({ toast }) {
           : filename;
 
         content = (
-          <ArchiveViewer
-            archivePath={archivePath}
-            filename={filename}
-            toast={toast}
-            openFile={openFile}
-          />
+          <Suspense fallback={<div>Loading archive...</div>}>
+            <ArchiveViewer
+              archivePath={archivePath}
+              filename={filename}
+              toast={toast}
+              openFile={openFile}
+            />
+          </Suspense>
         );
       } else {
         content = (
-          <FileEdit
-            serverId={source.serverId}
-            currentDirectory={source.currentDirectory}
-            filename={filename}
-            toast={toast}
-            host={source.host}
-            remote={source.type === "sftp"}
-            isNew={isNew}
-            source={source}
-            readOnly={readOnly}
-          />
+          <Suspense fallback={<div>Loading file viewer...</div>}>
+            <FileEdit
+              serverId={source.serverId}
+              currentDirectory={source.currentDirectory}
+              filename={filename}
+              toast={toast}
+              host={source.host}
+              remote={source.type === "sftp"}
+              isNew={isNew}
+              source={source}
+              readOnly={readOnly}
+            />
+          </Suspense>
         );
       }
 
@@ -218,7 +234,11 @@ export function useWorkspace({ toast }) {
     (server) => {
       openTab({
         label: `${server.host} - SSH`,
-        content: <SshConsole serverId={server._id} host={server.host} />,
+        content: (
+          <Suspense fallback={<div>Loading SSH...</div>}>
+            <SshConsole serverId={server._id} host={server.host} />
+          </Suspense>
+        ),
       });
     },
     [openTab],
@@ -228,7 +248,11 @@ export function useWorkspace({ toast }) {
     (server) => {
       openTab({
         label: `${server.host} - Info`,
-        content: <ServerInfo serverId={server._id} host={server.host} />,
+        content: (
+          <Suspense fallback={<div>Loading server info...</div>}>
+            <ServerInfo serverId={server._id} host={server.host} />
+          </Suspense>
+        ),
       });
     },
     [openTab],
@@ -248,7 +272,11 @@ export function useWorkspace({ toast }) {
   const openTransfers = useCallback(() => {
     openTab({
       label: "Transfers",
-      content: <TransfersPage toast={toast} />,
+      content: (
+        <Suspense fallback={<div>Loading transfers...</div>}>
+          <TransfersPage toast={toast} />
+        </Suspense>
+      ),
     });
   }, [openTab, toast]);
 
