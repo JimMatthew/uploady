@@ -214,6 +214,23 @@ const sftpToLocal = async (item, { sftpSource, context }, onProgress) => {
   return stat.size;
 };
 
+/**
+ * Copies a byte range from a source file to a destination file using SFTP.
+ *
+ * The specified range is read from the source and written at the same offset
+ * in the destination file. The destination file must already exist and be
+ * large enough to receive the range.
+ *
+ * @param {Object} options
+ * @param {Object} options.sftpSource - SFTP client used to read the source file.
+ * @param {Object} options.sftpDest - SFTP client used to write the destination file.
+ * @param {string} options.sourcePath - Path to the source file.
+ * @param {string} options.destinationPath - Path to the destination file.
+ * @param {number} options.start - Starting byte offset of the range.
+ * @param {number} options.end - Ending byte offset of the range, inclusive.
+ * @param {Function} options.onBytes - Called with the number of bytes read for progress tracking.
+ * @returns {Promise<void>} Resolves when the range has been copied.
+ */
 const copyRange = async ({
   sftpSource,
   sftpDest,
@@ -240,6 +257,16 @@ const copyRange = async ({
   await pipeline(readStream, writeStream);
 };
 
+/**
+ * Creates or truncates an empty destination file over SFTP.
+ *
+ * This initializes the destination before byte ranges are written to it
+ * independently, such as during a parallel ranged file copy.
+ *
+ * @param {Object} sftpDest - SFTP client used to create the file.
+ * @param {string} destinationPath - Path of the destination file.
+ * @returns {Promise<void>} Resolves once the destination file has been created.
+ */
 const createDestinationFile = async (sftpDest, destinationPath) => {
   const stream = sftpDest.createWriteStream(destinationPath, {
     flags: "w",
