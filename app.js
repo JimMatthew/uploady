@@ -51,7 +51,7 @@ app.use(
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(express.static(path.join(__dirname, "client/build")));
+app.use(express.static(path.join(__dirname, "client/dist")));
 
 app.post("/apilogin", login_post);
 
@@ -87,7 +87,7 @@ app.use((req, res, next) => {
 // ─── Catch-all ────────────────────────────────────────────────────────────────
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client/build", "index.html"));
+  res.sendFile(path.join(__dirname, "client/dist", "index.html"));
 });
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
