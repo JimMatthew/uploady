@@ -230,38 +230,34 @@ export function useWorkspace({ toast }) {
     [openTab, toast, openFile],
   );
 
- const openSsh = useCallback(
-  (server, { initialCommand } = {}) => {
+  const openSsh = useCallback(
+    (server, { initialCommand } = {}) => {
+      openTab({
+        label: `${server.host} - SSH`,
+        content: (
+          <Suspense fallback={<div>Loading SSH...</div>}>
+            <SshConsole
+              serverId={server._id}
+              host={server.host}
+              initialCommand={initialCommand}
+            />
+          </Suspense>
+        ),
+      });
+    },
+    [openTab],
+  );
+
+  const openActions = useCallback(() => {
     openTab({
-      label: `${server.host} - SSH`,
+      label: "Actions",
       content: (
-        <Suspense fallback={<div>Loading SSH...</div>}>
-          <SshConsole
-            serverId={server._id}
-            host={server.host}
-            initialCommand={initialCommand}
-          />
+        <Suspense fallback={<div>Loading actions...</div>}>
+          <Actions toast={toast} servers={sftpServers} openSsh={openSsh} />
         </Suspense>
       ),
     });
-  },
-  [openTab],
-);
-
-const openActions = useCallback(() => {
-  openTab({
-    label: "Actions",
-    content: (
-      <Suspense fallback={<div>Loading actions...</div>}>
-        <Actions
-          toast={toast}
-          servers={sftpServers}
-          openSsh={openSsh}
-        />
-      </Suspense>
-    ),
-  });
-}, [openTab, toast, sftpServers, openSsh]);
+  }, [openTab, toast, sftpServers, openSsh]);
 
   const openServerInfo = useCallback(
     (server) => {

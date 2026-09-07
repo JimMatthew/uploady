@@ -1,3 +1,14 @@
+/**
+ * Creates the HTTP controller for saved actions.
+ *
+ * Persistence and execution are injected so the controller remains
+ * independent of the underlying database and SSH execution implementation.
+ *
+ * @param {Object} dependencies
+ * @param {Object} dependencies.actionStore - Saved action persistence store.
+ * @param {Object} dependencies.actionExecutor - Saved action execution service.
+ * @returns {Object} Express route handlers for saved actions.
+ */
 const createActionController = ({ actionStore, actionExecutor }) => ({
   getAll: async (req, res, next) => {
     try {
