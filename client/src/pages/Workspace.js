@@ -35,6 +35,7 @@ const Workspace = ({ toast }) => {
     openSharedLinks,
     openTransfers,
     openSettings,
+    openActions,
     deleteServer,
   } = useWorkspace({ toast });
 
@@ -163,6 +164,7 @@ const Workspace = ({ toast }) => {
               sftpServers={sftpServers}
               serverStatuses={serverStatuses}
               onSettings={openSettings}
+              onActions={openActions}
             />
           </Box>
         )}

@@ -5,7 +5,7 @@ const MongoTransferJobStore = require("./stores/mongo/mongoTransferJobStore");
 const MongoTransferItemStore = require("./stores/mongo/mongoTransferItemStore");
 const MongoSshKeyStore = require("./stores/mongo/mongoSshKeyStore");
 const MongoAppSettings = require("./stores/mongo/mongoAppSettings");
-
+const MongoActionStore = require("./stores/mongo/mongoActionStore");
 const createStores = ({ databaseType }) => {
   switch (databaseType) {
     case "mongo":
@@ -17,6 +17,7 @@ const createStores = ({ databaseType }) => {
         transferItems: new MongoTransferItemStore(),
         sshKeyStore: new MongoSshKeyStore(),
         settingsStore: new MongoAppSettings(),
+        actions: new MongoActionStore(),
       };
     case "sqlite":
       throw new Error("SQLite not implemented yet");

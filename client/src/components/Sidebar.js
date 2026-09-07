@@ -42,6 +42,7 @@ const Sidebar = memo(function Sidebar({
   sftpServers,
   serverStatuses,
   onSettings,
+  onActions,
 }) {
   const servers = sftpServers?.servers ?? [];
 
@@ -90,6 +91,7 @@ const Sidebar = memo(function Sidebar({
 
         <NavButton icon={FiHardDrive} label="Local" onClick={onLocalFiles} />
         <NavButton icon={FiHardDrive} label="Settings" onClick={onSettings} />
+        <NavButton icon={FiHardDrive} label="Actions" onClick={onActions} />
         <NavButton icon={FiLink} label="Shared Links" onClick={onSharedLinks} />
 
         <NavButton icon={FiRepeat} label="Transfers" onClick={onTransfers} />

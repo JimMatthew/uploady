@@ -9,13 +9,13 @@ import { FitAddon } from "@xterm/addon-fit";
 
 import { FiTerminal, FiExternalLink, FiRefreshCw } from "react-icons/fi";
 
-const SshConsole = ({ serverId, host, isPopout = false }) => {
+const SshConsole = ({ serverId, host, isPopout = false, initialCommand = null, }) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
   const fitAddon = useRef(null);
   const socketRef = useRef(null);
   const isInit = useRef(false);
-
+  const initialCommandSent = useRef(false);
   const [connState, setConnState] = useState("connecting");
   const [reconnectKey, setReconnectKey] = useState(0);
 
@@ -40,6 +40,7 @@ const SshConsole = ({ serverId, host, isPopout = false }) => {
 
   useEffect(() => {
     isInit.current = false;
+    initialCommandSent.current = false;
     setConnState("connecting");
 
     // ─── Terminal Setup ─────────────────────────────────────────────────────
@@ -149,6 +150,24 @@ const SshConsole = ({ serverId, host, isPopout = false }) => {
           requestAnimationFrame(() => {
             sendResize();
           });
+
+          break;
+
+        case "shellReady":
+          if (
+            initialCommand &&
+            !initialCommandSent.current &&
+            socket.readyState === WebSocket.OPEN
+          ) {
+            initialCommandSent.current = true;
+
+            socket.send(
+              JSON.stringify({
+                event: "input",
+                data: `${initialCommand}\r`,
+              }),
+            );
+          }
 
           break;
 

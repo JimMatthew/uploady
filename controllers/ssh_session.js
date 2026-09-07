@@ -70,6 +70,7 @@ const ssh_session = (socket) => {
               sendJson(socket, "shellError", err.message);
               return;
             }
+            sendJson(socket, "shellReady", null);
 
             // ── Shell I/O ────────────────────────────────────────────────
 
