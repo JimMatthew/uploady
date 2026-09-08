@@ -118,7 +118,7 @@ const getServerStats = async (serverId) => {
             connectConfig,
             "cat /proc/stat && echo '---' && cat /proc/meminfo && echo '---' && cat /proc/uptime && echo '---' && df -k /",
           );
-          resolve(output);
+          resolve(output.stdout);
         } catch (err) {
           resolve(null);
         }
@@ -134,7 +134,9 @@ const getServerStats = async (serverId) => {
   const [cpuStat2Raw, memRaw, uptimeRaw, diskRaw] = results.split("---\n");
 
   return {
-    cpu: cpuStat2Raw ? parseCpu(cpuStat1, cpuStat2Raw) : null,
+     cpu: cpuStat2Raw
+    ? parseCpu(cpuStat1.stdout, cpuStat2Raw)
+    : null,
     memory: memRaw ? parseMemory(memRaw) : null,
     uptimeSeconds: uptimeRaw ? parseUptime(uptimeRaw) : null,
     disk: diskRaw ? parseDisk(diskRaw) : null,

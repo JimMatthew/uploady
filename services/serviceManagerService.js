@@ -4,13 +4,20 @@ const systemd = require("../infrastructure/serviceManagers/systemdServiceManager
 
 const detectServiceManager = async (connectConfig) => {
   try {
-    await sshExec(connectConfig, "command -v systemctl >/dev/null 2>&1");
+    const result = await sshExec(
+      connectConfig,
+      "command -v systemctl >/dev/null 2>&1",
+    );
 
-    return "systemd";
+    if (result.exitCode === 0) {
+      return "systemd";
+    }
+
+    return null;
   } catch {
     return null;
   }
-};
+}
 
 const listServices = async (serverId) => {
   const connectConfig = await serverService.getServerOptions(serverId);

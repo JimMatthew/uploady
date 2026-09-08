@@ -50,10 +50,7 @@ async function create(req, res) {
 
 async function update(req, res) {
   try {
-    const action = await actionService.update(
-      req.params.id,
-      req.body,
-    );
+    const action = await actionService.update(req.params.id, req.body);
 
     if (!action) {
       return res.status(404).json({

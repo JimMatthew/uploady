@@ -8,7 +8,7 @@ const { Client } = require("ssh2");
  * @param {string} command
  * @returns {Promise<string>}
  */
-const sshExec = (connectConfig, command) =>
+const sshExeco = (connectConfig, command) =>
   new Promise((resolve, reject) => {
     const client = new Client();
 
@@ -62,7 +62,7 @@ const sshExec = (connectConfig, command) =>
  *   exitCode: number
  * }>}
  */
-const sshExec2 = (connectConfig, command) =>
+const sshExec = (connectConfig, command) =>
   new Promise((resolve, reject) => {
     const client = new Client();
 
@@ -101,5 +101,4 @@ const sshExec2 = (connectConfig, command) =>
   });
 module.exports = {
   sshExec,
-  sshExec2
 };

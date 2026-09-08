@@ -1,5 +1,5 @@
 const listServices = async (connectConfig, sshExec) => {
-  const output = await sshExec(
+  const result = await sshExec(
     connectConfig,
     [
       "systemctl",
@@ -12,7 +12,13 @@ const listServices = async (connectConfig, sshExec) => {
     ].join(" "),
   );
 
-  return parseServices(output);
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `systemctl failed with exit code ${result.exitCode}: ${result.stderr.trim()}`,
+    );
+  }
+
+  return parseServices(result.stdout);
 };
 
 const parseServices = (output) =>
