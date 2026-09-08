@@ -1,78 +1,109 @@
-/**
- * Creates the HTTP controller for saved actions.
- *
- * Persistence and execution are injected so the controller remains
- * independent of the underlying database and SSH execution implementation.
- *
- * @param {Object} dependencies
- * @param {Object} dependencies.actionStore - Saved action persistence store.
- * @param {Object} dependencies.actionExecutor - Saved action execution service.
- * @returns {Object} Express route handlers for saved actions.
- */
-const createActionController = ({ actionStore, actionExecutor }) => ({
-  getAll: async (req, res, next) => {
-    try {
-      const actions = await actionStore.getAll();
-      res.json(actions);
-    } catch (err) {
-      next(err);
+const actionService = require("../services/actionService");
+
+async function getAll(req, res) {
+  try {
+    const actions = await actionService.getAll();
+
+    res.json(actions);
+  } catch (err) {
+    console.error("Failed to get actions:", err);
+
+    res.status(500).json({
+      error: "Failed to get actions",
+    });
+  }
+}
+
+async function getById(req, res) {
+  try {
+    const action = await actionService.getById(req.params.id);
+
+    if (!action) {
+      return res.status(404).json({
+        error: "Action not found",
+      });
     }
-  },
 
-  getById: async (req, res, next) => {
-    try {
-      const action = await actionStore.getById(req.params.id);
+    res.json(action);
+  } catch (err) {
+    console.error("Failed to get action:", err);
 
-      if (!action) {
-        return res.status(404).json({ error: "Action not found" });
-      }
+    res.status(500).json({
+      error: "Failed to get action",
+    });
+  }
+}
 
-      res.json(action);
-    } catch (err) {
-      next(err);
+async function create(req, res) {
+  try {
+    const action = await actionService.create(req.body);
+
+    res.status(201).json(action);
+  } catch (err) {
+    console.error("Failed to create action:", err);
+
+    res.status(400).json({
+      error: err.message || "Failed to create action",
+    });
+  }
+}
+
+async function update(req, res) {
+  try {
+    const action = await actionService.update(
+      req.params.id,
+      req.body,
+    );
+
+    if (!action) {
+      return res.status(404).json({
+        error: "Action not found",
+      });
     }
-  },
 
-  create: async (req, res, next) => {
-    try {
-      const action = await actionStore.create(req.body);
-      res.status(201).json(action);
-    } catch (err) {
-      next(err);
-    }
-  },
+    res.json(action);
+  } catch (err) {
+    console.error("Failed to update action:", err);
 
-  update: async (req, res, next) => {
-    try {
-      const action = await actionStore.update(req.params.id, req.body);
+    res.status(400).json({
+      error: err.message || "Failed to update action",
+    });
+  }
+}
 
-      if (!action) {
-        return res.status(404).json({ error: "Action not found" });
-      }
+async function deleteAction(req, res) {
+  try {
+    await actionService.delete(req.params.id);
 
-      res.json(action);
-    } catch (err) {
-      next(err);
-    }
-  },
+    res.status(204).end();
+  } catch (err) {
+    console.error("Failed to delete action:", err);
 
-  delete: async (req, res, next) => {
-    try {
-      await actionStore.delete(req.params.id);
-      res.status(204).end();
-    } catch (err) {
-      next(err);
-    }
-  },
+    res.status(500).json({
+      error: "Failed to delete action",
+    });
+  }
+}
 
-  run: async (req, res, next) => {
-    try {
-      const result = await actionExecutor.execute(req.params.id);
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  },
-});
+async function run(req, res) {
+  try {
+    const result = await actionService.execute(req.params.id);
 
-module.exports = createActionController;
+    res.json(result);
+  } catch (err) {
+    console.error("Failed to execute action:", err);
+
+    res.status(400).json({
+      error: err.message || "Failed to execute action",
+    });
+  }
+}
+
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  delete: deleteAction,
+  run,
+};

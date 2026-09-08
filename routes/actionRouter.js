@@ -1,25 +1,44 @@
 const express = require("express");
 
-const {actions} = require("../db");
-const ActionExecutor = require("../services/actionExecutor");
-const createActionController = require("../controllers/actionController");
-
 const router = express.Router();
 
-const actionExecutor = new ActionExecutor({
-  actionStore: actions,
-});
+const authenticateJWT = require("../middlewares/jwtAuth");
+const actionController = require("../controllers/actionController");
 
-const actionController = createActionController({
-  actionStore: actions,
-  actionExecutor,
-});
+router.get(
+  "/",
+  authenticateJWT,
+  actionController.getAll,
+);
 
-router.get("/", actionController.getAll);
-router.get("/:id", actionController.getById);
-router.post("/", actionController.create);
-router.put("/:id", actionController.update);
-router.delete("/:id", actionController.delete);
-router.post("/:id/run", actionController.run);
+router.get(
+  "/:id",
+  authenticateJWT,
+  actionController.getById,
+);
+
+router.post(
+  "/",
+  authenticateJWT,
+  actionController.create,
+);
+
+router.put(
+  "/:id",
+  authenticateJWT,
+  actionController.update,
+);
+
+router.delete(
+  "/:id",
+  authenticateJWT,
+  actionController.delete,
+);
+
+router.post(
+  "/:id/run",
+  authenticateJWT,
+  actionController.run,
+);
 
 module.exports = router;
