@@ -2,7 +2,7 @@ const createStores = require("./createStores");
 const initDatabase = require("./initDatabase");
 
 const databaseType =
-  process.env.DB_TYPE || "sqlite";
+  process.env.DATABASE_TYPE || "sqlite";
 
 const stores = createStores({
   databaseType,
