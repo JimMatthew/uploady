@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const initSqlite = require ("./sqlite/initSqlite")
+const initSqlite = require("./sqlite/initSqlite");
 
 async function initMongo() {
   const mongoUri = process.env.DATABASE;
@@ -38,16 +38,11 @@ async function initDatabase(databaseType) {
     case "sqlite":
       initSqlite();
       console.log("SQLite initialized");
-
-      // Temporary during SQLite migration.
-      // Remaining stores still use Mongo.
-      await initMongo();
       return;
 
     default:
       throw new Error(`Unsupported database type: ${databaseType}`);
   }
-
 }
 
 module.exports = initDatabase;

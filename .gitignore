@@ -40,3 +40,9 @@ key.pem
 .envr
 newtest/buildn.zip
 .gitignore
+data/uploady.db
+data/uploady.db
+data/uploady.db-shm
+*.db
+*.db-shm
+*.db-wal
