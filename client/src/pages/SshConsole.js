@@ -9,7 +9,12 @@ import { FitAddon } from "@xterm/addon-fit";
 
 import { FiTerminal, FiExternalLink, FiRefreshCw } from "react-icons/fi";
 
-const SshConsole = ({ serverId, host, isPopout = false, initialCommand = null, }) => {
+const SshConsole = ({
+  serverId,
+  host,
+  isPopout = false,
+  initialCommand = null,
+}) => {
   const terminalRef = useRef(null);
   const term = useRef(null);
   const fitAddon = useRef(null);
@@ -161,12 +166,16 @@ const SshConsole = ({ serverId, host, isPopout = false, initialCommand = null, }
           ) {
             initialCommandSent.current = true;
 
-            socket.send(
-              JSON.stringify({
-                event: "input",
-                data: `${initialCommand}\r`,
-              }),
-            );
+            requestAnimationFrame(() => {
+              sendResize();
+
+              socket.send(
+                JSON.stringify({
+                  event: "input",
+                  data: `${initialCommand}\r`,
+                }),
+              );
+            });
           }
 
           break;

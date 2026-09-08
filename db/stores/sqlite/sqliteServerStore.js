@@ -56,7 +56,6 @@ class SqliteServerStore extends ServerStore {
         id AS _id,
         host
       FROM servers
-      ORDER BY host ASC
     `,
       )
       .map((row) => ({
