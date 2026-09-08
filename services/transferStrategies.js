@@ -324,7 +324,12 @@ const sftpCrossServer = async (
 
   await createDestinationFile(sftpDest, item.destinationPath);
 
-  const ranges = createRanges(size, 2);
+  if (size === 0) {
+    onProgress(100);
+    return 0;
+  }
+  const concurrency = getTransferConcurrency(size);
+  const ranges = createRanges(size, concurrency);
 
   let transferred = 0;
 
@@ -362,6 +367,12 @@ const createRanges = (size, concurrency) => {
   }
 
   return ranges;
+};
+
+const getTransferConcurrency = (size) => {
+  const PARALLEL_THRESHOLD = 1024 * 1024; // 1 MiB
+
+  return size >= PARALLEL_THRESHOLD ? 2 : 1;
 };
 
 /**
