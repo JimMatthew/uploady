@@ -17,16 +17,13 @@ const domain = process.env.HOSTNAME;
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
 /**
- * Returns Node.js process stats, memory usage, and current git commit.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
-/**
- * Returns runtime, process, system, and current git commit information.
+ * Returns runtime, process, system, database, and current git commit information.
  * @param {import("express").Request} req
  * @param {import("express").Response} res
  */
 const get_performance_stats = (req, res) => {
   const isBun = typeof Bun !== "undefined";
+  const databaseType = process.env.DATABASE_TYPE || "mongo";
 
   const stats = {
     runtime: isBun ? "Bun" : "Node.js",
@@ -34,6 +31,9 @@ const get_performance_stats = (req, res) => {
 
     engine: isBun ? "JavaScriptCore" : "V8",
     engineVersion: isBun ? null : (process.versions?.v8 ?? null),
+
+    database: databaseType,
+    databaseServer: null,
 
     memory: null,
     cpu: null,
@@ -76,6 +76,15 @@ const get_performance_stats = (req, res) => {
     stats.hostname = os.hostname();
   } catch (err) {
     console.warn("Failed to get OS information:", err.message);
+  }
+
+  if (databaseType === "mongo" && process.env.DATABASE) {
+    try {
+      const mongoUrl = new URL(process.env.DATABASE);
+      stats.databaseServer = mongoUrl.hostname;
+    } catch (err) {
+      console.warn("Failed to parse MongoDB server:", err.message);
+    }
   }
 
   try {

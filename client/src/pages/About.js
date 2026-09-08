@@ -7,6 +7,7 @@ import {
   FiCpu,
   FiHardDrive,
   FiServer,
+  FiDatabase,
 } from "react-icons/fi";
 import apiClient, { ApiError } from "../services/apiClient";
 
@@ -307,6 +308,29 @@ const About = () => {
                 accent="#4ADE80"
               />
 
+              <SectionHeader
+                icon={FiDatabase}
+                label="Database"
+              />
+
+              <StatRow
+                label="Backend"
+                value={
+                  stats.database === "sqlite"
+                    ? "SQLite"
+                    : stats.database === "mongo"
+                      ? "MongoDB"
+                      : stats.database
+                }
+                accent="#818CF8"
+              />
+
+              {stats.databaseServer && (
+                <StatRow
+                  label="Server"
+                  value={stats.databaseServer}
+                />
+              )}
               <SectionHeader icon={FiServer} label="System" />
 
               <StatRow label="Hostname" value={stats.hostname} />
