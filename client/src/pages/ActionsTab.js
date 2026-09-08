@@ -1,16 +1,34 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Box,
   Flex,
   Text,
   Input,
+  InputGroup,
+  InputLeftElement,
   Textarea,
   Select,
   Button,
+  IconButton,
   Spinner,
   Icon,
   Badge,
   Spacer,
+  Tooltip,
+  Collapse,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   FiPlay,
@@ -20,10 +38,18 @@ import {
   FiZap,
   FiMaximize2,
   FiMinimize2,
+  FiSearch,
+  FiCopy,
+  FiRefreshCw,
+  FiAlertCircle,
+  FiChevronDown,
+  FiChevronRight,
+  FiX,
 } from "react-icons/fi";
 
 import apiClient from "../services/apiClient";
-
+import ActionRow from "../components/actions/ActionRow"
+import ActionSection from "../components/actions/ActionSection";
 const emptyAction = {
   name: "",
   description: "",
@@ -32,30 +58,70 @@ const emptyAction = {
   mode: "capture",
 };
 
+const copyToClipboard = async (text, toast, label = "Copied to clipboard") => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast?.({ title: label, status: "success" });
+  } catch (err) {
+    toast?.({
+      title: "Couldn't copy",
+      description: "Your browser blocked clipboard access.",
+      status: "error",
+    });
+  }
+};
+
 const Actions = ({ toast, servers = [], openSsh }) => {
   const serverList = servers?.servers ?? [];
+  const hasServers = serverList.length > 0;
+
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [runningId, setRunningId] = useState(null);
+
+  // Multiple actions can run concurrently — a slow one shouldn't block others.
+  const [runningIds, setRunningIds] = useState(() => new Set());
+  const [deletingIds, setDeletingIds] = useState(() => new Set());
 
   const [newAction, setNewAction] = useState(emptyAction);
-
   const [outputs, setOutputs] = useState({});
+  const [search, setSearch] = useState("");
+
+  // Open by default so a first-time user sees the form immediately; once we
+  // know they already have saved actions, collapse it to save space. Only
+  // happens once, right after the initial load, so it never fights a
+  // deliberate open/close the user does afterward.
+  const [newActionOpen, setNewActionOpen] = useState(true);
+  const hasAutoCollapsed = useRef(false);
+
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: openDeleteDialog,
+    onClose: closeDeleteDialog,
+  } = useDisclosure();
+  const cancelDeleteRef = useRef(null);
 
   // ---------------------------------------------------------------------------
-  // Actions
+  // Load
   // ---------------------------------------------------------------------------
 
   const loadActions = useCallback(async () => {
     setLoading(true);
+    setLoadFailed(false);
 
     try {
       const data = await apiClient.get("/api/actions");
-
       setActions(data);
     } catch (err) {
-      // ...
+      console.error("Failed to load actions:", err);
+      setLoadFailed(true);
+      toast?.({
+        title: "Couldn't load actions",
+        description: err.message,
+        status: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -65,34 +131,35 @@ const Actions = ({ toast, servers = [], openSsh }) => {
     loadActions();
   }, [loadActions]);
 
+  useEffect(() => {
+    if (!loading && !hasAutoCollapsed.current) {
+      hasAutoCollapsed.current = true;
+      if (actions.length > 0) {
+        setNewActionOpen(false);
+      }
+    }
+  }, [loading, actions.length]);
+
+  // ---------------------------------------------------------------------------
+  // Create
+  // ---------------------------------------------------------------------------
+
   const createAction = async () => {
     const name = newAction.name.trim();
     const command = newAction.command.trim();
 
     if (!name) {
-      toast?.({
-        title: "Action name required",
-        status: "warning",
-      });
-
+      toast?.({ title: "Action name required", status: "warning" });
       return;
     }
 
     if (!newAction.serverId) {
-      toast?.({
-        title: "Server required",
-        status: "warning",
-      });
-
+      toast?.({ title: "Server required", status: "warning" });
       return;
     }
 
     if (!command) {
-      toast?.({
-        title: "Command required",
-        status: "warning",
-      });
-
+      toast?.({ title: "Command required", status: "warning" });
       return;
     }
 
@@ -110,13 +177,9 @@ const Actions = ({ toast, servers = [], openSsh }) => {
       setActions((prev) => [...prev, created]);
       setNewAction(emptyAction);
 
-      toast?.({
-        title: "Action created",
-        status: "success",
-      });
+      toast?.({ title: "Action created", status: "success" });
     } catch (err) {
       console.error("Failed to create action:", err);
-
       toast?.({
         title: "Failed to create action",
         description: err.message,
@@ -127,41 +190,65 @@ const Actions = ({ toast, servers = [], openSsh }) => {
     }
   };
 
-  const deleteAction = async (action) => {
-    const confirmed = window.confirm(`Delete action "${action.name}"?`);
-
-    if (!confirmed) {
-      return;
+  const handleCommandKeyDown = (event) => {
+    // Cmd/Ctrl+Enter submits from inside the command box, matching the
+    // muscle memory people already have from terminals and chat apps.
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      createAction();
     }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Delete
+  // ---------------------------------------------------------------------------
+
+  const requestDelete = (action) => {
+    setPendingDelete(action);
+    openDeleteDialog();
+  };
+
+  const confirmDelete = async () => {
+    const action = pendingDelete;
+    if (!action) return;
+
+    closeDeleteDialog();
+    setDeletingIds((prev) => new Set(prev).add(action._id));
 
     try {
       await apiClient.delete(`/api/actions/${action._id}`);
 
       setActions((prev) => prev.filter((item) => item._id !== action._id));
-
       setOutputs((prev) => {
         const next = { ...prev };
         delete next[action._id];
         return next;
       });
 
-      toast?.({
-        title: "Action deleted",
-        status: "success",
-      });
+      toast?.({ title: "Action deleted", status: "success" });
     } catch (err) {
       console.error("Failed to delete action:", err);
-
       toast?.({
         title: "Failed to delete action",
         description: err.message,
         status: "error",
       });
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(action._id);
+        return next;
+      });
+      setPendingDelete(null);
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Execute
+  // ---------------------------------------------------------------------------
+
   const executeAction = async (action) => {
-    setRunningId(action._id);
+    setRunningIds((prev) => new Set(prev).add(action._id));
 
     try {
       const result = await apiClient.post(`/api/actions/${action._id}/run`);
@@ -171,7 +258,6 @@ const Actions = ({ toast, servers = [], openSsh }) => {
           ...prev,
           [action._id]: result.output ?? result,
         }));
-
         return;
       }
 
@@ -184,28 +270,67 @@ const Actions = ({ toast, servers = [], openSsh }) => {
           throw new Error("Server not found");
         }
 
-        openSsh(server, {
-          initialCommand: result.command,
-        });
+        openSsh(server, { initialCommand: result.command });
+        return;
       }
+
+      toast?.({
+        title: "Unrecognized action mode",
+        description: `"${result.mode}" isn't handled yet.`,
+        status: "warning",
+      });
     } catch (err) {
       console.error("Failed to execute action:", err);
-
       toast?.({
         title: "Action failed",
         description: err.message,
         status: "error",
       });
     } finally {
-      setRunningId(null);
+      setRunningIds((prev) => {
+        const next = new Set(prev);
+        next.delete(action._id);
+        return next;
+      });
     }
+  };
+
+  const clearOutput = (actionId) => {
+    setOutputs((prev) => {
+      const next = { ...prev };
+      delete next[actionId];
+      return next;
+    });
   };
 
   const getServerName = (serverId) => {
     const server = serverList.find((item) => item._id === serverId);
-
-    return server?.name || server?.host || server?.hostname || serverId;
+    if (!server) return "Unknown server";
+    return server.name || server.host || server.hostname || "Unknown server";
   };
+
+  // ---------------------------------------------------------------------------
+  // Filtering
+  // ---------------------------------------------------------------------------
+
+  const filteredActions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return actions;
+
+    return actions.filter((action) => {
+      const haystack = [
+        action.name,
+        action.description,
+        action.command,
+        getServerName(action.serverId),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actions, search, serverList]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -229,17 +354,40 @@ const Actions = ({ toast, servers = [], openSsh }) => {
           icon={FiPlus}
           title="New Action"
           description="Create a reusable command for one of your servers."
+          collapsible
+          isOpen={newActionOpen}
+          onToggle={() => setNewActionOpen((prev) => !prev)}
         >
+          {!hasServers && (
+            <Flex
+              align="center"
+              gap={2}
+              mb={3}
+              px={3}
+              py={2}
+              borderRadius="6px"
+              bg="rgba(250,204,21,0.06)"
+              border="1px solid rgba(250,204,21,0.15)"
+            >
+              <Icon
+                as={FiAlertCircle}
+                boxSize="12px"
+                color="rgba(250,204,21,0.7)"
+              />
+              <Text fontSize="11px" color="rgba(250,204,21,0.8)">
+                Add a server before creating an action.
+              </Text>
+            </Flex>
+          )}
+
           <Flex direction={{ base: "column", md: "row" }} gap={3} mb={3}>
             <ActionInput
               value={newAction.name}
               onChange={(event) =>
-                setNewAction((prev) => ({
-                  ...prev,
-                  name: event.target.value,
-                }))
+                setNewAction((prev) => ({ ...prev, name: event.target.value }))
               }
               placeholder="Action name"
+              isDisabled={creating}
               flex={1}
             />
 
@@ -251,6 +399,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
                   serverId: event.target.value,
                 }))
               }
+              isDisabled={creating || !hasServers}
               maxW={{ base: "100%", md: "240px" }}
             >
               <option value="">Select server</option>
@@ -265,15 +414,12 @@ const Actions = ({ toast, servers = [], openSsh }) => {
             <ActionSelect
               value={newAction.mode}
               onChange={(event) =>
-                setNewAction((prev) => ({
-                  ...prev,
-                  mode: event.target.value,
-                }))
+                setNewAction((prev) => ({ ...prev, mode: event.target.value }))
               }
+              isDisabled={creating}
               maxW={{ base: "100%", md: "170px" }}
             >
               <option value="capture">Capture Output</option>
-
               <option value="terminal">Open Terminal</option>
             </ActionSelect>
           </Flex>
@@ -287,18 +433,18 @@ const Actions = ({ toast, servers = [], openSsh }) => {
               }))
             }
             placeholder="Description (optional)"
+            isDisabled={creating}
             mb={3}
           />
 
           <Textarea
             value={newAction.command}
             onChange={(event) =>
-              setNewAction((prev) => ({
-                ...prev,
-                command: event.target.value,
-              }))
+              setNewAction((prev) => ({ ...prev, command: event.target.value }))
             }
+            onKeyDown={handleCommandKeyDown}
             placeholder="Command"
+            isDisabled={creating}
             size="sm"
             minH="90px"
             resize="vertical"
@@ -306,27 +452,25 @@ const Actions = ({ toast, servers = [], openSsh }) => {
             fontSize="12px"
             borderColor="rgba(255,255,255,0.08)"
             bg="rgba(255,255,255,0.025)"
-            _hover={{
-              borderColor: "rgba(255,255,255,0.15)",
-            }}
-            _focusVisible={{
-              borderColor: "#6366F1",
-              boxShadow: "none",
-            }}
+            _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
+            _focusVisible={{ borderColor: "#6366F1", boxShadow: "none" }}
           />
 
-          <Flex justify="flex-end" mt={4}>
+          <Flex justify="space-between" align="center" mt={4}>
+            <Text fontSize="10px" color="rgba(255,255,255,0.25)">
+              ⌘/Ctrl + Enter to create
+            </Text>
+
             <Button
               size="sm"
               leftIcon={<FiPlus />}
               onClick={createAction}
               isLoading={creating}
+              isDisabled={!hasServers}
               bg="rgba(99,102,241,0.15)"
               color="#A5B4FC"
               border="1px solid rgba(99,102,241,0.3)"
-              _hover={{
-                bg: "rgba(99,102,241,0.25)",
-              }}
+              _hover={{ bg: "rgba(99,102,241,0.25)" }}
             >
               Create Action
             </Button>
@@ -338,14 +482,59 @@ const Actions = ({ toast, servers = [], openSsh }) => {
           icon={FiZap}
           title="Saved Actions"
           description="Run or manage reusable SSH commands."
+          headerExtra={
+            actions.length > 0 && (
+              <InputGroup size="sm" maxW="220px">
+                <InputLeftElement pointerEvents="none">
+                  <Icon
+                    as={FiSearch}
+                    boxSize="12px"
+                    color="rgba(255,255,255,0.25)"
+                  />
+                </InputLeftElement>
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Filter actions"
+                  borderColor="rgba(255,255,255,0.08)"
+                  bg="rgba(255,255,255,0.025)"
+                  _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
+                  _focusVisible={{ borderColor: "#6366F1", boxShadow: "none" }}
+                />
+              </InputGroup>
+            )
+          }
         >
           {loading ? (
             <Flex align="center" justify="center" py={8} gap={3}>
               <Spinner size="sm" />
-
               <Text fontSize="12px" color="rgba(255,255,255,0.3)">
                 Loading actions...
               </Text>
+            </Flex>
+          ) : loadFailed ? (
+            <Flex
+              direction="column"
+              align="center"
+              gap={3}
+              py={8}
+              textAlign="center"
+              border="1px dashed rgba(239,68,68,0.2)"
+              borderRadius="8px"
+            >
+              <Text fontSize="13px" color="rgba(252,165,165,0.7)">
+                Couldn't load your actions.
+              </Text>
+              <Button
+                size="xs"
+                leftIcon={<FiRefreshCw />}
+                onClick={loadActions}
+                variant="ghost"
+                color="rgba(255,255,255,0.5)"
+                _hover={{ color: "#A5B4FC", bg: "rgba(99,102,241,0.1)" }}
+              >
+                Try again
+              </Button>
             </Flex>
           ) : actions.length === 0 ? (
             <Box
@@ -355,286 +544,100 @@ const Actions = ({ toast, servers = [], openSsh }) => {
               borderRadius="8px"
             >
               <Text fontSize="13px" color="rgba(255,255,255,0.3)">
-                No saved actions.
+                No saved actions yet.
+              </Text>
+            </Box>
+          ) : filteredActions.length === 0 ? (
+            <Box
+              py={8}
+              textAlign="center"
+              border="1px dashed rgba(255,255,255,0.08)"
+              borderRadius="8px"
+            >
+              <Text fontSize="13px" color="rgba(255,255,255,0.3)">
+                No actions match "{search}".
               </Text>
             </Box>
           ) : (
             <Flex direction="column" gap={2}>
-              {actions.map((action) => (
+              {filteredActions.map((action) => (
                 <ActionRow
                   key={action._id}
                   action={action}
                   serverName={getServerName(action.serverId)}
                   output={outputs[action._id]}
-                  isRunning={runningId === action._id}
+                  isRunning={runningIds.has(action._id)}
+                  isDeleting={deletingIds.has(action._id)}
                   onExecute={() => executeAction(action)}
-                  onDelete={() => deleteAction(action)}
+                  onDelete={() => requestDelete(action)}
+                  onClearOutput={() => clearOutput(action._id)}
+                  onCopyCommand={() =>
+                    copyToClipboard(action.command, toast, "Command copied")
+                  }
                 />
               ))}
             </Flex>
           )}
         </ActionSection>
       </Box>
-    </Box>
-  );
-};
 
-const ActionSection = ({ icon, title, description, children }) => {
-  return (
-    <Box
-      mb={5}
-      border="1px solid rgba(255,255,255,0.06)"
-      borderRadius="10px"
-      bg="rgba(255,255,255,0.015)"
-      overflow="hidden"
-    >
-      <Flex
-        align="center"
-        gap={3}
-        px={5}
-        py={4}
-        borderBottom="1px solid rgba(255,255,255,0.06)"
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelDeleteRef}
+        onClose={closeDeleteDialog}
+        isCentered
       >
-        <Flex
-          align="center"
-          justify="center"
-          w="30px"
-          h="30px"
-          borderRadius="7px"
-          bg="rgba(99,102,241,0.1)"
-          color="#818CF8"
-          flexShrink={0}
-        >
-          <Icon as={icon} boxSize="14px" />
-        </Flex>
+        <AlertDialogOverlay>
+          <AlertDialogContent
+            bg="#0F0F14"
+            border="1px solid rgba(255,255,255,0.08)"
+            color="rgba(255,255,255,0.85)"
+          >
+            <AlertDialogHeader fontSize="14px" fontWeight={600}>
+              Delete "{pendingDelete?.name}"?
+            </AlertDialogHeader>
 
-        <Box>
-          <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.8)">
-            {title}
-          </Text>
+            <AlertDialogBody fontSize="13px" color="rgba(255,255,255,0.5)">
+              This can't be undone. The saved command and its last output will
+              be removed.
+            </AlertDialogBody>
 
-          <Text fontSize="11px" color="rgba(255,255,255,0.3)">
-            {description}
-          </Text>
-        </Box>
-      </Flex>
-
-      <Box p={5}>{children}</Box>
+            <AlertDialogFooter gap={2}>
+              <Button
+                ref={cancelDeleteRef}
+                onClick={closeDeleteDialog}
+                size="sm"
+                variant="ghost"
+                color="rgba(255,255,255,0.6)"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                size="sm"
+                bg="rgba(239,68,68,0.15)"
+                color="#FCA5A5"
+                border="1px solid rgba(239,68,68,0.3)"
+                _hover={{ bg: "rgba(239,68,68,0.25)" }}
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 };
 
-const ActionRow = ({
-  action,
-  serverName,
-  output,
-  isRunning,
-  onExecute,
-  onDelete,
-}) => {
-  const [outputExpanded, setOutputExpanded] = useState(false);
-  return (
-    <Box
-      px={4}
-      py={3}
-      border="1px solid rgba(255,255,255,0.06)"
-      borderRadius="8px"
-      bg="rgba(0,0,0,0.12)"
-    >
-      <Flex
-        align={{ base: "stretch", md: "center" }}
-        justify="space-between"
-        direction={{ base: "column", md: "row" }}
-        gap={3}
-      >
-        <Box minW={0} flex={1}>
-          <Flex align="center" gap={2}>
-            <Text
-              fontSize="13px"
-              fontWeight={600}
-              color="rgba(255,255,255,0.8)"
-            >
-              {action.name}
-            </Text>
-
-            <Badge
-              bg={
-                action.mode === "terminal"
-                  ? "rgba(34,197,94,0.1)"
-                  : "rgba(99,102,241,0.1)"
-              }
-              color={action.mode === "terminal" ? "#86EFAC" : "#A5B4FC"}
-              border="1px solid"
-              borderColor={
-                action.mode === "terminal"
-                  ? "rgba(34,197,94,0.2)"
-                  : "rgba(99,102,241,0.2)"
-              }
-              fontSize="9px"
-              fontWeight={500}
-              textTransform="uppercase"
-            >
-              {action.mode}
-            </Badge>
-          </Flex>
-
-          {action.description && (
-            <Text mt={1} fontSize="11px" color="rgba(255,255,255,0.35)">
-              {action.description}
-            </Text>
-          )}
-
-          <Flex mt={2} align="center" gap={2} color="rgba(255,255,255,0.25)">
-            <Icon as={FiTerminal} boxSize="11px" />
-
-            <Text fontSize="10px">{serverName}</Text>
-
-            <Text
-              fontSize="10px"
-              fontFamily="'JetBrains Mono', monospace"
-              whiteSpace="nowrap"
-              overflow="hidden"
-              textOverflow="ellipsis"
-            >
-              {action.command}
-            </Text>
-          </Flex>
-        </Box>
-
-        <Flex gap={2} flexShrink={0}>
-          <Button
-            size="xs"
-            variant="ghost"
-            leftIcon={<FiPlay />}
-            onClick={onExecute}
-            isLoading={isRunning}
-            color="rgba(255,255,255,0.5)"
-            _hover={{
-              color: "#A5B4FC",
-              bg: "rgba(99,102,241,0.1)",
-            }}
-          >
-            Execute
-          </Button>
-
-          <Button
-            size="xs"
-            variant="ghost"
-            leftIcon={<FiTrash2 />}
-            onClick={onDelete}
-            color="rgba(255,255,255,0.4)"
-            _hover={{
-              color: "#FCA5A5",
-              bg: "rgba(239,68,68,0.08)",
-            }}
-          >
-            Delete
-          </Button>
-        </Flex>
-      </Flex>
-
-      {output && (
-        <Box mt={3} pt={3} borderTop="1px solid rgba(255,255,255,0.05)">
-          <Flex justify="space-between" mb={2}>
-            <Text
-              fontSize="10px"
-              fontWeight={600}
-              color="rgba(255,255,255,0.35)"
-              textTransform="uppercase"
-            >
-              Output
-            </Text>
-            <Spacer />
-            <Text
-              fontSize="10px"
-              color={
-                output.exitCode === 0
-                  ? "rgba(134,239,172,0.6)"
-                  : "rgba(252,165,165,0.7)"
-              }
-            >
-              Exit {output.exitCode}
-            </Text>
-            <Box
-              as="button"
-              onClick={() => setOutputExpanded((prev) => !prev)}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              w="22px"
-              h="22px"
-              borderRadius="5px"
-              color="rgba(255,255,255,0.35)"
-              _hover={{
-                color: "#A5B4FC",
-                bg: "rgba(99,102,241,0.1)",
-              }}
-              title={outputExpanded ? "Collapse output" : "Expand output"}
-            >
-              <Icon
-                as={outputExpanded ? FiMinimize2 : FiMaximize2}
-                boxSize="11px"
-              />
-            </Box>
-          </Flex>
-
-          {output.stdout && (
-            <Box
-              as="pre"
-              m={0}
-              p={3}
-              maxH={outputExpanded ? "650px" : "300px"}
-              overflow="auto"
-              borderRadius="6px"
-              bg="rgba(0,0,0,0.25)"
-              fontFamily="'JetBrains Mono', monospace"
-              fontSize="11px"
-              lineHeight="1.5"
-              color="rgba(255,255,255,0.65)"
-              whiteSpace="pre-wrap"
-              transition="max-height 0.2s ease"
-            >
-              {output.stdout}
-            </Box>
-          )}
-
-          {output.stderr && (
-            <Box
-              as="pre"
-              mt={output.stdout ? 2 : 0}
-              mb={0}
-              p={3}
-              maxH="300px"
-              overflow="auto"
-              borderRadius="6px"
-              bg="rgba(239,68,68,0.04)"
-              fontFamily="'JetBrains Mono', monospace"
-              fontSize="11px"
-              lineHeight="1.5"
-              color="rgba(252,165,165,0.7)"
-              whiteSpace="pre-wrap"
-            >
-              {output.stderr}
-            </Box>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
-};
 
 const ActionInput = (props) => (
   <Input
     size="sm"
     borderColor="rgba(255,255,255,0.08)"
     bg="rgba(255,255,255,0.025)"
-    _hover={{
-      borderColor: "rgba(255,255,255,0.15)",
-    }}
-    _focusVisible={{
-      borderColor: "#6366F1",
-      boxShadow: "none",
-    }}
+    _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
+    _focusVisible={{ borderColor: "#6366F1", boxShadow: "none" }}
     {...props}
   />
 );
@@ -644,13 +647,8 @@ const ActionSelect = (props) => (
     size="sm"
     borderColor="rgba(255,255,255,0.08)"
     bg="rgba(255,255,255,0.025)"
-    _hover={{
-      borderColor: "rgba(255,255,255,0.15)",
-    }}
-    _focusVisible={{
-      borderColor: "#6366F1",
-      boxShadow: "none",
-    }}
+    _hover={{ borderColor: "rgba(255,255,255,0.15)" }}
+    _focusVisible={{ borderColor: "#6366F1", boxShadow: "none" }}
     {...props}
   />
 );
