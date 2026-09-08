@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "archiver": "^7.0.1",
+    "better-sqlite3": "^12.11.1",
     "busboy": "^1.6.0",
     "cors": "^2.8.6",
     "express": "~4.22.2",

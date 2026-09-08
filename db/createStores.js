@@ -6,6 +6,13 @@ const MongoTransferItemStore = require("./stores/mongo/mongoTransferItemStore");
 const MongoSshKeyStore = require("./stores/mongo/mongoSshKeyStore");
 const MongoAppSettings = require("./stores/mongo/mongoAppSettings");
 const MongoActionStore = require("./stores/mongo/mongoActionStore");
+const SqliteUserStore = require("./stores/sqlite/sqliteUserStore")
+const SqliteSettingsStore = require(
+  "./stores/sqlite/sqliteSettingsStore",
+);
+
+const SqliteSharedFileStore =
+  require("./stores/sqlite/sqliteSharedFileStore");
 const createStores = ({ databaseType }) => {
   switch (databaseType) {
     case "mongo":
@@ -20,7 +27,17 @@ const createStores = ({ databaseType }) => {
         actions: new MongoActionStore(),
       };
     case "sqlite":
-      throw new Error("SQLite not implemented yet");
+      return {
+         servers: new MongoServerStore(),
+        users: new SqliteUserStore(),
+        shares: new SqliteSharedFileStore(),
+        transferJobs: new MongoTransferJobStore(),
+        transferItems: new MongoTransferItemStore(),
+        sshKeyStore: new MongoSshKeyStore(),
+        settingsStore: new SqliteSettingsStore,
+        actions: new MongoActionStore(),
+      }
+      //throw new Error("SQLite not implemented yet");
 
     default:
       throw new Error(`Unsupported database type: ${databaseType}`);

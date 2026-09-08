@@ -75,7 +75,6 @@ app.use((req, res, next) => {
     req.path.startsWith("/sftp/api/") ||
     req.path.startsWith("/sftp/server-") ||
     req.path === "/apilogin" ||
-    req.path === "/setup" ||
     req.path.startsWith("/settings");
 
   if (!isApiRequest) {
