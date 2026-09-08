@@ -8,10 +8,7 @@ import {
   Input,
   Select,
 } from "@chakra-ui/react";
-import {
-  FiPlus,
-  FiAlertCircle,
-} from "react-icons/fi";
+import { FiPlus, FiAlertCircle } from "react-icons/fi";
 
 const ActionCreateForm = ({
   action,
@@ -54,11 +51,7 @@ const ActionCreateForm = ({
         </Flex>
       )}
 
-      <Flex
-        direction={{ base: "column", md: "row" }}
-        gap={3}
-        mb={3}
-      >
+      <Flex direction={{ base: "column", md: "row" }} gap={3} mb={3}>
         <ActionInput
           value={action.name}
           onChange={(event) =>
@@ -86,10 +79,7 @@ const ActionCreateForm = ({
           <option value="">Select server</option>
 
           {serverList.map((server) => (
-            <option
-              key={server._id}
-              value={server._id}
-            >
+            <option key={server._id} value={server._id}>
               {server.name || server.host || server.hostname}
             </option>
           ))}
@@ -151,15 +141,8 @@ const ActionCreateForm = ({
         }}
       />
 
-      <Flex
-        justify="space-between"
-        align="center"
-        mt={4}
-      >
-        <Text
-          fontSize="10px"
-          color="rgba(255,255,255,0.25)"
-        >
+      <Flex justify="space-between" align="center" mt={4}>
+        <Text fontSize="10px" color="rgba(255,255,255,0.25)">
           ⌘/Ctrl + Enter to create
         </Text>
 

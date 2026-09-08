@@ -1,19 +1,9 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useState } from "react";
+
 import {
   Box,
   Flex,
   Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Textarea,
-  Select,
   Button,
   IconButton,
   Spinner,
@@ -21,31 +11,25 @@ import {
   Badge,
   Spacer,
   Tooltip,
-  Collapse,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  useDisclosure,
 } from "@chakra-ui/react";
+
 import {
   FiPlay,
   FiTrash2,
-  FiPlus,
   FiTerminal,
-  FiZap,
   FiMaximize2,
   FiMinimize2,
-  FiSearch,
   FiCopy,
-  FiRefreshCw,
-  FiAlertCircle,
-  FiChevronDown,
-  FiChevronRight,
   FiX,
 } from "react-icons/fi";
+
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    console.error("Failed to copy to clipboard:", err);
+  }
+};
 
 const ActionRow = ({
   action,

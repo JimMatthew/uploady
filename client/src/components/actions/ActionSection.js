@@ -1,51 +1,7 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  Box,
-  Flex,
-  Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Textarea,
-  Select,
-  Button,
-  IconButton,
-  Spinner,
-  Icon,
-  Badge,
-  Spacer,
-  Tooltip,
-  Collapse,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  useDisclosure,
-} from "@chakra-ui/react";
-import {
-  FiPlay,
-  FiTrash2,
-  FiPlus,
-  FiTerminal,
-  FiZap,
-  FiMaximize2,
-  FiMinimize2,
-  FiSearch,
-  FiCopy,
-  FiRefreshCw,
-  FiAlertCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiX,
-} from "react-icons/fi";
+import React, { useState } from "react";
+import { Box, Flex, Text, Icon, Collapse } from "@chakra-ui/react";
+import { FiChevronDown, FiChevronRight } from "react-icons/fi";
+
 const ActionSection = ({
   icon,
   title,
@@ -142,4 +98,4 @@ const ActionSection = ({
   );
 };
 
-export default ActionSection
+export default ActionSection;
