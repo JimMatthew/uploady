@@ -2,7 +2,7 @@ const { actions } = require("../db");
 
 const serverService = require("./serverService");
 
-const { sshExec2 } = require("../infrastructure/ssh/sshExec");
+const { sshExec } = require("../infrastructure/ssh/sshExec");
 
 async function getAll() {
   return actions.getAll();
@@ -46,7 +46,7 @@ async function execute(actionId) {
 async function executeCapture(action) {
   const connectConfig = await serverService.getServerOptions(action.serverId);
 
-  const result = await sshExec2(connectConfig, action.command);
+  const result = await sshExec(connectConfig, action.command);
 
   return {
     mode: "capture",
