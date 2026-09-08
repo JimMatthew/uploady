@@ -46,3 +46,4 @@ data/uploady.db-shm
 *.db
 *.db-shm
 *.db-wal
+data/uploady.db-shm
