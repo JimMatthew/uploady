@@ -4,7 +4,6 @@ const { transferJobs, transferItems } = require("../db");
 const { ItemKind } = require("../controllers/jobs/jobConstants");
 const { connectToSftp } = require("./sftpService");
 const localFileService = require("./localFileService");
-const uploadsDir = path.join(__dirname, "../uploads");
 const archiveService = require("./archiveService");
 // ─── Remote Walking ───────────────────────────────────────────────────────────
 

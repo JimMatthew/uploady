@@ -1,4 +1,3 @@
-const { Client } = require("ssh2");
 const serverService = require("./serverService");
 const { sshExec } = require("../infrastructure/ssh/sshExec");
 
@@ -120,6 +119,7 @@ const getServerStats = async (serverId) => {
           );
           resolve(output.stdout);
         } catch (err) {
+          console.err(err)
           resolve(null);
         }
       }, 500),

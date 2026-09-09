@@ -4,6 +4,7 @@ const path = require("path");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const execFileAsync = promisify(execFile);
+
 async function generateSshKeyPair() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "uploady-key-"));
   const keyPath = path.join(dir, "id_ed25519");

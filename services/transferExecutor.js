@@ -3,9 +3,7 @@ const { transferJobs, transferItems } = require("../db");
 const {
   JobStatus,
   ItemStatus,
-  ItemKind,
 } = require("../controllers/jobs/jobConstants");
-const { connectToSftp } = require("./sftpService");
 const { expandJobItems } = require("./transferExpansionService");
 
 // ─── In-Memory Job Shape ───────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { PassThrough } = require("stream");
 const { pipeline } = require("stream/promises");
-const { connectToSftp } = require("./sftpConnection");
+//const { connectToSftp } = require("./sftpConnection");
 const archiveService = require("./archiveService");
 /**
  * Returns a data handler that tracks bytes flowing through a stream and

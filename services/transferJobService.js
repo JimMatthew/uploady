@@ -134,7 +134,6 @@ const listJobs = async () => {
     // jobs than the persistent job record.
     const liveJob = executor.getJob(jobId);
 
-    const sourceIds = sourceMap[jobId] ?? [];
     const sources = sourceMap[jobId] ?? [];
     const sourceServers = [
       ...new Set(

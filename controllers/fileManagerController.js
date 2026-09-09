@@ -11,7 +11,6 @@ const { ItemKind } = require("../controllers/jobs/jobConstants");
 const localFileService = require("../services/localFileService");
 const os = require("os");
 const uploadsDir = path.join(__dirname, "../uploads");
-const tempDir = path.join(__dirname, "../temp");
 const domain = process.env.HOSTNAME;
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

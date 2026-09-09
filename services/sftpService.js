@@ -1,10 +1,10 @@
-const SftpClient = require("ssh2-sftp-client");
-const fs = require("fs");
+
+
 const path = require("path");
 const { PassThrough } = require("stream");
 const archiver = require("archiver");
-const serverService = require("./serverService");
-const localFileService = require("./localFileService");
+//const serverService = require("./serverService");
+//const localFileService = require("./localFileService");
 const { connectToSftp } = require("./sftpConnection");
 const uploadsDir = path.join(__dirname, "../uploads");
 

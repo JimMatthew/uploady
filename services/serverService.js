@@ -4,13 +4,10 @@ const { encrypt, decrypt } = require("../controllers/encryption");
 const { servers, shares, sshKeyStore } = require("../db");
 
 const domain = process.env.HOSTNAME;
-const fs = require("fs/promises");
-const os = require("os");
-const path = require("path");
+
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const { generateSshKeyPair } = require("./sshKeyGenerator");
-const execFileAsync = promisify(execFile);
 
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
@@ -126,7 +123,7 @@ async function save_server({
         sshKeyData.passphrase = encrypt(passphrase);
       }
 
-      const sshKey = await SshKey.create(sshKeyData);
+      const sshKey = await sshKeyStore.create(sshKeyData);
 
       server.keyId = sshKey._id;
     } else {
