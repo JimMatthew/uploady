@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Text, Box, Flex, Tooltip, Icon, Progress } from "@chakra-ui/react";
+
 import {
   FiFileText,
   FiTerminal,
@@ -41,46 +42,68 @@ const formatUptime = (seconds) => {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const ActionButton = ({ icon, label, color, hoverBg, onClick }) => (
+const ActionButton = ({
+  icon,
+  label,
+  color,
+  bg,
+  borderColor,
+  hoverBg,
+  hoverBorderColor,
+  onClick,
+}) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Flex
-      w="28px"
-      h="28px"
+      w="30px"
+      h="30px"
       align="center"
       justify="center"
-      borderRadius="6px"
+      borderRadius="7px"
       cursor="pointer"
-      color={color ?? "rgba(255,255,255,0.35)"}
-      transition="all 0.12s"
+      bg={bg}
+      border="1px solid"
+      borderColor={borderColor}
+      color={color}
+      transition="
+        background 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        transform 120ms ease
+      "
       _hover={{
-        bg: hoverBg ?? "rgba(255,255,255,0.07)",
-        color: color ?? "rgba(255,255,255,0.8)",
+        bg: hoverBg,
+        borderColor: hoverBorderColor,
+        transform: "translateY(-1px)",
+      }}
+      _active={{
+        transform: "translateY(0)",
       }}
       onClick={(event) => {
         event.stopPropagation();
         onClick?.();
       }}
     >
-      <Icon as={icon} boxSize="14px" />
+      <Icon as={icon} boxSize="13px" />
     </Flex>
   </Tooltip>
 );
 
 const StatRow = ({ icon, label, value, children }) => (
-  <Flex align="center" gap={2}>
+  <Flex align="center" gap={2} minH="18px">
     <Icon
       as={icon}
       boxSize="11px"
-      color="rgba(255,255,255,0.2)"
+      color="rgba(255,255,255,0.24)"
       flexShrink={0}
     />
 
     <Text
-      fontSize="11px"
-      color="rgba(255,255,255,0.35)"
-      fontFamily="'JetBrains Mono', monospace"
       w="52px"
       flexShrink={0}
+      fontSize="10px"
+      fontWeight={500}
+      color="rgba(255,255,255,0.34)"
+      fontFamily="'JetBrains Mono', monospace"
     >
       {label}
     </Text>
@@ -88,7 +111,7 @@ const StatRow = ({ icon, label, value, children }) => (
     {children ?? (
       <Text
         fontSize="11px"
-        color="rgba(255,255,255,0.65)"
+        color="rgba(255,255,255,0.68)"
         fontFamily="'JetBrains Mono', monospace"
       >
         {value}
@@ -112,10 +135,10 @@ const DiskBar = ({ used, total }) => {
 
   const percent = Math.round((used / total) * 100);
 
-  const color = percent > 90 ? "#EF4444" : percent > 70 ? "#F59E0B" : "#22C55E";
+  const color = percent > 90 ? "#E57373" : percent > 70 ? "#D6A85F" : "#6FCF97";
 
   return (
-    <Flex align="center" gap={2} flex={1}>
+    <Flex align="center" gap={2} flex={1} minW={0}>
       <Progress
         value={percent}
         size="xs"
@@ -131,8 +154,8 @@ const DiskBar = ({ used, total }) => {
       />
 
       <Text
-        fontSize="11px"
-        color="rgba(255,255,255,0.5)"
+        fontSize="10px"
+        color="rgba(255,255,255,0.48)"
         fontFamily="'JetBrains Mono', monospace"
         flexShrink={0}
       >
@@ -156,7 +179,9 @@ export default function ServerCard({
   onDelete,
 }) {
   const [expanded, setExpanded] = useState(false);
+
   const [stats, setStats] = useState(null);
+
   const [statsLoading, setStatsLoading] = useState(false);
 
   const status = serverStatuses[serverId];
@@ -203,67 +228,88 @@ export default function ServerCard({
     <Box
       px={3}
       py="10px"
-      borderRadius="8px"
+      borderRadius="9px"
       border="1px solid"
       borderColor={
-        expanded ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)"
+        expanded ? "rgba(255,255,255,0.11)" : "rgba(255,255,255,0.065)"
       }
-      bg={expanded ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)"}
-      transition="all 0.15s"
+      bg={expanded ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.025)"}
+      boxShadow={expanded ? "0 4px 14px rgba(0,0,0,0.12)" : "none"}
+      transition="
+        background 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease
+      "
       role="group"
       _hover={{
         bg: "rgba(255,255,255,0.04)",
-        borderColor: "rgba(255,255,255,0.1)",
+        borderColor: "rgba(255,255,255,0.105)",
       }}
     >
       {/* Header */}
       <Flex
         align="center"
         justify="space-between"
-        mb="6px"
+        mb="8px"
         cursor="pointer"
         onClick={() => setExpanded((prev) => !prev)}
       >
         <Text
+          minW={0}
+          maxW="140px"
+          noOfLines={1}
           fontSize="12px"
           fontWeight={600}
-          color="rgba(255,255,255,0.75)"
+          color="rgba(255,255,255,0.78)"
           fontFamily="'JetBrains Mono', monospace"
-          noOfLines={1}
-          maxW="130px"
           letterSpacing="-0.01em"
+          transition="color 120ms ease"
           _groupHover={{
             color: "rgba(255,255,255,0.95)",
           }}
-          transition="color 0.12s"
         >
           {serverName}
         </Text>
 
-        <Flex align="center" gap={2}>
+        <Flex align="center" gap={2} flexShrink={0}>
           {isLoading ? (
-            <Box
-              w="6px"
-              h="6px"
-              borderRadius="full"
-              bg="rgba(255,255,255,0.15)"
-              animation="pulse 1.5s infinite"
-            />
-          ) : (
-            <Flex align="center" gap={1}>
+            <Flex align="center" gap="5px">
               <Box
                 w="6px"
                 h="6px"
                 borderRadius="full"
-                bg={isOnline ? "#22C55E" : "#EF4444"}
-                boxShadow={isOnline ? "0 0 6px rgba(34,197,94,0.6)" : "none"}
-                animation={isOnline ? "pulse 2s infinite" : "none"}
+                bg="rgba(255,255,255,0.18)"
+                animation="pulse 1.5s infinite"
               />
 
               <Text
-                fontSize="10px"
-                color={isOnline ? "#4ADE80" : "rgba(239,68,68,0.7)"}
+                fontSize="9px"
+                color="rgba(255,255,255,0.28)"
                 letterSpacing="0.04em"
+              >
+                checking
+              </Text>
+            </Flex>
+          ) : (
+            <Flex align="center" gap="5px">
+              <Box
+                w="6px"
+                h="6px"
+                borderRadius="full"
+                bg={isOnline ? "#6FCF97" : "#E57373"}
+                boxShadow={
+                  isOnline ? "0 0 0 2px rgba(111,207,151,0.08)" : "none"
+                }
+              />
+
+              <Text
+                fontSize="9px"
+                fontWeight={500}
+                color={
+                  isOnline ? "rgba(111,207,151,0.82)" : "rgba(229,115,115,0.75)"
+                }
+                letterSpacing="0.04em"
+                textTransform="capitalize"
               >
                 {status}
               </Text>
@@ -273,55 +319,74 @@ export default function ServerCard({
           <Icon
             as={FiChevronDown}
             boxSize="12px"
-            color="rgba(255,255,255,0.2)"
+            color="rgba(255,255,255,0.24)"
             transform={expanded ? "rotate(180deg)" : "rotate(0deg)"}
-            transition="transform 0.2s"
+            transition="transform 180ms ease"
           />
         </Flex>
       </Flex>
 
       {/* Actions */}
-      <Flex gap={1}>
+      <Flex gap="5px">
         <ActionButton
           icon={FiFileText}
           label="SFTP"
-          color="rgba(34,197,94,0.7)"
-          hoverBg="rgba(34,197,94,0.1)"
+          color="#7FD6A1"
+          bg="rgba(111,207,151,0.075)"
+          borderColor="rgba(111,207,151,0.14)"
+          hoverBg="rgba(111,207,151,0.14)"
+          hoverBorderColor="rgba(111,207,151,0.28)"
           onClick={onConnect}
         />
 
         <ActionButton
           icon={FiTerminal}
           label="SSH"
-          color="rgba(99,102,241,0.7)"
-          hoverBg="rgba(99,102,241,0.1)"
+          color="#A5B4FC"
+          bg="rgba(129,140,248,0.08)"
+          borderColor="rgba(129,140,248,0.15)"
+          hoverBg="rgba(129,140,248,0.15)"
+          hoverBorderColor="rgba(129,140,248,0.3)"
           onClick={onSsh}
         />
 
         <ActionButton
           icon={FiServer}
           label="Server Info"
-          color="rgba(56,189,248,0.7)"
-          hoverBg="rgba(56,189,248,0.1)"
+          color="#7BC8D8"
+          bg="rgba(103,183,199,0.08)"
+          borderColor="rgba(103,183,199,0.15)"
+          hoverBg="rgba(103,183,199,0.15)"
+          hoverBorderColor="rgba(103,183,199,0.3)"
           onClick={onServerInfo}
         />
+
+        <Box flex={1} />
 
         <ActionButton
           icon={FiTrash2}
           label="Delete"
-          color="rgba(239,68,68,0.5)"
-          hoverBg="rgba(239,68,68,0.1)"
+          color="rgba(229,115,115,0.62)"
+          bg="rgba(229,115,115,0.035)"
+          borderColor="rgba(229,115,115,0.08)"
+          hoverBg="rgba(229,115,115,0.11)"
+          hoverBorderColor="rgba(229,115,115,0.26)"
           onClick={onDelete}
         />
       </Flex>
 
       {/* Expanded stats */}
       {expanded && (
-        <Box mt={3} pt={3} borderTop="1px solid rgba(255,255,255,0.06)">
+        <Box
+          mt={3}
+          pt={3}
+          borderTop="1px solid"
+          borderColor="rgba(255,255,255,0.06)"
+        >
           {!isOnline ? (
             <Text
               fontSize="11px"
-              color="rgba(255,255,255,0.25)"
+              color="rgba(255,255,255,0.28)"
               fontFamily="'JetBrains Mono', monospace"
             >
               Server is offline
@@ -332,13 +397,13 @@ export default function ServerCard({
                 w="6px"
                 h="6px"
                 borderRadius="full"
-                bg="rgba(255,255,255,0.15)"
+                bg="rgba(255,255,255,0.18)"
                 animation="pulse 1.5s infinite"
               />
 
               <Text
                 fontSize="11px"
-                color="rgba(255,255,255,0.25)"
+                color="rgba(255,255,255,0.28)"
                 fontFamily="'JetBrains Mono', monospace"
               >
                 Loading stats…
@@ -374,7 +439,7 @@ export default function ServerCard({
           ) : (
             <Text
               fontSize="11px"
-              color="rgba(255,255,255,0.25)"
+              color="rgba(255,255,255,0.28)"
               fontFamily="'JetBrains Mono', monospace"
             >
               Stats unavailable

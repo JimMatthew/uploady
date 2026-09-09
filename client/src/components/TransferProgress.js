@@ -1,5 +1,6 @@
-import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-import { FiArrowRight, FiFolder } from "react-icons/fi";
+import { Box, Flex, Icon, Text } from "@chakra-ui/react";
+
+import { FiArrowRight, FiCheck, FiFolder } from "react-icons/fi";
 
 const TransferProgress = ({ transfers, progressMap }) => (
   <Box mb={3} display="flex" flexDirection="column" gap={2}>
@@ -7,22 +8,26 @@ const TransferProgress = ({ transfers, progressMap }) => (
       const entry = progressMap[id] || {};
 
       const pct = entry.progress ?? 0;
+
       const completed = entry.completed ?? 0;
+
       const total = entry.total ?? 0;
 
       const isFolder =
         completed > 0 || (total > 0 && pct === 0 && completed === 0);
 
-      const done = isFolder ? total > 0 && completed === total : pct >= 100;
+      const done = isFolder ? total > 0 && completed >= total : pct >= 100;
 
-      const displayPct = isFolder
-        ? total > 0
-          ? (completed / total) * 100
-          : 0
-        : pct;
+      const displayPct = Math.min(
+        100,
+        Math.max(
+          0,
+          isFolder ? (total > 0 ? (completed / total) * 100 : 0) : pct,
+        ),
+      );
 
       const statusText = done
-        ? "done"
+        ? "Complete"
         : isFolder
           ? `${completed} / ${total || "?"} files`
           : `${Math.round(pct)}%`;
@@ -30,62 +35,81 @@ const TransferProgress = ({ transfers, progressMap }) => (
       return (
         <Box
           key={id}
-          px={4}
-          py={3}
-          bg="rgba(255,255,255,0.02)"
+          px={3}
+          py="10px"
+          bg={done ? "rgba(111,207,151,0.025)" : "rgba(255,255,255,0.025)"}
           border="1px solid"
-          borderColor={done ? "rgba(34,197,94,0.2)" : "rgba(99,102,241,0.15)"}
+          borderColor={
+            done ? "rgba(111,207,151,0.12)" : "rgba(255,255,255,0.07)"
+          }
           borderRadius="9px"
-          transition="border-color 0.3s"
+          transition="
+              background 200ms ease,
+              border-color 200ms ease
+            "
         >
-          <Flex align="center" justify="space-between" mb={2}>
+          <Flex align="center" justify="space-between" gap={3} mb="8px">
             <Flex align="center" gap={2} minW={0}>
-              <Icon
-                as={isFolder ? FiFolder : FiArrowRight}
-                boxSize="12px"
-                color={done ? "#22C55E" : "#6366F1"}
+              <Flex
+                align="center"
+                justify="center"
+                w="24px"
+                h="24px"
                 flexShrink={0}
-                transition="color 0.3s"
-              />
+                borderRadius="6px"
+                bg={done ? "rgba(111,207,151,0.08)" : "rgba(129,140,248,0.08)"}
+                border="1px solid"
+                borderColor={
+                  done ? "rgba(111,207,151,0.13)" : "rgba(129,140,248,0.13)"
+                }
+              >
+                <Icon
+                  as={done ? FiCheck : isFolder ? FiFolder : FiArrowRight}
+                  boxSize="11px"
+                  color={done ? "#7FD6A1" : "#A5B4FC"}
+                />
+              </Flex>
+
               <Text
-                fontSize="12px"
-                fontFamily="'JetBrains Mono', monospace"
-                color="rgba(255,255,255,0.6)"
+                minW={0}
                 noOfLines={1}
+                fontSize="11px"
+                fontWeight={500}
+                fontFamily="'JetBrains Mono', monospace"
+                color="rgba(255,255,255,0.68)"
                 letterSpacing="-0.01em"
               >
                 {file}
               </Text>
             </Flex>
+
             <Text
-              fontSize="11px"
-              fontWeight={600}
-              color={done ? "#4ADE80" : "rgba(99,102,241,0.9)"}
-              letterSpacing="0.02em"
               flexShrink={0}
-              ml={3}
-              transition="color 0.3s"
+              fontSize="10px"
+              fontWeight={600}
+              letterSpacing="0.01em"
+              color={done ? "rgba(111,207,151,0.86)" : "rgba(165,180,252,0.82)"}
+              fontFamily="'JetBrains Mono', monospace"
             >
               {statusText}
             </Text>
           </Flex>
 
           <Box
-            h="2px"
-            bg="rgba(255,255,255,0.06)"
+            h="3px"
+            bg="rgba(255,255,255,0.055)"
             borderRadius="full"
             overflow="hidden"
           >
             <Box
               h="100%"
               w={`${displayPct}%`}
-              bg={
-                done
-                  ? "linear-gradient(90deg, #22C55E, #4ADE80)"
-                  : "linear-gradient(90deg, #6366F1, #818CF8)"
-              }
+              bg={done ? "#6FCF97" : "#818CF8"}
               borderRadius="full"
-              transition="width 0.2s ease, background 0.3s"
+              transition="
+                  width 180ms ease,
+                  background 200ms ease
+                "
             />
           </Box>
         </Box>

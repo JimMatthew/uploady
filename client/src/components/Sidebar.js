@@ -1,6 +1,16 @@
 import React, { memo } from "react";
-import { Box, VStack, Text, Flex, Icon } from "@chakra-ui/react";
-import { FiPlusCircle, FiHardDrive, FiLink, FiRepeat } from "react-icons/fi";
+
+import { Box, Flex, Icon, Text, VStack } from "@chakra-ui/react";
+
+import {
+  FiActivity,
+  FiHardDrive,
+  FiLink,
+  FiPlus,
+  FiRepeat,
+  FiSettings,
+  FiZap,
+} from "react-icons/fi";
 
 import ServerCard from "../components/ServerCard";
 
@@ -8,25 +18,103 @@ const NavButton = ({ icon, label, onClick }) => (
   <Flex
     align="center"
     gap={3}
-    px={3}
+    w="100%"
     h="36px"
+    px={3}
     borderRadius="7px"
     cursor="pointer"
-    transition="all 0.12s"
-    color="rgba(255,255,255,0.45)"
-    borderLeft="2px solid transparent"
+    color="rgba(255,255,255,0.48)"
+    transition="
+      background 120ms ease,
+      color 120ms ease
+    "
+    onClick={onClick}
     _hover={{
       bg: "rgba(255,255,255,0.05)",
-      color: "rgba(255,255,255,0.8)",
+      color: "rgba(255,255,255,0.85)",
     }}
-    onClick={onClick}
-    w="100%"
   >
-    <Icon as={icon} boxSize="15px" flexShrink={0} />
+    <Icon
+      as={icon}
+      boxSize="14px"
+      flexShrink={0}
+      color="rgba(255,255,255,0.36)"
+    />
 
-    <Text fontSize="13px" fontWeight={450} letterSpacing="-0.01em">
+    <Text fontSize="13px" fontWeight={500} letterSpacing="-0.01em">
       {label}
     </Text>
+  </Flex>
+);
+
+const AddServerButton = ({ onClick }) => (
+  <Flex
+    align="center"
+    justify="center"
+    gap={2}
+    w="100%"
+    h="34px"
+    mt={1}
+    borderRadius="7px"
+    cursor="pointer"
+    bg="rgba(129,140,248,0.07)"
+    border="1px solid"
+    borderColor="rgba(129,140,248,0.13)"
+    color="rgba(165,180,252,0.82)"
+    transition="
+      background 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease
+    "
+    onClick={onClick}
+    _hover={{
+      bg: "rgba(129,140,248,0.12)",
+      borderColor: "rgba(129,140,248,0.24)",
+      color: "#C7D2FE",
+    }}
+  >
+    <Icon as={FiPlus} boxSize="13px" />
+
+    <Text fontSize="12px" fontWeight={600} letterSpacing="-0.01em">
+      Add Server
+    </Text>
+  </Flex>
+);
+
+const SectionLabel = ({ children, count }) => (
+  <Flex align="center" justify="space-between" px={3} pb="5px">
+    <Text
+      fontSize="10px"
+      fontWeight={700}
+      letterSpacing="0.09em"
+      textTransform="uppercase"
+      color="rgba(255,255,255,0.32)"
+    >
+      {children}
+    </Text>
+
+    {count != null && (
+      <Flex
+        align="center"
+        justify="center"
+        minW="20px"
+        h="18px"
+        px="6px"
+        borderRadius="5px"
+        bg="rgba(255,255,255,0.04)"
+        border="1px solid"
+        borderColor="rgba(255,255,255,0.06)"
+      >
+        <Text
+          fontSize="9px"
+          fontWeight={600}
+          lineHeight={1}
+          color="rgba(255,255,255,0.36)"
+        >
+          {count}
+        </Text>
+      </Flex>
+    )}
   </Flex>
 );
 
@@ -52,75 +140,73 @@ const Sidebar = memo(function Sidebar({
       minH="100vh"
       maxH="100vh"
       overflowY="auto"
-      bg="gray.900"
-      borderRight="1px solid rgba(255,255,255,0.07)"
+      bg="#151821"
+      borderRight="1px solid"
+      borderColor="rgba(255,255,255,0.065)"
       display="flex"
       flexDirection="column"
-      position={{ base: "absolute", lg: "relative" }}
-      zIndex={{ base: 10, lg: 1 }}
+      position={{
+        base: "absolute",
+        lg: "relative",
+      }}
+      zIndex={{
+        base: 10,
+        lg: 1,
+      }}
       top={0}
       left={0}
       sx={{
         "::-webkit-scrollbar": {
-          width: "4px",
+          width: "6px",
         },
-        "::-webkit-scrollbar-thumb": {
-          background: "rgba(255,255,255,0.1)",
-          borderRadius: "2px",
-        },
+
         "::-webkit-scrollbar-track": {
           background: "transparent",
         },
+
+        "::-webkit-scrollbar-thumb": {
+          background: "rgba(255,255,255,0.1)",
+          borderRadius: "3px",
+          border: "1px solid transparent",
+          backgroundClip: "padding-box",
+        },
+
+        "::-webkit-scrollbar-thumb:hover": {
+          background: "rgba(255,255,255,0.18)",
+          border: "1px solid transparent",
+          backgroundClip: "padding-box",
+        },
+
         scrollbarWidth: "thin",
-        scrollbarColor: "rgba(255,255,255,0.1) transparent",
+        scrollbarColor: "rgba(255,255,255,0.12) transparent",
       }}
     >
       {/* Navigation */}
       <VStack align="stretch" spacing={1} p={3} pt={4}>
-        <Text
-          fontSize="10px"
-          fontWeight="700"
-          letterSpacing="0.1em"
-          textTransform="uppercase"
-          color="rgba(255,255,255,0.35)"
-          px={3}
-          pb={1}
-        >
-          Navigation
-        </Text>
+        <SectionLabel>Navigation</SectionLabel>
 
-        <NavButton icon={FiHardDrive} label="Local" onClick={onLocalFiles} />
-        <NavButton icon={FiHardDrive} label="Settings" onClick={onSettings} />
-        <NavButton icon={FiHardDrive} label="Actions" onClick={onActions} />
-        <NavButton icon={FiLink} label="Shared Links" onClick={onSharedLinks} />
+        <NavButton
+          icon={FiHardDrive}
+          label="Local Files"
+          onClick={onLocalFiles}
+        />
+
+        <NavButton icon={FiZap} label="Actions" onClick={onActions} />
 
         <NavButton icon={FiRepeat} label="Transfers" onClick={onTransfers} />
 
-        <NavButton
-          icon={FiPlusCircle}
-          label="Add Server"
-          onClick={onNewServer}
-        />
+        <NavButton icon={FiLink} label="Shared Links" onClick={onSharedLinks} />
+
+        <NavButton icon={FiSettings} label="Settings" onClick={onSettings} />
+
+        <AddServerButton onClick={onNewServer} />
       </VStack>
 
       <Box mx={3} my={1} h="1px" bg="rgba(255,255,255,0.06)" />
 
       {/* Servers */}
       <VStack align="stretch" spacing={1} p={3} flex={1}>
-        <Text
-          fontSize="10px"
-          fontWeight="700"
-          letterSpacing="0.1em"
-          textTransform="uppercase"
-          color="rgba(255,255,255,0.35)"
-          px={3}
-          pb={1}
-        >
-          Servers
-          <Text as="span" ml={2} color="rgba(255,255,255,0.35)">
-            {servers.length}
-          </Text>
-        </Text>
+        <SectionLabel count={servers.length}>Servers</SectionLabel>
 
         {servers.length > 0 ? (
           servers.map((server) => (
@@ -139,12 +225,22 @@ const Sidebar = memo(function Sidebar({
           <Flex
             align="center"
             justify="center"
-            h="60px"
-            borderRadius="8px"
-            border="1px dashed rgba(255,255,255,0.08)"
+            direction="column"
+            gap="5px"
+            h="72px"
             mx={1}
+            borderRadius="8px"
+            border="1px dashed"
+            borderColor="rgba(255,255,255,0.08)"
+            bg="rgba(255,255,255,0.012)"
           >
-            <Text fontSize="12px" color="rgba(255,255,255,0.2)">
+            <Icon
+              as={FiActivity}
+              boxSize="15px"
+              color="rgba(255,255,255,0.16)"
+            />
+
+            <Text fontSize="11px" color="rgba(255,255,255,0.25)">
               No servers yet
             </Text>
           </Flex>
