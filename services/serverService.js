@@ -2,11 +2,7 @@ const crypto = require("crypto");
 const net = require("net");
 const { encrypt, decrypt } = require("../controllers/encryption");
 const { servers, shares, sshKeyStore } = require("../db");
-
 const domain = process.env.HOSTNAME;
-
-const { execFile } = require("child_process");
-const { promisify } = require("util");
 const { generateSshKeyPair } = require("./sshKeyGenerator");
 
 // ─── Share Links ──────────────────────────────────────────────────────────────
@@ -45,15 +41,23 @@ async function share_file(fileName, filePath, serverId) {
 
 /**
  * Saves a new SFTP server configuration to the database.
- * Credentials are encrypted before storage.
- * Supports password and private key authentication.
+ * Credentials and private key data are encrypted before storage.
+ *
+ * Supports password and private key authentication. For key authentication,
+ * keyMode determines how the SSH key is obtained:
+ * - "saved": Use an existing shared SSH key identified by keyId.
+ * - "generate": Generate and store a new server-specific SSH key pair.
+ * - "import": Import and store the private key provided in key.
+ *
  * @param {string} host
  * @param {string} username
- * @param {string} [password]
+ * @param {string} [password] - Password for password authentication
  * @param {'password'|'key'} authType
- * @param {string} [key] - Private key contents for key auth
- * @param {string} [passphrase] - Optional passphrase for the private key
- * @throws {Error} If required credentials are missing for the given authType
+ * @param {'saved'|'generate'|'import'} [keyMode] - How the SSH key is obtained for key authentication
+ * @param {string} [keyId] - ID of an existing shared SSH key when keyMode is "saved"
+ * @param {string} [key] - Private key contents when keyMode is "import"
+ * @param {string} [passphrase] - Optional passphrase for an imported private key
+ * @throws {Error} If required credentials are missing or authType/keyMode is unsupported
  */
 async function save_server({
   host,
@@ -141,8 +145,6 @@ async function save_server({
     username: savedServer.username,
     authType: savedServer.authType,
     keyId: savedServer.keyId ?? null,
-
-    // Keep old frontend contract working.
     publicKey,
   };
 }

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
 import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-
 import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
 
 import apiClient from "../services/apiClient";

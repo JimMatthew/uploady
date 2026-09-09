@@ -1,41 +1,50 @@
-import React, { useCallback, useEffect, useState } from "react";
-
-import { Box, Flex, Text, Spinner, Icon } from "@chakra-ui/react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
+import { FiArchive, FiArrowLeft, FiCopy, FiFolder } from "react-icons/fi";
+import Breadcrumbs from "../components/Breadcrumbs";
 import FileItem from "../components/FileItem";
 import FolderItem from "../components/FolderItem";
-import {
-  FiArchive,
-  FiArrowLeft,
-  FiCopy,
-} from "react-icons/fi";
 import ItemMenu from "../components/FileMenu";
 import ClipboardComponent from "../components/ClipboardComponent";
 import apiClient from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
+import { getParentDirectory, getPathName } from "../utils/path";
 
 const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   const [entries, setEntries] = useState([]);
   const [currentDirectory, setCurrentDirectory] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedEntries, setSelectedEntries] = useState([]);
+
   const [contextMenu, setContextMenu] = useState({
     x: 0,
     y: 0,
     entry: null,
     visible: false,
   });
+
   const { copyFile, clipboard } = useClipboard();
+
+  const breadcrumb = useMemo(
+    () => buildArchiveBreadcrumb(filename, currentDirectory),
+    [filename, currentDirectory],
+  );
+
+  const navigateToDirectory = useCallback((path) => {
+    setCurrentDirectory(path);
+    setSelectedEntries([]);
+  }, []);
 
   const loadArchive = useCallback(async () => {
     setLoading(true);
 
     try {
       const path = encodeURIComponent(archivePath);
-
       const data = await apiClient.get(`/api/archive/local?path=${path}`);
 
       setEntries(data.entries ?? []);
       setCurrentDirectory("");
+      setSelectedEntries([]);
     } catch (err) {
       console.error("Failed to open archive:", err);
 
@@ -53,80 +62,57 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     loadArchive();
   }, [loadArchive]);
 
-  const visibleEntries = getDirectoryEntries(entries, currentDirectory);
+  const visibleEntries = useMemo(
+    () => getDirectoryEntries(entries, currentDirectory),
+    [entries, currentDirectory],
+  );
 
-  const openEntry = (entry) => {
-    if (entry.directory) {
-      setCurrentDirectory(entry.name);
-      setSelectedEntries([]);
-      return;
-    }
+  const selectedEntryNames = useMemo(
+    () => new Set(selectedEntries.map((entry) => entry.name)),
+    [selectedEntries],
+  );
 
-    const entryFilename = entry.name.replace(/\/$/, "").split("/").pop();
-
-    openFile({
-      filename: entryFilename,
-      source: {
-        type: "archive",
-        archivePath,
-        entry: entry.name,
-      },
-      readOnly: true,
-    });
-  };
-
-  const goBack = () => {
-    if (!currentDirectory) {
-      return;
-    }
-
-    const path = currentDirectory.replace(/\/$/, "").split("/");
-
-    path.pop();
-
-    const parent = path.length ? `${path.join("/")}/` : "";
-
-    setCurrentDirectory(parent);
-    setSelectedEntries([]);
-  };
-
-  const toggleEntrySelection = useCallback((entry) => {
-    setSelectedEntries((prev) => {
-      const exists = prev.some((selected) => selected.name === entry.name);
-
-      if (exists) {
-        return prev.filter((selected) => selected.name !== entry.name);
+  const openEntry = useCallback(
+    (entry) => {
+      if (entry.directory) {
+        setCurrentDirectory(entry.name);
+        setSelectedEntries([]);
+        return;
       }
 
-      return [...prev, entry];
+      openFile({
+        filename: getPathName(entry.name),
+        source: {
+          type: "archive",
+          archivePath,
+          entry: entry.name,
+        },
+        readOnly: true,
+      });
+    },
+    [archivePath, openFile],
+  );
+
+  const toggleEntrySelection = useCallback((entry) => {
+    setSelectedEntries((current) => {
+      const selected = current.some((item) => item.name === entry.name);
+
+      if (selected) {
+        return current.filter((item) => item.name !== entry.name);
+      }
+
+      return [...current, entry];
     });
   }, []);
 
   const copySelected = useCallback(() => {
-    if (selectedEntries.length === 0) {
+    if (!selectedEntries.length) {
       return;
     }
 
-    const items = selectedEntries.map((entry) => {
-      const entryPath = entry.directory
-        ? entry.name.replace(/\/+$/, "")
-        : entry.name;
-
-      const parts = entryPath.split("/");
-      const file = parts.pop();
-
-      const path = parts.length ? `${parts.join("/")}/` : "";
-
-      return {
-        file,
-        path,
-        source: "archive",
-        archivePath,
-        isDirectory: entry.directory,
-      };
-    });
-
-    copyFile(items);
+    copyFile(
+      selectedEntries.map((entry) => createClipboardEntry(entry, archivePath)),
+    );
   }, [selectedEntries, copyFile, archivePath]);
 
   const copyArchiveEntry = useCallback(
@@ -135,207 +121,245 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
         return;
       }
 
-      const entryPath = entry.directory
-        ? entry.name.replace(/\/+$/, "")
-        : entry.name;
-
-      const parts = entryPath.split("/");
-      const file = parts.pop();
-      const path = parts.length ? `${parts.join("/")}/` : "";
-
-      copyFile({
-        file,
-        path,
-        source: "archive",
-        archivePath,
-        isDirectory: entry.directory,
-      });
+      copyFile(createClipboardEntry(entry, archivePath));
     },
     [copyFile, archivePath],
   );
-  const openMenu = useCallback((e, entry) => {
-    e.preventDefault();
+
+  const openMenu = useCallback((event, entry) => {
+    event.preventDefault();
 
     setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      x: event.clientX,
+      y: event.clientY,
       entry,
       visible: true,
     });
   }, []);
 
   const closeMenu = useCallback(() => {
-    setContextMenu((m) => ({
-      ...m,
+    setContextMenu((current) => ({
+      ...current,
       visible: false,
     }));
   }, []);
+
   return (
-    <Box h="100%" display="flex" flexDirection="column" bg="gray.800">
+    <Box
+      h="100%"
+      display="flex"
+      flexDirection="column"
+      bg="gray.800"
+      overflow="hidden"
+    >
       <ArchiveHeader
         filename={filename}
-        currentDirectory={currentDirectory}
-        canGoBack={currentDirectory !== ""}
-        onBack={goBack}
-        onCopy={copySelected}
+        breadcrumb={breadcrumb}
         selectedCount={selectedEntries.length}
+        onNavigate={navigateToDirectory}
+        onCopy={copySelected}
       />
 
-      {clipboard[0] && <ClipboardComponent pasteable={false} />}
+      {clipboard[0] && (
+        <Box borderBottom="1px solid" borderColor="whiteAlpha.100">
+          <ClipboardComponent pasteable={false} />
+        </Box>
+      )}
 
-      <Box flex={1} overflowY="auto">
+      <Box flex={1} minH={0} overflowY="auto">
         {loading ? (
-          <Flex align="center" justify="center" h="100%" gap={3}>
-            <Spinner size="sm" />
-
-            <Text fontSize="12px" color="rgba(255,255,255,0.35)">
-              Opening archive...
-            </Text>
-          </Flex>
+          <ArchiveLoadingState />
         ) : (
           <ArchiveContents
             entries={visibleEntries}
+            selectedEntryNames={selectedEntryNames}
             onOpen={openEntry}
-            selectedEntries={selectedEntries}
             onSelect={toggleEntrySelection}
             onOpenMenu={openMenu}
           />
         )}
-        {contextMenu.visible && (
-          <ItemMenu
-            top={contextMenu.y}
-            left={contextMenu.x}
-            item={getEntryName(contextMenu.entry.name)}
-            closeMenu={closeMenu}
-            openItem={() => openEntry(contextMenu.entry)}
-            copyItem={() => copyArchiveEntry(contextMenu.entry)}
-          />
-        )}
       </Box>
+
+      {contextMenu.visible && contextMenu.entry && (
+        <ItemMenu
+          top={contextMenu.y}
+          left={contextMenu.x}
+          item={getPathName(contextMenu.entry.name)}
+          closeMenu={closeMenu}
+          openItem={() => openEntry(contextMenu.entry)}
+          copyItem={() => copyArchiveEntry(contextMenu.entry)}
+        />
+      )}
     </Box>
   );
 };
 
+function buildArchiveBreadcrumb(filename, currentDirectory) {
+  const breadcrumb = [
+    {
+      name: filename,
+      path: "",
+    },
+  ];
+
+  if (!currentDirectory) {
+    return breadcrumb;
+  }
+
+  const parts = currentDirectory.replace(/\/+$/, "").split("/");
+
+  let path = "";
+
+  for (const part of parts) {
+    path += `${part}/`;
+
+    breadcrumb.push({
+      name: part,
+      path,
+    });
+  }
+
+  return breadcrumb;
+}
+
 const ArchiveHeader = ({
   filename,
-  currentDirectory,
-  canGoBack,
-  onBack,
-  onCopy,
+  breadcrumb,
   selectedCount,
+  onNavigate,
+  onCopy,
 }) => {
   return (
-    <Flex
-      align="center"
-      gap={3}
-      px={4}
-      py={3}
-      borderBottom="1px solid rgba(255,255,255,0.06)"
+    <Box
       flexShrink={0}
+      bg="rgba(0,0,0,0.12)"
+      borderBottom="1px solid"
+      borderColor="whiteAlpha.100"
     >
-      <Flex
-        align="center"
-        justify="center"
-        w="28px"
-        h="28px"
-        borderRadius="6px"
-        bg="rgba(99,102,241,0.1)"
-        color="#818CF8"
-      >
-        <Icon as={FiArchive} boxSize="14px" />
-      </Flex>
-
-      <Box minW={0} flex={1}>
-        <Text fontSize="12px" fontWeight={600} color="rgba(255,255,255,0.8)">
-          {filename}
-        </Text>
-
-        <Text
-          fontSize="10px"
-          fontFamily="'JetBrains Mono', monospace"
-          color="rgba(255,255,255,0.3)"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          textOverflow="ellipsis"
-        >
-          /{currentDirectory}
-        </Text>
-      </Box>
-
-      {selectedCount > 0 && (
+      <Flex align="center" px={4} py={3} gap={3}>
         <Flex
-          as="button"
           align="center"
-          gap={2}
-          px={3}
-          py={1.5}
-          borderRadius="6px"
-          color="rgba(255,255,255,0.45)"
-          _hover={{
-            bg: "rgba(255,255,255,0.05)",
-            color: "rgba(255,255,255,0.8)",
-          }}
-          onClick={onCopy}
+          justify="center"
+          w="34px"
+          h="34px"
+          flexShrink={0}
+          borderRadius="8px"
+          bg="rgba(99,102,241,0.12)"
+          border="1px solid rgba(129,140,248,0.16)"
+          color="#818CF8"
         >
-          <Icon as={FiCopy} boxSize="13px" />
+          <Icon as={FiArchive} boxSize="16px" />
+        </Flex>
 
-          <Text fontSize="11px">
-            Copy
-            {selectedCount > 1 ? ` (${selectedCount})` : ""}
+        <Box flex={1} minW={0}>
+          <Text
+            mb={1.5}
+            fontSize="10px"
+            fontWeight={600}
+            textTransform="uppercase"
+            letterSpacing="0.06em"
+            color="whiteAlpha.300"
+          >
+            Archive
           </Text>
-        </Flex>
-      )}
-      {canGoBack && (
-        <Flex
-          as="button"
-          align="center"
-          gap={2}
-          px={3}
-          py={1.5}
-          borderRadius="6px"
-          color="rgba(255,255,255,0.45)"
-          _hover={{
-            bg: "rgba(255,255,255,0.05)",
-            color: "rgba(255,255,255,0.8)",
-          }}
-          onClick={onBack}
-        >
-          <Icon as={FiArrowLeft} boxSize="13px" />
 
-          <Text fontSize="11px">Back</Text>
-        </Flex>
-      )}
-    </Flex>
+          <Breadcrumbs breadcrumb={breadcrumb} onClick={onNavigate} />
+        </Box>
+
+        {selectedCount > 0 && (
+          <ToolbarButton icon={FiCopy} onClick={onCopy}>
+            Copy
+            {selectedCount > 1 ? ` ${selectedCount}` : ""}
+          </ToolbarButton>
+        )}
+      </Flex>
+    </Box>
   );
 };
 
+const ToolbarButton = ({ icon, children, onClick }) => (
+  <Flex
+    as="button"
+    type="button"
+    align="center"
+    gap={1.5}
+    h="30px"
+    px={2.5}
+    borderRadius="6px"
+    fontSize="11px"
+    fontWeight={500}
+    color="whiteAlpha.500"
+    transition="background 120ms ease, color 120ms ease"
+    _hover={{
+      bg: "whiteAlpha.100",
+      color: "whiteAlpha.900",
+    }}
+    _active={{
+      bg: "whiteAlpha.200",
+    }}
+    onClick={onClick}
+  >
+    <Icon as={icon} boxSize="12px" />
+
+    <Text fontSize="11px">{children}</Text>
+  </Flex>
+);
+
+const ArchiveLoadingState = () => (
+  <Flex
+    direction="column"
+    align="center"
+    justify="center"
+    h="100%"
+    minH="180px"
+    gap={3}
+  >
+    <Flex
+      align="center"
+      justify="center"
+      w="40px"
+      h="40px"
+      borderRadius="10px"
+      bg="whiteAlpha.50"
+    >
+      <Spinner size="sm" thickness="2px" color="whiteAlpha.600" />
+    </Flex>
+
+    <Box textAlign="center">
+      <Text fontSize="12px" fontWeight={500} color="whiteAlpha.700">
+        Opening archive
+      </Text>
+
+      <Text mt={0.5} fontSize="10px" color="whiteAlpha.300">
+        Reading archive contents...
+      </Text>
+    </Box>
+  </Flex>
+);
+
 const ArchiveContents = ({
   entries,
+  selectedEntryNames,
   onOpen,
-  selectedEntries,
   onSelect,
   onOpenMenu,
 }) => {
-  if (entries.length === 0) {
-    return (
-      <Flex align="center" justify="center" py={12}>
-        <Text fontSize="12px" color="rgba(255,255,255,0.3)">
-          This folder is empty.
-        </Text>
-      </Flex>
-    );
+  if (!entries.length) {
+    return <ArchiveEmptyState />;
   }
 
   return (
-    <Box>
+    <Box py={1}>
       {entries.map((entry) => {
+        const name = getEntryName(entry.name);
+
         if (entry.directory) {
           return (
             <FolderItem
               key={entry.name}
-              folder={getEntryName(entry.name)}
+              folder={name}
               changeDirectory={() => onOpen(entry)}
-              onOpenMenu={(e) => onOpenMenu(e, entry)}
+              onOpenMenu={(event) => onOpenMenu(event, entry)}
             />
           );
         }
@@ -343,14 +367,12 @@ const ArchiveContents = ({
         return (
           <FileItem
             key={entry.name}
-            name={getEntryName(entry.name)}
+            name={name}
             size={entry.size / 1024}
             date={null}
-            isSelected={selectedEntries.some(
-              (selected) => selected.name === entry.name,
-            )}
+            isSelected={selectedEntryNames.has(entry.name)}
             onSelect={() => onSelect(entry)}
-            onOpenMenu={(e) => onOpenMenu(e, entry)}
+            onOpenMenu={(event) => onOpenMenu(event, entry)}
             isRenaming={false}
             onRename={() => {}}
             onRenameClose={() => {}}
@@ -360,6 +382,36 @@ const ArchiveContents = ({
     </Box>
   );
 };
+
+const ArchiveEmptyState = () => (
+  <Flex
+    direction="column"
+    align="center"
+    justify="center"
+    py={16}
+    color="whiteAlpha.300"
+  >
+    <Flex
+      align="center"
+      justify="center"
+      w="42px"
+      h="42px"
+      mb={3}
+      borderRadius="10px"
+      bg="whiteAlpha.50"
+    >
+      <Icon as={FiFolder} boxSize="17px" />
+    </Flex>
+
+    <Text fontSize="12px" fontWeight={500} color="whiteAlpha.500">
+      Empty folder
+    </Text>
+
+    <Text mt={1} fontSize="10px" color="whiteAlpha.300">
+      There are no files in this directory.
+    </Text>
+  </Flex>
+);
 
 function getDirectoryEntries(entries, currentDirectory) {
   return entries
@@ -374,7 +426,7 @@ function getDirectoryEntries(entries, currentDirectory) {
         return false;
       }
 
-      const trimmed = relative.endsWith("/") ? relative.slice(0, -1) : relative;
+      const trimmed = relative.replace(/\/+$/, "");
 
       return !trimmed.includes("/");
     })
@@ -383,12 +435,33 @@ function getDirectoryEntries(entries, currentDirectory) {
         return a.directory ? -1 : 1;
       }
 
-      return a.name.localeCompare(b.name);
+      return getPathName(a.name).localeCompare(
+        getEntryName(b.name),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base",
+        },
+      );
     });
 }
 
-function getEntryName(path) {
-  return path.replace(/\/$/, "").split("/").pop();
+function createClipboardEntry(entry, archivePath) {
+  const entryPath = entry.directory
+    ? entry.name.replace(/\/+$/, "")
+    : entry.name;
+
+  const parts = entryPath.split("/");
+  const file = parts.pop();
+  const path = parts.length ? `${parts.join("/")}/` : "";
+
+  return {
+    file,
+    path,
+    source: "archive",
+    archivePath,
+    isDirectory: entry.directory,
+  };
 }
 
 export default ArchiveViewer;

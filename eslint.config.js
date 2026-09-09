@@ -36,8 +36,14 @@ module.exports = [
       "no-undef": "error",
       "no-unreachable": "error",
     },
+    
   },
-
+{
+  files: ["db/stores/*.js"],
+  rules: {
+    "no-unused-vars": "off",
+  },
+},
   {
     ignores: [
       "node_modules/**",
