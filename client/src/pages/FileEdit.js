@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-import { FiSave, FiMonitor, FiServer, FiFile } from "react-icons/fi";
+import { Box, Button, Flex, Icon, Text } from "@chakra-ui/react";
+import { FiFile, FiMonitor, FiSave, FiServer } from "react-icons/fi";
 
 import apiClient from "../services/apiClient";
 import FileViewer from "../components/fileViewer/FileViewer";
 
 const VIDEO_EXTS = new Set(["mp4", "webm", "ogg"]);
+
 const AUDIO_EXTS = new Set(["mp3", "wav", "ogg"]);
+
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
 const getExt = (filename) =>
@@ -14,43 +16,64 @@ const getExt = (filename) =>
 
 const getFileType = (filename) => {
   const ext = getExt(filename);
-  if (VIDEO_EXTS.has(ext)) return "video";
-  if (AUDIO_EXTS.has(ext)) return "audio";
-  if (IMAGE_RE.test(filename)) return "image";
-  if (ext === "pdf") return "pdf";
-  if (ext === "epub") return "epub";
+
+  if (VIDEO_EXTS.has(ext)) {
+    return "video";
+  }
+
+  if (AUDIO_EXTS.has(ext)) {
+    return "audio";
+  }
+
+  if (IMAGE_RE.test(filename)) {
+    return "image";
+  }
+
+  if (ext === "pdf") {
+    return "pdf";
+  }
+
+  if (ext === "epub") {
+    return "epub";
+  }
+
   return "text";
 };
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-const SaveButton = ({ saving, onClick }) => (
-  <Flex
-    align="center"
-    gap="6px"
-    px={3}
-    h="28px"
-    borderRadius="6px"
-    bg={saving ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.15)"}
-    border="1px solid rgba(99,102,241,0.3)"
-    color="#818CF8"
-    cursor={saving ? "wait" : "pointer"}
-    fontSize="12px"
-    fontWeight={600}
-    transition="all 0.12s"
-    _hover={{
-      bg: "rgba(99,102,241,0.25)",
-      borderColor: "rgba(99,102,241,0.5)",
-    }}
-    onClick={!saving ? onClick : undefined}
-    flexShrink={0}
-  >
-    <Icon as={FiSave} boxSize="12px" />
-    {saving ? "Saving…" : "Save"}
-  </Flex>
-);
+const SaveButton = ({ saving, onClick }) => {
+  return (
+    <Button
+      h="30px"
+      px={3}
+      flexShrink={0}
+      leftIcon={<FiSave size={12} />}
+      borderRadius="7px"
+      border="1px solid"
+      borderColor="rgba(129,140,248,0.24)"
+      bg="rgba(129,140,248,0.11)"
+      color="#A5B4FC"
+      fontSize="11px"
+      fontWeight={600}
+      isLoading={saving}
+      loadingText="Saving"
+      spinnerPlacement="start"
+      transition="
+        background 120ms ease,
+        border-color 120ms ease
+      "
+      _hover={{
+        bg: "rgba(129,140,248,0.17)",
+        borderColor: "rgba(129,140,248,0.34)",
+      }}
+      _active={{
+        bg: "rgba(129,140,248,0.21)",
+      }}
+      onClick={onClick}
+    >
+      Save
+    </Button>
+  );
+};
 
 const FileHeader = ({
   remote,
@@ -60,62 +83,86 @@ const FileHeader = ({
   saving,
   onSave,
   showSave,
-}) => (
-  <Flex
-    align="center"
-    gap={4}
-    px={5}
-    h="48px"
-    borderBottom="1px solid rgba(255,255,255,0.07)"
-    bg="gray.800"
-    flexShrink={0}
-  >
-    {/* Host badge */}
-    <Flex align="center" gap={2}>
-      <Icon
-        as={remote ? FiServer : FiMonitor}
-        boxSize="12px"
-        color="rgba(255,255,255,0.25)"
-      />
-      <Text
-        fontSize="12px"
-        fontFamily="'JetBrains Mono', monospace"
-        color="rgba(255,255,255,0.4)"
-      >
-        {remote ? host : "local"}
-      </Text>
-    </Flex>
-
-    <Icon as={FiFile} boxSize="11px" color="rgba(255,255,255,0.15)" />
-
-    {/* Path + filename */}
-    <Flex align="center" minW={0} flex={1}>
-      <Text
-        fontSize="12px"
-        fontFamily="'JetBrains Mono', monospace"
-        color="rgba(255,255,255,0.3)"
-        noOfLines={1}
-      >
-        {currentDirectory}
-      </Text>
-      <Text
-        fontSize="12px"
-        fontWeight={600}
-        fontFamily="'JetBrains Mono', monospace"
-        color="rgba(255,255,255,0.8)"
+}) => {
+  return (
+    <Flex
+      align="center"
+      gap={3}
+      px={{ base: 3, md: 5 }}
+      h="48px"
+      minH="48px"
+      flexShrink={0}
+      bg="rgba(255,255,255,0.014)"
+      borderBottom="1px solid"
+      borderColor="rgba(255,255,255,0.06)"
+    >
+      <Flex
+        align="center"
+        gap="6px"
         flexShrink={0}
+        px="7px"
+        h="26px"
+        borderRadius="6px"
+        bg="rgba(255,255,255,0.025)"
+        border="1px solid"
+        borderColor="rgba(255,255,255,0.06)"
       >
-        {filename}
-      </Text>
+        <Icon
+          as={remote ? FiServer : FiMonitor}
+          boxSize="11px"
+          color={remote ? "#7BC8D8" : "rgba(255,255,255,0.38)"}
+        />
+
+        <Text
+          fontSize="10px"
+          fontWeight={500}
+          fontFamily="'JetBrains Mono', monospace"
+          color="rgba(255,255,255,0.42)"
+          whiteSpace="nowrap"
+        >
+          {remote ? host : "local"}
+        </Text>
+      </Flex>
+
+      <Box w="1px" h="18px" flexShrink={0} bg="rgba(255,255,255,0.07)" />
+
+      <Icon
+        as={FiFile}
+        boxSize="11px"
+        flexShrink={0}
+        color="rgba(255,255,255,0.22)"
+      />
+
+      <Flex align="center" flex={1} minW={0} overflow="hidden">
+        {currentDirectory && (
+          <Text
+            minW={0}
+            noOfLines={1}
+            fontSize="11px"
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.28)"
+          >
+            {currentDirectory}
+          </Text>
+        )}
+
+        <Text
+          flexShrink={0}
+          ml={currentDirectory ? "2px" : 0}
+          fontSize="11px"
+          fontWeight={600}
+          fontFamily="'JetBrains Mono', monospace"
+          color="rgba(255,255,255,0.82)"
+          whiteSpace="nowrap"
+        >
+          {filename}
+        </Text>
+      </Flex>
+
+      {showSave && <SaveButton saving={saving} onClick={onSave} />}
     </Flex>
-
-    {showSave && <SaveButton saving={saving} onClick={onSave} />}
-  </Flex>
-);
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
+  );
+};
 
 const FileEdit = ({
   serverId,
@@ -132,6 +179,7 @@ const FileEdit = ({
   const [objectUrl, setObjectUrl] = useState(null);
   const [saving, setSaving] = useState(false);
   const [epubData, setEpubData] = useState(null);
+
   const objectUrlRef = useRef(null);
 
   const fileType = getFileType(filename);
@@ -146,13 +194,24 @@ const FileEdit = ({
       return `/api/archive/local/entry?${params}`;
     }
 
-    return serverId
-      ? `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`
-      : `/api/download/${currentDirectory}/${filename}`;
+    if (serverId) {
+      return `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`;
+    }
+
+    return `/api/download/${currentDirectory}/${filename}`;
   };
+
   const streamUrl = `/api/downloadstream/${currentDirectory}/${filename}`;
 
-  // Fetch file and create a typed object URL for binary types
+  const clearObjectUrl = () => {
+    if (!objectUrlRef.current) {
+      return;
+    }
+
+    URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = null;
+  };
+
   const fetchAsObjectUrl = async (mimeType, signal) => {
     const blob = await apiClient.getBlob(buildUrl(), {
       signal,
@@ -168,11 +227,13 @@ const FileEdit = ({
     setObjectUrl(url);
   };
 
-  // Stream text file content progressively into the editor
   const streamTextFile = async (signal) => {
-    const response = await apiClient.getResponse(buildUrl(), { signal });
+    const response = await apiClient.getResponse(buildUrl(), {
+      signal,
+    });
 
     const reader = response.body.getReader();
+
     const decoder = new TextDecoder();
 
     let result = "";
@@ -180,7 +241,9 @@ const FileEdit = ({
     while (true) {
       const { done, value } = await reader.read();
 
-      if (done) break;
+      if (done) {
+        break;
+      }
 
       result += decoder.decode(value, {
         stream: true,
@@ -194,26 +257,28 @@ const FileEdit = ({
   };
 
   const fetchEpub = async (signal) => {
-    const buffer = await apiClient.getArrayBuffer(buildUrl(), { signal });
+    const buffer = await apiClient.getArrayBuffer(buildUrl(), {
+      signal,
+    });
 
     setEpubData(buffer);
   };
 
   useEffect(() => {
     const controller = new AbortController();
+
     const { signal } = controller;
 
     setText("");
     setObjectUrl(null);
     setEpubData(null);
 
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
+    clearObjectUrl();
 
     const loadFile = async () => {
-      if (isNew) return;
+      if (isNew) {
+        return;
+      }
 
       try {
         switch (fileType) {
@@ -233,7 +298,8 @@ const FileEdit = ({
             await streamTextFile(signal);
             break;
 
-          // Audio/video are loaded directly by their elements.
+          // Audio and video are loaded directly
+          // by their respective viewer elements.
           default:
             break;
         }
@@ -248,11 +314,7 @@ const FileEdit = ({
 
     return () => {
       controller.abort();
-
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
+      clearObjectUrl();
     };
   }, [
     serverId,
@@ -266,6 +328,10 @@ const FileEdit = ({
   ]);
 
   const saveFile = async () => {
+    if (saving) {
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -273,6 +339,7 @@ const FileEdit = ({
 
       if (remote) {
         formData.append("currentDirectory", currentDirectory);
+
         formData.append("serverId", serverId);
       } else {
         formData.append("folderPath", currentDirectory);
@@ -280,7 +347,9 @@ const FileEdit = ({
 
       formData.append(
         "files",
-        new Blob([text], { type: "text/plain" }),
+        new Blob([text], {
+          type: "text/plain",
+        }),
         filename,
       );
 
@@ -311,7 +380,7 @@ const FileEdit = ({
   };
 
   return (
-    <Box h="100%" display="flex" flexDirection="column" bg="gray.800">
+    <Flex direction="column" h="100%" minH={0} overflow="hidden" bg="#1B1F2A">
       <FileHeader
         remote={remote}
         host={host}
@@ -322,7 +391,7 @@ const FileEdit = ({
         showSave={fileType === "text" && !readOnly}
       />
 
-      <Box flex={1} overflow="auto">
+      <Box flex={1} minH={0} overflow="auto">
         <FileViewer
           fileType={fileType}
           filename={filename}
@@ -334,7 +403,7 @@ const FileEdit = ({
           readOnly={readOnly}
         />
       </Box>
-    </Box>
+    </Flex>
   );
 };
 

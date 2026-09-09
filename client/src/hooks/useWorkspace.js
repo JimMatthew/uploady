@@ -25,6 +25,7 @@ const TransfersPage = lazy(() => import("../pages/Transfers"));
 const Settings = lazy(() => import("../pages/Settings"));
 const ArchiveViewer = lazy(() => import("../pages/ArchiveViewer"));
 const Actions = lazy(() => import("../pages/ActionsTab"));
+
 export function useWorkspace({ toast }) {
   const nextTabId = useRef(1);
 

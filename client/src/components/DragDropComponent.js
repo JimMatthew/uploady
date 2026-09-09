@@ -1,14 +1,22 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Box,
-  VStack,
-  Text,
+  Button,
   Flex,
   Icon,
+  IconButton,
   Progress,
+  Text,
+  Tooltip,
+  VStack,
 } from "@chakra-ui/react";
-import { FiUploadCloud, FiFile, FiX } from "react-icons/fi";
+import {
+  FiFile,
+  FiUploadCloud,
+  FiX,
+} from "react-icons/fi";
+
 import useFileUpload from "../controllers/useFileUpload";
 
 const DragAndDropComponent = ({
@@ -18,170 +26,346 @@ const DragAndDropComponent = ({
   onUploadError,
 }) => {
   const [files, setFiles] = useState([]);
+
   const token = localStorage.getItem("token");
-  const { uploadFiles, progresses } = useFileUpload({
+
+  const {
+    uploadFiles,
+    progresses,
+  } = useFileUpload({
     apiEndpoint,
     token,
     additionalData,
   });
 
-  const onDrop = useCallback(
-    (accepted) => setFiles((f) => [...f, ...accepted]),
-    [],
-  );
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const onDrop = useCallback((acceptedFiles) => {
+    setFiles((current) => [
+      ...current,
+      ...acceptedFiles,
+    ]);
+  }, []);
 
-  const handleUpload = () =>
-    uploadFiles(files, () => {
-      setFiles([]);
-      onUploadSuccess();
-    });
-  const removeFile = (i) => setFiles((f) => f.filter((_, idx) => idx !== i));
+  const {
+    getRootProps,
+    getInputProps,
+    isDragActive,
+  } = useDropzone({
+    onDrop,
+  });
+
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+
+    try {
+      await uploadFiles(files, () => {
+        setFiles([]);
+        onUploadSuccess?.();
+      });
+    } catch (err) {
+      onUploadError?.(err);
+    }
+  };
+
+  const removeFile = (index) => {
+    setFiles((current) =>
+      current.filter((_, currentIndex) => currentIndex !== index),
+    );
+  };
+
+  const hasFiles = files.length > 0;
 
   return (
-    <VStack spacing={3} w="100%" maxW="480px">
-      {/* Drop zone */}
+    <VStack
+      spacing={3}
+      w="100%"
+      maxW="480px"
+      align="stretch"
+    >
       <Box
         {...getRootProps()}
         w="100%"
-        h="140px"
-        borderRadius="12px"
+        minH="132px"
+        px={4}
+        py={5}
+        borderRadius="10px"
         border="1px dashed"
         borderColor={
-          isDragActive ? "rgba(99,102,241,0.6)" : "rgba(255,255,255,0.1)"
+          isDragActive
+            ? "rgba(129,140,248,0.45)"
+            : "rgba(255,255,255,0.11)"
         }
-        bg={isDragActive ? "rgba(99,102,241,0.07)" : "rgba(255,255,255,0.02)"}
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        gap={2}
+        bg={
+          isDragActive
+            ? "rgba(129,140,248,0.07)"
+            : "rgba(255,255,255,0.018)"
+        }
         cursor="pointer"
-        transition="all 0.15s"
+        transition="
+          background 120ms ease,
+          border-color 120ms ease
+        "
         _hover={{
-          borderColor: "rgba(255,255,255,0.2)",
-          bg: "rgba(255,255,255,0.03)",
+          borderColor: isDragActive
+            ? "rgba(129,140,248,0.5)"
+            : "rgba(255,255,255,0.18)",
+          bg: isDragActive
+            ? "rgba(129,140,248,0.08)"
+            : "rgba(255,255,255,0.028)",
         }}
       >
         <input {...getInputProps()} />
-        <Icon
-          as={FiUploadCloud}
-          boxSize={isDragActive ? "32px" : "28px"}
-          color={isDragActive ? "#6366F1" : "rgba(255,255,255,0.25)"}
-          transition="all 0.15s"
-        />
-        <Text
-          fontSize="13px"
-          color={isDragActive ? "#818CF8" : "rgba(255, 255, 255, 0.45)"}
-          fontWeight={isDragActive ? 600 : 400}
+
+        <Flex
+          h="100%"
+          minH="90px"
+          direction="column"
+          align="center"
+          justify="center"
+          gap={2}
+          textAlign="center"
         >
-          {isDragActive
-            ? "Drop to add files"
-            : "Drag files here or click to browse"}
-        </Text>
+          <Flex
+            align="center"
+            justify="center"
+            w="38px"
+            h="38px"
+            borderRadius="9px"
+            bg={
+              isDragActive
+                ? "rgba(129,140,248,0.11)"
+                : "rgba(255,255,255,0.035)"
+            }
+            border="1px solid"
+            borderColor={
+              isDragActive
+                ? "rgba(129,140,248,0.2)"
+                : "rgba(255,255,255,0.06)"
+            }
+          >
+            <Icon
+              as={FiUploadCloud}
+              boxSize="17px"
+              color={
+                isDragActive
+                  ? "#A5B4FC"
+                  : "rgba(255,255,255,0.32)"
+              }
+            />
+          </Flex>
+
+          <Text
+            fontSize="12px"
+            fontWeight={isDragActive ? 600 : 500}
+            color={
+              isDragActive
+                ? "#A5B4FC"
+                : "rgba(255,255,255,0.54)"
+            }
+          >
+            {isDragActive
+              ? "Drop files to add them"
+              : "Drag files here or click to browse"}
+          </Text>
+
+          {!isDragActive && (
+            <Text
+              fontSize="10px"
+              color="rgba(255,255,255,0.25)"
+            >
+              Files will be uploaded to the current directory
+            </Text>
+          )}
+        </Flex>
       </Box>
 
-      {/* File list */}
-      {files.length > 0 && (
-        <VStack w="100%" spacing={1} align="stretch">
-          {files.map((file, i) => (
-            <Flex
-              key={i}
-              align="center"
-              px={3}
-              py="8px"
-              gap={3}
-              bg="rgba(255,255,255,0.03)"
-              border="1px solid rgba(255,255,255,0.07)"
-              borderRadius="8px"
-            >
-              <Icon
-                as={FiFile}
-                boxSize="14px"
-                color="rgba(255,255,255,0.3)"
-                flexShrink={0}
-              />
-              <Box flex={1} minW={0}>
-                <Text
-                  fontSize="12px"
-                  fontFamily="'JetBrains Mono', monospace"
-                  color="rgba(255,255,255,0.7)"
-                  noOfLines={1}
-                >
-                  {file.name}
-                </Text>
-                {progresses[i] > 0 && (
-                  <Progress
-                    value={progresses[i]}
-                    size="xs"
-                    mt="4px"
-                    borderRadius="full"
-                    bg="rgba(255,255,255,0.07)"
-                    sx={{ "& > div": { bg: "#6366F1" } }}
-                  />
-                )}
-              </Box>
-              <Text
-                fontSize="12px"
-                color="rgba(255, 255, 255, 0.7)"
-                flexShrink={0}
-              >
-                {(file.size / 1024).toFixed(1)}k
-              </Text>
+      {hasFiles && (
+        <VStack
+          w="100%"
+          spacing={0}
+          align="stretch"
+          border="1px solid"
+          borderColor="rgba(255,255,255,0.07)"
+          borderRadius="9px"
+          overflow="hidden"
+          bg="rgba(255,255,255,0.015)"
+        >
+          {files.map((file, index) => {
+            const progress = progresses[index] ?? 0;
+
+            return (
               <Flex
-                w="20px"
-                h="20px"
+                key={`${file.name}:${file.size}:${file.lastModified}:${index}`}
                 align="center"
-                justify="center"
-                borderRadius="4px"
-                cursor="pointer"
-                color="rgba(255,255,255,0.25)"
-                transition="all 0.12s"
-                _hover={{ bg: "rgba(239,68,68,0.15)", color: "#EF4444" }}
-                onClick={() => removeFile(i)}
-                flexShrink={0}
+                gap={3}
+                minH="42px"
+                px={3}
+                py="7px"
+                borderBottom={
+                  index < files.length - 1
+                    ? "1px solid rgba(255,255,255,0.055)"
+                    : "none"
+                }
               >
-                <FiX size={12} />
+                <Flex
+                  align="center"
+                  justify="center"
+                  w="28px"
+                  h="28px"
+                  flexShrink={0}
+                  borderRadius="6px"
+                  bg="rgba(255,255,255,0.035)"
+                >
+                  <Icon
+                    as={FiFile}
+                    boxSize="13px"
+                    color="rgba(255,255,255,0.34)"
+                  />
+                </Flex>
+
+                <Box
+                  flex={1}
+                  minW={0}
+                >
+                  <Flex
+                    align="center"
+                    justify="space-between"
+                    gap={3}
+                  >
+                    <Text
+                      minW={0}
+                      fontSize="11px"
+                      fontFamily="'JetBrains Mono', monospace"
+                      color="rgba(255,255,255,0.72)"
+                      noOfLines={1}
+                    >
+                      {file.name}
+                    </Text>
+
+                    <Text
+                      flexShrink={0}
+                      fontSize="10px"
+                      color="rgba(255,255,255,0.3)"
+                    >
+                      {formatFileSize(file.size)}
+                    </Text>
+                  </Flex>
+
+                  {progress > 0 && (
+                    <Progress
+                      value={Math.min(progress, 100)}
+                      mt="5px"
+                      h="3px"
+                      borderRadius="full"
+                      bg="rgba(255,255,255,0.06)"
+                      sx={{
+                        "& > div": {
+                          bg: "#818CF8",
+                        },
+                      }}
+                    />
+                  )}
+                </Box>
+
+                <Tooltip
+                  label="Remove"
+                  hasArrow
+                  openDelay={400}
+                >
+                  <IconButton
+                    aria-label={`Remove ${file.name}`}
+                    icon={<FiX size={12} />}
+                    size="sm"
+                    minW="24px"
+                    w="24px"
+                    h="24px"
+                    flexShrink={0}
+                    borderRadius="5px"
+                    bg="transparent"
+                    color="rgba(255,255,255,0.28)"
+                    _hover={{
+                      bg: "rgba(229,115,115,0.08)",
+                      color: "#E57373",
+                    }}
+                    onClick={() => removeFile(index)}
+                  />
+                </Tooltip>
               </Flex>
-            </Flex>
-          ))}
+            );
+          })}
         </VStack>
       )}
 
-      {/* Upload button */}
-      <Flex
-        as="button"
+      <Button
         w="100%"
-        h="40px"
-        align="center"
-        justify="center"
-        gap={2}
-        borderRadius="9px"
+        h="38px"
+        leftIcon={<FiUploadCloud size={13} />}
+        borderRadius="8px"
+        fontSize="12px"
+        fontWeight={600}
+        isDisabled={!hasFiles}
         bg={
-          files.length === 0 ? "rgba(255,255,255,0.03)" : "rgba(99,102,241,0.2)"
+          hasFiles
+            ? "rgba(129,140,248,0.14)"
+            : "rgba(255,255,255,0.025)"
         }
         border="1px solid"
         borderColor={
-          files.length === 0
-            ? "rgba(255,255,255,0.07)"
-            : "rgba(99,102,241,0.35)"
+          hasFiles
+            ? "rgba(129,140,248,0.24)"
+            : "rgba(255,255,255,0.06)"
         }
-        color={files.length === 0 ? "rgba(255,255,255,0.2)" : "#818CF8"}
-        cursor={files.length === 0 ? "not-allowed" : "pointer"}
-        fontSize="13px"
-        fontWeight={600}
-        transition="all 0.15s"
-        _hover={files.length > 0 ? { bg: "rgba(99,102,241,0.3)" } : {}}
-        onClick={files.length > 0 ? handleUpload : undefined}
+        color={
+          hasFiles
+            ? "#A5B4FC"
+            : "rgba(255,255,255,0.2)"
+        }
+        _hover={
+          hasFiles
+            ? {
+                bg: "rgba(129,140,248,0.2)",
+                borderColor: "rgba(129,140,248,0.34)",
+              }
+            : {}
+        }
+        _active={
+          hasFiles
+            ? {
+                bg: "rgba(129,140,248,0.24)",
+              }
+            : {}
+        }
+        _disabled={{
+          opacity: 1,
+          cursor: "not-allowed",
+        }}
+        onClick={handleUpload}
       >
-        <FiUploadCloud size={14} />
-        Upload{" "}
-        {files.length > 0
-          ? `${files.length} file${files.length > 1 ? "s" : ""}`
-          : ""}
-      </Flex>
+        {hasFiles
+          ? `Upload ${files.length} ${files.length === 1 ? "file" : "files"}`
+          : "Select files to upload"}
+      </Button>
     </VStack>
   );
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  const kilobytes = bytes / 1024;
+
+  if (kilobytes < 1024) {
+    return `${kilobytes.toFixed(1)} KB`;
+  }
+
+  const megabytes = kilobytes / 1024;
+
+  if (megabytes < 1024) {
+    return `${megabytes.toFixed(1)} MB`;
+  }
+
+  return `${(megabytes / 1024).toFixed(2)} GB`;
 };
 
 export default DragAndDropComponent;

@@ -137,8 +137,8 @@ const Sidebar = memo(function Sidebar({
   return (
     <Box
       w="240px"
-      minH="100vh"
-      maxH="100vh"
+
+      h="100%"
       overflowY="auto"
       bg="#151821"
       borderRight="1px solid"
@@ -157,28 +157,9 @@ const Sidebar = memo(function Sidebar({
       left={0}
       sx={{
         "::-webkit-scrollbar": {
-          width: "6px",
+          width: "0px",
         },
-
-        "::-webkit-scrollbar-track": {
-          background: "transparent",
-        },
-
-        "::-webkit-scrollbar-thumb": {
-          background: "rgba(255,255,255,0.1)",
-          borderRadius: "3px",
-          border: "1px solid transparent",
-          backgroundClip: "padding-box",
-        },
-
-        "::-webkit-scrollbar-thumb:hover": {
-          background: "rgba(255,255,255,0.18)",
-          border: "1px solid transparent",
-          backgroundClip: "padding-box",
-        },
-
-        scrollbarWidth: "thin",
-        scrollbarColor: "rgba(255,255,255,0.12) transparent",
+        scrollbarWidth: "none",
       }}
     >
       {/* Navigation */}

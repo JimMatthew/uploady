@@ -351,7 +351,7 @@ const ArchiveContents = ({
   return (
     <Box py={1}>
       {entries.map((entry) => {
-        const name = getEntryName(entry.name);
+        const name = getPathName(entry.name);
 
         if (entry.directory) {
           return (
@@ -436,7 +436,7 @@ function getDirectoryEntries(entries, currentDirectory) {
       }
 
       return getPathName(a.name).localeCompare(
-        getEntryName(b.name),
+        getPathName(b.name),
         undefined,
         {
           numeric: true,

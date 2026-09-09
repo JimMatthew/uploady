@@ -1,15 +1,24 @@
-import { Flex, Text, Box, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
+
 import { FiLogOut } from "react-icons/fi";
 
 const Header = () => {
-  const showText = useBreakpointValue({ base: false, md: true });
+  const showText = useBreakpointValue({
+    base: false,
+    md: true,
+  });
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/apilogout", { method: "GET" });
-      if (res.ok) window.location.href = "/";
-    } catch (e) {
-      console.error(e);
+      const res = await fetch("/apilogout", {
+        method: "GET",
+      });
+
+      if (res.ok) {
+        window.location.href = "/";
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -19,73 +28,61 @@ const Header = () => {
       align="center"
       px={4}
       h="44px"
-      bg="gray.900"
-      backdropFilter="blur(12px)"
-      borderBottom="1px solid rgba(255,255,255,0.06)"
+      flexShrink={0}
+      gap={3}
+      bg="#151821"
+      borderBottom="1px solid"
+      borderColor="rgba(255,255,255,0.065)"
       position="sticky"
       top={0}
       zIndex={100}
-      gap={3}
-      flexShrink={0}
     >
-      {/* Logo */}
-      <Flex align="center" gap="10px">
-        <Box
+      {/* Brand */}
+      <Flex align="center" gap="9px">
+        <Flex
+          align="center"
+          justify="center"
           w="22px"
           h="22px"
-          borderRadius="5px"
-          bg="linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
           flexShrink={0}
-          boxShadow="0 0 10px rgba(99,102,241,0.35)"
+          borderRadius="6px"
+          bg="rgba(129,140,248,0.11)"
+          border="1px solid"
+          borderColor="rgba(129,140,248,0.2)"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <rect
-              x="1"
-              y="1"
-              width="4"
-              height="4"
-              rx="1"
-              fill="white"
-              fillOpacity="0.95"
-            />
+            <rect x="1" y="1" width="4" height="4" rx="1" fill="#A5B4FC" />
+
             <rect
               x="7"
               y="1"
               width="4"
               height="4"
               rx="1"
-              fill="white"
-              fillOpacity="0.45"
+              fill="#A5B4FC"
+              fillOpacity="0.4"
             />
+
             <rect
               x="1"
               y="7"
               width="4"
               height="4"
               rx="1"
-              fill="white"
-              fillOpacity="0.45"
+              fill="#A5B4FC"
+              fillOpacity="0.4"
             />
-            <rect
-              x="7"
-              y="7"
-              width="4"
-              height="4"
-              rx="1"
-              fill="white"
-              fillOpacity="0.95"
-            />
+
+            <rect x="7" y="7" width="4" height="4" rx="1" fill="#A5B4FC" />
           </svg>
-        </Box>
+        </Flex>
+
         {showText && (
           <Text
             fontSize="13px"
-            fontWeight="700"
-            letterSpacing="-0.02em"
-            color="rgba(255,255,255,0.85)"
+            fontWeight={700}
+            letterSpacing="-0.025em"
+            color="rgba(255,255,255,0.84)"
             fontFamily="'JetBrains Mono', monospace"
           >
             uploady
@@ -99,23 +96,30 @@ const Header = () => {
       <Flex
         align="center"
         gap={2}
-        px={3}
+        px="10px"
         h="30px"
-        borderRadius="6px"
-        border="1px solid rgba(255,255,255,0.08)"
+        borderRadius="7px"
+        border="1px solid"
+        borderColor="rgba(255,255,255,0.08)"
+        bg="rgba(255,255,255,0.02)"
         cursor="pointer"
-        transition="all 0.15s"
-        color="rgba(255,255,255,0.35)"
-        _hover={{
-          bg: "rgba(239,68,68,0.08)",
-          borderColor: "rgba(239,68,68,0.25)",
-          color: "#EF4444",
-        }}
+        color="rgba(255,255,255,0.42)"
+        transition="
+          background 120ms ease,
+          border-color 120ms ease,
+          color 120ms ease
+        "
         onClick={handleLogout}
+        _hover={{
+          bg: "rgba(229,115,115,0.07)",
+          borderColor: "rgba(229,115,115,0.2)",
+          color: "#E57373",
+        }}
       >
-        <FiLogOut size={13} />
+        <FiLogOut size={12} />
+
         {showText && (
-          <Text fontSize="12px" fontWeight={500} letterSpacing="0.02em">
+          <Text fontSize="11px" fontWeight={500}>
             Logout
           </Text>
         )}

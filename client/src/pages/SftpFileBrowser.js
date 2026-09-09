@@ -1,11 +1,16 @@
 import React, { useMemo } from "react";
-import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
+import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
+
 import { FiAlertTriangle, FiWifi } from "react-icons/fi";
+
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
 const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
-  const browser = useSftpFileFolderViewer({ serverId, toast });
+  const browser = useSftpFileFolderViewer({
+    serverId,
+    toast,
+  });
 
   const fileUploadProps = useMemo(
     () => ({
@@ -19,7 +24,7 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
     [browser.files?.currentDirectory, browser.reload, serverId],
   );
 
-  const onOpenFile = (filename, isNew) =>
+  const onOpenFile = (filename, isNew) => {
     openFile({
       filename,
       source: {
@@ -30,8 +35,9 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
       },
       isNew,
     });
+  };
 
-  if (browser.loading)
+  if (browser.loading) {
     return (
       <Flex
         align="center"
@@ -40,23 +46,17 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
         direction="column"
         gap={3}
       >
-        <Box position="relative">
-          <Spinner size="sm" color="rgba(99,102,241,0.5)" />
-          <Box
-            position="absolute"
-            inset={0}
-            borderRadius="full"
-            boxShadow="0 0 12px rgba(99,102,241,0.3)"
-          />
-        </Box>
+        <Spinner size="sm" color="rgba(129,140,248,0.65)" />
+
         <Flex align="center" gap={2}>
-          <Icon as={FiWifi} boxSize="12px" color="rgba(255,255,255,0.2)" />
-          <Text fontSize="12px" color="rgba(255,255,255,0.25)">
+          <Icon as={FiWifi} boxSize="12px" color="rgba(255,255,255,0.22)" />
+
+          <Text fontSize="12px" color="rgba(255,255,255,0.3)">
             Connecting to{" "}
             <Text
               as="span"
               fontFamily="'JetBrains Mono', monospace"
-              color="rgba(255,255,255,0.45)"
+              color="rgba(255,255,255,0.5)"
             >
               {host}
             </Text>
@@ -65,12 +65,13 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
         </Flex>
       </Flex>
     );
+  }
 
   if (
     !browser.files ||
     !Array.isArray(browser.files.folders) ||
     !Array.isArray(browser.files.files)
-  )
+  ) {
     return (
       <Flex
         align="center"
@@ -79,41 +80,40 @@ const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
         direction="column"
         gap={3}
       >
-        <Box
+        <Flex
+          align="center"
+          justify="center"
           w="44px"
           h="44px"
           borderRadius="11px"
-          bg="rgba(239,68,68,0.08)"
-          border="1px solid rgba(239,68,68,0.2)"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          bg="rgba(229,115,115,0.07)"
+          border="1px solid"
+          borderColor="rgba(229,115,115,0.16)"
         >
-          <Icon
-            as={FiAlertTriangle}
-            boxSize="18px"
-            color="rgba(239,68,68,0.7)"
-          />
-        </Box>
+          <Icon as={FiAlertTriangle} boxSize="18px" color="#E57373" />
+        </Flex>
+
         <Box textAlign="center">
           <Text
+            mb={1}
             fontSize="13px"
             fontWeight={600}
-            color="rgba(255,255,255,0.6)"
-            mb={1}
+            color="rgba(255,255,255,0.68)"
           >
             Connection failed
           </Text>
+
           <Text
-            fontSize="12px"
-            color="rgba(255,255,255,0.25)"
+            fontSize="11px"
             fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.3)"
           >
             {host}
           </Text>
         </Box>
       </Flex>
     );
+  }
 
   return (
     <FilePanel

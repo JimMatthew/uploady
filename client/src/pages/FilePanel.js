@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Box, Flex, Icon, Tooltip, useBreakpointValue } from "@chakra-ui/react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Box,
+  Flex,
+  IconButton,
+  Tooltip,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import { FiUpload, FiUploadCloud } from "react-icons/fi";
 
 import Breadcrumbs from "../components/Breadcrumbs";
@@ -60,6 +66,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
   } = browser;
 
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
+
   const { clipboard } = useClipboard();
 
   const isCompactViewport =
@@ -89,6 +96,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
     };
 
     updateScreenHeight();
+
     window.addEventListener("resize", updateScreenHeight);
 
     return () => {
@@ -97,7 +105,9 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
   }, []);
 
   const forceCompact = isCompactViewport || isShortScreen;
+
   const showDropZone = !forceCompact && uploadMode === UploadMode.DRAG_DROP;
+
   const showCompactUpload = forceCompact || uploadMode === UploadMode.COMPACT;
 
   const toggleUploadMode = () => {
@@ -110,19 +120,26 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
     localStorage.setItem(UPLOAD_MODE_KEY, nextMode);
   };
 
-  const breadcrumb = generateBreadcrumb(files.currentDirectory || "/");
+  const breadcrumb = useMemo(
+    () => generateBreadcrumb(files.currentDirectory || "/"),
+    [files.currentDirectory, generateBreadcrumb],
+  );
+
   const hasClipboardItems = clipboard.length > 0;
-  const hasTransfers = Boolean(startedTransfers && progressMap);
+
+  const hasTransfers =
+    Boolean(startedTransfers?.length) && Boolean(progressMap);
 
   return (
-    <Box h="100%" display="flex" flexDirection="column" minH={0}>
+    <Flex direction="column" h="100%" minH={0} overflow="hidden">
       {showDropZone && (
         <Box
+          flexShrink={0}
           px={{ base: 3, md: 5 }}
           py={4}
+          bg="rgba(255,255,255,0.008)"
           borderBottom="1px solid"
-          borderColor="whiteAlpha.100"
-          bg="rgba(255,255,255,0.01)"
+          borderColor="rgba(255,255,255,0.055)"
         >
           <Flex justify="center">
             <DragAndDropComponent
@@ -139,19 +156,25 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
         justify="space-between"
         gap={3}
         px={{ base: 3, md: 5 }}
-        py={forceCompact ? 2 : 3}
+        py={forceCompact ? 2 : "10px"}
         minH="48px"
         flexShrink={0}
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        bg="rgba(255,255,255,0.012)"
         flexWrap="wrap"
+        bg="rgba(255,255,255,0.014)"
+        borderBottom="1px solid"
+        borderColor="rgba(255,255,255,0.06)"
       >
-        <Box flex={1} minW="180px">
+        <Box
+          flex={1}
+          minW="180px"
+          minH="28px"
+          display="flex"
+          alignItems="center"
+        >
           <Breadcrumbs breadcrumb={breadcrumb} onClick={changeDirectory} />
         </Box>
 
-        <Flex align="center" gap={1.5} flexShrink={0}>
+        <Flex align="center" gap="6px" flexShrink={0}>
           {showCompactUpload && (
             <Upload
               apiEndpoint={apiEndpoint}
@@ -185,7 +208,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
         </Box>
       )}
 
-      <Box flex={1} minH={0} overflow="auto">
+      <Box flex={1} minH={0} overflowY="auto" overflowX="hidden">
         <FolderList
           folders={files.folders}
           openFolder={openFolder}
@@ -205,48 +228,57 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
           openFile={onOpenFile}
         />
       </Box>
-    </Box>
+    </Flex>
   );
 };
 
 const UploadModeToggle = ({ mode, onToggle }) => {
   const showingDropZone = mode === UploadMode.DRAG_DROP;
+
   const label = showingDropZone ? "Hide drop zone" : "Show drop zone";
 
   return (
     <Tooltip label={label} hasArrow openDelay={400}>
-      <Flex
-        as="button"
-        type="button"
-        w="28px"
-        h="28px"
-        align="center"
-        justify="center"
-        flexShrink={0}
-        borderRadius="6px"
-        border="1px solid"
-        borderColor={
-          showingDropZone ? "rgba(99,102,241,0.35)" : "whiteAlpha.100"
-        }
-        bg={showingDropZone ? "rgba(99,102,241,0.12)" : "transparent"}
-        color={showingDropZone ? "#818CF8" : "whiteAlpha.400"}
-        transition="background 120ms ease, border-color 120ms ease, color 120ms ease"
-        _hover={{
-          borderColor: showingDropZone
-            ? "rgba(129,140,248,0.5)"
-            : "whiteAlpha.200",
-          bg: showingDropZone ? "rgba(99,102,241,0.16)" : "whiteAlpha.50",
-          color: showingDropZone ? "#A5B4FC" : "whiteAlpha.700",
-        }}
-        _active={{
-          bg: showingDropZone ? "rgba(99,102,241,0.2)" : "whiteAlpha.100",
-        }}
-        onClick={onToggle}
+      <IconButton
         aria-label={label}
         title={label}
-      >
-        <Icon as={showingDropZone ? FiUploadCloud : FiUpload} boxSize="13px" />
-      </Flex>
+        icon={
+          showingDropZone ? <FiUploadCloud size={13} /> : <FiUpload size={13} />
+        }
+        size="sm"
+        minW="28px"
+        w="28px"
+        h="28px"
+        borderRadius="7px"
+        border="1px solid"
+        borderColor={
+          showingDropZone ? "rgba(129,140,248,0.22)" : "rgba(255,255,255,0.08)"
+        }
+        bg={
+          showingDropZone ? "rgba(129,140,248,0.08)" : "rgba(255,255,255,0.02)"
+        }
+        color={showingDropZone ? "#A5B4FC" : "rgba(255,255,255,0.38)"}
+        transition="
+          background 120ms ease,
+          border-color 120ms ease,
+          color 120ms ease
+        "
+        _hover={{
+          bg: showingDropZone
+            ? "rgba(129,140,248,0.13)"
+            : "rgba(255,255,255,0.055)",
+          borderColor: showingDropZone
+            ? "rgba(129,140,248,0.34)"
+            : "rgba(255,255,255,0.13)",
+          color: showingDropZone ? "#A5B4FC" : "rgba(255,255,255,0.7)",
+        }}
+        _active={{
+          bg: showingDropZone
+            ? "rgba(129,140,248,0.17)"
+            : "rgba(255,255,255,0.075)",
+        }}
+        onClick={onToggle}
+      />
     </Tooltip>
   );
 };
