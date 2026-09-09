@@ -1,167 +1,232 @@
+import React, {
+  useEffect,
+} from "react";
+
 import {
   Box,
-  Text,
+  Button,
   Flex,
-  SimpleGrid,
-  VStack,
   Icon,
+  SimpleGrid,
   Skeleton,
+  Text,
 } from "@chakra-ui/react";
-import React, { useEffect } from "react";
-import { FiRefreshCw, FiShare2 } from "react-icons/fi";
+
+import {
+  FiRefreshCw,
+  FiShare2,
+} from "react-icons/fi";
+
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
 
 const LoadingSkeleton = () => (
   <SimpleGrid
     spacing={3}
-    templateColumns="repeat(auto-fill, minmax(280px, 1fr))"
+    templateColumns="repeat(auto-fill, minmax(320px, 1fr))"
   >
-    {[...Array(3)].map((_, i) => (
+    {[...Array(3)].map((_, index) => (
       <Skeleton
-        key={i}
-        h="110px"
+        key={index}
+        h="160px"
         borderRadius="10px"
-        startColor="rgba(255,255,255,0.04)"
-        endColor="rgba(255,255,255,0.08)"
+        startColor="rgba(255,255,255,0.025)"
+        endColor="rgba(255,255,255,0.06)"
       />
     ))}
   </SimpleGrid>
 );
 
 const SharedLinks = () => {
-  const { links, loading, loadLinks, deleteLink, copyToClipboard, clickLink } =
-    useSharedLinks();
+  const {
+    links,
+    loading,
+    loadLinks,
+    deleteLink,
+    copyToClipboard,
+    clickLink,
+  } = useSharedLinks();
 
   useEffect(() => {
     loadLinks();
-  }, [loadLinks]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadLinks]);
+
+  const linkCountText = loading
+    ? "Loading shared links…"
+    : `${links.length} active link${
+        links.length === 1 ? "" : "s"
+      }`;
 
   return (
-    <Box p={6}>
-      {/* Header */}
-      <Flex align="center" justify="space-between" mb={6}>
-        <Flex align="center" gap={3}>
-          <Box
-            w="34px"
-            h="34px"
-            borderRadius="9px"
-            bg="rgba(99,102,241,0.12)"
-            border="1px solid rgba(99,102,241,0.2)"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            flexShrink={0}
-          >
-            <FiShare2 color="#818CF8" size={15} />
-          </Box>
-          <Box>
-            <Text
-              fontSize="15px"
-              fontWeight={700}
-              color="rgba(255,255,255,0.88)"
-              letterSpacing="-0.02em"
-              lineHeight={1.2}
-            >
-              Shared Links
-            </Text>
-            <Text fontSize="11px" color="rgba(255,255,255,0.28)" mt="1px">
-              {loading
-                ? "Loading…"
-                : `${links.length} active link${links.length !== 1 ? "s" : ""}`}
-            </Text>
-          </Box>
-        </Flex>
-
+    <Box
+      h="100%"
+      overflowY="auto"
+      px={{ base: 4, md: 6 }}
+      py={{ base: 5, md: 6 }}
+    >
+      <Box
+        maxW="1200px"
+        mx="auto"
+      >
+        {/* Header */}
         <Flex
-          align="center"
-          gap={2}
-          px={3}
-          h="30px"
-          borderRadius="7px"
-          border="1px solid rgba(255,255,255,0.07)"
-          color="rgba(255,255,255,0.3)"
-          cursor="pointer"
-          fontSize="12px"
-          fontWeight={500}
-          transition="all 0.15s"
-          _hover={{
-            borderColor: "rgba(255,255,255,0.15)",
-            color: "rgba(255,255,255,0.7)",
+          align={{ base: "flex-start", sm: "center" }}
+          justify="space-between"
+          direction={{
+            base: "column",
+            sm: "row",
           }}
-          onClick={loadLinks}
+          gap={4}
+          mb={6}
         >
-          <Icon
-            as={FiRefreshCw}
-            boxSize="11px"
-            style={{ animation: loading ? "spin 1s linear infinite" : "none" }}
-          />
-          Refresh
-        </Flex>
-      </Flex>
-
-      {/* Content */}
-      {loading ? (
-        <LoadingSkeleton />
-      ) : links.length > 0 ? (
-        <SimpleGrid
-          spacing={3}
-          templateColumns="repeat(auto-fill, minmax(280px, 1fr))"
-        >
-          {links.map((link, i) => (
-            <LinkCard
-              key={link._id}
-              linkItem={link}
-              stopSharing={deleteLink}
-              downloadLink={clickLink}
-              copyToClipboard={copyToClipboard}
-            />
-          ))}
-        </SimpleGrid>
-      ) : (
-        <Flex
-          direction="column"
-          align="center"
-          justify="center"
-          py={16}
-          gap={3}
-          border="1px dashed rgba(255,255,255,0.06)"
-          borderRadius="12px"
-          bg="rgba(255,255,255,0.01)"
-        >
-          <Box
-            w="44px"
-            h="44px"
-            borderRadius="11px"
-            bg="rgba(99,102,241,0.08)"
-            border="1px solid rgba(99,102,241,0.15)"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
+          <Flex
+            align="center"
+            gap={3}
           >
-            <FiShare2 color="rgba(99,102,241,0.5)" size={18} />
-          </Box>
-          <VStack spacing={1}>
-            <Text
-              fontSize="13px"
-              fontWeight={600}
-              color="rgba(255,255,255,0.3)"
+            <Flex
+              w="32px"
+              h="32px"
+              align="center"
+              justify="center"
+              borderRadius="7px"
+              bg="rgba(99,102,241,0.1)"
+              color="#818CF8"
+              flexShrink={0}
             >
-              No shared links
-            </Text>
-            <Text
-              fontSize="11px"
-              color="rgba(255,255,255,0.15)"
-              textAlign="center"
-              maxW="200px"
-            >
-              Right-click any file and select Share Link to get started
-            </Text>
-          </VStack>
+              <Icon
+                as={FiShare2}
+                boxSize="14px"
+              />
+            </Flex>
+
+            <Box>
+              <Text
+                fontSize="15px"
+                fontWeight={600}
+                color="whiteAlpha.900"
+                letterSpacing="-0.02em"
+                lineHeight={1.2}
+              >
+                Shared Links
+              </Text>
+
+              <Text
+                mt="2px"
+                fontSize="11px"
+                color="whiteAlpha.400"
+              >
+                {linkCountText}
+              </Text>
+            </Box>
+          </Flex>
+
+          <Button
+            size="sm"
+            h="30px"
+            px={3}
+            leftIcon={
+              <Icon
+                as={FiRefreshCw}
+                boxSize="11px"
+                animation={
+                  loading
+                    ? "spin 1s linear infinite"
+                    : "none"
+                }
+              />
+            }
+            onClick={loadLinks}
+            isDisabled={loading}
+            variant="ghost"
+            border="1px solid"
+            borderColor="whiteAlpha.100"
+            color="whiteAlpha.500"
+            fontSize="11px"
+            fontWeight={500}
+            _hover={{
+              borderColor: "whiteAlpha.200",
+              bg: "whiteAlpha.50",
+              color: "whiteAlpha.800",
+            }}
+          >
+            Refresh
+          </Button>
         </Flex>
-      )}
+
+        {/* Content */}
+        {loading ? (
+          <LoadingSkeleton />
+        ) : links.length > 0 ? (
+          <SimpleGrid
+            spacing={3}
+            columns={{
+    base: 1,
+    xl: 2,
+  }}
+          >
+            {links.map((link) => (
+              <LinkCard
+                key={link._id}
+                linkItem={link}
+                stopSharing={deleteLink}
+                downloadLink={clickLink}
+                copyToClipboard={copyToClipboard}
+              />
+            ))}
+          </SimpleGrid>
+        ) : (
+          <EmptyState />
+        )}
+      </Box>
     </Box>
   );
 };
+
+const EmptyState = () => (
+  <Flex
+    direction="column"
+    align="center"
+    justify="center"
+    py={16}
+    border="1px dashed"
+    borderColor="whiteAlpha.100"
+    borderRadius="10px"
+    bg="rgba(255,255,255,0.01)"
+  >
+    <Flex
+      w="42px"
+      h="42px"
+      mb={3}
+      align="center"
+      justify="center"
+      borderRadius="9px"
+      bg="rgba(99,102,241,0.07)"
+      color="rgba(129,140,248,0.6)"
+    >
+      <Icon
+        as={FiShare2}
+        boxSize="17px"
+      />
+    </Flex>
+
+    <Text
+      fontSize="13px"
+      fontWeight={500}
+      color="whiteAlpha.500"
+    >
+      No shared links
+    </Text>
+
+    <Text
+      mt={1}
+      fontSize="11px"
+      color="whiteAlpha.300"
+      textAlign="center"
+      maxW="240px"
+    >
+      Right-click a file and select Share Link to create one.
+    </Text>
+  </Flex>
+);
 
 export default SharedLinks;

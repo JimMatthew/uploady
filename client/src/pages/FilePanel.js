@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { Box, Flex, Icon, Tooltip } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
+import { Box, Flex, Icon, Tooltip, useBreakpointValue } from "@chakra-ui/react";
 import { FiUpload, FiUploadCloud } from "react-icons/fi";
+
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
@@ -10,8 +11,16 @@ import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
 import CreateFileComponent from "../components/CreateFileComponent";
 import ClipboardComponent from "../components/ClipboardComponent";
+
 import { useClipboard } from "../contexts/ClipboardContext";
-import { useBreakpointValue } from "@chakra-ui/react";
+
+const SHORT_SCREEN_HEIGHT = 800;
+const UPLOAD_MODE_KEY = "uploadMode";
+
+const UploadMode = {
+  DRAG_DROP: "dragdrop",
+  COMPACT: "compact",
+};
 
 /**
  * Shared file browser UI for local and SFTP sources.
@@ -24,11 +33,7 @@ import { useBreakpointValue } from "@chakra-ui/react";
  * @param {Object} props.fileUploadProps.additionalData
  * @param {() => void} props.fileUploadProps.onUploadSuccess
  */
-const FilePanel = ({
-  browser,
-  onOpenFile,
-  fileUploadProps,
-}) => {
+const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
   const {
     files,
     openFolder,
@@ -53,44 +58,71 @@ const FilePanel = ({
     progressMap,
     startedTransfers,
   } = browser;
-  const { clipboard } = useClipboard();
+
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
+  const { clipboard } = useClipboard();
 
-  const isCompact =
-    useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
+  const isCompactViewport =
+    useBreakpointValue(
+      {
+        base: true,
+        md: false,
+      },
+      {
+        ssr: false,
+      },
+    ) ?? false;
 
-  const [isShortScreen, setIsShortScreen] = useState(
-    () => window.innerHeight < 800,
-  );
+  const [isShortScreen, setIsShortScreen] = useState(false);
 
-  // Persisted upload mode — "dragdrop" or "compact"
-  const [uploadMode, setUploadMode] = useState(
-    () => localStorage.getItem("uploadMode") ?? "dragdrop",
-  );
+  const [uploadMode, setUploadMode] = useState(() => {
+    const savedMode = localStorage.getItem(UPLOAD_MODE_KEY);
+
+    return Object.values(UploadMode).includes(savedMode)
+      ? savedMode
+      : UploadMode.DRAG_DROP;
+  });
 
   useEffect(() => {
-    const handleResize = () => setIsShortScreen(window.innerHeight < 800);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const updateScreenHeight = () => {
+      setIsShortScreen(window.innerHeight < SHORT_SCREEN_HEIGHT);
+    };
+
+    updateScreenHeight();
+    window.addEventListener("resize", updateScreenHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateScreenHeight);
+    };
   }, []);
 
-  const forceCompact = isCompact || isShortScreen;
-  const showDragDrop = !forceCompact && uploadMode === "dragdrop";
+  const forceCompact = isCompactViewport || isShortScreen;
+  const showDropZone = !forceCompact && uploadMode === UploadMode.DRAG_DROP;
+  const showCompactUpload = forceCompact || uploadMode === UploadMode.COMPACT;
 
   const toggleUploadMode = () => {
-    const next = uploadMode === "dragdrop" ? "compact" : "dragdrop";
-    setUploadMode(next);
-    localStorage.setItem("uploadMode", next);
+    const nextMode =
+      uploadMode === UploadMode.DRAG_DROP
+        ? UploadMode.COMPACT
+        : UploadMode.DRAG_DROP;
+
+    setUploadMode(nextMode);
+    localStorage.setItem(UPLOAD_MODE_KEY, nextMode);
   };
 
+  const breadcrumb = generateBreadcrumb(files.currentDirectory || "/");
+  const hasClipboardItems = clipboard.length > 0;
+  const hasTransfers = Boolean(startedTransfers && progressMap);
+
   return (
-    <Box h="100%" display="flex" flexDirection="column">
-      {/* Upload zone — large screens, dragdrop mode only */}
-      {showDragDrop && (
+    <Box h="100%" display="flex" flexDirection="column" minH={0}>
+      {showDropZone && (
         <Box
           px={{ base: 3, md: 5 }}
           py={4}
-          borderBottom="1px solid rgba(255,255,255,0.06)"
+          borderBottom="1px solid"
+          borderColor="whiteAlpha.100"
+          bg="rgba(255,255,255,0.01)"
         >
           <Flex justify="center">
             <DragAndDropComponent
@@ -102,90 +134,44 @@ const FilePanel = ({
         </Box>
       )}
 
-      {/* Breadcrumb + toolbar */}
       <Flex
         align="center"
         justify="space-between"
         gap={3}
         px={{ base: 3, md: 5 }}
         py={forceCompact ? 2 : 3}
-        borderBottom="1px solid rgba(255,255,255,0.05)"
+        minH="48px"
+        flexShrink={0}
+        borderBottom="1px solid"
+        borderColor="whiteAlpha.100"
+        bg="rgba(255,255,255,0.012)"
         flexWrap="wrap"
       >
-        <Breadcrumbs
-          breadcrumb={generateBreadcrumb(files.currentDirectory || "/")}
-          onClick={changeDirectory}
-        />
-        <Flex align="center" gap={2}>
-          {/* Always show compact upload when dragdrop is hidden */}
-          {(forceCompact || uploadMode === "compact") && (
+        <Box flex={1} minW="180px">
+          <Breadcrumbs breadcrumb={breadcrumb} onClick={changeDirectory} />
+        </Box>
+
+        <Flex align="center" gap={1.5} flexShrink={0}>
+          {showCompactUpload && (
             <Upload
               apiEndpoint={apiEndpoint}
               additionalData={additionalData}
               onUploadSuccess={onUploadSuccess}
             />
           )}
+
           <CreateFolderComponent handleCreateFolder={createFolder} />
+
           <CreateFileComponent onOpenFile={(name) => onOpenFile(name, true)} />
 
-          {/* Toggle upload mode — only on large screens */}
           {!forceCompact && (
-            <Tooltip
-              label={
-                uploadMode === "dragdrop" ? "Hide drop zone" : "Show drop zone"
-              }
-              hasArrow
-              openDelay={400}
-            >
-              <Flex
-                w="28px"
-                h="28px"
-                align="center"
-                justify="center"
-                borderRadius="6px"
-                cursor="pointer"
-                border="1px solid"
-                borderColor={
-                  uploadMode === "dragdrop"
-                    ? "rgba(99,102,241,0.35)"
-                    : "rgba(255,255,255,0.08)"
-                }
-                bg={
-                  uploadMode === "dragdrop"
-                    ? "rgba(99,102,241,0.12)"
-                    : "transparent"
-                }
-                color={
-                  uploadMode === "dragdrop"
-                    ? "#818CF8"
-                    : "rgba(255,255,255,0.3)"
-                }
-                transition="all 0.12s"
-                _hover={{
-                  borderColor:
-                    uploadMode === "dragdrop"
-                      ? "rgba(99,102,241,0.5)"
-                      : "rgba(255,255,255,0.18)",
-                  color:
-                    uploadMode === "dragdrop"
-                      ? "#A5B4FC"
-                      : "rgba(255,255,255,0.7)",
-                }}
-                onClick={toggleUploadMode}
-              >
-                <Icon
-                  as={uploadMode === "dragdrop" ? FiUploadCloud : FiUpload}
-                  boxSize="13px"
-                />
-              </Flex>
-            </Tooltip>
+            <UploadModeToggle mode={uploadMode} onToggle={toggleUploadMode} />
           )}
         </Flex>
       </Flex>
 
-      {/* Transfer progress */}
-      {startedTransfers && progressMap && (
-        <Box px={{ base: 3, md: 5 }} pt={3}>
+      {hasTransfers && (
+        <Box px={{ base: 3, md: 5 }} pt={3} flexShrink={0}>
           <TransferProgress
             transfers={startedTransfers}
             progressMap={progressMap}
@@ -193,10 +179,13 @@ const FilePanel = ({
         </Box>
       )}
 
-      {clipboard[0] && <ClipboardComponent handlePaste={paste} />}
+      {hasClipboardItems && (
+        <Box flexShrink={0}>
+          <ClipboardComponent handlePaste={paste} />
+        </Box>
+      )}
 
-      {/* File browser */}
-      <Box flex={1} overflow="auto">
+      <Box flex={1} minH={0} overflow="auto">
         <FolderList
           folders={files.folders}
           openFolder={openFolder}
@@ -204,6 +193,7 @@ const FilePanel = ({
           downloadFolder={downloadFolder}
           copyFolder={copyFolder}
         />
+
         <FileList
           files={files.files}
           downloadFile={downloadFile}
@@ -216,6 +206,48 @@ const FilePanel = ({
         />
       </Box>
     </Box>
+  );
+};
+
+const UploadModeToggle = ({ mode, onToggle }) => {
+  const showingDropZone = mode === UploadMode.DRAG_DROP;
+  const label = showingDropZone ? "Hide drop zone" : "Show drop zone";
+
+  return (
+    <Tooltip label={label} hasArrow openDelay={400}>
+      <Flex
+        as="button"
+        type="button"
+        w="28px"
+        h="28px"
+        align="center"
+        justify="center"
+        flexShrink={0}
+        borderRadius="6px"
+        border="1px solid"
+        borderColor={
+          showingDropZone ? "rgba(99,102,241,0.35)" : "whiteAlpha.100"
+        }
+        bg={showingDropZone ? "rgba(99,102,241,0.12)" : "transparent"}
+        color={showingDropZone ? "#818CF8" : "whiteAlpha.400"}
+        transition="background 120ms ease, border-color 120ms ease, color 120ms ease"
+        _hover={{
+          borderColor: showingDropZone
+            ? "rgba(129,140,248,0.5)"
+            : "whiteAlpha.200",
+          bg: showingDropZone ? "rgba(99,102,241,0.16)" : "whiteAlpha.50",
+          color: showingDropZone ? "#A5B4FC" : "whiteAlpha.700",
+        }}
+        _active={{
+          bg: showingDropZone ? "rgba(99,102,241,0.2)" : "whiteAlpha.100",
+        }}
+        onClick={onToggle}
+        aria-label={label}
+        title={label}
+      >
+        <Icon as={showingDropZone ? FiUploadCloud : FiUpload} boxSize="13px" />
+      </Flex>
+    </Tooltip>
   );
 };
 

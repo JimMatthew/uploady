@@ -1,32 +1,64 @@
 import React, { useCallback, useEffect, useState } from "react";
+
 import {
   Box,
-  Flex,
-  Text,
-  Input,
   Button,
-  Spinner,
+  Flex,
   Icon,
+  Input,
+  Spinner,
+  Text,
 } from "@chakra-ui/react";
+
 import {
-  FiKey,
-  FiCopy,
-  FiTrash2,
-  FiPlus,
   FiClock,
+  FiCopy,
   FiFileText,
+  FiKey,
+  FiPlus,
+  FiTrash2,
 } from "react-icons/fi";
 
 import apiClient from "../services/apiClient";
+
+const inputStyles = {
+  borderColor: "whiteAlpha.100",
+  bg: "whiteAlpha.50",
+  color: "whiteAlpha.800",
+  _placeholder: {
+    color: "whiteAlpha.300",
+  },
+  _hover: {
+    borderColor: "whiteAlpha.200",
+  },
+  _focusVisible: {
+    borderColor: "#6366F1",
+    boxShadow: "0 0 0 1px #6366F1",
+  },
+};
+
+const primaryButtonStyles = {
+  bg: "rgba(99,102,241,0.15)",
+  color: "#A5B4FC",
+  border: "1px solid rgba(99,102,241,0.3)",
+  _hover: {
+    bg: "rgba(99,102,241,0.25)",
+  },
+  _active: {
+    bg: "rgba(99,102,241,0.32)",
+  },
+};
 
 const Settings = ({ toast }) => {
   const [keys, setKeys] = useState([]);
   const [loadingKeys, setLoadingKeys] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [keyName, setKeyName] = useState("");
+
   const [sessionTimeout, setSessionTimeout] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSession, setSavingSession] = useState(false);
+
   // ---------------------------------------------------------------------------
   // SSH keys
   // ---------------------------------------------------------------------------
@@ -49,31 +81,6 @@ const Settings = ({ toast }) => {
       setLoadingKeys(false);
     }
   }, [toast]);
-
-  const loadSettings = useCallback(async () => {
-    setLoadingSettings(true);
-
-    try {
-      const data = await apiClient.get("/api/settings");
-
-      setSessionTimeout(String(data.session.jwtLifetimeMinutes));
-    } catch (err) {
-      console.error("Failed to load settings:", err);
-
-      toast?.({
-        title: "Failed to load settings",
-        description: err.message,
-        status: "error",
-      });
-    } finally {
-      setLoadingSettings(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadKeys();
-    loadSettings();
-  }, [loadKeys, loadSettings]);
 
   const generateKey = async () => {
     const name = keyName.trim();
@@ -124,7 +131,7 @@ const Settings = ({ toast }) => {
     try {
       await apiClient.delete(`/api/keys/${key.id}`);
 
-      setKeys((prev) => prev.filter((item) => item.id !== key.id));
+      setKeys((current) => current.filter((item) => item.id !== key.id));
 
       toast?.({
         title: "SSH key deleted",
@@ -162,6 +169,30 @@ const Settings = ({ toast }) => {
       });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // Application settings
+  // ---------------------------------------------------------------------------
+
+  const loadSettings = useCallback(async () => {
+    setLoadingSettings(true);
+
+    try {
+      const data = await apiClient.get("/api/settings");
+
+      setSessionTimeout(String(data.session.jwtLifetimeMinutes));
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+
+      toast?.({
+        title: "Failed to load settings",
+        description: err.message,
+        status: "error",
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  }, [toast]);
 
   const saveSessionSettings = async () => {
     const lifetime = Number(sessionTimeout);
@@ -203,131 +234,61 @@ const Settings = ({ toast }) => {
   };
 
   // ---------------------------------------------------------------------------
+  // Load data
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    loadKeys();
+    loadSettings();
+  }, [loadKeys, loadSettings]);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
   return (
-    <Box h="100%" overflowY="auto" px={{ base: 4, md: 8 }} py={6}>
+    <Box
+      h="100%"
+      overflowY="auto"
+      px={{ base: 4, md: 8 }}
+      py={{ base: 5, md: 7 }}
+    >
       <Box maxW="900px" mx="auto">
-        <Box mb={8}>
-          <Text fontSize="20px" fontWeight={600} color="rgba(255,255,255,0.9)">
-            Settings
-          </Text>
+        <PageHeader />
 
-          <Text mt={1} fontSize="13px" color="rgba(255,255,255,0.35)">
-            Configure Uploady and manage shared resources.
-          </Text>
-        </Box>
-
-        {/* SSH Keys */}
         <SettingsSection
           icon={FiKey}
           title="SSH Keys"
-          description="Manage reusable SSH keys available to servers."
+          description="Reusable credentials for server authentication."
         >
-          <Flex gap={2} mb={5} direction={{ base: "column", sm: "row" }}>
-            <Input
-              value={keyName}
-              onChange={(event) => setKeyName(event.target.value)}
-              placeholder="Key name"
-              size="sm"
-              maxW="320px"
-              borderColor="rgba(255,255,255,0.08)"
-              bg="rgba(255,255,255,0.025)"
-              _hover={{
-                borderColor: "rgba(255,255,255,0.15)",
-              }}
-              _focusVisible={{
-                borderColor: "#6366F1",
-                boxShadow: "none",
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  generateKey();
-                }
-              }}
-            />
-
-            <Button
-              size="sm"
-              leftIcon={<FiPlus />}
-              onClick={generateKey}
-              isLoading={generating}
-              bg="rgba(99,102,241,0.15)"
-              color="#A5B4FC"
-              border="1px solid rgba(99,102,241,0.3)"
-              _hover={{
-                bg: "rgba(99,102,241,0.25)",
-              }}
-            >
-              Generate Key
-            </Button>
-          </Flex>
+          <KeyCreator
+            keyName={keyName}
+            generating={generating}
+            onChange={setKeyName}
+            onGenerate={generateKey}
+          />
 
           {loadingKeys ? (
-            <Flex align="center" justify="center" py={8} gap={3}>
-              <Spinner size="sm" />
-
-              <Text fontSize="12px" color="rgba(255,255,255,0.3)">
-                Loading keys...
-              </Text>
-            </Flex>
+            <LoadingState label="Loading SSH keys..." />
           ) : keys.length === 0 ? (
-            <Box
-              py={8}
-              textAlign="center"
-              border="1px dashed rgba(255,255,255,0.08)"
-              borderRadius="8px"
-            >
-              <Text fontSize="13px" color="rgba(255,255,255,0.3)">
-                No shared SSH keys.
-              </Text>
-            </Box>
+            <EmptyKeyState />
           ) : (
-            <Flex direction="column" gap={2}>
-              {keys.map((key) => (
-                <KeyRow
-                  key={key.id}
-                  sshKey={key}
-                  onCopy={() => copyPublicKey(key)}
-                  onDelete={() => deleteKey(key)}
-                />
-              ))}
-            </Flex>
+            <KeyList keys={keys} onCopy={copyPublicKey} onDelete={deleteKey} />
           )}
         </SettingsSection>
 
-        {/* Session */}
         <SettingsSection
           icon={FiClock}
           title="Session"
           description="Authentication and session behavior."
         >
           {loadingSettings ? (
-            <Flex align="center" gap={3} py={3}>
-              <Spinner size="sm" />
-
-              <Text fontSize="12px" color="rgba(255,255,255,0.3)">
-                Loading session settings...
-              </Text>
-            </Flex>
+            <LoadingState label="Loading session settings..." />
           ) : (
-            <Flex
-              align={{ base: "stretch", sm: "center" }}
-              justify="space-between"
-              direction={{ base: "column", sm: "row" }}
-              gap={4}
+            <SettingRow
+              title="Session lifetime"
+              description="Lifetime of newly issued login tokens."
             >
-              <Box>
-                <Text fontSize="12px" color="rgba(255,255,255,0.55)">
-                  Session lifetime
-                </Text>
-
-                <Text mt={1} fontSize="10px" color="rgba(255,255,255,0.25)">
-                  Lifetime of newly issued login tokens.
-                </Text>
-              </Box>
-
               <Flex align="center" gap={2}>
                 <Input
                   type="number"
@@ -335,19 +296,11 @@ const Settings = ({ toast }) => {
                   value={sessionTimeout}
                   onChange={(event) => setSessionTimeout(event.target.value)}
                   size="sm"
-                  w="120px"
-                  borderColor="rgba(255,255,255,0.08)"
-                  bg="rgba(255,255,255,0.025)"
-                  _hover={{
-                    borderColor: "rgba(255,255,255,0.15)",
-                  }}
-                  _focusVisible={{
-                    borderColor: "#6366F1",
-                    boxShadow: "none",
-                  }}
+                  w="90px"
+                  {...inputStyles}
                 />
 
-                <Text fontSize="11px" color="rgba(255,255,255,0.3)">
+                <Text fontSize="11px" color="whiteAlpha.400">
                   minutes
                 </Text>
 
@@ -355,165 +308,281 @@ const Settings = ({ toast }) => {
                   size="sm"
                   onClick={saveSessionSettings}
                   isLoading={savingSession}
-                  bg="rgba(99,102,241,0.15)"
-                  color="#A5B4FC"
-                  border="1px solid rgba(99,102,241,0.3)"
-                  _hover={{
-                    bg: "rgba(99,102,241,0.25)",
-                  }}
+                  {...primaryButtonStyles}
                 >
                   Save
                 </Button>
               </Flex>
-            </Flex>
+            </SettingRow>
           )}
         </SettingsSection>
 
-        {/* Logging */}
         <SettingsSection
           icon={FiFileText}
           title="Logging"
-          description="Backend diagnostic logging."
+          description="Backend diagnostic logging and retention."
         >
-          <FutureSetting title="Log level" value="Coming later" />
+          <SettingRow title="Log level">
+            <SettingStatus>Planned</SettingStatus>
+          </SettingRow>
 
-          <FutureSetting title="Log retention" value="Coming later" />
+          <SettingDivider />
+
+          <SettingRow title="Log retention">
+            <SettingStatus>Planned</SettingStatus>
+          </SettingRow>
         </SettingsSection>
       </Box>
     </Box>
   );
 };
 
-const SettingsSection = ({ icon, title, description, children }) => {
-  return (
-    <Box
-      mb={5}
-      border="1px solid rgba(255,255,255,0.06)"
-      borderRadius="10px"
-      bg="rgba(255,255,255,0.015)"
-      overflow="hidden"
+const PageHeader = () => (
+  <Box mb={9}>
+    <Text
+      fontSize="20px"
+      fontWeight={600}
+      color="whiteAlpha.900"
+      letterSpacing="-0.01em"
     >
+      Settings
+    </Text>
+
+    <Text mt={1} fontSize="13px" color="whiteAlpha.400">
+      Configure Uploady and manage shared resources.
+    </Text>
+  </Box>
+);
+
+const SettingsSection = ({ icon, title, description, children }) => (
+  <Box mb={10}>
+    <Flex align="center" gap={3} mb={4}>
       <Flex
         align="center"
-        gap={3}
-        px={5}
-        py={4}
-        borderBottom="1px solid rgba(255,255,255,0.06)"
+        justify="center"
+        w="30px"
+        h="30px"
+        flexShrink={0}
+        borderRadius="7px"
+        bg="rgba(99,102,241,0.1)"
+        color="#818CF8"
       >
-        <Flex
-          align="center"
-          justify="center"
-          w="30px"
-          h="30px"
-          borderRadius="7px"
-          bg="rgba(99,102,241,0.1)"
-          color="#818CF8"
-          flexShrink={0}
-        >
-          <Icon as={icon} boxSize="14px" />
-        </Flex>
-
-        <Box>
-          <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.8)">
-            {title}
-          </Text>
-
-          <Text fontSize="11px" color="rgba(255,255,255,0.3)">
-            {description}
-          </Text>
-        </Box>
+        <Icon as={icon} boxSize="14px" />
       </Flex>
 
-      <Box p={5}>{children}</Box>
-    </Box>
-  );
-};
-
-const KeyRow = ({ sshKey, onCopy, onDelete }) => {
-  return (
-    <Flex
-      align={{ base: "stretch", md: "center" }}
-      justify="space-between"
-      direction={{ base: "column", md: "row" }}
-      gap={3}
-      px={4}
-      py={3}
-      border="1px solid rgba(255,255,255,0.06)"
-      borderRadius="8px"
-      bg="rgba(0,0,0,0.12)"
-    >
-      <Box minW={0} flex={1}>
-        <Text fontSize="13px" fontWeight={600} color="rgba(255,255,255,0.8)">
-          {sshKey.name}
+      <Box minW={0}>
+        <Text fontSize="13px" fontWeight={600} color="whiteAlpha.800">
+          {title}
         </Text>
 
-        <Text
-          mt={1}
-          fontSize="10px"
-          fontFamily="'JetBrains Mono', monospace"
-          color="rgba(255,255,255,0.3)"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          textOverflow="ellipsis"
-        >
-          {sshKey.publicKey || "Public key unavailable"}
+        <Text mt={0.5} fontSize="11px" color="whiteAlpha.400">
+          {description}
         </Text>
       </Box>
-
-      <Flex gap={2} flexShrink={0}>
-        <Button
-          size="xs"
-          variant="ghost"
-          leftIcon={<FiCopy />}
-          onClick={onCopy}
-          isDisabled={!sshKey.publicKey}
-          color="rgba(255,255,255,0.5)"
-          _hover={{
-            color: "#A5B4FC",
-            bg: "rgba(99,102,241,0.1)",
-          }}
-        >
-          Copy
-        </Button>
-
-        <Button
-          size="xs"
-          variant="ghost"
-          leftIcon={<FiTrash2 />}
-          onClick={onDelete}
-          color="rgba(255,255,255,0.4)"
-          _hover={{
-            color: "#FCA5A5",
-            bg: "rgba(239,68,68,0.08)",
-          }}
-        >
-          Delete
-        </Button>
-      </Flex>
     </Flex>
-  );
-};
 
-const FutureSetting = ({ title, value }) => {
-  return (
-    <Flex
-      align="center"
-      justify="space-between"
-      py={3}
-      borderBottom="1px solid rgba(255,255,255,0.04)"
-      _last={{
-        borderBottom: "none",
-      }}
-    >
-      <Text fontSize="12px" color="rgba(255,255,255,0.55)">
+    <Box borderTop="1px solid" borderColor="whiteAlpha.100" pt={5}>
+      {children}
+    </Box>
+  </Box>
+);
+
+const SettingRow = ({ title, description, children }) => (
+  <Flex
+    align={{ base: "stretch", sm: "center" }}
+    justify="space-between"
+    direction={{ base: "column", sm: "row" }}
+    gap={5}
+    py={3}
+  >
+    <Box minW={0}>
+      <Text fontSize="12px" fontWeight={500} color="whiteAlpha.700">
         {title}
       </Text>
 
-      <Text fontSize="11px" color="rgba(255,255,255,0.25)">
-        {value}
+      {description && (
+        <Text mt={1} fontSize="10px" color="whiteAlpha.300">
+          {description}
+        </Text>
+      )}
+    </Box>
+
+    <Box flexShrink={0}>{children}</Box>
+  </Flex>
+);
+
+const SettingDivider = () => (
+  <Box borderTop="1px solid" borderColor="whiteAlpha.50" />
+);
+
+const SettingStatus = ({ children }) => (
+  <Text fontSize="11px" color="whiteAlpha.300">
+    {children}
+  </Text>
+);
+
+const KeyCreator = ({ keyName, generating, onChange, onGenerate }) => (
+  <Flex
+    gap={2}
+    mb={5}
+    direction={{ base: "column", sm: "row" }}
+    align={{ base: "stretch", sm: "center" }}
+  >
+    <Input
+      value={keyName}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder="Key name"
+      size="sm"
+      maxW={{ base: "100%", sm: "320px" }}
+      {...inputStyles}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          onGenerate();
+        }
+      }}
+    />
+
+    <Button
+      size="sm"
+      leftIcon={<FiPlus />}
+      onClick={onGenerate}
+      isLoading={generating}
+      alignSelf={{ base: "stretch", sm: "auto" }}
+      {...primaryButtonStyles}
+    >
+      Generate Key
+    </Button>
+  </Flex>
+);
+
+const KeyList = ({ keys, onCopy, onDelete }) => (
+  <Box
+    border="1px solid"
+    borderColor="whiteAlpha.100"
+    borderRadius="8px"
+    overflow="hidden"
+  >
+    {keys.map((key, index) => (
+      <KeyRow
+        key={key.id}
+        sshKey={key}
+        showBorder={index < keys.length - 1}
+        onCopy={() => onCopy(key)}
+        onDelete={() => onDelete(key)}
+      />
+    ))}
+  </Box>
+);
+
+const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }) => (
+  <Flex
+    align={{ base: "stretch", md: "center" }}
+    justify="space-between"
+    direction={{ base: "column", md: "row" }}
+    gap={4}
+    px={4}
+    py={3}
+    bg="rgba(255,255,255,0.012)"
+    borderBottom={showBorder ? "1px solid" : "none"}
+    borderColor="whiteAlpha.100"
+    transition="background 120ms ease"
+    _hover={{
+      bg: "rgba(255,255,255,0.025)",
+    }}
+  >
+    <Box minW={0} flex={1}>
+      <Text fontSize="12px" fontWeight={600} color="whiteAlpha.800">
+        {sshKey.name}
       </Text>
+
+      <Text
+        mt={1}
+        fontSize="10px"
+        fontFamily="'JetBrains Mono', monospace"
+        color="whiteAlpha.400"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        textOverflow="ellipsis"
+      >
+        {sshKey.publicKey || "Public key unavailable"}
+      </Text>
+    </Box>
+
+    <Flex gap={1} flexShrink={0}>
+      <Button
+        size="xs"
+        variant="ghost"
+        leftIcon={<FiCopy />}
+        onClick={onCopy}
+        isDisabled={!sshKey.publicKey}
+        color="whiteAlpha.500"
+        _hover={{
+          color: "#A5B4FC",
+          bg: "rgba(99,102,241,0.1)",
+        }}
+      >
+        Copy
+      </Button>
+
+      <Button
+        size="xs"
+        variant="ghost"
+        leftIcon={<FiTrash2 />}
+        onClick={onDelete}
+        color="whiteAlpha.400"
+        _hover={{
+          color: "#FCA5A5",
+          bg: "rgba(239,68,68,0.08)",
+        }}
+      >
+        Delete
+      </Button>
     </Flex>
-  );
-};
+  </Flex>
+);
+
+const LoadingState = ({ label }) => (
+  <Flex align="center" justify="center" gap={3} py={8}>
+    <Spinner size="sm" thickness="2px" color="whiteAlpha.500" />
+
+    <Text fontSize="12px" color="whiteAlpha.300">
+      {label}
+    </Text>
+  </Flex>
+);
+
+const EmptyKeyState = () => (
+  <Flex
+    direction="column"
+    align="center"
+    justify="center"
+    py={9}
+    border="1px dashed"
+    borderColor="whiteAlpha.100"
+    borderRadius="8px"
+    bg="rgba(255,255,255,0.01)"
+  >
+    <Flex
+      align="center"
+      justify="center"
+      w="36px"
+      h="36px"
+      mb={3}
+      borderRadius="8px"
+      bg="whiteAlpha.50"
+      color="whiteAlpha.300"
+    >
+      <Icon as={FiKey} boxSize="15px" />
+    </Flex>
+
+    <Text fontSize="12px" fontWeight={500} color="whiteAlpha.500">
+      No shared SSH keys
+    </Text>
+
+    <Text mt={1} fontSize="10px" color="whiteAlpha.300">
+      Generate a key to reuse it across server configurations.
+    </Text>
+  </Flex>
+);
 
 export default Settings;

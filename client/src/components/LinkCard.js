@@ -1,107 +1,128 @@
 import {
   Box,
+  Button,
   Flex,
-  Text,
-  HStack,
   Icon,
   Popover,
-  PopoverTrigger,
-  PopoverContent,
   PopoverArrow,
-  PopoverCloseButton,
   PopoverBody,
+  PopoverCloseButton,
+  PopoverContent,
+  PopoverTrigger,
+  Portal,
+  Text,
+  Tooltip,
 } from "@chakra-ui/react";
+
 import {
-  FiDownload,
   FiCopy,
+  FiDownload,
+  FiHardDrive,
   FiLink2,
   FiX,
-  FiHardDrive,
 } from "react-icons/fi";
+
 import { MdQrCode2 } from "react-icons/md";
+
 import QRCode from "react-qr-code";
 
-const ActionButton = ({
-  icon,
-  label,
-  onClick,
-  accent,
-}) => (
-  <Flex
-    align="center"
-    gap="6px"
-    px={3}
-    h="28px"
-    borderRadius="6px"
-    cursor="pointer"
-    fontSize="12px"
-    fontWeight={500}
-    border="1px solid"
-    borderColor={
-      accent
-        ? `rgba(${accent},0.3)`
-        : "rgba(255,255,255,0.08)"
-    }
-    color={
-      accent
-        ? `rgba(${accent},0.9)`
-        : "rgba(255,255,255,0.45)"
-    }
-    bg={
-      accent
-        ? `rgba(${accent},0.08)`
-        : "transparent"
-    }
-    transition="all 0.12s"
-    _hover={{
-      borderColor: accent
-        ? `rgba(${accent},0.5)`
-        : "rgba(255,255,255,0.2)",
-      bg: accent
-        ? `rgba(${accent},0.14)`
-        : "rgba(255,255,255,0.05)",
-      color: accent
-        ? `rgba(${accent},1)`
-        : "rgba(255,255,255,0.8)",
-    }}
-    onClick={onClick}
-  >
-    <Icon as={icon} boxSize="12px" />
-    {label}
-  </Flex>
-);
+const ACCENT = "#818CF8";
+const ACCENT_SOFT = "#A5B4FC";
+const ERROR = "#E57373";
 
 const LocationBadge = ({
   label,
-  color,
-  background,
-  border,
+  remote = false,
 }) => (
   <Flex
-    display="inline-flex"
     align="center"
-    gap={1}
+    gap="5px"
     px="7px"
-    h="19px"
-    borderRadius="4px"
-    bg={background}
-    border={`1px solid ${border}`}
+    h="22px"
+    borderRadius="6px"
+    bg={
+      remote
+        ? "rgba(129,140,248,0.08)"
+        : "rgba(255,255,255,0.045)"
+    }
+    border="1px solid"
+    borderColor={
+      remote
+        ? "rgba(129,140,248,0.18)"
+        : "rgba(255,255,255,0.08)"
+    }
+    flexShrink={0}
   >
     <Icon
       as={FiHardDrive}
       boxSize="9px"
-      color={color}
+      color={
+        remote
+          ? ACCENT_SOFT
+          : "rgba(255,255,255,0.4)"
+      }
     />
 
     <Text
       fontSize="10px"
-      color={color}
       fontWeight={600}
-      letterSpacing="0.04em"
+      color={
+        remote
+          ? ACCENT_SOFT
+          : "rgba(255,255,255,0.52)"
+      }
+      lineHeight={1}
     >
       {label}
     </Text>
   </Flex>
+);
+
+const IconAction = ({
+  icon,
+  label,
+  onClick,
+  danger = false,
+}) => (
+  <Tooltip
+    label={label}
+    hasArrow
+    openDelay={400}
+  >
+    <Button
+      minW="28px"
+      w="28px"
+      h="28px"
+      p={0}
+      variant="ghost"
+      borderRadius="7px"
+      color={
+        danger
+          ? "rgba(229,115,115,0.55)"
+          : "rgba(255,255,255,0.42)"
+      }
+      onClick={onClick}
+      aria-label={label}
+      _hover={{
+        bg: danger
+          ? "rgba(229,115,115,0.09)"
+          : "rgba(255,255,255,0.06)",
+        color: danger
+          ? ERROR
+          : "rgba(255,255,255,0.85)",
+      }}
+      _active={{
+        bg: danger
+          ? "rgba(229,115,115,0.13)"
+          : "rgba(255,255,255,0.09)",
+      }}
+    >
+      <Icon
+        as={icon}
+        boxSize="12px"
+      />
+    </Button>
+  </Tooltip>
 );
 
 const LinkCard = ({
@@ -110,166 +131,310 @@ const LinkCard = ({
   downloadLink,
   copyToClipboard,
 }) => {
-  const locationBadge = linkItem.isRemote ? (
-    <LocationBadge
-      label={linkItem.serverName ?? "Remote"}
-      color="#A78BFA"
-      background="rgba(139,92,246,0.1)"
-      border="rgba(139,92,246,0.22)"
-    />
-  ) : (
-    <LocationBadge
-      label="Local"
-      color="rgba(34,197,94,0.8)"
-      background="rgba(34,197,94,0.08)"
-      border="rgba(34,197,94,0.18)"
-    />
-  );
+  const isRemote = Boolean(linkItem.isRemote);
 
   return (
     <Box
-      p={4}
-      bg="rgba(255,255,255,0.02)"
-      border="1px solid rgba(255,255,255,0.07)"
-      borderRadius="12px"
-      transition="all 0.15s"
       position="relative"
+      bg="#1A1E27"
+      border="1px solid"
+      borderColor="rgba(255,255,255,0.075)"
+      borderRadius="12px"
+      boxShadow="0 8px 24px rgba(0,0,0,0.12)"
+      transition="
+        background 140ms ease,
+        border-color 140ms ease,
+        transform 140ms ease,
+        box-shadow 140ms ease
+      "
       _hover={{
+        bg: "#1C202A",
         borderColor: "rgba(255,255,255,0.13)",
-        bg: "rgba(255,255,255,0.03)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+        transform: "translateY(-1px)",
       }}
     >
-      <Flex
+      {/* Very subtle accent line */}
+      <Box
         position="absolute"
-        top={3}
-        right={3}
-        w="22px"
-        h="22px"
-        align="center"
-        justify="center"
-        borderRadius="5px"
-        cursor="pointer"
-        color="rgba(255,255,255,0.15)"
-        transition="all 0.12s"
-        _hover={{
-          bg: "rgba(239,68,68,0.12)",
-          color: "#EF4444",
-        }}
-        onClick={() => stopSharing(linkItem.token)}
-      >
-        <FiX size={12} />
-      </Flex>
+        top={0}
+        left="18px"
+        right="18px"
+        h="1px"
+        bg="linear-gradient(90deg, transparent, rgba(129,140,248,0.35), transparent)"
+        pointerEvents="none"
+      />
 
-      <HStack
-        spacing={2}
-        minW={0}
-        mb={1}
-        pr={6}
-      >
-        <Icon
-          as={FiLink2}
-          boxSize="13px"
-          color="rgba(99,102,241,0.6)"
-          flexShrink={0}
-        />
-
-        <Text
-          fontSize="13px"
-          fontWeight={600}
-          color="rgba(255,255,255,0.85)"
-          fontFamily="'JetBrains Mono', monospace"
-          noOfLines={1}
-          letterSpacing="-0.01em"
+      <Box p={4}>
+        {/* Header */}
+        <Flex
+          align="center"
+          justify="space-between"
+          gap={3}
         >
-          {linkItem.fileName}
-        </Text>
-      </HStack>
-
-      <Text
-        fontSize="11px"
-        fontFamily="'JetBrains Mono', monospace"
-        color="rgba(255,255,255,0.2)"
-        noOfLines={1}
-        mb={3}
-        pl="21px"
-      >
-        {linkItem.link}
-      </Text>
-
-      <HStack spacing={2} mb={3}>
-        {locationBadge}
-      </HStack>
-
-      <HStack
-        spacing={2}
-        flexWrap="wrap"
-      >
-        <ActionButton
-          icon={FiDownload}
-          label="Download"
-          accent="99,102,241"
-          onClick={() =>
-            downloadLink(
-              linkItem.link,
-              linkItem.fileName,
-            )
-          }
-        />
-
-        <ActionButton
-          icon={FiCopy}
-          label="Copy"
-          onClick={() =>
-            copyToClipboard(linkItem.link)
-          }
-        />
-
-        <Popover placement="top">
-          <PopoverTrigger>
-            <Box>
-              <ActionButton
-                icon={MdQrCode2}
-                label="QR"
-              />
-            </Box>
-          </PopoverTrigger>
-
-          <PopoverContent
-            w="200px"
-            bg="rgba(15,15,20,0.98)"
-            border="1px solid rgba(255,255,255,0.1)"
-            borderRadius="12px"
-            boxShadow="0 8px 32px rgba(0,0,0,0.6)"
+          <Flex
+            align="center"
+            gap={2.5}
+            minW={0}
+            flex={1}
           >
-            <PopoverArrow bg="rgba(15,15,20,0.98)" />
+            <Flex
+              align="center"
+              justify="center"
+              w="30px"
+              h="30px"
+              flexShrink={0}
+              borderRadius="8px"
+              bg="rgba(99,102,241,0.1)"
+              border="1px solid rgba(129,140,248,0.12)"
+            >
+              <Icon
+                as={FiLink2}
+                boxSize="13px"
+                color={ACCENT}
+              />
+            </Flex>
 
-            <PopoverCloseButton
-              size="sm"
-              color="rgba(255,255,255,0.4)"
+            <Text
+              minW={0}
+              fontSize="13px"
+              fontWeight={600}
+              color="rgba(255,255,255,0.9)"
+              fontFamily="'JetBrains Mono', monospace"
+              letterSpacing="-0.015em"
+              noOfLines={1}
+            >
+              {linkItem.fileName}
+            </Text>
+          </Flex>
+
+          <Flex
+            align="center"
+            gap={1}
+            flexShrink={0}
+          >
+            <LocationBadge
+              remote={isRemote}
+              label={
+                isRemote
+                  ? linkItem.serverName ?? "Remote"
+                  : "Local"
+              }
             />
 
-            <PopoverBody p={4}>
-              <Box
-                bg="white"
-                p={2}
-                borderRadius="8px"
+            <IconAction
+              icon={FiX}
+              label="Stop sharing"
+              danger
+              onClick={() =>
+                stopSharing(linkItem.token)
+              }
+            />
+          </Flex>
+        </Flex>
+
+        {/* Link section */}
+        <Box mt={4}>
+          <Text
+            mb="6px"
+            fontSize="10px"
+            fontWeight={600}
+            color="rgba(255,255,255,0.35)"
+            letterSpacing="0.06em"
+            textTransform="uppercase"
+          >
+            Shared link
+          </Text>
+
+          <Flex
+            align="flex-start"
+            gap={2}
+            px={3}
+            py={2.5}
+            minH="42px"
+            bg="rgba(0,0,0,0.16)"
+            border="1px solid"
+            borderColor="rgba(255,255,255,0.075)"
+            borderRadius="8px"
+            transition="border-color 120ms ease, background 120ms ease"
+            _hover={{
+              bg: "rgba(0,0,0,0.2)",
+              borderColor: "rgba(129,140,248,0.2)",
+            }}
+          >
+            <Text
+              flex={1}
+              minW={0}
+              fontSize="11px"
+              lineHeight="1.55"
+              fontFamily="'JetBrains Mono', monospace"
+              color="rgba(255,255,255,0.72)"
+              overflowWrap="anywhere"
+              wordBreak="break-word"
+            >
+              {linkItem.link}
+            </Text>
+
+            <Tooltip
+              label="Copy link"
+              hasArrow
+              openDelay={400}
+            >
+              <Button
+                minW="28px"
+                w="28px"
+                h="28px"
+                p={0}
+                mt="-3px"
+                mr="-3px"
+                flexShrink={0}
+                variant="ghost"
+                borderRadius="6px"
+                color="rgba(255,255,255,0.42)"
+                onClick={() =>
+                  copyToClipboard(linkItem.link)
+                }
+                aria-label="Copy shared link"
+                _hover={{
+                  bg: "rgba(99,102,241,0.1)",
+                  color: ACCENT_SOFT,
+                }}
               >
-                <QRCode
-                  value={linkItem.link}
-                  size={160}
-                  level="H"
-                  bgColor="white"
-                  fgColor="#0D0D12"
-                  style={{
-                    width: "100%",
-                    height: "auto",
+                <FiCopy size={12} />
+              </Button>
+            </Tooltip>
+          </Flex>
+        </Box>
+
+        {/* Footer actions */}
+        <Flex
+          mt={4}
+          pt={3}
+          align="center"
+          justify="space-between"
+          borderTop="1px solid rgba(255,255,255,0.055)"
+        >
+          <Button
+            size="xs"
+            h="30px"
+            px={3}
+            leftIcon={
+              <Icon
+                as={FiDownload}
+                boxSize="11px"
+              />
+            }
+            onClick={() =>
+              downloadLink(
+                linkItem.link,
+                linkItem.fileName,
+              )
+            }
+            borderRadius="7px"
+            bg="rgba(99,102,241,0.12)"
+            border="1px solid"
+            borderColor="rgba(129,140,248,0.25)"
+            color={ACCENT_SOFT}
+            fontSize="11px"
+            fontWeight={600}
+            _hover={{
+              bg: "rgba(99,102,241,0.2)",
+              borderColor:
+                "rgba(129,140,248,0.42)",
+              color: "#C7D2FE",
+            }}
+            _active={{
+              bg: "rgba(99,102,241,0.26)",
+            }}
+          >
+            Download
+          </Button>
+
+          <Popover placement="top-end">
+            <PopoverTrigger>
+              <Box>
+                <Button
+                  size="xs"
+                  h="30px"
+                  px={3}
+                  leftIcon={
+                    <Icon
+                      as={MdQrCode2}
+                      boxSize="12px"
+                    />
+                  }
+                  borderRadius="7px"
+                  variant="ghost"
+                  border="1px solid"
+                  borderColor="rgba(255,255,255,0.08)"
+                  color="rgba(255,255,255,0.52)"
+                  fontSize="11px"
+                  fontWeight={500}
+                  _hover={{
+                    bg: "rgba(255,255,255,0.05)",
+                    borderColor:
+                      "rgba(255,255,255,0.16)",
+                    color:
+                      "rgba(255,255,255,0.85)",
                   }}
-                />
+                >
+                  QR code
+                </Button>
               </Box>
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
-      </HStack>
+            </PopoverTrigger>
+
+            <Portal>
+              <PopoverContent
+                w="224px"
+                zIndex={1500}
+                bg="#20242E"
+                border="1px solid"
+                borderColor="rgba(255,255,255,0.1)"
+                borderRadius="12px"
+                boxShadow="0 18px 50px rgba(0,0,0,0.4)"
+              >
+                <PopoverArrow bg="#20242E" />
+
+                <PopoverCloseButton
+                  mt={1}
+                  mr={1}
+                  color="rgba(255,255,255,0.45)"
+                />
+
+                <PopoverBody p={4}>
+                  <Text
+                    mb={3}
+                    fontSize="11px"
+                    fontWeight={600}
+                    color="rgba(255,255,255,0.65)"
+                  >
+                    Scan to open link
+                  </Text>
+
+                  <Box
+                    bg="white"
+                    p={2.5}
+                    borderRadius="9px"
+                    boxShadow="0 4px 14px rgba(0,0,0,0.2)"
+                  >
+                    <QRCode
+                      value={linkItem.link}
+                      size={160}
+                      level="H"
+                      bgColor="#FFFFFF"
+                      fgColor="#151821"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                      }}
+                    />
+                  </Box>
+                </PopoverBody>
+              </PopoverContent>
+            </Portal>
+          </Popover>
+        </Flex>
+      </Box>
     </Box>
   );
 };

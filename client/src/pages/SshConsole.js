@@ -1,13 +1,40 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
-import "@xterm/xterm/css/xterm.css";
-import "../xterm.css";
-
-import { Box, Flex, Text, Icon } from "@chakra-ui/react";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
 
-import { FiTerminal, FiExternalLink, FiRefreshCw } from "react-icons/fi";
+import "@xterm/xterm/css/xterm.css";
+import "../xterm.css";
+
+import { Box, Flex, Icon, Text } from "@chakra-ui/react";
+import { FiExternalLink, FiRefreshCw, FiTerminal } from "react-icons/fi";
+
+const TERMINAL_BACKGROUND = "#0B0D12";
+const TOOLBAR_BACKGROUND = "#10131A";
+const ACCENT = "#818CF8";
+
+const CONNECTION_STATES = {
+  connecting: {
+    color: "rgba(255,255,255,0.25)",
+    textColor: "rgba(255,255,255,0.4)",
+    label: "Connecting…",
+  },
+  connected: {
+    color: "#6FCF97",
+    textColor: "#8DD9AB",
+    label: "Connected",
+  },
+  error: {
+    color: "#E57373",
+    textColor: "#EF9A9A",
+    label: "Error",
+  },
+  closed: {
+    color: "#D6A85F",
+    textColor: "#E2BE82",
+    label: "Closed",
+  },
+};
 
 const SshConsole = ({
   serverId,
@@ -18,9 +45,10 @@ const SshConsole = ({
   const terminalRef = useRef(null);
   const term = useRef(null);
   const fitAddon = useRef(null);
-  const socketRef = useRef(null);
+
   const isInit = useRef(false);
   const initialCommandSent = useRef(false);
+
   const [connState, setConnState] = useState("connecting");
   const [reconnectKey, setReconnectKey] = useState(0);
 
@@ -46,6 +74,7 @@ const SshConsole = ({
   useEffect(() => {
     isInit.current = false;
     initialCommandSent.current = false;
+
     setConnState("connecting");
 
     // ─── Terminal Setup ─────────────────────────────────────────────────────
@@ -56,31 +85,31 @@ const SshConsole = ({
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
 
       theme: {
-        background: "#0D0D12",
-        foreground: "#e0e0e0",
+        background: TERMINAL_BACKGROUND,
+        foreground: "#D7DAE0",
 
-        cursor: "#6366F1",
-        cursorAccent: "#0D0D12",
+        cursor: ACCENT,
+        cursorAccent: TERMINAL_BACKGROUND,
 
-        selectionBackground: "rgba(99,102,241,0.3)",
+        selectionBackground: "rgba(129,140,248,0.24)",
 
-        black: "#1c1c1c",
-        red: "#e06c75",
-        green: "#98c379",
-        yellow: "#e5c07b",
-        blue: "#61afef",
-        magenta: "#c678dd",
-        cyan: "#56b6c2",
-        white: "#dcdfe4",
+        black: "#181A20",
+        red: "#E06C75",
+        green: "#8FCB8F",
+        yellow: "#D9B86C",
+        blue: "#6FA8DC",
+        magenta: "#B98BD4",
+        cyan: "#67B7C7",
+        white: "#D7DAE0",
 
-        brightBlack: "#4b5263",
-        brightRed: "#e06c75",
-        brightGreen: "#98c379",
-        brightYellow: "#e5c07b",
-        brightBlue: "#61afef",
-        brightMagenta: "#c678dd",
-        brightCyan: "#56b6c2",
-        brightWhite: "#ffffff",
+        brightBlack: "#5C6370",
+        brightRed: "#F07C84",
+        brightGreen: "#A6D89A",
+        brightYellow: "#E5C87A",
+        brightBlue: "#82B6E6",
+        brightMagenta: "#C89BE0",
+        brightCyan: "#7BC8D8",
+        brightWhite: "#F4F5F7",
       },
     });
 
@@ -100,8 +129,6 @@ const SshConsole = ({
     const wsProtocol = isHttps ? "wss" : "ws";
 
     const socket = new WebSocket(`${wsProtocol}://${window.location.host}/ssh`);
-
-    socketRef.current = socket;
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -125,6 +152,14 @@ const SshConsole = ({
       );
     };
 
+    const writeError = (message) => {
+      term.current?.write(`\r\n\x1b[31m*** ${message} ***\x1b[0m\r\n`);
+    };
+
+    const writeWarning = (message) => {
+      term.current?.write(`\r\n\x1b[33m*** ${message} ***\x1b[0m\r\n`);
+    };
+
     // ─── Socket Events ──────────────────────────────────────────────────────
 
     socket.onopen = () => {
@@ -143,6 +178,7 @@ const SshConsole = ({
         message = JSON.parse(event.data);
       } catch (err) {
         console.error("SshConsole: failed to parse WebSocket message", err);
+
         return;
       }
 
@@ -151,7 +187,7 @@ const SshConsole = ({
           setConnState("connected");
 
           // Session is established, so make sure the remote PTY
-          // gets the current terminal dimensions.
+          // receives the current terminal dimensions.
           requestAnimationFrame(() => {
             sendResize();
           });
@@ -166,6 +202,8 @@ const SshConsole = ({
           ) {
             initialCommandSent.current = true;
 
+            // Wait until the terminal has been laid out before fitting
+            // and sending the initial command.
             requestAnimationFrame(() => {
               sendResize();
 
@@ -187,27 +225,21 @@ const SshConsole = ({
         case "connectionError":
           setConnState("error");
 
-          term.current?.write(
-            `\r\n\x1b[31m*** SSH CONNECTION ERROR: ${message.data} ***\x1b[0m\r\n`,
-          );
+          writeError(`SSH CONNECTION ERROR: ${message.data}`);
 
           break;
 
         case "shellError":
           setConnState("error");
 
-          term.current?.write(
-            `\r\n\x1b[31m*** SSH SHELL ERROR: ${message.data} ***\x1b[0m\r\n`,
-          );
+          writeError(`SSH SHELL ERROR: ${message.data}`);
 
           break;
 
         case "closed":
           setConnState("closed");
 
-          term.current?.write(
-            "\r\n\x1b[33m*** SSH SESSION CLOSED ***\x1b[0m\r\n",
-          );
+          writeWarning("SSH SESSION CLOSED");
 
           break;
 
@@ -219,13 +251,13 @@ const SshConsole = ({
     socket.onerror = () => {
       setConnState("error");
 
-      term.current?.write("\r\n\x1b[31mConnection error\x1b[0m\r\n");
+      writeError("CONNECTION ERROR");
     };
 
     socket.onclose = () => {
       setConnState("closed");
 
-      term.current?.write("\r\n\x1b[33mSession closed\x1b[0m\r\n");
+      writeWarning("SESSION CLOSED");
     };
 
     // ─── Input ──────────────────────────────────────────────────────────────
@@ -250,18 +282,14 @@ const SshConsole = ({
 
     // ─── Window Resize ──────────────────────────────────────────────────────
 
-    const handleResize = () => {
-      sendResize();
-    };
-
     fitAddon.current.fit();
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", sendResize);
 
     // ─── Cleanup ────────────────────────────────────────────────────────────
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", sendResize);
 
       inputDisposable.dispose();
 
@@ -276,90 +304,83 @@ const SshConsole = ({
 
       term.current = null;
       fitAddon.current = null;
-      socketRef.current = null;
     };
-  }, [serverId, reconnectKey, isHttps]);
+  }, [serverId, reconnectKey, isHttps, initialCommand]);
 
   // ─── Connection Status ────────────────────────────────────────────────────
 
-  const statusColor =
-    connState === "connected"
-      ? "#22C55E"
-      : connState === "error"
-        ? "#EF4444"
-        : connState === "closed"
-          ? "#F59E0B"
-          : "rgba(255,255,255,0.2)";
-
-  const statusTextColor =
-    connState === "connected"
-      ? "#4ADE80"
-      : connState === "error"
-        ? "#EF4444"
-        : connState === "closed"
-          ? "#F59E0B"
-          : "rgba(255,255,255,0.3)";
-
-  const statusLabel =
-    connState === "connected"
-      ? "connected"
-      : connState === "error"
-        ? "error"
-        : connState === "closed"
-          ? "closed"
-          : "connecting…";
+  const status = CONNECTION_STATES[connState] ?? CONNECTION_STATES.connecting;
 
   const canReconnect = connState === "error" || connState === "closed";
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Box h="100%" display="flex" flexDirection="column" bg="#0D0D12">
-      {/* Toolbar */}
+    <Box
+      h="100%"
+      display="flex"
+      flexDirection="column"
+      bg={TERMINAL_BACKGROUND}
+    >
       <Flex
         align="center"
         gap={3}
         px={4}
         h="40px"
         flexShrink={0}
-        bg="rgba(8,8,12,0.95)"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
+        bg={TOOLBAR_BACKGROUND}
+        borderBottom="1px solid rgba(255,255,255,0.06)"
       >
+        {/* Terminal identity */}
+
+        <Flex align="center" gap={2} minW={0}>
+          <Icon as={FiTerminal} boxSize="13px" flexShrink={0} color={ACCENT} />
+
+          <Text
+            fontSize="12px"
+            fontWeight={500}
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.72)"
+            letterSpacing="-0.01em"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            textOverflow="ellipsis"
+          >
+            {host || "SSH Terminal"}
+          </Text>
+        </Flex>
+
+        <Box flex={1} />
+
         {/* Connection status */}
-        <Flex align="center" gap={2}>
+
+        <Flex align="center" gap={1.5} flexShrink={0}>
           <Box
-            w="8px"
-            h="8px"
+            w="7px"
+            h="7px"
             borderRadius="full"
-            transition="all 0.3s"
-            bg={statusColor}
+            bg={status.color}
+            transition="background 0.2s ease"
             boxShadow={
-              connState === "connected"
-                ? "0 0 6px rgba(34,197,94,0.6)"
-                : connState === "error"
-                  ? "0 0 6px rgba(239,68,68,0.6)"
-                  : "none"
+              connState === "connected" ? `0 0 5px ${status.color}` : "none"
             }
             animation={
-              connState === "connecting"
-                ? "pulse 1.5s infinite"
-                : connState === "connected"
-                  ? "pulse 2s infinite"
-                  : "none"
+              connState === "connecting" ? "pulse 1.5s infinite" : "none"
             }
           />
 
           <Text
             fontSize="10px"
-            letterSpacing="0.04em"
-            transition="color 0.3s"
-            color={statusTextColor}
+            letterSpacing="0.03em"
+            color={status.textColor}
+            transition="color 0.2s ease"
           >
-            {statusLabel}
+            {status.label}
           </Text>
         </Flex>
 
         {/* Reconnect */}
+
         {canReconnect && (
           <Box
             as="button"
@@ -368,14 +389,19 @@ const SshConsole = ({
             alignItems="center"
             gap="4px"
             px="6px"
-            h="22px"
-            borderRadius="md"
+            h="24px"
+            flexShrink={0}
+            borderRadius="5px"
             fontSize="10px"
             letterSpacing="0.02em"
-            color="rgba(255,255,255,0.5)"
+            color="rgba(255,255,255,0.45)"
+            transition="background 120ms ease, color 120ms ease"
             _hover={{
-              color: "white",
-              bg: "rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.85)",
+              bg: "rgba(255,255,255,0.06)",
+            }}
+            _active={{
+              bg: "rgba(255,255,255,0.09)",
             }}
             title="Reconnect SSH session"
             aria-label="Reconnect SSH session"
@@ -385,25 +411,14 @@ const SshConsole = ({
           </Box>
         )}
 
-        <Box w="1px" h="16px" bg="rgba(255,255,255,0.07)" />
+        {/* Separator */}
 
-        {/* Terminal icon + host */}
-        <Icon as={FiTerminal} boxSize="13px" color="rgba(255,255,255,0.4)" />
-
-        {host && (
-          <Text
-            fontSize="12px"
-            fontFamily="'JetBrains Mono', monospace"
-            color="rgba(255,255,255,0.45)"
-            letterSpacing="-0.01em"
-          >
-            {host}
-          </Text>
+        {!isPopout && (
+          <Box w="1px" h="16px" flexShrink={0} bg="rgba(255,255,255,0.06)" />
         )}
 
-        <Box flex={1} />
-
         {/* Pop-out */}
+
         {!isPopout && (
           <Box
             as="button"
@@ -413,11 +428,16 @@ const SshConsole = ({
             justifyContent="center"
             w="28px"
             h="28px"
-            borderRadius="md"
-            color="rgba(255,255,255,0.45)"
+            flexShrink={0}
+            borderRadius="6px"
+            color="rgba(255,255,255,0.4)"
+            transition="background 120ms ease, color 120ms ease"
             _hover={{
-              color: "white",
-              bg: "rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.85)",
+              bg: "rgba(255,255,255,0.06)",
+            }}
+            _active={{
+              bg: "rgba(255,255,255,0.09)",
             }}
             title="Pop out terminal"
             aria-label="Pop out terminal"
@@ -427,7 +447,7 @@ const SshConsole = ({
         )}
       </Flex>
 
-      <Box ref={terminalRef} flex={1} overflow="hidden" p={1} />
+      <Box ref={terminalRef} flex={1} minH={0} overflow="hidden" p={1} />
     </Box>
   );
 };
