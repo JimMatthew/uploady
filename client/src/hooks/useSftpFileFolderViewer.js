@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useClipboard } from "../contexts/ClipboardContext";
-//import { useNavigate } from "react-router-dom";
 import { joinPath } from "../utils/path";
 import apiClient from "../services/apiClient";
 import { useTransferJob } from "./useTransferJob";
@@ -11,15 +10,12 @@ import { useTransferJob } from "./useTransferJob";
 export function useSftpFileFolderViewer({ serverId, toast }) {
   const [files, setFiles] = useState([{}]);
   const [loading, setLoading] = useState(true);
-  //const [connected, setConnected] = useState(false);
 
   const { progressMap, startedTransfers, trackJob } = useTransferJob({
     onError: () => showToast("Transfer connection lost", "error"),
   });
   const { copyFile, clipboard, clearClipboard, cutFile } = useClipboard();
-  //const navigate = useNavigate();
-  //const token = localStorage.getItem("token");
-
+ 
   const showToast = useCallback(
     (title, status, description = null) => {
       toast({ title, description, status, duration: 3000, isClosable: true });
@@ -72,12 +68,10 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
 
   useEffect(() => {
     let cancelled = false;
-    //setConnected(false);
     setLoading(true);
 
     connectToServer().then(() => {
       if (!cancelled) {
-        //setConnected(true);
         setLoading(false);
       }
     });

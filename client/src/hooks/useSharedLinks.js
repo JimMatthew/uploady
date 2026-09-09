@@ -46,7 +46,7 @@ export function useSharedLinks() {
           token: linkToken,
         });
 
-        await loadLinks();
+        setLinks((prev) => prev.filter((link) => link.token !== linkToken));
 
         showToast("Link deleted", "success");
       } catch (err) {
@@ -106,28 +106,16 @@ export function useSharedLinks() {
    * @param {string} fileName
    */
   const clickLink = useCallback(
-    async (link, fileName) => {
+    (link, fileName) => {
       try {
-        const res = await fetch(link);
-
-        if (!res.ok) {
-          throw new Error(`Download failed with status ${res.status}`);
-        }
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-
         const anchor = document.createElement("a");
-        anchor.href = url;
+
+        anchor.href = link;
         anchor.download = fileName;
 
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
-
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 5000);
       } catch (err) {
         console.error("Download error:", err);
         showToast("Error downloading file", "error");

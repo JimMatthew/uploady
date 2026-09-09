@@ -14,13 +14,7 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 
-import {
-  FiCopy,
-  FiDownload,
-  FiHardDrive,
-  FiLink2,
-  FiX,
-} from "react-icons/fi";
+import { FiCopy, FiDownload, FiHardDrive, FiLink2, FiX } from "react-icons/fi";
 
 import { MdQrCode2 } from "react-icons/md";
 
@@ -30,47 +24,28 @@ const ACCENT = "#818CF8";
 const ACCENT_SOFT = "#A5B4FC";
 const ERROR = "#E57373";
 
-const LocationBadge = ({
-  label,
-  remote = false,
-}) => (
+const LocationBadge = ({ label, remote = false }) => (
   <Flex
     align="center"
     gap="5px"
     px="7px"
     h="22px"
     borderRadius="6px"
-    bg={
-      remote
-        ? "rgba(129,140,248,0.08)"
-        : "rgba(255,255,255,0.045)"
-    }
+    bg={remote ? "rgba(129,140,248,0.08)" : "rgba(255,255,255,0.045)"}
     border="1px solid"
-    borderColor={
-      remote
-        ? "rgba(129,140,248,0.18)"
-        : "rgba(255,255,255,0.08)"
-    }
+    borderColor={remote ? "rgba(129,140,248,0.18)" : "rgba(255,255,255,0.08)"}
     flexShrink={0}
   >
     <Icon
       as={FiHardDrive}
       boxSize="9px"
-      color={
-        remote
-          ? ACCENT_SOFT
-          : "rgba(255,255,255,0.4)"
-      }
+      color={remote ? ACCENT_SOFT : "rgba(255,255,255,0.4)"}
     />
 
     <Text
       fontSize="10px"
       fontWeight={600}
-      color={
-        remote
-          ? ACCENT_SOFT
-          : "rgba(255,255,255,0.52)"
-      }
+      color={remote ? ACCENT_SOFT : "rgba(255,255,255,0.52)"}
       lineHeight={1}
     >
       {label}
@@ -78,17 +53,8 @@ const LocationBadge = ({
   </Flex>
 );
 
-const IconAction = ({
-  icon,
-  label,
-  onClick,
-  danger = false,
-}) => (
-  <Tooltip
-    label={label}
-    hasArrow
-    openDelay={400}
-  >
+const IconAction = ({ icon, label, onClick, danger = false }) => (
+  <Tooltip label={label} hasArrow openDelay={400}>
     <Button
       minW="28px"
       w="28px"
@@ -96,41 +62,23 @@ const IconAction = ({
       p={0}
       variant="ghost"
       borderRadius="7px"
-      color={
-        danger
-          ? "rgba(229,115,115,0.55)"
-          : "rgba(255,255,255,0.42)"
-      }
+      color={danger ? "rgba(229,115,115,0.55)" : "rgba(255,255,255,0.42)"}
       onClick={onClick}
       aria-label={label}
       _hover={{
-        bg: danger
-          ? "rgba(229,115,115,0.09)"
-          : "rgba(255,255,255,0.06)",
-        color: danger
-          ? ERROR
-          : "rgba(255,255,255,0.85)",
+        bg: danger ? "rgba(229,115,115,0.09)" : "rgba(255,255,255,0.06)",
+        color: danger ? ERROR : "rgba(255,255,255,0.85)",
       }}
       _active={{
-        bg: danger
-          ? "rgba(229,115,115,0.13)"
-          : "rgba(255,255,255,0.09)",
+        bg: danger ? "rgba(229,115,115,0.13)" : "rgba(255,255,255,0.09)",
       }}
     >
-      <Icon
-        as={icon}
-        boxSize="12px"
-      />
+      <Icon as={icon} boxSize="12px" />
     </Button>
   </Tooltip>
 );
 
-const LinkCard = ({
-  linkItem,
-  stopSharing,
-  downloadLink,
-  copyToClipboard,
-}) => {
+const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
   const isRemote = Boolean(linkItem.isRemote);
 
   return (
@@ -167,17 +115,8 @@ const LinkCard = ({
 
       <Box p={4}>
         {/* Header */}
-        <Flex
-          align="center"
-          justify="space-between"
-          gap={3}
-        >
-          <Flex
-            align="center"
-            gap={2.5}
-            minW={0}
-            flex={1}
-          >
+        <Flex align="center" justify="space-between" gap={3}>
+          <Flex align="center" gap={2.5} minW={0} flex={1}>
             <Flex
               align="center"
               justify="center"
@@ -188,11 +127,7 @@ const LinkCard = ({
               bg="rgba(99,102,241,0.1)"
               border="1px solid rgba(129,140,248,0.12)"
             >
-              <Icon
-                as={FiLink2}
-                boxSize="13px"
-                color={ACCENT}
-              />
+              <Icon as={FiLink2} boxSize="13px" color={ACCENT} />
             </Flex>
 
             <Text
@@ -208,27 +143,17 @@ const LinkCard = ({
             </Text>
           </Flex>
 
-          <Flex
-            align="center"
-            gap={1}
-            flexShrink={0}
-          >
+          <Flex align="center" gap={1} flexShrink={0}>
             <LocationBadge
               remote={isRemote}
-              label={
-                isRemote
-                  ? linkItem.serverName ?? "Remote"
-                  : "Local"
-              }
+              label={isRemote ? (linkItem.serverName ?? "Remote") : "Local"}
             />
 
             <IconAction
               icon={FiX}
               label="Stop sharing"
               danger
-              onClick={() =>
-                stopSharing(linkItem.token)
-              }
+              onClick={() => stopSharing(linkItem.token)}
             />
           </Flex>
         </Flex>
@@ -275,11 +200,7 @@ const LinkCard = ({
               {linkItem.link}
             </Text>
 
-            <Tooltip
-              label="Copy link"
-              hasArrow
-              openDelay={400}
-            >
+            <Tooltip label="Copy link" hasArrow openDelay={400}>
               <Button
                 minW="28px"
                 w="28px"
@@ -291,9 +212,7 @@ const LinkCard = ({
                 variant="ghost"
                 borderRadius="6px"
                 color="rgba(255,255,255,0.42)"
-                onClick={() =>
-                  copyToClipboard(linkItem.link)
-                }
+                onClick={() => copyToClipboard(linkItem.link)}
                 aria-label="Copy shared link"
                 _hover={{
                   bg: "rgba(99,102,241,0.1)",
@@ -318,18 +237,8 @@ const LinkCard = ({
             size="xs"
             h="30px"
             px={3}
-            leftIcon={
-              <Icon
-                as={FiDownload}
-                boxSize="11px"
-              />
-            }
-            onClick={() =>
-              downloadLink(
-                linkItem.link,
-                linkItem.fileName,
-              )
-            }
+            leftIcon={<Icon as={FiDownload} boxSize="11px" />}
+            onClick={() => downloadLink(linkItem.link, linkItem.fileName)}
             borderRadius="7px"
             bg="rgba(99,102,241,0.12)"
             border="1px solid"
@@ -339,8 +248,7 @@ const LinkCard = ({
             fontWeight={600}
             _hover={{
               bg: "rgba(99,102,241,0.2)",
-              borderColor:
-                "rgba(129,140,248,0.42)",
+              borderColor: "rgba(129,140,248,0.42)",
               color: "#C7D2FE",
             }}
             _active={{
@@ -357,12 +265,7 @@ const LinkCard = ({
                   size="xs"
                   h="30px"
                   px={3}
-                  leftIcon={
-                    <Icon
-                      as={MdQrCode2}
-                      boxSize="12px"
-                    />
-                  }
+                  leftIcon={<Icon as={MdQrCode2} boxSize="12px" />}
                   borderRadius="7px"
                   variant="ghost"
                   border="1px solid"
@@ -372,10 +275,8 @@ const LinkCard = ({
                   fontWeight={500}
                   _hover={{
                     bg: "rgba(255,255,255,0.05)",
-                    borderColor:
-                      "rgba(255,255,255,0.16)",
-                    color:
-                      "rgba(255,255,255,0.85)",
+                    borderColor: "rgba(255,255,255,0.16)",
+                    color: "rgba(255,255,255,0.85)",
                   }}
                 >
                   QR code

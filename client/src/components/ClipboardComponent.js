@@ -26,6 +26,7 @@ const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
   
       setTimeout(() => window.URL.revokeObjectURL(url), 5000);
     }, []);
+    
  const downloadAsZip = async () => {
   try {
     const blob = await apiClient.postBlob(

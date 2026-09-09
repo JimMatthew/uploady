@@ -1,6 +1,4 @@
-import React, {
-  useEffect,
-} from "react";
+import React, { useEffect } from "react";
 
 import {
   Box,
@@ -12,10 +10,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 
-import {
-  FiRefreshCw,
-  FiShare2,
-} from "react-icons/fi";
+import { FiRefreshCw, FiShare2 } from "react-icons/fi";
 
 import LinkCard from "./LinkCard";
 import { useSharedLinks } from "../hooks/useSharedLinks";
@@ -38,14 +33,8 @@ const LoadingSkeleton = () => (
 );
 
 const SharedLinks = () => {
-  const {
-    links,
-    loading,
-    loadLinks,
-    deleteLink,
-    copyToClipboard,
-    clickLink,
-  } = useSharedLinks();
+  const { links, loading, loadLinks, deleteLink, copyToClipboard, clickLink } =
+    useSharedLinks();
 
   useEffect(() => {
     loadLinks();
@@ -53,9 +42,7 @@ const SharedLinks = () => {
 
   const linkCountText = loading
     ? "Loading shared links…"
-    : `${links.length} active link${
-        links.length === 1 ? "" : "s"
-      }`;
+    : `${links.length} active link${links.length === 1 ? "" : "s"}`;
 
   return (
     <Box
@@ -64,10 +51,7 @@ const SharedLinks = () => {
       px={{ base: 4, md: 6 }}
       py={{ base: 5, md: 6 }}
     >
-      <Box
-        maxW="1200px"
-        mx="auto"
-      >
+      <Box maxW="1200px" mx="auto">
         {/* Header */}
         <Flex
           align={{ base: "flex-start", sm: "center" }}
@@ -79,10 +63,7 @@ const SharedLinks = () => {
           gap={4}
           mb={6}
         >
-          <Flex
-            align="center"
-            gap={3}
-          >
+          <Flex align="center" gap={3}>
             <Flex
               w="32px"
               h="32px"
@@ -93,10 +74,7 @@ const SharedLinks = () => {
               color="#818CF8"
               flexShrink={0}
             >
-              <Icon
-                as={FiShare2}
-                boxSize="14px"
-              />
+              <Icon as={FiShare2} boxSize="14px" />
             </Flex>
 
             <Box>
@@ -110,11 +88,7 @@ const SharedLinks = () => {
                 Shared Links
               </Text>
 
-              <Text
-                mt="2px"
-                fontSize="11px"
-                color="whiteAlpha.400"
-              >
+              <Text mt="2px" fontSize="11px" color="whiteAlpha.400">
                 {linkCountText}
               </Text>
             </Box>
@@ -128,11 +102,7 @@ const SharedLinks = () => {
               <Icon
                 as={FiRefreshCw}
                 boxSize="11px"
-                animation={
-                  loading
-                    ? "spin 1s linear infinite"
-                    : "none"
-                }
+                animation={loading ? "spin 1s linear infinite" : "none"}
               />
             }
             onClick={loadLinks}
@@ -160,9 +130,9 @@ const SharedLinks = () => {
           <SimpleGrid
             spacing={3}
             columns={{
-    base: 1,
-    xl: 2,
-  }}
+              base: 1,
+              xl: 2,
+            }}
           >
             {links.map((link) => (
               <LinkCard
@@ -203,17 +173,10 @@ const EmptyState = () => (
       bg="rgba(99,102,241,0.07)"
       color="rgba(129,140,248,0.6)"
     >
-      <Icon
-        as={FiShare2}
-        boxSize="17px"
-      />
+      <Icon as={FiShare2} boxSize="17px" />
     </Flex>
 
-    <Text
-      fontSize="13px"
-      fontWeight={500}
-      color="whiteAlpha.500"
-    >
+    <Text fontSize="13px" fontWeight={500} color="whiteAlpha.500">
       No shared links
     </Text>
 

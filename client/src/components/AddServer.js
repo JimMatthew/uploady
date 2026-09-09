@@ -266,7 +266,7 @@ const AddServer = ({ handleSaveServer }) => {
         </Field>
 
         {/* Password auth */}
-        <Collapse in={form.authMethod === "password"} animateOpacity>
+        {form.authMethod === "password" && (
           <Field label="Password" required error={errors.password}>
             <Input
               name="password"
@@ -277,10 +277,10 @@ const AddServer = ({ handleSaveServer }) => {
               {...inputStyles(!!errors.password)}
             />
           </Field>
-        </Collapse>
+        )}
 
         {/* Key auth */}
-        <Collapse in={form.authMethod === "key"} animateOpacity>
+        {form.authMethod === "key" && (
           <VStack spacing={4} align="stretch">
             <Field label="Key Mode" required>
               <Select
@@ -289,16 +289,21 @@ const AddServer = ({ handleSaveServer }) => {
                 onChange={set}
                 {...inputStyles(false)}
                 sx={{
-                  option: { bg: "#0D0D12", color: "rgba(255,255,255,0.85)" },
+                  option: {
+                    bg: "#0D0D12",
+                    color: "rgba(255,255,255,0.85)",
+                  },
                 }}
               >
                 <option value="saved">Use Saved Key</option>
+
                 <option value="import">Use Existing Key</option>
+
                 <option value="generate">Generate New Key</option>
               </Select>
             </Field>
 
-            <Collapse in={form.keyMode === "import"} animateOpacity>
+            {form.keyMode === "import" && (
               <VStack spacing={4} align="stretch">
                 <Field label="Private Key" required error={errors.privateKey}>
                   <Textarea
@@ -324,8 +329,9 @@ const AddServer = ({ handleSaveServer }) => {
                   />
                 </Field>
               </VStack>
-            </Collapse>
-            <Collapse in={form.keyMode === "saved"} animateOpacity>
+            )}
+
+            {form.keyMode === "saved" && (
               <Field label="Saved Key" required error={errors.keyId}>
                 <Select
                   name="keyId"
@@ -356,9 +362,9 @@ const AddServer = ({ handleSaveServer }) => {
                   </Text>
                 )}
               </Field>
-            </Collapse>
+            )}
           </VStack>
-        </Collapse>
+        )}
 
         {/* Submit */}
         <Flex
