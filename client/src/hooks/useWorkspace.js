@@ -70,11 +70,19 @@ export function useWorkspace({ toast }) {
       const next = prev.filter((tab) => tab.id !== tabId);
 
       setActiveTabIndex((activeIndex) => {
+        if (next.length === 0) {
+          return 0;
+        }
+
         if (index > activeIndex) {
           return activeIndex;
         }
 
-        return Math.max(0, activeIndex - 1);
+        if (index < activeIndex) {
+          return activeIndex - 1;
+        }
+
+        return Math.min(index, next.length - 1);
       });
 
       return next;

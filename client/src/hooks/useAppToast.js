@@ -1,10 +1,37 @@
-import { useToast } from "@chakra-ui/react";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Text, useToast } from "@chakra-ui/react";
+
+const STATUS_STYLES = {
+  error: {
+    border: "rgba(239,68,68,0.6)",
+    dot: "#EF4444",
+    glow: "rgba(239,68,68,0.9)",
+  },
+  success: {
+    border: "rgba(34,197,94,0.6)",
+    dot: "#22C55E",
+    glow: "rgba(34,197,94,0.9)",
+  },
+  warning: {
+    border: "rgba(251,191,36,0.6)",
+    dot: "#FBBF24",
+    glow: "rgba(251,191,36,0.9)",
+  },
+  info: {
+    border: "rgba(99,102,241,0.6)",
+    dot: "#818CF8",
+    glow: "rgba(99,102,241,0.9)",
+  },
+};
+
+const DEFAULT_STATUS = "info";
+
 const useAppToast = () => {
   const toast = useToast();
 
-  return ({ title, description, status = "info", duration = 2500 }) =>
-    toast({
+  return ({ title, description, status = DEFAULT_STATUS, duration = 2500 }) => {
+    const style = STATUS_STYLES[status] ?? STATUS_STYLES[DEFAULT_STATUS];
+
+    return toast({
       title,
       description,
       status,
@@ -22,15 +49,7 @@ const useAppToast = () => {
           bg="rgba(22,26,38,0.98)"
           backdropFilter="blur(20px)"
           border="1px solid"
-          borderColor={
-            status === "error"
-              ? "rgba(239,68,68,0.6)"
-              : status === "success"
-                ? "rgba(34,197,94,0.6)"
-                : status === "warning"
-                  ? "rgba(251,191,36,0.6)"
-                  : "rgba(99,102,241,0.6)"
-          }
+          borderColor={style.border}
           borderRadius="10px"
           boxShadow="0 8px 32px rgba(0,0,0,0.4)"
           display="flex"
@@ -39,31 +58,14 @@ const useAppToast = () => {
           minW="260px"
           maxW="360px"
         >
-          {/* Status dot */}
           <Box
             w="8px"
             h="8px"
-            borderRadius="full"
-            flexShrink={0}
             mt="3px"
-            bg={
-              status === "error"
-                ? "#EF4444"
-                : status === "success"
-                  ? "#22C55E"
-                  : status === "warning"
-                    ? "#FBbf24"
-                    : "#818CF8"
-            }
-            boxShadow={
-              status === "error"
-                ? "0 0 10px rgba(239,68,68,0.9)"
-                : status === "success"
-                  ? "0 0 10px rgba(34,197,94,0.9)"
-                  : status === "warning"
-                    ? "0 0 10px rgba(251,191,36,0.9)"
-                    : "0 0 10px rgba(99,102,241,0.9)"
-            }
+            flexShrink={0}
+            borderRadius="full"
+            bg={style.dot}
+            boxShadow={`0 0 10px ${style.glow}`}
           />
 
           <Box flex={1} minW={0}>
@@ -79,11 +81,12 @@ const useAppToast = () => {
                 {title}
               </Text>
             )}
+
             {description && (
               <Text
+                mt="2px"
                 fontSize="12px"
                 color="rgba(255,255,255,0.45)"
-                mt="2px"
                 noOfLines={2}
               >
                 {description}
@@ -93,6 +96,7 @@ const useAppToast = () => {
         </Box>
       ),
     });
+  };
 };
 
 export default useAppToast;

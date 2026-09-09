@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { joinPath } from "../utils/path";
 import apiClient from "../services/apiClient";
@@ -6,21 +6,31 @@ import { useClipboard } from "../contexts/ClipboardContext";
 import { useTransferJob } from "../hooks/useTransferJob";
 
 /**
+ * Handles local file-browser data, navigation, filesystem operations,
+ * clipboard operations, and transfer tracking.
+ *
+ * @param {{ toast: Function }} props
  * @returns {import("../types/fileBrowser").FileBrowser}
  */
 export function useFileList({ toast }) {
-  const [files, setFileData] = useState(null);
+  const [files, setFiles] = useState(null);
   const [currentPath, setCurrentPath] = useState("files");
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
 
-  const { copyFile, clipboard, cutFile, clearClipboard } = useClipboard();
-
-  const { progressMap, startedTransfers, trackJob } = useTransferJob({
-    onError: () => showToast("Transfer connection lost", "error"),
-  });
+  const requestIdRef = useRef(0);
 
   const navigate = useNavigate();
+
+  const {
+    copyFile: copyToClipboard,
+    cutFile: cutToClipboard,
+    clipboard,
+    clearClipboard,
+  } = useClipboard();
+
+  // ---------------------------------------------------------------------------
+  // Notifications
+  // ---------------------------------------------------------------------------
 
   const showToast = useCallback(
     (title, status, description = null) => {
@@ -34,128 +44,193 @@ export function useFileList({ toast }) {
     },
     [toast],
   );
+
   // ---------------------------------------------------------------------------
-  // Core fetch
+  // Transfer tracking
+  // ---------------------------------------------------------------------------
+
+  const { progressMap, startedTransfers, trackJob } = useTransferJob({
+    onError: () => {
+      showToast("Transfer connection lost", "error");
+    },
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  const relativePath = files?.relativePath ?? null;
+
+  const downloadBlob = useCallback((blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = filename;
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    window.URL.revokeObjectURL(url);
+  }, []);
+
+  const encodePath = useCallback((path) => {
+    return path.split("/").filter(Boolean).map(encodeURIComponent).join("/");
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // File loading
   // ---------------------------------------------------------------------------
 
   const fetchFiles = useCallback(
     async (path) => {
+      const requestId = ++requestIdRef.current;
+
       try {
-        const data = await apiClient.get(`/api/${path}/`);
-        setFileData(data);
+        const data = await apiClient.get(`/api/${encodePath(path)}/`);
+
+        // Ignore responses belonging to an older navigation request.
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setFiles(data);
       } catch (err) {
-        if (err.status === 401 || err.status === 403) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const status = err?.status ?? err?.response?.status;
+
+        if (status === 401 || status === 403) {
           navigate("/");
           return;
         }
 
         console.error("Error fetching files:", err);
+        showToast("Error loading files", "error");
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [navigate],
+    [encodePath, navigate, showToast],
   );
 
   const reload = useCallback(() => {
-    fetchFiles(currentPath);
+    return fetchFiles(currentPath);
   }, [fetchFiles, currentPath]);
 
   // ---------------------------------------------------------------------------
-  // Auth + initial load
+  // Authentication + directory loading
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+
     if (!token) {
       navigate("/");
       return;
     }
+
     fetchFiles(currentPath);
-  }, [currentPath, token]);
+  }, [currentPath, fetchFiles, navigate]);
 
   // ---------------------------------------------------------------------------
-  // Bound operations — curry current relativePath into each handler
-  // so callers only need to pass the file/folder name
+  // Navigation
+  // ---------------------------------------------------------------------------
+
+  const openFolder = useCallback((folderName) => {
+    setCurrentPath((previousPath) => joinPath(previousPath, folderName));
+  }, []);
+
+  const changeDirectory = useCallback((path) => {
+    setCurrentPath(path);
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Downloads
   // ---------------------------------------------------------------------------
 
   const downloadFile = useCallback(
-    (name) => {
-      const token = localStorage.getItem("token");
-      window.location.href = `/api/download/${files?.relativePath}/${name}?token=${token}&t=${Date.now()}`;
+    async (name) => {
+      if (!relativePath) {
+        return;
+      }
+
+      try {
+        const path = encodePath(relativePath);
+        const filename = encodeURIComponent(name);
+
+        const blob = await apiClient.getBlob(
+          `/api/download/${path}/${filename}`,
+        );
+
+        downloadBlob(blob, name);
+      } catch (err) {
+        console.error("Error downloading file:", err);
+        showToast("Error downloading file", "error");
+      }
     },
-    [files?.relativePath],
+    [relativePath, encodePath, downloadBlob, showToast],
   );
+
+  const downloadFolder = useCallback(
+    async (folderName) => {
+      if (!relativePath) {
+        return;
+      }
+
+      try {
+        const path = encodePath(relativePath);
+        const folder = encodeURIComponent(folderName);
+
+        const blob = await apiClient.getBlob(
+          `/api/download-folder/${path}/${folder}`,
+        );
+
+        downloadBlob(blob, `${folderName}.zip`);
+      } catch (err) {
+        console.error("Error downloading folder:", err);
+        showToast("Error downloading folder", "error");
+      }
+    },
+    [relativePath, encodePath, downloadBlob, showToast],
+  );
+
+  // ---------------------------------------------------------------------------
+  // File operations
+  // ---------------------------------------------------------------------------
 
   const deleteFile = useCallback(
     async (name) => {
+      if (!relativePath) {
+        return;
+      }
+
       try {
-        await apiClient.post(`/api/delete/${files.relativePath}/${name}`, {
+        const path = encodePath(relativePath);
+        const filename = encodeURIComponent(name);
+
+        await apiClient.post(`/api/delete/${path}/${filename}`, {
           fileName: name,
         });
 
-        reload();
+        await reload();
         showToast("File deleted", "success");
-      } catch {
+      } catch (err) {
+        console.error("Error deleting file:", err);
         showToast("Error deleting file", "error");
       }
     },
-    [files?.relativePath, reload, showToast],
-  );
-
-  const shareFile = useCallback(
-    async (name) => {
-      try {
-        await apiClient.post("/api/share", {
-          fileName: name,
-          filePath: files?.relativePath,
-        });
-
-        reload();
-
-        showToast(
-          "Link generated",
-          "success",
-          `Share link created for ${name}`,
-        );
-      } catch {
-        showToast(
-          "Error generating link",
-          "error",
-          `Failed to generate link for ${name}`,
-        );
-      }
-    },
-    [files?.relativePath, reload, showToast],
-  );
-
-  const onFileCopy = useCallback(
-    (name) => {
-      copyFile({
-        file: name,
-        path: files?.relativePath,
-        source: "local",
-      });
-    },
-    [copyFile, files?.relativePath],
-  );
-
-  const onFileCut = useCallback(
-    (name) => {
-      cutFile({
-        file: name,
-        path: files?.relativePath,
-        source: "local",
-        serverId: null,
-      });
-    },
-    [cutFile, files?.relativePath],
+    [relativePath, encodePath, reload, showToast],
   );
 
   const renameFile = useCallback(
     async (name, newName) => {
-      const path = files?.relativePath;
-
-      if (!name || !newName || !path) {
+      if (!name || !newName || !relativePath) {
         showToast("Missing required fields", "error");
         return;
       }
@@ -164,56 +239,159 @@ export function useFileList({ toast }) {
         await apiClient.post("/api/rename-file", {
           filename: name,
           newFilename: newName,
-          currentPath: path,
+          currentPath: relativePath,
         });
 
-        reload();
+        await reload();
         showToast("File renamed", "success");
-      } catch {
+      } catch (err) {
+        console.error("Error renaming file:", err);
         showToast("Error renaming file", "error");
       }
     },
-    [files?.relativePath, reload, showToast],
+    [relativePath, reload, showToast],
+  );
+
+  const shareFile = useCallback(
+    async (name) => {
+      if (!relativePath) {
+        return;
+      }
+
+      try {
+        await apiClient.post("/api/share", {
+          fileName: name,
+          filePath: relativePath,
+        });
+
+        showToast(
+          "Link generated",
+          "success",
+          `Share link created for ${name}`,
+        );
+      } catch (err) {
+        console.error("Error sharing file:", err);
+
+        showToast(
+          "Error generating link",
+          "error",
+          `Failed to generate link for ${name}`,
+        );
+      }
+    },
+    [relativePath, showToast],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Folder operations
+  // ---------------------------------------------------------------------------
+
+  const createFolder = useCallback(
+    async (folderName) => {
+      if (!folderName || !relativePath) {
+        return;
+      }
+
+      try {
+        await apiClient.post("/api/create-folder", {
+          folderName,
+          currentPath: relativePath,
+        });
+
+        await reload();
+        showToast("Folder created", "success");
+      } catch (err) {
+        console.error("Error creating folder:", err);
+        showToast("Error creating folder", "error");
+      }
+    },
+    [relativePath, reload, showToast],
   );
 
   const deleteFolder = useCallback(
-    async (folder) => {
+    async (folderName) => {
+      if (!folderName || !relativePath) {
+        return;
+      }
+
       try {
         await apiClient.post("/api/delete-folder", {
-          folderName: folder,
-          folderPath: files?.relativePath,
+          folderName,
+          folderPath: relativePath,
         });
 
-        reload();
+        await reload();
         showToast("Folder deleted", "success");
-      } catch {
+      } catch (err) {
+        console.error("Error deleting folder:", err);
         showToast("Error deleting folder", "error");
       }
     },
-    [files?.relativePath, reload, showToast],
+    [relativePath, reload, showToast],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Clipboard operations
+  // ---------------------------------------------------------------------------
+
+  const copyFile = useCallback(
+    (name) => {
+      if (!relativePath) {
+        return;
+      }
+
+      copyToClipboard({
+        file: name,
+        path: relativePath,
+        source: "local",
+      });
+    },
+    [copyToClipboard, relativePath],
   );
 
   const copyFolder = useCallback(
-    (folder) => {
-      copyFile({
-        file: folder,
-        path: files?.relativePath,
+    (folderName) => {
+      if (!relativePath) {
+        return;
+      }
+
+      copyToClipboard({
+        file: folderName,
+        path: relativePath,
         source: "local",
         isDirectory: true,
       });
     },
-    [copyFile, files?.relativePath],
+    [copyToClipboard, relativePath],
   );
 
-  const onPaste = useCallback(async () => {
-    if (!clipboard.length) return;
+  const cutFile = useCallback(
+    (name) => {
+      if (!relativePath) {
+        return;
+      }
+
+      cutToClipboard({
+        file: name,
+        path: relativePath,
+        source: "local",
+        serverId: null,
+      });
+    },
+    [cutToClipboard, relativePath],
+  );
+
+  const paste = useCallback(async () => {
+    if (!clipboard.length || !relativePath) {
+      return;
+    }
+
+    const items = [...clipboard];
 
     try {
-      const items = [...clipboard];
-
       const { jobId } = await apiClient.post("/api/paste-files", {
         files: items,
-        newPath: files?.relativePath,
+        newPath: relativePath,
       });
 
       clearClipboard();
@@ -223,92 +401,39 @@ export function useFileList({ toast }) {
         items,
         onDone: reload,
       });
-    } catch {
+    } catch (err) {
+      console.error("Error pasting files:", err);
       showToast("Error pasting files", "error");
     }
-  }, [
-    clipboard,
-    files?.relativePath,
-    clearClipboard,
-    trackJob,
-    reload,
-    showToast,
-  ]);
+  }, [clipboard, relativePath, clearClipboard, trackJob, reload, showToast]);
 
-  const createFolder = useCallback(
-    async (folder) => {
-      try {
-        await apiClient.post("/api/create-folder", {
-          folderName: folder,
-          currentPath: files?.relativePath,
-        });
+  // ---------------------------------------------------------------------------
+  // Breadcrumbs
+  // ---------------------------------------------------------------------------
 
-        reload();
-        showToast("Folder created", "success");
-      } catch {
-        showToast("Error creating folder", "error");
-      }
-    },
-    [files?.relativePath, reload, showToast],
-  );
+  const breadcrumbs = useMemo(() => {
+    const result = [{ name: "Home", path: "files" }];
 
-  const generateBreadcrumb = useCallback(() => {
-    const path = files?.relativePath;
-
-    const breadcrumbs = [{ name: "Home", path: "files" }];
+    if (!relativePath) {
+      return result;
+    }
 
     let current = "files";
 
-    path
-      ?.split("/")
+    relativePath
+      .split("/")
       .filter(Boolean)
       .forEach((part) => {
-        current += `/${part}`;
-        breadcrumbs.push({
+        current = joinPath(current, part);
+
+        result.push({
           name: part,
           path: current,
         });
       });
 
-    return breadcrumbs;
-  }, [files?.relativePath]);
-
-  const downloadFileBlob = useCallback((blob, filename) => {
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-  }, []);
-
-  const downloadFolder = useCallback(
-    async (folderName) => {
-      try {
-        const blob = await apiClient.getBlob(
-          `/api/download-folder/${files?.relativePath}/${folderName}`,
-        );
-
-        downloadFileBlob(blob, `${folderName}.zip`);
-      } catch {
-        showToast("Error downloading folder", "error");
-      }
-    },
-    [files?.relativePath, downloadFileBlob, showToast],
-  );
-
-  // ---------------------------------------------------------------------------
-  // Navigation
-  // ---------------------------------------------------------------------------
-
-  const openFolder = useCallback((folderName) => {
-    setCurrentPath((prev) => joinPath(prev, folderName));
-  }, []);
+    return result;
+  }, [relativePath]);
 
   // ---------------------------------------------------------------------------
   // Public interface
@@ -318,25 +443,27 @@ export function useFileList({ toast }) {
     files,
     loading,
 
+    currentPath,
     openFolder,
-    changeDirectory: setCurrentPath,
+    changeDirectory,
     reload,
 
     downloadFile,
     downloadFolder,
+
     deleteFile,
     renameFile,
     shareFile,
 
-    copyFile: onFileCopy,
-    cutFile: onFileCut,
-    paste: onPaste,
+    copyFile,
+    cutFile,
+    copyFolder,
+    paste,
 
     createFolder,
     deleteFolder,
-    copyFolder,
 
-    generateBreadcrumb,
+    breadcrumbs,
 
     progressMap,
     startedTransfers,

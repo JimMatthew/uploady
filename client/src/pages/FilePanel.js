@@ -59,7 +59,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
     deleteFolder,
     copyFolder,
 
-    generateBreadcrumb,
+    breadcrumbs,
 
     progressMap,
     startedTransfers,
@@ -120,11 +120,6 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
     localStorage.setItem(UPLOAD_MODE_KEY, nextMode);
   };
 
-  const breadcrumb = useMemo(
-    () => generateBreadcrumb(files.currentDirectory || "/"),
-    [files.currentDirectory, generateBreadcrumb],
-  );
-
   const hasClipboardItems = clipboard.length > 0;
 
   const hasTransfers =
@@ -171,7 +166,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
           display="flex"
           alignItems="center"
         >
-          <Breadcrumbs breadcrumb={breadcrumb} onClick={changeDirectory} />
+          <Breadcrumbs breadcrumb={breadcrumbs} onClick={changeDirectory} />
         </Box>
 
         <Flex align="center" gap="6px" flexShrink={0}>
@@ -193,12 +188,13 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
         </Flex>
       </Flex>
 
-      {hasTransfers && (
+      {startedTransfers && progressMap && (
         <Box px={{ base: 3, md: 5 }} pt={3} flexShrink={0}>
+          {" "}
           <TransferProgress
             transfers={startedTransfers}
             progressMap={progressMap}
-          />
+          />{" "}
         </Box>
       )}
 

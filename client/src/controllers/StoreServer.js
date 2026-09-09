@@ -14,12 +14,23 @@ const showToast = (toast, title, status) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Saves a new SFTP server configuration.
+ * Creates a new SFTP server configuration.
  *
  * Only credential fields relevant to the selected authentication
  * method are included in the request.
  *
- * @returns {Promise<Object|null>} Created server data, or null on failure.
+ * @param {Object} params
+ * @param {string} params.host
+ * @param {string} params.username
+ * @param {"password"|"key"} params.authType
+ * @param {"saved"|"import"} [params.keyMode]
+ * @param {string} [params.keyId]
+ * @param {string} [params.password]
+ * @param {string} [params.key]
+ * @param {string} [params.passphrase]
+ * @param {Function} params.toast
+ *
+ * @returns {Promise<Object|null>} Created server data, or null on failure
  */
 export const SaveServer = async ({
   host,
@@ -32,32 +43,41 @@ export const SaveServer = async ({
   passphrase,
   toast,
 }) => {
+  const payload = {
+    host,
+    username,
+    authType,
+  };
+
+  if (authType === "password") {
+    payload.password = password;
+  }
+
+  if (authType === "key") {
+    payload.keyMode = keyMode;
+
+    if (keyMode === "saved") {
+      payload.keyId = keyId;
+    }
+
+    if (keyMode === "import") {
+      payload.key = key;
+
+      if (passphrase) {
+        payload.passphrase = passphrase;
+      }
+    }
+  }
+
   try {
-    const data = await apiClient.post("/sftp/api/save-server", {
-      host,
-      username,
-      authType,
-      keyMode,
-
-      password: authType === "password" ? password : undefined,
-
-      keyId: authType === "key" && keyMode === "saved" ? keyId : undefined,
-
-      key: authType === "key" && keyMode === "import" ? key : undefined,
-
-      passphrase:
-        authType === "key" && keyMode === "import"
-          ? passphrase || undefined
-          : undefined,
-    });
+    const data = await apiClient.post("/sftp/api/save-server", payload);
 
     showToast(toast, "Server created", "success");
 
     return data;
   } catch (err) {
-    console.error("SaveServer error:", err);
-    showToast(toast, err.message || "Error adding server", "error");
-
+    console.error("saveServer error:", err);
+    showToast(toast, err?.message || "Error adding server", "error");
     return null;
   }
 };
@@ -68,6 +88,10 @@ export const SaveServer = async ({
 
 /**
  * Deletes an SFTP server configuration by ID.
+ *
+ * @param {Object} params
+ * @param {string} params.serverId
+ * @param {Function} params.toast
  *
  * @returns {Promise<boolean>} True when deletion succeeds.
  */
@@ -93,11 +117,17 @@ export const DeleteServer = async ({ serverId, toast }) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches online/offline status for all servers concurrently.
+ * Fetches online/offline status for all configured servers concurrently.
  *
- * Each server updates independently as its request completes,
- * allowing the UI to update progressively instead of waiting
- * for every status request to finish.
+ * Each server updates independently as its request completes, allowing
+ * the UI to update progressively instead of waiting for the entire
+ * status batch to finish.
+ *
+ * @param {Object} params
+ * @param {{ servers?: Array<Object> }} params.data
+ * @param {Function} params.setServerStatuses
+ *
+ * @returns {Promise<void>}
  */
 export const fetchServerStatuses = async ({ data, setServerStatuses }) => {
   await Promise.all(

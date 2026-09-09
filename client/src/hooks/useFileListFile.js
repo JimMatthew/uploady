@@ -1,22 +1,41 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+const SORT_FIELDS = {
+  NAME: "name",
+  SIZE: "size",
+  DATE: "date",
+};
+
+const SORT_DIRECTIONS = {
+  ASC: "asc",
+  DESC: "desc",
+};
 
 export function useFileListState({
-  files,
+  files = [],
   copyFile,
   deleteFile,
   shareFile,
 }) {
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [sortField, setSortField] = useState("name");
-  const [selected, setSelected] = useState(new Set());
+  const [sortField, setSortField] = useState(SORT_FIELDS.NAME);
+  const [sortDirection, setSortDirection] = useState(SORT_DIRECTIONS.ASC);
+  const [selected, setSelected] = useState(() => new Set());
 
+  /*
+   * A new file listing represents a new view of the directory,
+   * so discard selection belonging to the previous listing.
+   */
   useEffect(() => {
     setSelected(new Set());
   }, [files]);
 
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+  }, []);
+
   const toggleSelect = useCallback((fileName) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
+    setSelected((current) => {
+      const next = new Set(current);
 
       if (next.has(fileName)) {
         next.delete(fileName);
@@ -28,52 +47,70 @@ export function useFileListState({
     });
   }, []);
 
-  const copySelected = useCallback(() => {
-    selected.forEach(copyFile);
-    setSelected(new Set());
-  }, [selected, copyFile]);
+  const executeForSelected = useCallback(
+    async (operation) => {
+      const selectedFiles = [...selected];
 
-  const deleteSelected = useCallback(() => {
-    selected.forEach(deleteFile);
-    setSelected(new Set());
-  }, [selected, deleteFile]);
+      if (selectedFiles.length === 0) {
+        return;
+      }
 
-  const shareSelected = useCallback(() => {
-    selected.forEach(shareFile);
-    setSelected(new Set());
-  }, [selected, shareFile]);
+      await Promise.all(selectedFiles.map(operation));
+      clearSelection();
+    },
+    [selected, clearSelection],
+  );
 
-  const clearSelection = useCallback(() => {
-    setSelected(new Set());
-  }, []);
+  const copySelected = useCallback(
+    () => executeForSelected(copyFile),
+    [executeForSelected, copyFile],
+  );
+
+  const deleteSelected = useCallback(
+    () => executeForSelected(deleteFile),
+    [executeForSelected, deleteFile],
+  );
+
+  const shareSelected = useCallback(
+    () => executeForSelected(shareFile),
+    [executeForSelected, shareFile],
+  );
 
   const toggleSortDirection = useCallback(() => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    setSortDirection((current) =>
+      current === SORT_DIRECTIONS.ASC
+        ? SORT_DIRECTIONS.DESC
+        : SORT_DIRECTIONS.ASC,
+    );
   }, []);
 
   const sortedFiles = useMemo(() => {
-    const arr = [...files];
+    const direction = sortDirection === SORT_DIRECTIONS.ASC ? 1 : -1;
 
-    if (sortField === "size") {
-      return arr.sort((a, b) =>
-        sortDirection === "asc" ? a.size - b.size : b.size - a.size,
-      );
-    }
+    return [...files].sort((a, b) => {
+      let comparison;
 
-    if (sortField === "date") {
-      return arr.sort((a, b) =>
-        sortDirection === "asc"
-          ? new Date(a.date).getTime() - new Date(b.date).getTime()
-          : new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
-    }
+      switch (sortField) {
+        case SORT_FIELDS.SIZE:
+          comparison = (a.size ?? 0) - (b.size ?? 0);
+          break;
 
-    return arr.sort((a, b) =>
-      sortDirection === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name),
-    );
-  }, [files, sortDirection, sortField]);
+        case SORT_FIELDS.DATE:
+          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+          break;
+
+        case SORT_FIELDS.NAME:
+        default:
+          comparison = a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+          break;
+      }
+
+      return comparison * direction;
+    });
+  }, [files, sortField, sortDirection]);
 
   return {
     sortedFiles,

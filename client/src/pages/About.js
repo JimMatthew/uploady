@@ -11,6 +11,49 @@ import {
 } from "react-icons/fi";
 import apiClient, { ApiError } from "../services/apiClient";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const DATABASE_NAMES = {
+  sqlite: "SQLite",
+  mongo: "MongoDB",
+};
+
+const formatDatabase = (database) => {
+  return DATABASE_NAMES[database] ?? database ?? "—";
+};
+
+const formatUptime = (seconds) => {
+  if (seconds == null) {
+    return "—";
+  }
+
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m`;
+  }
+
+  return `${Math.round(seconds)}s`;
+};
+
+const formatMegabytes = (bytes) => {
+  if (bytes == null) {
+    return "—";
+  }
+
+  return `${(bytes / 1e6).toFixed(1)} MB`;
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatRow = ({ label, value, accent }) => (
@@ -55,59 +98,40 @@ const SectionHeader = ({ icon, label }) => (
   </Box>
 );
 
-const NavButton = ({ onClick, href, icon, label, accent }) => {
-  const styles = {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "0 16px",
-    height: "34px",
-    borderRadius: "8px",
-    fontSize: "12px",
-    fontWeight: 600,
-    cursor: "pointer",
-    textDecoration: "none",
-    transition: "all 0.12s",
-    border: accent
-      ? "1px solid rgba(99,102,241,0.25)"
-      : "1px solid rgba(255,255,255,0.08)",
-    background: accent ? "rgba(99,102,241,0.08)" : "transparent",
-    color: accent ? "#818CF8" : "rgba(255,255,255,0.4)",
-  };
-
-  if (href) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" style={styles}>
-        <Icon as={icon} boxSize="13px" />
-        {label}
-      </a>
-    );
-  }
+const NavButton = ({ onClick, href, icon, label, accent = false }) => {
+  const externalProps = href
+    ? {
+        as: "a",
+        href,
+        target: "_blank",
+        rel: "noreferrer",
+      }
+    : {};
 
   return (
     <Flex
+      {...externalProps}
       align="center"
       gap={2}
       px={4}
       h="34px"
       borderRadius="8px"
-      border={
-        accent
-          ? "1px solid rgba(99,102,241,0.25)"
-          : "1px solid rgba(255,255,255,0.08)"
-      }
+      border="1px solid"
+      borderColor={accent ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.08)"}
       bg={accent ? "rgba(99,102,241,0.08)" : "transparent"}
       color={accent ? "#818CF8" : "rgba(255,255,255,0.4)"}
       fontSize="12px"
       fontWeight={600}
       cursor="pointer"
+      textDecoration="none"
       transition="all 0.12s"
       _hover={{
         bg: accent ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.04)",
         borderColor: accent ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.15)",
         color: accent ? "#A5B4FC" : "rgba(255,255,255,0.7)",
+        textDecoration: "none",
       }}
-      onClick={onClick}
+      onClick={href ? undefined : onClick}
     >
       <Icon as={icon} boxSize="13px" />
       {label}
@@ -119,6 +143,7 @@ const NavButton = ({ onClick, href, icon, label, accent }) => {
 
 const About = () => {
   const [stats, setStats] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
   const navigate = useNavigate();
 
@@ -135,41 +160,12 @@ const About = () => {
         }
 
         console.error("Failed to fetch stats:", err);
+        setLoadError(true);
       }
     };
 
     fetchStats();
   }, [navigate]);
-
-  const formatUptime = (up) => {
-    if (!up) return "—";
-
-    const days = Math.floor(up / 86400);
-    const hours = Math.floor((up % 86400) / 3600);
-    const minutes = Math.floor((up % 3600) / 60);
-
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
-    }
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-
-    if (minutes > 0) {
-      return `${minutes}m`;
-    }
-
-    return `${Math.round(up)}s`;
-  };
-
-  const mb = (bytes) => {
-    if (bytes === null || bytes === undefined) {
-      return "—";
-    }
-
-    return `${(bytes / 1e6).toFixed(1)} MB`;
-  };
 
   return (
     <Box minH="100%" bg="gray.800" py={10} px={4}>
@@ -276,7 +272,13 @@ const About = () => {
           borderRadius="12px"
           overflow="hidden"
         >
-          {!stats ? (
+          {loadError ? (
+            <Flex align="center" justify="center" py={8}>
+              <Text fontSize="12px" color="rgba(239,68,68,0.65)">
+                Failed to load system information
+              </Text>
+            </Flex>
+          ) : !stats ? (
             <Flex align="center" justify="center" gap={2} py={8}>
               <Spinner size="xs" color="rgba(99,102,241,0.5)" />
 
@@ -308,29 +310,18 @@ const About = () => {
                 accent="#4ADE80"
               />
 
-              <SectionHeader
-                icon={FiDatabase}
-                label="Database"
-              />
+              <SectionHeader icon={FiDatabase} label="Database" />
 
               <StatRow
                 label="Backend"
-                value={
-                  stats.database === "sqlite"
-                    ? "SQLite"
-                    : stats.database === "mongo"
-                      ? "MongoDB"
-                      : stats.database
-                }
+                value={formatDatabase(stats.database)}
                 accent="#818CF8"
               />
 
               {stats.databaseServer && (
-                <StatRow
-                  label="Server"
-                  value={stats.databaseServer}
-                />
+                <StatRow label="Server" value={stats.databaseServer} />
               )}
+
               <SectionHeader icon={FiServer} label="System" />
 
               <StatRow label="Hostname" value={stats.hostname} />
@@ -352,21 +343,27 @@ const About = () => {
 
               <SectionHeader icon={FiHardDrive} label="Memory" />
 
-              <StatRow label="RSS" value={mb(stats.memory?.rss)} />
+              <StatRow label="RSS" value={formatMegabytes(stats.memory?.rss)} />
 
-              <StatRow label="Heap total" value={mb(stats.memory?.heapTotal)} />
+              <StatRow
+                label="Heap total"
+                value={formatMegabytes(stats.memory?.heapTotal)}
+              />
 
               <StatRow
                 label="Heap used"
-                value={mb(stats.memory?.heapUsed)}
+                value={formatMegabytes(stats.memory?.heapUsed)}
                 accent="#818CF8"
               />
 
-              <StatRow label="External" value={mb(stats.memory?.external)} />
+              <StatRow
+                label="External"
+                value={formatMegabytes(stats.memory?.external)}
+              />
 
               <StatRow
                 label="ArrayBuffers"
-                value={mb(stats.memory?.arrayBuffers)}
+                value={formatMegabytes(stats.memory?.arrayBuffers)}
               />
             </>
           )}
