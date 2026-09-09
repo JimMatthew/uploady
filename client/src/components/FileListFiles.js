@@ -105,73 +105,96 @@ export default function FileList({
       {/* Section header + sort controls */}
       <HStack
         px={4}
-        py={2}
+        py="9px"
         justify="space-between"
-        borderBottom="1px solid rgba(255,255,255,0.06)"
+        borderBottom="1px solid"
+        borderColor="rgba(255,255,255,0.06)"
+        bg="rgba(255,255,255,0.012)"
       >
         <HStack spacing={2}>
           <Text
             fontSize="10px"
-            fontWeight="700"
-            letterSpacing="0.1em"
+            fontWeight={700}
+            letterSpacing="0.09em"
             textTransform="uppercase"
-            color="rgba(255,255,255,0.3)"
+            color="rgba(255,255,255,0.38)"
           >
             Files
           </Text>
-          <Text
-            fontSize="10px"
-            fontWeight="600"
-            color="rgba(255,255,255,0.2)"
-            letterSpacing="0.05em"
+
+          <Flex
+            align="center"
+            justify="center"
+            minW="20px"
+            h="18px"
+            px="6px"
+            borderRadius="5px"
+            bg="rgba(255,255,255,0.045)"
+            border="1px solid rgba(255,255,255,0.07)"
           >
-            {files.length}
-          </Text>
+            <Text
+              fontSize="9px"
+              fontWeight={600}
+              color="rgba(255,255,255,0.38)"
+              lineHeight={1}
+            >
+              {files.length}
+            </Text>
+          </Flex>
         </HStack>
 
-        {/* Sort pills */}
-        <HStack spacing={1}>
-          {SORT_FIELDS.map((field) => (
-            <Box
-              key={field}
-              px={2}
-              py="2px"
-              borderRadius="4px"
-              cursor="pointer"
-              bg={sortField === field ? "rgba(99,102,241,0.15)" : "transparent"}
-              border="1px solid"
-              borderColor={
-                sortField === field ? "rgba(99,102,241,0.35)" : "transparent"
-              }
-              onClick={() =>
-                sortField === field ? toggleSortDirection() : setSortField(field)
-              }
-              transition="all 0.12s"
-              _hover={{ borderColor: "rgba(255,255,255,0.12)" }}
-            >
-              <HStack spacing={1}>
+        <HStack
+          spacing="4px"
+          p="3px"
+          borderRadius="7px"
+          bg="rgba(255,255,255,0.025)"
+          border="1px solid rgba(255,255,255,0.06)"
+        >
+          {SORT_FIELDS.map((field) => {
+            const active = sortField === field;
+
+            return (
+              <Flex
+                key={field}
+                align="center"
+                gap="3px"
+                px="8px"
+                h="24px"
+                borderRadius="5px"
+                cursor="pointer"
+                bg={active ? "rgba(99,102,241,0.14)" : "transparent"}
+                border="1px solid"
+                borderColor={active ? "rgba(129,140,248,0.25)" : "transparent"}
+                color={active ? "#A5B4FC" : "rgba(255,255,255,0.36)"}
+                transition="all 120ms ease"
+                onClick={() =>
+                  active ? toggleSortDirection() : setSortField(field)
+                }
+                _hover={{
+                  bg: active
+                    ? "rgba(99,102,241,0.18)"
+                    : "rgba(255,255,255,0.045)",
+                  color: active ? "#C7D2FE" : "rgba(255,255,255,0.7)",
+                }}
+              >
                 <Text
                   fontSize="10px"
-                  letterSpacing="0.05em"
-                  color={
-                    sortField === field ? "#818CF8" : "rgba(255,255,255,0.28)"
-                  }
+                  fontWeight={500}
                   textTransform="capitalize"
+                  lineHeight={1}
                 >
                   {field}
                 </Text>
-                {sortField === field && (
+
+                {active && (
                   <Icon
-                    as={
-                      sortDirection === "asc" ? FiChevronUp : FiChevronDown
-                    }
-                    boxSize={3}
-                    color="#818CF8"
+                    as={sortDirection === "asc" ? FiChevronUp : FiChevronDown}
+                    boxSize="11px"
                   />
                 )}
-              </HStack>
-            </Box>
-          ))}
+              </Flex>
+            );
+          })}
         </HStack>
       </HStack>
 
@@ -182,11 +205,25 @@ export default function FileList({
           justify="center"
           direction="column"
           gap={2}
-          py={10}
-          color="rgba(255,255,255,0.12)"
+          py={12}
         >
-          <Icon as={FiFileText} boxSize="26px" />
-          <Text fontSize="12px" letterSpacing="0.02em">
+          <Flex
+            align="center"
+            justify="center"
+            w="38px"
+            h="38px"
+            borderRadius="10px"
+            bg="rgba(255,255,255,0.025)"
+            border="1px solid rgba(255,255,255,0.06)"
+          >
+            <Icon
+              as={FiFileText}
+              boxSize="16px"
+              color="rgba(255,255,255,0.22)"
+            />
+          </Flex>
+
+          <Text fontSize="12px" fontWeight={500} color="rgba(255,255,255,0.34)">
             No files in this folder
           </Text>
         </Flex>

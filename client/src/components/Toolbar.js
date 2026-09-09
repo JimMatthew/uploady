@@ -1,49 +1,73 @@
-import { Flex, Text, Icon, Box, useBreakpointValue } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Flex,
+  Icon,
+  Text,
+  Tooltip,
+  useBreakpointValue,
+} from "@chakra-ui/react";
+
 import { FiCopy, FiShare2, FiTrash2, FiX } from "react-icons/fi";
 
-const ToolbarBtn = ({ icon, label, onClick, disabled, danger }) => (
-  <Flex
-    align="center"
-    gap="6px"
+const ToolbarButton = ({
+  icon,
+  label,
+  onClick,
+  disabled = false,
+  danger = false,
+}) => (
+  <Button
+    size="xs"
+    h="30px"
     px={3}
-    h="28px"
-    borderRadius="6px"
-    cursor={disabled ? "not-allowed" : "pointer"}
+    leftIcon={<Icon as={icon} boxSize="11px" />}
+    onClick={onClick}
+    isDisabled={disabled}
+    borderRadius="7px"
+    bg={disabled ? "rgba(255,255,255,0.018)" : "rgba(255,255,255,0.055)"}
     border="1px solid"
     borderColor={
-      disabled
-        ? "rgba(255,255,255,0.04)"
-        : danger
-          ? "rgba(239,68,68,0.2)"
-          : "rgba(255,255,255,0.08)"
+      disabled ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.11)"
     }
-    color={
-      disabled
-        ? "rgba(255,255,255,0.12)"
-        : danger
-          ? "rgba(239,68,68,0.6)"
-          : "rgba(255,255,255,0.45)"
-    }
-    bg="transparent"
-    fontSize="12px"
+    color={disabled ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.65)"}
+    fontSize="11px"
     fontWeight={500}
-    transition="all 0.12s"
+    boxShadow={disabled ? "none" : "0 1px 2px rgba(0,0,0,0.15)"}
+    transition="
+      background 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease
+    "
     _hover={
-      !disabled
-        ? {
-            bg: danger ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.05)",
-            borderColor: danger
-              ? "rgba(239,68,68,0.4)"
-              : "rgba(255,255,255,0.15)",
-            color: danger ? "#EF4444" : "rgba(255,255,255,0.8)",
-          }
-        : {}
+      disabled
+        ? {}
+        : danger
+          ? {
+              bg: "rgba(229,115,115,0.1)",
+              borderColor: "rgba(229,115,115,0.3)",
+              color: "#E57373",
+            }
+          : {
+              bg: "rgba(255,255,255,0.09)",
+              borderColor: "rgba(255,255,255,0.18)",
+              color: "rgba(255,255,255,0.9)",
+            }
     }
-    onClick={!disabled ? onClick : undefined}
+    _active={
+      disabled
+        ? {}
+        : danger
+          ? {
+              bg: "rgba(229,115,115,0.14)",
+            }
+          : {
+              bg: "rgba(255,255,255,0.12)",
+            }
+    }
   >
-    <Icon as={icon} boxSize="12px" />
     {label}
-  </Flex>
+  </Button>
 );
 
 const Toolbar = ({
@@ -53,33 +77,39 @@ const Toolbar = ({
   deleteSelected,
   clearSelection,
 }) => {
-  const isDesktop = useBreakpointValue({ base: false, lg: true });
+  const isDesktop = useBreakpointValue({
+    base: false,
+    lg: true,
+  });
+
   const hasSelection = selected.size > 0;
 
   return (
     <Flex
       align="center"
-      gap={2}
-      px={4}
-      py="8px"
-      borderBottom="1px solid rgba(255,255,255,0.06)"
-      minH="44px"
-      bg={hasSelection ? "rgba(99,102,241,0.04)" : "transparent"}
-      transition="background 0.15s"
+      gap="6px"
+      px={{ base: 3, md: 4 }}
+      minH="46px"
+      borderBottom="1px solid"
+      borderColor="rgba(255,255,255,0.06)"
+      bg={hasSelection ? "rgba(99,102,241,0.045)" : "rgba(255,255,255,0.008)"}
+      transition="background 140ms ease"
     >
-      <ToolbarBtn
+      <ToolbarButton
         icon={FiCopy}
         label="Copy"
         onClick={copySelected}
         disabled={!hasSelection}
       />
-      <ToolbarBtn
+
+      <ToolbarButton
         icon={FiShare2}
         label="Share"
         onClick={shareSelected}
         disabled={!hasSelection}
       />
-      <ToolbarBtn
+
+      <ToolbarButton
         icon={FiTrash2}
         label="Delete"
         onClick={deleteSelected}
@@ -90,35 +120,65 @@ const Toolbar = ({
       <Box flex={1} />
 
       {hasSelection && (
-        <Flex align="center" gap={2}>
-          <Box w="1px" h="16px" bg="rgba(255,255,255,0.07)" />
+        <Flex
+          align="center"
+          gap={2}
+          pl={3}
+          borderLeft="1px solid"
+          borderColor="rgba(255,255,255,0.07)"
+        >
           {isDesktop && (
-            <Text
-              fontSize="11px"
-              color="rgba(99,102,241,0.8)"
-              letterSpacing="0.02em"
-              fontWeight={500}
-            >
-              {selected.size} {selected.size === 1 ? "item" : "items"} selected
-            </Text>
+            <Flex align="center" gap="6px">
+              <Flex
+                align="center"
+                justify="center"
+                minW="20px"
+                h="20px"
+                px="6px"
+                borderRadius="6px"
+                bg="rgba(99,102,241,0.1)"
+                border="1px solid rgba(129,140,248,0.15)"
+              >
+                <Text
+                  fontSize="10px"
+                  lineHeight={1}
+                  fontWeight={700}
+                  color="#A5B4FC"
+                >
+                  {selected.size}
+                </Text>
+              </Flex>
+
+              <Text
+                fontSize="11px"
+                fontWeight={500}
+                color="rgba(255,255,255,0.42)"
+              >
+                {selected.size === 1 ? "item selected" : "items selected"}
+              </Text>
+            </Flex>
           )}
-          <Flex
-            w="20px"
-            h="20px"
-            align="center"
-            justify="center"
-            borderRadius="4px"
-            cursor="pointer"
-            color="rgba(255,255,255,0.3)"
-            transition="all 0.12s"
-            _hover={{
-              bg: "rgba(255,255,255,0.07)",
-              color: "rgba(255,255,255,0.7)",
-            }}
-            onClick={clearSelection}
-          >
-            <Icon as={FiX} boxSize="11px" />
-          </Flex>
+
+          <Tooltip label="Clear selection" hasArrow openDelay={400}>
+            <Button
+              size="xs"
+              minW="28px"
+              w="28px"
+              h="28px"
+              p={0}
+              variant="ghost"
+              borderRadius="7px"
+              color="rgba(255,255,255,0.3)"
+              onClick={clearSelection}
+              aria-label="Clear selection"
+              _hover={{
+                bg: "rgba(255,255,255,0.06)",
+                color: "rgba(255,255,255,0.75)",
+              }}
+            >
+              <FiX size={11} />
+            </Button>
+          </Tooltip>
         </Flex>
       )}
     </Flex>

@@ -2,57 +2,90 @@ import React from "react";
 import RenameComponent from "./RenameComponent";
 
 const EXT_COLORS = {
-  PDF: "#FF6B6B",
-  PNG: "#4ECDC4",
-  JPG: "#4ECDC4",
-  JPEG: "#4ECDC4",
-  WEBP: "#4ECDC4",
-  GIF: "#FFE66D",
-  SVG: "#FFE66D",
+  PDF: "#E57373",
+
+  PNG: "#67B7C7",
+  JPG: "#67B7C7",
+  JPEG: "#67B7C7",
+  WEBP: "#67B7C7",
+
+  GIF: "#D9B86C",
+  SVG: "#D9B86C",
+
   MP4: "#A78BFA",
   MOV: "#A78BFA",
   MKV: "#A78BFA",
-  MP3: "#F472B6",
-  WAV: "#F472B6",
-  ZIP: "#FB923C",
-  TAR: "#FB923C",
-  GZ: "#FB923C",
-  RAR: "#FB923C",
-  JS: "#FFD700",
-  JSX: "#FFD700",
-  TS: "#4FC3F7",
-  TSX: "#4FC3F7",
-  PY: "#6EE7B7",
-  RS: "#FB923C",
-  GO: "#4FC3F7",
-  SH: "#6EE7B7",
+
+  MP3: "#D98AB3",
+  WAV: "#D98AB3",
+
+  ZIP: "#D99A5F",
+  TAR: "#D99A5F",
+  GZ: "#D99A5F",
+  RAR: "#D99A5F",
+
+  JS: "#D9B86C",
+  JSX: "#D9B86C",
+
+  TS: "#6FA8DC",
+  TSX: "#6FA8DC",
+
+  PY: "#8FCB8F",
+  RS: "#D99A5F",
+  GO: "#6FA8DC",
+  SH: "#8FCB8F",
+
   TXT: "#94A3B8",
   MD: "#94A3B8",
-  JSON: "#FCA5A5",
-  YAML: "#FCA5A5",
-  YML: "#FCA5A5",
-  TOML: "#FCA5A5",
-  HTML: "#F97316",
+
+  JSON: "#D89A9A",
+  YAML: "#D89A9A",
+  YML: "#D89A9A",
+  TOML: "#D89A9A",
+
+  HTML: "#D9825B",
+
   CSS: "#818CF8",
   SCSS: "#818CF8",
-  ENV: "#6EE7B7",
+
+  ENV: "#8FCB8F",
+
   CONF: "#94A3B8",
   INI: "#94A3B8",
   LOG: "#64748B",
-  SQL: "#FCA5A5",
+
+  SQL: "#D89A9A",
 };
 
+const DEFAULT_ACCENT = "#64748B";
+
 const formatSize = (kb) => {
-  if (kb === undefined || kb === null) return "—";
+  if (kb === undefined || kb === null) {
+    return "—";
+  }
+
   const n = parseFloat(kb);
-  if (isNaN(n)) return "—";
-  if (n < 1) return `${(n * 1024).toFixed(0)} B`;
-  if (n < 1024) return `${n.toFixed(1)} KB`;
+
+  if (Number.isNaN(n)) {
+    return "—";
+  }
+
+  if (n < 1) {
+    return `${(n * 1024).toFixed(0)} B`;
+  }
+
+  if (n < 1024) {
+    return `${n.toFixed(1)} KB`;
+  }
+
   return `${(n / 1024).toFixed(1)} MB`;
 };
 
 const formatDate = (raw) => {
-  if (!raw) return "—";
+  if (!raw) {
+    return "—";
+  }
+
   try {
     return new Date(raw).toLocaleDateString(undefined, {
       month: "short",
@@ -62,6 +95,14 @@ const formatDate = (raw) => {
   } catch {
     return raw;
   }
+};
+
+const getExtension = (name) => {
+  if (!name.includes(".")) {
+    return "FILE";
+  }
+
+  return name.split(".").pop().toUpperCase();
 };
 
 const FileItem = React.memo(
@@ -76,10 +117,8 @@ const FileItem = React.memo(
     onRename,
     onRenameClose,
   }) {
-    const ext = name.includes(".")
-      ? name.split(".").pop().toUpperCase()
-      : "FILE";
-    const accent = EXT_COLORS[ext] || "#64748B";
+    const ext = getExtension(name);
+    const accent = EXT_COLORS[ext] || DEFAULT_ACCENT;
 
     return (
       <div
@@ -93,24 +132,25 @@ const FileItem = React.memo(
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          padding: "10px 16px",
+          minHeight: "50px",
+          padding: "9px 16px",
           marginBottom: "1px",
           cursor: "pointer",
-          borderLeft: `2px solid ${isSelected ? "#6366F1" : "transparent"}`,
-          borderBottom: "1px solid rgba(255,255,255,0.04)",
-          background: isSelected ? "rgba(99,102,241,0.10)" : "transparent",
-          transition: "all 0.12s ease",
+          borderLeft: `2px solid ${isSelected ? "#818CF8" : "transparent"}`,
+          borderBottom: "1px solid rgba(255,255,255,0.045)",
+          background: isSelected ? "rgba(99,102,241,0.065)" : "transparent",
+          transition: "background 0.12s ease, border-color 0.12s ease",
         }}
       >
-        {/* Ext badge */}
+        {/* Extension badge */}
         <div
           className="file-badge"
           style={{
-            width: "34px",
-            height: "34px",
+            width: "32px",
+            height: "32px",
             borderRadius: "8px",
-            background: `${accent}10`,
-            border: `1px solid ${accent}22`,
+            background: `${accent}12`,
+            border: `1px solid ${accent}26`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -121,6 +161,7 @@ const FileItem = React.memo(
             style={{
               fontSize: "8px",
               fontWeight: 800,
+              lineHeight: 1,
               letterSpacing: "0.03em",
               color: accent,
             }}
@@ -129,12 +170,20 @@ const FileItem = React.memo(
           </span>
         </div>
 
-        {/* Name + meta */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Name + metadata */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           {isRenaming ? (
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{ width: "fit-content" }}
+              style={{
+                width: "fit-content",
+                maxWidth: "100%",
+              }}
             >
               <RenameComponent
                 handleRename={(newName) => onRename(name, newName)}
@@ -148,47 +197,56 @@ const FileItem = React.memo(
               style={{
                 fontSize: "13px",
                 fontWeight: 500,
-                color: "rgba(255,255,255,0.85)",
+                lineHeight: 1.35,
+                color: "rgba(255,255,255,0.84)",
                 fontFamily: "'JetBrains Mono', monospace",
                 letterSpacing: "-0.01em",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                transition: "color 0.12s ease",
               }}
             >
               {name}
             </div>
           )}
+
           {!isRenaming && (
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                marginTop: "2px",
+                marginTop: "3px",
               }}
             >
               <span
                 style={{
-                  fontSize: "11px",
-                  color: "rgba(255,255,255,0.3)",
+                  fontSize: "10.5px",
+                  lineHeight: 1.2,
+                  color: "rgba(255,255,255,0.32)",
                   fontFamily: "'JetBrains Mono', monospace",
                 }}
               >
                 {formatSize(size)}
               </span>
+
               <div
+                aria-hidden="true"
                 style={{
                   width: "2px",
                   height: "2px",
                   borderRadius: "50%",
-                  background: "rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.14)",
+                  flexShrink: 0,
                 }}
               />
+
               <span
                 style={{
-                  fontSize: "11px",
-                  color: "rgba(255,255,255,0.3)",
+                  fontSize: "10.5px",
+                  lineHeight: 1.2,
+                  color: "rgba(255,255,255,0.32)",
                   fontFamily: "'JetBrains Mono', monospace",
                 }}
               >
@@ -201,12 +259,13 @@ const FileItem = React.memo(
         {/* Selected indicator */}
         {isSelected && !isRenaming && (
           <div
+            aria-hidden="true"
             style={{
               width: "18px",
               height: "18px",
               borderRadius: "5px",
-              background: "rgba(99,102,241,0.25)",
-              border: "1px solid rgba(99,102,241,0.4)",
+              background: "rgba(129,140,248,0.14)",
+              border: "1px solid rgba(129,140,248,0.28)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -216,7 +275,7 @@ const FileItem = React.memo(
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path
                 d="M2 5l2.5 2.5L8 3"
-                stroke="#818CF8"
+                stroke="#A5B4FC"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"

@@ -1,192 +1,257 @@
-import React from "react";
-import {  useCallback } from "react";
-import { Box, HStack, Text, Flex, Icon } from "@chakra-ui/react";
+import { useCallback } from "react";
 import {
-  FiScissors,
+  Box,
+  Button,
+  Flex,
+  HStack,
+  Icon,
+  Text,
+  Tooltip,
+} from "@chakra-ui/react";
+
+import {
+  FiArchive,
+  FiClipboard,
   FiFile,
   FiFolder,
-  FiClipboard,
+  FiScissors,
+  FiTrash2,
   FiX,
 } from "react-icons/fi";
+
 import { useClipboard } from "../contexts/ClipboardContext";
 import apiClient from "../services/apiClient";
+
+const CLIPBOARD_ACCENT = "#D6A85F";
+const CUT_ACCENT = "#E59A5A";
+
+const ClipboardItem = ({ item, onRemove }) => {
+  const isCut = item.action === "cut";
+
+  const icon = isCut ? FiScissors : item.isDirectory ? FiFolder : FiFile;
+
+  return (
+    <Flex
+      align="center"
+      gap="6px"
+      h="26px"
+      px="8px"
+      minW={0}
+      maxW="190px"
+      borderRadius="7px"
+      bg={isCut ? "rgba(229,154,90,0.07)" : "rgba(214,168,95,0.06)"}
+      border="1px solid"
+      borderColor={isCut ? "rgba(229,154,90,0.16)" : "rgba(214,168,95,0.14)"}
+    >
+      <Icon
+        as={icon}
+        boxSize="10px"
+        flexShrink={0}
+        color={isCut ? CUT_ACCENT : CLIPBOARD_ACCENT}
+      />
+
+      <Text
+        minW={0}
+        flex={1}
+        fontSize="11px"
+        fontFamily="'JetBrains Mono', monospace"
+        color={isCut ? "rgba(229,154,90,0.85)" : "rgba(255,255,255,0.58)"}
+        noOfLines={1}
+      >
+        {item.file}
+      </Text>
+
+      <Tooltip label="Remove" hasArrow openDelay={400}>
+        <Flex
+          as="button"
+          type="button"
+          align="center"
+          justify="center"
+          w="18px"
+          h="18px"
+          flexShrink={0}
+          borderRadius="5px"
+          color="rgba(255,255,255,0.22)"
+          transition="all 120ms ease"
+          aria-label={`Remove ${item.file}`}
+          onClick={() => onRemove(item.file, item.path)}
+          _hover={{
+            bg: "rgba(255,255,255,0.06)",
+            color: "rgba(255,255,255,0.65)",
+          }}
+        >
+          <FiX size={9} />
+        </Flex>
+      </Tooltip>
+    </Flex>
+  );
+};
+
 const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
 
   const downloadFileBlob = useCallback((blob, filename) => {
-      const url = window.URL.createObjectURL(blob);
-  
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-  
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-  
-      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-    }, []);
-    
- const downloadAsZip = async () => {
-  try {
-    const blob = await apiClient.postBlob(
-      "/sftp/api/zip-clipboard",
-      {
-        files: clipboard,
-      },
-    );
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
 
-    downloadFileBlob(
-      blob,
-      `uploady-${Date.now()}.zip`,
-    );
-  } catch (err) {
-    console.error(
-      "Failed to download clipboard as ZIP:",
-      err,
-    );
-  }
-};
+    anchor.href = url;
+    anchor.download = filename;
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+    }, 5000);
+  }, []);
+
+  const downloadAsZip = async () => {
+    try {
+      const blob = await apiClient.postBlob("/sftp/api/zip-clipboard", {
+        files: clipboard,
+      });
+
+      downloadFileBlob(blob, `uploady-${Date.now()}.zip`);
+    } catch (err) {
+      console.error("Failed to download clipboard as ZIP:", err);
+    }
+  };
 
   return (
     <Box
       px={{ base: 3, md: 5 }}
-      py="8px"
+      py="10px"
       mb={2}
-      borderBottom="1px solid rgba(251,191,36,0.08)"
-      bg="rgba(251,191,36,0.03)"
+      bg="rgba(255,255,255,0.018)"
+      borderBottom="1px solid"
+      borderColor="rgba(255,255,255,0.06)"
     >
-      <HStack spacing={3} align="center">
-        {/* Clipboard icon label */}
-        <Icon
-          as={FiClipboard}
-          boxSize="13px"
-          color="rgba(251,191,36,0.4)"
-          flexShrink={0}
-        />
+      <Flex
+        align={{
+          base: "flex-start",
+          lg: "center",
+        }}
+        direction={{
+          base: "column",
+          lg: "row",
+        }}
+        gap={3}
+      >
+        {/* Clipboard identity */}
+        <Flex align="center" gap={2} flexShrink={0}>
+          <Flex
+            align="center"
+            justify="center"
+            w="26px"
+            h="26px"
+            borderRadius="7px"
+            bg="rgba(214,168,95,0.08)"
+            border="1px solid rgba(214,168,95,0.14)"
+          >
+            <Icon as={FiClipboard} boxSize="11px" color={CLIPBOARD_ACCENT} />
+          </Flex>
 
-        {/* File chips */}
-        <HStack spacing="6px" flex={1} minW={0} flexWrap="wrap">
-          {clipboard.map((item, i) => (
-            <HStack
-              key={i}
-              spacing="5px"
-              px="8px"
-              h="22px"
-              borderRadius="full"
-              bg={
-                item.action === "cut"
-                  ? "rgba(251,146,60,0.08)"
-                  : "rgba(251,191,36,0.08)"
-              }
-              border="1px solid"
-              borderColor={
-                item.action === "cut"
-                  ? "rgba(251,146,60,0.2)"
-                  : "rgba(251,191,36,0.15)"
-              }
-              flexShrink={0}
-              cursor="default"
+          <Box>
+            <Text
+              fontSize="11px"
+              fontWeight={600}
+              color="rgba(255,255,255,0.68)"
+              lineHeight={1.1}
             >
-              <Icon
-                as={
-                  item.action === "cut"
-                    ? FiScissors
-                    : item.isDirectory
-                      ? FiFolder
-                      : FiFile
-                }
-                boxSize="10px"
-                color={item.action === "cut" ? "#FB923C" : "#FBBF24"}
-              />
-              <Text
-                fontSize="11px"
-                fontFamily="'JetBrains Mono', monospace"
-                color={
-                  item.action === "cut"
-                    ? "rgba(251,146,60,0.9)"
-                    : "rgba(255,255,255,0.55)"
-                }
-                maxW="140px"
-                noOfLines={1}
-              >
-                {item.file}
-              </Text>
-              <Icon
-                as={FiX}
-                boxSize="9px"
-                color="rgba(255,255,255,0.2)"
-                cursor="pointer"
-                _hover={{ color: "rgba(255,255,255,0.6)" }}
-                onClick={() => removeFromClipboard(item.file, item.path)}
-              />
-            </HStack>
+              Clipboard
+            </Text>
+
+            <Text mt="2px" fontSize="10px" color="rgba(255,255,255,0.28)">
+              {clipboard.length} {clipboard.length === 1 ? "item" : "items"}
+            </Text>
+          </Box>
+        </Flex>
+
+        {/* Clipboard items */}
+        <Flex flex={1} minW={0} gap="6px" flexWrap="wrap">
+          {clipboard.map((item) => (
+            <ClipboardItem
+              key={`${item.path}:${item.file}`}
+              item={item}
+              onRemove={removeFromClipboard}
+            />
           ))}
-        </HStack>
+        </Flex>
 
         {/* Actions */}
-        <HStack spacing={2} flexShrink={0}>
+        <HStack spacing="6px" flexShrink={0}>
           {pasteable && (
-            <Flex
-              align="center"
-              gap={2}
+            <Button
+              size="xs"
+              h="30px"
               px={3}
-              h="26px"
-              borderRadius="6px"
-              bg="rgba(251,191,36,0.1)"
-              border="1px solid rgba(251,191,36,0.2)"
-              color="#FBBF24"
-              cursor="pointer"
-              fontSize="12px"
+              leftIcon={<Icon as={FiClipboard} boxSize="11px" />}
+              borderRadius="7px"
+              bg="rgba(99,102,241,0.12)"
+              border="1px solid"
+              borderColor="rgba(129,140,248,0.25)"
+              color="#A5B4FC"
+              fontSize="11px"
               fontWeight={600}
-              transition="all 0.12s"
-              _hover={{ bg: "rgba(251,191,36,0.18)" }}
               onClick={handlePaste}
+              _hover={{
+                bg: "rgba(99,102,241,0.2)",
+                borderColor: "rgba(129,140,248,0.4)",
+                color: "#C7D2FE",
+              }}
+              _active={{
+                bg: "rgba(99,102,241,0.26)",
+              }}
             >
-              <FiClipboard size={11} />
               Paste
-            </Flex>
+            </Button>
           )}
-          <Flex
-            align="center"
-            gap={2}
+
+          <Button
+            size="xs"
+            h="30px"
             px={3}
-            h="26px"
-            borderRadius="6px"
-            bg="rgba(251,191,36,0.1)"
-            border="1px solid rgba(251,191,36,0.2)"
-            color="#FBBF24"
-            cursor="pointer"
-            fontSize="12px"
-            fontWeight={600}
-            transition="all 0.12s"
-            _hover={{ bg: "rgba(251,191,36,0.18)" }}
-            onClick={downloadAsZip}
-          >
-            <FiClipboard size={11} />
-            zip
-          </Flex>
-          <Flex
-            align="center"
-            px={3}
-            h="26px"
-            borderRadius="6px"
-            border="1px solid rgba(255,255,255,0.07)"
-            color="rgba(255,255,255,0.3)"
-            cursor="pointer"
-            fontSize="12px"
+            leftIcon={<Icon as={FiArchive} boxSize="11px" />}
+            variant="ghost"
+            border="1px solid"
+            borderColor="rgba(255,255,255,0.08)"
+            borderRadius="7px"
+            color="rgba(255,255,255,0.52)"
+            fontSize="11px"
             fontWeight={500}
-            transition="all 0.12s"
+            onClick={downloadAsZip}
             _hover={{
+              bg: "rgba(255,255,255,0.05)",
               borderColor: "rgba(255,255,255,0.15)",
-              color: "rgba(255,255,255,0.6)",
+              color: "rgba(255,255,255,0.82)",
             }}
-            onClick={clearClipboard}
           >
-            Clear
-          </Flex>
+            Download ZIP
+          </Button>
+
+          <Tooltip label="Clear clipboard" hasArrow openDelay={400}>
+            <Button
+              size="xs"
+              minW="30px"
+              w="30px"
+              h="30px"
+              p={0}
+              variant="ghost"
+              borderRadius="7px"
+              color="rgba(255,255,255,0.28)"
+              aria-label="Clear clipboard"
+              onClick={clearClipboard}
+              _hover={{
+                bg: "rgba(229,115,115,0.08)",
+                color: "#E57373",
+              }}
+            >
+              <FiTrash2 size={11} />
+            </Button>
+          </Tooltip>
         </HStack>
-      </HStack>
+      </Flex>
     </Box>
   );
 };
