@@ -1,34 +1,79 @@
+import { useEffect, useState } from "react";
+
 import CodeMirror from "@uiw/react-codemirror";
 import { Box } from "@chakra-ui/react";
 import { githubDark } from "@uiw/codemirror-theme-github";
-import { javascript } from "@codemirror/lang-javascript";
-import { java } from "@codemirror/lang-java";
-import { json } from "@codemirror/lang-json";
-import { rust } from "@codemirror/lang-rust";
-import { html } from "@codemirror/lang-html";
-import { cpp } from "@codemirror/lang-cpp";
-import { css } from "@codemirror/lang-css";
-import { go } from "@codemirror/lang-go"
-const EXT_LANG = {
-  js: () =>
-    javascript({
-      jsx: true,
-    }),
 
-  ts: () =>
-    javascript({
+const LANGUAGE_LOADERS = {
+  js: async () => {
+    const { javascript } = await import("@codemirror/lang-javascript");
+    return javascript({
+      jsx: true,
+    });
+  },
+
+  jsx: async () => {
+    const { javascript } = await import("@codemirror/lang-javascript");
+    return javascript({
+      jsx: true,
+    });
+  },
+
+  ts: async () => {
+    const { javascript } = await import("@codemirror/lang-javascript");
+    return javascript({
+      typescript: true,
+    });
+  },
+
+  tsx: async () => {
+    const { javascript } = await import("@codemirror/lang-javascript");
+    return javascript({
       jsx: true,
       typescript: true,
-    }),
+    });
+  },
 
-  java: () => java(),
-  json: () => json(),
-  rs: () => rust(),
-  html: () => html(),
-  cpp: () => cpp(),
-  c: () => cpp(),
-  css: () => css(),
-  go: () => go(),
+  java: async () => {
+    const { java } = await import("@codemirror/lang-java");
+    return java();
+  },
+
+  json: async () => {
+    const { json } = await import("@codemirror/lang-json");
+    return json();
+  },
+
+  rs: async () => {
+    const { rust } = await import("@codemirror/lang-rust");
+
+    return rust();
+  },
+
+  html: async () => {
+    const { html } = await import("@codemirror/lang-html");
+    return html();
+  },
+
+  cpp: async () => {
+    const { cpp } = await import("@codemirror/lang-cpp");
+    return cpp();
+  },
+
+  c: async () => {
+    const { cpp } = await import("@codemirror/lang-cpp");
+    return cpp();
+  },
+
+  css: async () => {
+    const { css } = await import("@codemirror/lang-css");
+    return css();
+  },
+
+  go: async () => {
+    const { go } = await import("@codemirror/lang-go");
+    return go();
+  },
 };
 
 const EDITOR_STYLES = {
@@ -55,22 +100,58 @@ const EDITOR_STYLES = {
 const getExt = (filename) =>
   filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
 
-const getLanguageExtension = (filename) =>
-  EXT_LANG[getExt(filename)]?.() ?? null;
-
 export default function TextViewer({
   text,
   onChange,
   filename,
   readOnly = false,
 }) {
+  const [languageExtension, setLanguageExtension] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLanguage = async () => {
+      const loader = LANGUAGE_LOADERS[getExt(filename)];
+
+      if (!loader) {
+        setLanguageExtension(null);
+        return;
+      }
+
+      try {
+        const extension = await loader();
+
+        if (!cancelled) {
+          setLanguageExtension(extension);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(
+            `Failed to load language support for ${filename}:`,
+            err,
+          );
+
+          setLanguageExtension(null);
+        }
+      }
+    };
+
+    setLanguageExtension(null);
+    loadLanguage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filename]);
+
   return (
     <Box sx={EDITOR_STYLES}>
       <CodeMirror
         value={text}
         onChange={onChange}
         theme={githubDark}
-        extensions={[getLanguageExtension(filename)].filter(Boolean)}
+        extensions={languageExtension ? [languageExtension] : []}
         editable={!readOnly}
         style={{
           minHeight: "300px",
