@@ -1,17 +1,20 @@
 const serverService = require("./serverService");
 const { sshExec } = require("../infrastructure/ssh/sshExec");
-
-const systemd = require(
-  "../infrastructure/serviceManagers/systemdServiceManager",
-);
-
-const procd = require(
-  "../infrastructure/serviceManagers/procdServiceManager",
-);
+const systemd = require("../infrastructure/serviceManagers/systemdServiceManager");
+const procd = require("../infrastructure/serviceManagers/procdServiceManager");
 
 const SERVICE_MANAGERS = {
   systemd,
   procd,
+};
+
+const validateServiceName = (serviceName) => {
+  if (
+    typeof serviceName !== "string" ||
+    !/^[a-zA-Z0-9_.@-]+$/.test(serviceName)
+  ) {
+    throw new Error("Invalid service name");
+  }
 };
 
 const detectServiceManager = async (connectConfig) => {
@@ -34,52 +37,86 @@ const detectServiceManager = async (connectConfig) => {
         return check.name;
       }
     } catch {
-      // Try the next manager.
+      // Try the next supported manager.
     }
   }
 
   return null;
 };
 
-const getServiceManager = async (connectConfig) => {
-  const name = await detectServiceManager(connectConfig);
+const getManager = async (serverId) => {
+  const connectConfig = await serverService.getServerOptions(serverId);
+  const managerName = await detectServiceManager(connectConfig);
 
-  if (!name) {
-    return null;
+  if (!managerName) {
+    throw new Error("Unsupported service manager");
+  }
+
+  const manager = SERVICE_MANAGERS[managerName];
+
+  if (!manager) {
+    throw new Error(`Service manager adapter not found: ${managerName}`);
   }
 
   return {
-    name,
-    adapter: SERVICE_MANAGERS[name],
+    connectConfig,
+    manager,
+    managerName,
   };
 };
 
 const listServices = async (serverId) => {
-  const connectConfig =
-    await serverService.getServerOptions(serverId);
+  const { connectConfig, manager, managerName } = await getManager(serverId);
 
-  const manager = await getServiceManager(connectConfig);
-
-  if (!manager) {
-    return {
-      supported: false,
-      manager: null,
-      services: [],
-    };
-  }
-
-  const services = await manager.adapter.listServices(
-    connectConfig,
-    sshExec,
-  );
+  const services = await manager.listServices(connectConfig, sshExec);
 
   return {
     supported: true,
-    manager: manager.name,
+    manager: managerName,
     services,
   };
 };
+const runServiceAction = async (serverId, serviceName, action) => {
+  validateServiceName(serviceName);
+
+  const { connectConfig, manager, managerName } = await getManager(serverId);
+
+  const actions = {
+    start: manager.startService,
+    stop: manager.stopService,
+    restart: manager.restartService,
+  };
+
+  const actionMethod = actions[action];
+
+  if (typeof actionMethod !== "function") {
+    throw new Error(
+      `Service action ${action} is not supported by ${managerName}`,
+    );
+  }
+
+  await actionMethod(connectConfig, serviceName, sshExec);
+
+  return {
+    success: true,
+    service: serviceName,
+    action,
+    manager: managerName,
+  };
+};
+
+const startService = (serverId, serviceName) =>
+  runServiceAction(serverId, serviceName, "start");
+
+const stopService = (serverId, serviceName) =>
+  runServiceAction(serverId, serviceName, "stop");
+
+const restartService = (serverId, serviceName) =>
+  runServiceAction(serverId, serviceName, "restart");
 
 module.exports = {
   listServices,
+  startService,
+  stopService,
+  restartService,
 };

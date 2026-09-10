@@ -69,6 +69,35 @@ const parseServices = (output) =>
     })
     .filter(Boolean);
 
+const runServiceCommand = async (
+  connectConfig,
+  serviceName,
+  action,
+  sshExec,
+) => {
+  const result = await sshExec(
+    connectConfig,
+    `systemctl ${action} ${serviceName}`,
+  );
+
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `systemctl ${action} failed for ${serviceName}: ${result.stderr.trim()}`,
+    );
+  }
+};
+
+const startService = (connectConfig, serviceName, sshExec) =>
+  runServiceCommand(connectConfig, serviceName, "start", sshExec);
+
+const stopService = (connectConfig, serviceName, sshExec) =>
+  runServiceCommand(connectConfig, serviceName, "stop", sshExec);
+
+const restartService = (connectConfig, serviceName, sshExec) =>
+  runServiceCommand(connectConfig, serviceName, "restart", sshExec);
 module.exports = {
   listServices,
+  startService,
+  stopService,
+  restartService,
 };

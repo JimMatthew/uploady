@@ -6,6 +6,9 @@ import {
   FiCpu,
   FiActivity,
   FiClock,
+  FiPlay,
+  FiSquare,
+  FiRefreshCw,
 } from "react-icons/fi";
 import apiClient from "../services/apiClient";
 // ---------------------------------------------------------------------------
@@ -188,50 +191,139 @@ const DiskUsage = ({ used, total }) => {
   );
 };
 
-const ServiceRow = ({ service }) => (
-  <Flex
-    align="center"
-    justify="space-between"
-    gap={4}
-    px={4}
-    py={3}
-    borderBottom="1px solid rgba(255,255,255,0.05)"
-    _last={{
-      borderBottom: "none",
-    }}
-  >
-    <Box minW={0}>
-      <Text
-        fontSize="12px"
-        fontWeight={600}
-        color="rgba(255,255,255,0.8)"
-        fontFamily="'JetBrains Mono', monospace"
-        overflow="hidden"
-        textOverflow="ellipsis"
-        whiteSpace="nowrap"
-      >
-        {service.name}
-      </Text>
+const ServiceRow = ({ service, onAction, pendingAction }) => {
+  const isBusy = Boolean(pendingAction);
+  const transitioning =
+    service.state === "starting" || service.state === "stopping";
 
-      <Text fontSize="11px" color="rgba(255,255,255,0.3)" mt="2px">
-        {service.description}
-      </Text>
-    </Box>
+  return (
+    <Flex
+      align="center"
+      justify="space-between"
+      gap={4}
+      px={4}
+      py={3}
+      borderBottom="1px solid rgba(255,255,255,0.05)"
+      _last={{
+        borderBottom: "none",
+      }}
+    >
+      <Box minW={0} flex={1}>
+        <Text
+          fontSize="12px"
+          fontWeight={600}
+          color="rgba(255,255,255,0.8)"
+          fontFamily="'JetBrains Mono', monospace"
+          overflow="hidden"
+          textOverflow="ellipsis"
+          whiteSpace="nowrap"
+        >
+          {service.name}
+        </Text>
 
-    <Flex align="center" gap={2} flexShrink={0}>
-      <Box w="6px" h="6px" borderRadius="full" bg={getStateColor(service)} />
+        {service.description && (
+          <Text fontSize="11px" color="rgba(255,255,255,0.3)" mt="2px">
+            {service.description}
+          </Text>
+        )}
+      </Box>
 
-      <Text
-        fontSize="11px"
-        fontWeight={600}
-        color={getStateColor(service)}
-        fontFamily="'JetBrains Mono', monospace"
-      >
-        {getStateLabel(service)}
-      </Text>
+      <Flex align="center" gap={3} flexShrink={0}>
+        <Flex align="center" gap={2}>
+          <Box
+            w="6px"
+            h="6px"
+            borderRadius="full"
+            bg={getStateColor(service)}
+          />
+
+          <Text
+            fontSize="11px"
+            fontWeight={600}
+            color={getStateColor(service)}
+            fontFamily="'JetBrains Mono', monospace"
+          >
+            {pendingAction
+              ? pendingAction === "start"
+                ? "Starting"
+                : pendingAction === "stop"
+                  ? "Stopping"
+                  : "Restarting"
+              : getStateLabel(service)}
+          </Text>
+        </Flex>
+
+        <Flex align="center" gap={1}>
+          {service.state !== "running" && (
+            <Button
+              size="xs"
+              minW="28px"
+              h="28px"
+              px={2}
+              variant="ghost"
+              borderRadius="6px"
+              color="rgba(34,197,94,0.7)"
+              aria-label={`Start ${service.name}`}
+              title="Start"
+              isDisabled={isBusy || transitioning}
+              onClick={() => onAction(service.name, "start")}
+              _hover={{
+                bg: "rgba(34,197,94,0.08)",
+                color: "#22C55E",
+              }}
+            >
+              <Icon as={FiPlay} boxSize="11px" />
+            </Button>
+          )}
+
+          {service.state === "running" && (
+            <>
+              <Button
+                size="xs"
+                minW="28px"
+                h="28px"
+                px={2}
+                variant="ghost"
+                borderRadius="6px"
+                color="rgba(245,158,11,0.7)"
+                aria-label={`Restart ${service.name}`}
+                title="Restart"
+                isDisabled={isBusy || transitioning}
+                onClick={() => onAction(service.name, "restart")}
+                _hover={{
+                  bg: "rgba(245,158,11,0.08)",
+                  color: "#F59E0B",
+                }}
+              >
+                <Icon as={FiRefreshCw} boxSize="11px" />
+              </Button>
+
+              <Button
+                size="xs"
+                minW="28px"
+                h="28px"
+                px={2}
+                variant="ghost"
+                borderRadius="6px"
+                color="rgba(239,68,68,0.65)"
+                aria-label={`Stop ${service.name}`}
+                title="Stop"
+                isDisabled={isBusy || transitioning}
+                onClick={() => onAction(service.name, "stop")}
+                _hover={{
+                  bg: "rgba(239,68,68,0.08)",
+                  color: "#EF4444",
+                }}
+              >
+                <Icon as={FiSquare} boxSize="10px" />
+              </Button>
+            </>
+          )}
+        </Flex>
+      </Flex>
     </Flex>
-  </Flex>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -246,7 +338,7 @@ const ServerInfo = ({ serverId, host }) => {
   const [serviceData, setServiceData] = useState(null);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
-
+  const [serviceActions, setServiceActions] = useState({});
   const [visibleStates, setVisibleStates] = useState(
     new Set(["running", "stopped", "failed", "transitioning", "unknown"]),
   );
@@ -265,6 +357,34 @@ const ServerInfo = ({ serverId, host }) => {
     });
   };
 
+  const runServiceAction = async (serviceName, action) => {
+    setServiceActions((current) => ({
+      ...current,
+      [serviceName]: action,
+    }));
+
+    try {
+      await apiClient.post(
+        `/sftp/server-services/${serverId}/services/${encodeURIComponent(
+          serviceName,
+        )}/${action}`,
+      );
+
+      const data = await apiClient.get(`/sftp/server-services/${serverId}`);
+
+      setServiceData(data);
+    } catch (err) {
+      console.error(`Failed to ${action} service ${serviceName}:`, err);
+    } finally {
+      setServiceActions((current) => {
+        const next = { ...current };
+
+        delete next[serviceName];
+
+        return next;
+      });
+    }
+  };
   const filteredServices =
     serviceData?.services?.filter((service) =>
       visibleStates.has(getStateGroup(service)),
@@ -655,7 +775,12 @@ const ServerInfo = ({ serverId, host }) => {
             </Box>
           ) : (
             filteredServices.map((service) => (
-              <ServiceRow key={service.name} service={service} />
+              <ServiceRow
+                key={service.name}
+                service={service}
+                onAction={runServiceAction}
+                pendingAction={serviceActions[service.name] ?? null}
+              />
             ))
           )}
         </Box>
