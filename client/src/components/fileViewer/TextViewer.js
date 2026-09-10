@@ -7,7 +7,8 @@ import { json } from "@codemirror/lang-json";
 import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import { cpp } from "@codemirror/lang-cpp";
-
+import { css } from "@codemirror/lang-css";
+import { go } from "@codemirror/lang-go"
 const EXT_LANG = {
   js: () =>
     javascript({
@@ -26,6 +27,8 @@ const EXT_LANG = {
   html: () => html(),
   cpp: () => cpp(),
   c: () => cpp(),
+  css: () => css(),
+  go: () => go(),
 };
 
 const EDITOR_STYLES = {

@@ -24,7 +24,7 @@ export default function FileList({
     sortField,
     setSortField,
     selected,
-    toggleSelect,
+    setFileSelected,
     copySelected,
     deleteSelected,
     shareSelected,
@@ -38,6 +38,15 @@ export default function FileList({
   });
 
   const menuRef = useRef(null);
+
+  /*
+   * Drag selection state lives in refs because changing these values
+   * does not need to cause the file list to render.
+   */
+  const dragActiveRef = useRef(false);
+  const dragSelectValueRef = useRef(true);
+  const dragVisitedRef = useRef(new Set());
+
   const [renamingFile, setRenamingFile] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState({
@@ -49,13 +58,18 @@ export default function FileList({
 
   const openMenu = useCallback((e, fileName) => {
     e.preventDefault();
+
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
       file: fileName,
       visible: true,
     });
-    setMenuPos({ x: e.clientX, y: e.clientY });
+
+    setMenuPos({
+      x: e.clientX,
+      y: e.clientY,
+    });
   }, []);
 
   const closeMenu = useCallback(
@@ -70,7 +84,79 @@ export default function FileList({
     },
     [renameFile],
   );
-  const onRenameClose = useCallback(() => setRenamingFile(null), []);
+
+  const onRenameClose = useCallback(() => {
+    setRenamingFile(null);
+  }, []);
+
+  /*
+   * The state of the first file determines what this drag does.
+   *
+   * Starting on an unselected file:
+   *   -> this drag selects files
+   *
+   * Starting on a selected file:
+   *   -> this drag deselects files
+   */
+  const startDragSelection = useCallback(
+    (fileName) => {
+      const shouldSelect = !selected.has(fileName);
+
+      dragActiveRef.current = true;
+      dragSelectValueRef.current = shouldSelect;
+      dragVisitedRef.current = new Set([fileName]);
+
+      setFileSelected(fileName, shouldSelect);
+    },
+    [selected, setFileSelected],
+  );
+
+  /*
+   * Called whenever the pointer crosses into another file row.
+   */
+  const enterDragSelection = useCallback(
+    (fileName) => {
+      if (!dragActiveRef.current) {
+        return;
+      }
+
+      /*
+       * Pointer events can occasionally enter an element after the
+       * mouse button has already been released outside the document.
+       * The global pointerup/blur handlers normally prevent this,
+       * but visited tracking also keeps the operation deterministic.
+       */
+      if (dragVisitedRef.current.has(fileName)) {
+        return;
+      }
+
+      dragVisitedRef.current.add(fileName);
+
+      setFileSelected(fileName, dragSelectValueRef.current);
+    },
+    [setFileSelected],
+  );
+
+  const stopDragSelection = useCallback(() => {
+    dragActiveRef.current = false;
+    dragVisitedRef.current.clear();
+  }, []);
+
+  /*
+   * Stop drag selection even if the pointer is released outside a
+   * particular FileItem.
+   */
+  useEffect(() => {
+    window.addEventListener("pointerup", stopDragSelection);
+    window.addEventListener("pointercancel", stopDragSelection);
+    window.addEventListener("blur", stopDragSelection);
+
+    return () => {
+      window.removeEventListener("pointerup", stopDragSelection);
+      window.removeEventListener("pointercancel", stopDragSelection);
+      window.removeEventListener("blur", stopDragSelection);
+    };
+  }, [stopDragSelection]);
 
   // Reposition context menu if it would overflow viewport
   useEffect(() => {
@@ -235,7 +321,8 @@ export default function FileList({
             size={file.size}
             date={file.date}
             isSelected={selected.has(file.name)}
-            onSelect={toggleSelect}
+            onDragSelectStart={startDragSelection}
+            onDragSelectEnter={enterDragSelection}
             onOpenMenu={openMenu}
             isRenaming={renamingFile === file.name}
             onRename={onRename}

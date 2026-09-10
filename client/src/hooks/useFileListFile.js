@@ -47,6 +47,26 @@ export function useFileListState({
     });
   }, []);
 
+    const setFileSelected = useCallback((fileName, shouldSelect) => {
+    setSelected((current) => {
+      const currentlySelected = current.has(fileName);
+
+      if (currentlySelected === shouldSelect) {
+        return current;
+      }
+
+      const next = new Set(current);
+
+      if (shouldSelect) {
+        next.add(fileName);
+      } else {
+        next.delete(fileName);
+      }
+
+      return next;
+    });
+  }, []);
+
   const executeForSelected = useCallback(
     async (operation) => {
       const selectedFiles = [...selected];
@@ -123,6 +143,7 @@ export function useFileListState({
     selected,
     toggleSelect,
     clearSelection,
+    setFileSelected,
 
     copySelected,
     deleteSelected,

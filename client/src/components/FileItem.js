@@ -112,6 +112,8 @@ const FileItem = React.memo(
     date,
     isSelected,
     onSelect,
+    onDragSelectStart,
+    onDragSelectEnter,
     onOpenMenu,
     isRenaming,
     onRename,
@@ -123,11 +125,41 @@ const FileItem = React.memo(
     return (
       <div
         className={`file-item ${isSelected ? "selected" : ""}`}
-        onClick={() => onSelect(name)}
+        onClick={() => {
+          /*
+           * Legacy/simple selection mode.
+           *
+           * Components such as ArchiveViewer use FileItem with onSelect
+           * and do not enable drag selection.
+           */
+          if (!onDragSelectStart && onSelect && !isRenaming) {
+            onSelect(name);
+          }
+        }}
+        onPointerDown={(e) => {
+          if (!onDragSelectStart) {
+            return;
+          }
+          if (e.button !== 0 || isRenaming) {
+            return;
+          }
+          e.preventDefault();
+
+          onDragSelectStart(name);
+        }}
+
+        onPointerEnter={() => {
+          if (!onDragSelectEnter || isRenaming) {
+            return;
+          }
+          onDragSelectEnter(name);
+        }}
+
         onContextMenu={(e) => {
           e.preventDefault();
           onOpenMenu(e, name);
         }}
+
         style={{
           display: "flex",
           alignItems: "center",
@@ -136,6 +168,7 @@ const FileItem = React.memo(
           padding: "9px 16px",
           marginBottom: "1px",
           cursor: "pointer",
+          userSelect: "none",
           borderLeft: `2px solid ${isSelected ? "#818CF8" : "transparent"}`,
           borderBottom: "1px solid rgba(255,255,255,0.045)",
           background: isSelected ? "rgba(99,102,241,0.065)" : "transparent",
@@ -180,6 +213,7 @@ const FileItem = React.memo(
           {isRenaming ? (
             <div
               onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 width: "fit-content",
                 maxWidth: "100%",

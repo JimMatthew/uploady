@@ -3,11 +3,8 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 
 export default function AudioViewer({ src, filename }) {
   const audioRef = useRef(null);
-
   const [playing, setPlaying] = useState(false);
-
   const [currentTime, setCurrentTime] = useState(0);
-
   const [duration, setDuration] = useState(0);
 
   const toggle = () => {
@@ -28,11 +25,8 @@ export default function AudioViewer({ src, filename }) {
     if (!seconds || isNaN(seconds)) {
       return "0:00";
     }
-
     const minutes = Math.floor(seconds / 60);
-
     const remainingSeconds = Math.floor(seconds % 60);
-
     return `${minutes}:` + remainingSeconds.toString().padStart(2, "0");
   };
 
@@ -97,9 +91,7 @@ export default function AudioViewer({ src, filename }) {
             }
 
             const rect = e.currentTarget.getBoundingClientRect();
-
             const percent = (e.clientX - rect.left) / rect.width;
-
             audioRef.current.currentTime = percent * duration;
           }}
         >

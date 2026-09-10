@@ -23,7 +23,7 @@ async function share_file(fileName, filePath, serverId) {
 
   const server = await servers.findById(serverId);
   const token = crypto.randomBytes(5).toString("hex");
-  const link = `https://${domain}/share/${token}/${fileName}`;
+  const link = `https://${domain}/share/${token}/${encodeURIComponent(fileName)}`;
 
   await shares.create({
     fileName,
@@ -69,9 +69,19 @@ async function save_server({
   passphrase,
   keyMode,
 }) {
-  const server = {
+  validateServerInput({
     host,
     username,
+    password,
+    authType,
+    keyId,
+    key,
+    keyMode,
+  });
+
+  const server = {
+    host: host.trim(),
+    username: username.trim(),
     authType,
     credentials: {},
   };
@@ -79,62 +89,21 @@ async function save_server({
   let publicKey = null;
 
   if (authType === "password") {
-    if (!password) {
-      throw new Error("Password required for password auth");
-    }
-
     server.credentials.password = encrypt(password);
-  } else if (authType === "key") {
-    if (keyMode === "saved") {
-      if (!keyId) {
-        throw new Error("SSH key required for key auth");
-      }
+  }
 
-      const sshKey = await sshKeyStore.findSharedById(keyId);
+  if (authType === "key") {
+    const keyResult = await resolveServerKey({
+      host: server.host,
+      username: server.username,
+      keyMode,
+      keyId,
+      key,
+      passphrase,
+    });
 
-      if (!sshKey) {
-        throw new Error("SSH key not found");
-      }
-
-      server.keyId = sshKey._id;
-      publicKey = sshKey.publicKey ?? null;
-    } else if (keyMode === "generate") {
-      const generated = await generateSshKeyPair();
-
-      const sshKey = await sshKeyStore.create({
-        name: `${username}@${host}`,
-        scope: "server",
-        privateKey: encrypt(generated.privateKey),
-        publicKey: generated.publicKey,
-      });
-
-      server.keyId = sshKey._id;
-
-      // Preserve value for API response.
-      publicKey = generated.publicKey;
-    } else if (keyMode === "import") {
-      if (!key) {
-        throw new Error("Private key required for key auth");
-      }
-
-      const sshKeyData = {
-        name: `${username}@${host}`,
-        scope: "server",
-        privateKey: encrypt(key),
-      };
-
-      if (passphrase) {
-        sshKeyData.passphrase = encrypt(passphrase);
-      }
-
-      const sshKey = await sshKeyStore.create(sshKeyData);
-
-      server.keyId = sshKey._id;
-    } else {
-      throw new Error(`Unsupported keyMode: ${keyMode}`);
-    }
-  } else {
-    throw new Error(`Unsupported authType: ${authType}`);
+    server.keyId = keyResult.keyId;
+    publicKey = keyResult.publicKey;
   }
 
   const savedServer = await servers.create(server);
@@ -147,6 +116,133 @@ async function save_server({
     keyId: savedServer.keyId ?? null,
     publicKey,
   };
+}
+
+function validateServerInput({
+  host,
+  username,
+  password,
+  authType,
+  keyId,
+  key,
+  keyMode,
+}) {
+  if (!host?.trim()) {
+    throw new Error("Host is required");
+  }
+
+  if (!username?.trim()) {
+    throw new Error("Username is required");
+  }
+
+  if (authType === "password") {
+    if (!password) {
+      throw new Error("Password required for password auth");
+    }
+
+    return;
+  }
+
+  if (authType !== "key") {
+    throw new Error(`Unsupported authType: ${authType}`);
+  }
+
+  switch (keyMode) {
+    case "saved":
+      if (!keyId) {
+        throw new Error("SSH key required for saved key auth");
+      }
+      break;
+
+    case "generate":
+      break;
+
+    case "import":
+      if (!key?.trim()) {
+        throw new Error("Private key required for imported key auth");
+      }
+      break;
+
+    default:
+      throw new Error(`Unsupported keyMode: ${keyMode}`);
+  }
+}
+
+async function resolveServerKey({
+  host,
+  username,
+  keyMode,
+  keyId,
+  key,
+  passphrase,
+}) {
+  switch (keyMode) {
+    case "saved":
+      return useSavedKey(keyId);
+
+    case "generate":
+      return generateServerKey(username, host);
+
+    case "import":
+      return importServerKey(username, host, key, passphrase);
+
+    default:
+      // validateServerInput should prevent this,
+      // but keep the invariant protected here too.
+      throw new Error(`Unsupported keyMode: ${keyMode}`);
+  }
+}
+
+async function useSavedKey(keyId) {
+  const sshKey = await sshKeyStore.findSharedById(keyId);
+
+  if (!sshKey) {
+    throw new Error(`SSH key not found: ${keyId}`);
+  }
+
+  return {
+    keyId: sshKey._id,
+    publicKey: sshKey.publicKey ?? null,
+  };
+}
+
+async function generateServerKey(username, host) {
+  const generated = await generateSshKeyPair();
+
+  const sshKey = await sshKeyStore.create({
+    name: `${username}@${host}`,
+    scope: "server",
+    privateKey: encrypt(generated.privateKey),
+    publicKey: generated.publicKey,
+  });
+
+  return {
+    keyId: sshKey._id,
+    publicKey: generated.publicKey,
+  };
+}
+
+async function importServerKey(username, host, privateKey, passphrase) {
+  const sshKeyData = {
+    name: `${username}@${host}`,
+    scope: "server",
+    privateKey: encrypt(normalizePrivateKey(privateKey)),
+  };
+
+  if (passphrase) {
+    sshKeyData.passphrase = encrypt(passphrase);
+  }
+
+  const sshKey = await sshKeyStore.create(sshKeyData);
+
+  return {
+    keyId: sshKey._id,
+    publicKey: sshKey.publicKey ?? null,
+  };
+}
+
+function normalizePrivateKey(privateKey) {
+  return privateKey.trim().replace(/\\n/g, "\n");
 }
 
 /**

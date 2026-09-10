@@ -127,7 +127,6 @@ const SshConsole = ({
     // ─── WebSocket ──────────────────────────────────────────────────────────
 
     const wsProtocol = isHttps ? "wss" : "ws";
-
     const socket = new WebSocket(`${wsProtocol}://${window.location.host}/ssh`);
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -310,7 +309,6 @@ const SshConsole = ({
   // ─── Connection Status ────────────────────────────────────────────────────
 
   const status = CONNECTION_STATES[connState] ?? CONNECTION_STATES.connecting;
-
   const canReconnect = connState === "error" || connState === "closed";
 
   // ─── Render ───────────────────────────────────────────────────────────────
