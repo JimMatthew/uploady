@@ -13,11 +13,8 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react";
-
 import { FiCopy, FiDownload, FiHardDrive, FiLink2, FiX } from "react-icons/fi";
-
 import { MdQrCode2 } from "react-icons/md";
-
 import QRCode from "react-qr-code";
 
 const ACCENT = "#818CF8";
@@ -31,21 +28,21 @@ const LocationBadge = ({ label, remote = false }) => (
     px="7px"
     h="22px"
     borderRadius="6px"
-    bg={remote ? "rgba(129,140,248,0.08)" : "rgba(255,255,255,0.045)"}
+    bg={remote ? "rgba(129,140,248,0.07)" : "rgba(255,255,255,0.04)"}
     border="1px solid"
-    borderColor={remote ? "rgba(129,140,248,0.18)" : "rgba(255,255,255,0.08)"}
+    borderColor={remote ? "rgba(129,140,248,0.16)" : "rgba(255,255,255,0.075)"}
     flexShrink={0}
   >
     <Icon
       as={FiHardDrive}
       boxSize="9px"
-      color={remote ? ACCENT_SOFT : "rgba(255,255,255,0.4)"}
+      color={remote ? "rgba(165,180,252,0.8)" : "rgba(255,255,255,0.38)"}
     />
 
     <Text
       fontSize="10px"
       fontWeight={600}
-      color={remote ? ACCENT_SOFT : "rgba(255,255,255,0.52)"}
+      color={remote ? "rgba(165,180,252,0.8)" : "rgba(255,255,255,0.5)"}
       lineHeight={1}
     >
       {label}
@@ -62,15 +59,15 @@ const IconAction = ({ icon, label, onClick, danger = false }) => (
       p={0}
       variant="ghost"
       borderRadius="7px"
-      color={danger ? "rgba(229,115,115,0.55)" : "rgba(255,255,255,0.42)"}
+      color={danger ? "rgba(229,115,115,0.48)" : "rgba(255,255,255,0.4)"}
       onClick={onClick}
       aria-label={label}
       _hover={{
-        bg: danger ? "rgba(229,115,115,0.09)" : "rgba(255,255,255,0.06)",
-        color: danger ? ERROR : "rgba(255,255,255,0.85)",
+        bg: danger ? "rgba(229,115,115,0.08)" : "rgba(255,255,255,0.055)",
+        color: danger ? ERROR : "rgba(255,255,255,0.8)",
       }}
       _active={{
-        bg: danger ? "rgba(229,115,115,0.13)" : "rgba(255,255,255,0.09)",
+        bg: danger ? "rgba(229,115,115,0.11)" : "rgba(255,255,255,0.08)",
       }}
     >
       <Icon as={icon} boxSize="12px" />
@@ -83,36 +80,12 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
 
   return (
     <Box
-      position="relative"
-      bg="#1A1E27"
+      bg="#1C212A"
       border="1px solid"
-      borderColor="rgba(255,255,255,0.075)"
-      borderRadius="12px"
-      boxShadow="0 8px 24px rgba(0,0,0,0.12)"
-      transition="
-        background 140ms ease,
-        border-color 140ms ease,
-        transform 140ms ease,
-        box-shadow 140ms ease
-      "
-      _hover={{
-        bg: "#1C202A",
-        borderColor: "rgba(255,255,255,0.13)",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
-        transform: "translateY(-1px)",
-      }}
+      borderColor="rgba(255,255,255,0.07)"
+      borderRadius="11px"
+      boxShadow="0 6px 20px rgba(0,0,0,0.1)"
     >
-      {/* Very subtle accent line */}
-      <Box
-        position="absolute"
-        top={0}
-        left="18px"
-        right="18px"
-        h="1px"
-        bg="linear-gradient(90deg, transparent, rgba(129,140,248,0.35), transparent)"
-        pointerEvents="none"
-      />
-
       <Box p={4}>
         {/* Header */}
         <Flex align="center" justify="space-between" gap={3}>
@@ -124,17 +97,21 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
               h="30px"
               flexShrink={0}
               borderRadius="8px"
-              bg="rgba(99,102,241,0.1)"
-              border="1px solid rgba(129,140,248,0.12)"
+              bg="rgba(99,102,241,0.075)"
+              border="1px solid rgba(129,140,248,0.1)"
             >
-              <Icon as={FiLink2} boxSize="13px" color={ACCENT} />
+              <Icon
+                as={FiLink2}
+                boxSize="13px"
+                color="rgba(165,180,252,0.72)"
+              />
             </Flex>
 
             <Text
               minW={0}
               fontSize="13px"
               fontWeight={600}
-              color="rgba(255,255,255,0.9)"
+              color="rgba(255,255,255,0.88)"
               fontFamily="'JetBrains Mono', monospace"
               letterSpacing="-0.015em"
               noOfLines={1}
@@ -158,125 +135,104 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
           </Flex>
         </Flex>
 
-        {/* Link section */}
-        <Box mt={4}>
+        {/* Link */}
+        <Flex
+          mt={3.5}
+          align="center"
+          gap={2}
+          px={3}
+          h="40px"
+          bg="rgba(0,0,0,0.13)"
+          border="1px solid"
+          borderColor="rgba(255,255,255,0.06)"
+          borderRadius="8px"
+          transition="background 120ms ease, border-color 120ms ease"
+          _hover={{
+            bg: "rgba(0,0,0,0.16)",
+            borderColor: "rgba(255,255,255,0.09)",
+          }}
+        >
           <Text
-            mb="6px"
-            fontSize="10px"
-            fontWeight={600}
-            color="rgba(255,255,255,0.35)"
-            letterSpacing="0.06em"
-            textTransform="uppercase"
+            flex={1}
+            minW={0}
+            fontSize="10.5px"
+            fontFamily="'JetBrains Mono', monospace"
+            color="rgba(255,255,255,0.55)"
+            overflow="hidden"
+            textOverflow="ellipsis"
+            whiteSpace="nowrap"
           >
-            Shared link
+            {linkItem.link}
           </Text>
 
-          <Flex
-            align="flex-start"
-            gap={2}
-            px={3}
-            py={2.5}
-            minH="42px"
-            bg="rgba(0,0,0,0.16)"
-            border="1px solid"
-            borderColor="rgba(255,255,255,0.075)"
-            borderRadius="8px"
-            transition="border-color 120ms ease, background 120ms ease"
-            _hover={{
-              bg: "rgba(0,0,0,0.2)",
-              borderColor: "rgba(129,140,248,0.2)",
-            }}
-          >
-            <Text
-              flex={1}
-              minW={0}
-              fontSize="11px"
-              lineHeight="1.55"
-              fontFamily="'JetBrains Mono', monospace"
-              color="rgba(255,255,255,0.72)"
-              overflowWrap="anywhere"
-              wordBreak="break-word"
+          <Tooltip label="Copy link" hasArrow openDelay={400}>
+            <Button
+              minW="27px"
+              w="27px"
+              h="27px"
+              p={0}
+              flexShrink={0}
+              variant="ghost"
+              borderRadius="6px"
+              color="rgba(255,255,255,0.38)"
+              onClick={() => copyToClipboard(linkItem.link)}
+              aria-label="Copy shared link"
+              _hover={{
+                bg: "rgba(255,255,255,0.055)",
+                color: ACCENT_SOFT,
+              }}
             >
-              {linkItem.link}
-            </Text>
+              <FiCopy size={12} />
+            </Button>
+          </Tooltip>
+        </Flex>
 
-            <Tooltip label="Copy link" hasArrow openDelay={400}>
-              <Button
-                minW="28px"
-                w="28px"
-                h="28px"
-                p={0}
-                mt="-3px"
-                mr="-3px"
-                flexShrink={0}
-                variant="ghost"
-                borderRadius="6px"
-                color="rgba(255,255,255,0.42)"
-                onClick={() => copyToClipboard(linkItem.link)}
-                aria-label="Copy shared link"
-                _hover={{
-                  bg: "rgba(99,102,241,0.1)",
-                  color: ACCENT_SOFT,
-                }}
-              >
-                <FiCopy size={12} />
-              </Button>
-            </Tooltip>
-          </Flex>
-        </Box>
-
-        {/* Footer actions */}
-        <Flex
-          mt={4}
-          pt={3}
-          align="center"
-          justify="space-between"
-          borderTop="1px solid rgba(255,255,255,0.055)"
-        >
+        {/* Actions */}
+        <Flex mt={3} align="center" gap={2}>
           <Button
             size="xs"
-            h="30px"
+            h="29px"
             px={3}
             leftIcon={<Icon as={FiDownload} boxSize="11px" />}
             onClick={() => downloadLink(linkItem.link, linkItem.fileName)}
             borderRadius="7px"
-            bg="rgba(99,102,241,0.12)"
+            bg="rgba(99,102,241,0.09)"
             border="1px solid"
-            borderColor="rgba(129,140,248,0.25)"
-            color={ACCENT_SOFT}
+            borderColor="rgba(129,140,248,0.18)"
+            color="rgba(165,180,252,0.82)"
             fontSize="11px"
             fontWeight={600}
             _hover={{
-              bg: "rgba(99,102,241,0.2)",
-              borderColor: "rgba(129,140,248,0.42)",
-              color: "#C7D2FE",
+              bg: "rgba(99,102,241,0.14)",
+              borderColor: "rgba(129,140,248,0.28)",
+              color: ACCENT_SOFT,
             }}
             _active={{
-              bg: "rgba(99,102,241,0.26)",
+              bg: "rgba(99,102,241,0.18)",
             }}
           >
             Download
           </Button>
 
-          <Popover placement="top-end">
+          <Popover placement="top-start">
             <PopoverTrigger>
               <Box>
                 <Button
                   size="xs"
-                  h="30px"
+                  h="29px"
                   px={3}
                   leftIcon={<Icon as={MdQrCode2} boxSize="12px" />}
                   borderRadius="7px"
                   variant="ghost"
                   border="1px solid"
-                  borderColor="rgba(255,255,255,0.08)"
-                  color="rgba(255,255,255,0.52)"
+                  borderColor="rgba(255,255,255,0.07)"
+                  color="rgba(255,255,255,0.46)"
                   fontSize="11px"
                   fontWeight={500}
                   _hover={{
-                    bg: "rgba(255,255,255,0.05)",
-                    borderColor: "rgba(255,255,255,0.16)",
-                    color: "rgba(255,255,255,0.85)",
+                    bg: "rgba(255,255,255,0.045)",
+                    borderColor: "rgba(255,255,255,0.12)",
+                    color: "rgba(255,255,255,0.75)",
                   }}
                 >
                   QR code
