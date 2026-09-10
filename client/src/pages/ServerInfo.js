@@ -30,57 +30,66 @@ const formatUptime = (seconds) => {
 
   return `${m}m`;
 };
-
 const getStateGroup = (service) => {
-  if (service.state === "failed") {
-    return "failed";
-  }
+  switch (service.state) {
+    case "running":
+      return "running";
 
-  if (service.state === "active" && service.status === "running") {
-    return "running";
-  }
+    case "failed":
+      return "failed";
 
-  if (service.state === "active") {
-    return "active";
-  }
+    case "starting":
+    case "stopping":
+      return "transitioning";
 
-  return "inactive";
+    case "stopped":
+      return "stopped";
+
+    default:
+      return "unknown";
+  }
 };
 
 const getStateLabel = (service) => {
-  if (service.state === "failed") {
-    return "Failed";
-  }
+  switch (service.state) {
+    case "running":
+      return "Running";
 
-  if (service.state === "active" && service.status === "running") {
-    return "Running";
-  }
+    case "stopped":
+      return "Stopped";
 
-  if (service.state === "active") {
-    return "Active";
-  }
+    case "failed":
+      return "Failed";
 
-  if (service.state === "inactive") {
-    return "Inactive";
-  }
+    case "starting":
+      return "Starting";
 
-  return service.state ?? service.status ?? "Unknown";
+    case "stopping":
+      return "Stopping";
+
+    default:
+      return "Unknown";
+  }
 };
 
 const getStateColor = (service) => {
-  if (service.state === "failed") {
-    return "#EF4444";
-  }
+  switch (service.state) {
+    case "running":
+      return "#22C55E";
 
-  if (service.state === "active" && service.status === "running") {
-    return "#22C55E";
-  }
+    case "failed":
+      return "#EF4444";
 
-  if (service.state === "active") {
-    return "#60A5FA";
-  }
+    case "starting":
+    case "stopping":
+      return "#F59E0B";
 
-  return "rgba(255,255,255,0.35)";
+    case "stopped":
+      return "rgba(255,255,255,0.35)";
+
+    default:
+      return "rgba(255,255,255,0.22)";
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -239,7 +248,7 @@ const ServerInfo = ({ serverId, host }) => {
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
 
   const [visibleStates, setVisibleStates] = useState(
-    new Set(["running", "active", "inactive", "failed"]),
+    new Set(["running", "stopped", "failed", "transitioning", "unknown"]),
   );
 
   const toggleState = (state) => {
@@ -270,17 +279,19 @@ const ServerInfo = ({ serverId, host }) => {
     },
     {
       running: 0,
-      active: 0,
-      inactive: 0,
+      stopped: 0,
       failed: 0,
+      transitioning: 0,
+      unknown: 0,
     },
   ) ?? {
     running: 0,
-    active: 0,
-    inactive: 0,
+    stopped: 0,
     failed: 0,
+    transitioning: 0,
+    unknown: 0,
   };
-  
+
   useEffect(() => {
     let cancelled = false;
 
@@ -289,9 +300,7 @@ const ServerInfo = ({ serverId, host }) => {
       setStatsUnavailable(false);
 
       try {
-        const data = await apiClient.get(
-          `/sftp/server-stats/${serverId}`,
-        );
+        const data = await apiClient.get(`/sftp/server-stats/${serverId}`);
 
         if (!cancelled) {
           setStats(data);
@@ -313,9 +322,7 @@ const ServerInfo = ({ serverId, host }) => {
       setServicesUnavailable(false);
 
       try {
-        const data = await apiClient.get(
-          `/sftp/server-services/${serverId}`,
-        );
+        const data = await apiClient.get(`/sftp/server-services/${serverId}`);
 
         if (!cancelled) {
           setServiceData(data);
@@ -524,16 +531,20 @@ const ServerInfo = ({ serverId, host }) => {
                 label: "Running",
               },
               {
-                key: "active",
-                label: "Active",
-              },
-              {
-                key: "inactive",
-                label: "Inactive",
+                key: "stopped",
+                label: "Stopped",
               },
               {
                 key: "failed",
                 label: "Failed",
+              },
+              {
+                key: "transitioning",
+                label: "Starting / Stopping",
+              },
+              {
+                key: "unknown",
+                label: "Unknown",
               },
             ].map(({ key, label }) => {
               const selected = visibleStates.has(key);

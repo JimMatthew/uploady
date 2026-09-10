@@ -336,9 +336,9 @@ export function useFileList({ toast }) {
 
   const copyFile = useCallback(
     (name) => {
-     if (relativePath == null) {
-  return;
-}
+      if (relativePath == null) {
+        return;
+      }
 
       copyToClipboard({
         file: name,
@@ -351,7 +351,7 @@ export function useFileList({ toast }) {
 
   const copyFolder = useCallback(
     (folderName) => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 

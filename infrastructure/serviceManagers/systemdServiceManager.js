@@ -21,6 +21,30 @@ const listServices = async (connectConfig, sshExec) => {
   return parseServices(result.stdout);
 };
 
+const normalizeState = (activeState, subState) => {
+  if (activeState === "failed") {
+    return "failed";
+  }
+
+  if (activeState === "activating") {
+    return "starting";
+  }
+
+  if (activeState === "deactivating") {
+    return "stopping";
+  }
+
+  if (activeState === "active") {
+    return "running";
+  }
+
+  if (activeState === "inactive") {
+    return "stopped";
+  }
+
+  return "unknown";
+};
+
 const parseServices = (output) =>
   output
     .split("\n")
@@ -33,10 +57,13 @@ const parseServices = (output) =>
         return null;
       }
 
+      const activeState = parts[2];
+      const subState = parts[3];
+
       return {
         name: parts[0],
-        state: parts[2],
-        status: parts[3],
+        state: normalizeState(activeState, subState),
+        status: subState,
         description: parts.slice(4).join(" "),
       };
     })
