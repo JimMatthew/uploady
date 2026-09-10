@@ -171,9 +171,7 @@ export default function ServerCard({
   onDelete,
 }) {
   const [expanded, setExpanded] = useState(false);
-
   const [stats, setStats] = useState(null);
-
   const [statsLoading, setStatsLoading] = useState(false);
 
   const status = serverStatuses[serverId];

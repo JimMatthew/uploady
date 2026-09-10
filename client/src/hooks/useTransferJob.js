@@ -32,8 +32,8 @@ export function useTransferJob({ onError } = {}) {
 
       activeJobRef.current = jobId;
 
-      // Give the UI immediate feedback while the backend expands folders
-      // and calculates authoritative totals.
+      // These are the top-level items the user actually started transferring.
+      // Keep this list stable for the lifetime of the job.
       const initialTransfers = Object.fromEntries(
         items.map(({ file }) => [
           `${jobId}-${file}`,
@@ -49,7 +49,7 @@ export function useTransferJob({ onError } = {}) {
       );
 
       setStartedTransfers(initialTransfers);
-      setProgressMap(initialTransfers);
+      setProgressMap({ ...initialTransfers });
 
       const token = localStorage.getItem("token");
 
@@ -68,23 +68,59 @@ export function useTransferJob({ onError } = {}) {
         error: root.error ?? null,
       });
 
-      const buildRootMap = (roots = []) =>
-        Object.fromEntries(
-          roots.map((root) => [
-            `${jobId}-${root.rootItem}`,
-            rootToProgress(root),
-          ]),
-        );
+      const applyRootSnapshot = (roots) => {
+        if (
+          activeJobRef.current !== jobId ||
+          !Array.isArray(roots) ||
+          roots.length === 0
+        ) {
+          return;
+        }
 
-      const applyRoots = (roots) => {
+        setProgressMap((previous) => {
+          const next = { ...previous };
+
+          roots.forEach((root) => {
+            if (!root?.rootItem) {
+              return;
+            }
+
+            const rootKey = `${jobId}-${root.rootItem}`;
+
+            next[rootKey] = rootToProgress(root);
+          });
+
+          return next;
+        });
+      };
+
+      const applyJobStart = (message) => {
         if (activeJobRef.current !== jobId) {
           return;
         }
 
-        const rootMap = buildRootMap(roots);
+        // Older/current SSE contract: jobStart provides rootCounts.
+        if (message.rootCounts) {
+          setProgressMap((previous) => {
+            const next = { ...previous };
 
-        setStartedTransfers(rootMap);
-        setProgressMap(rootMap);
+            Object.keys(initialTransfers).forEach((key) => {
+              const file = initialTransfers[key].file;
+
+              next[key] = {
+                ...next[key],
+                total: message.rootCounts[file] ?? next[key]?.total ?? 1,
+              };
+            });
+
+            return next;
+          });
+        }
+
+        // Also support the newer root snapshot shape when present.
+        if (Array.isArray(message.roots)) {
+          applyRootSnapshot(message.roots);
+        }
       };
 
       const applyRootProgress = (root) => {
@@ -97,6 +133,61 @@ export function useTransferJob({ onError } = {}) {
         setProgressMap((previous) => ({
           ...previous,
           [rootKey]: rootToProgress(root),
+        }));
+      };
+
+      const applyFileProgress = (message) => {
+        if (activeJobRef.current !== jobId || !message.rootItem) {
+          return;
+        }
+
+        const rootKey = `${jobId}-${message.rootItem}`;
+
+        setProgressMap((previous) => ({
+          ...previous,
+          [rootKey]: {
+            ...previous[rootKey],
+            progress: Math.round(message.percent ?? 0),
+          },
+        }));
+      };
+
+      const applyFileDone = (message) => {
+        if (activeJobRef.current !== jobId || !message.rootItem) {
+          return;
+        }
+
+        const rootKey = `${jobId}-${message.rootItem}`;
+        const isTopLevel = message.file === message.rootItem;
+
+        setProgressMap((previous) => ({
+          ...previous,
+          [rootKey]: isTopLevel
+            ? {
+                ...previous[rootKey],
+                progress: 100,
+              }
+            : {
+                ...previous[rootKey],
+                completed: (previous[rootKey]?.completed ?? 0) + 1,
+              },
+        }));
+      };
+
+      const applyFileFail = (message) => {
+        if (activeJobRef.current !== jobId || !message.rootItem) {
+          return;
+        }
+
+        const rootKey = `${jobId}-${message.rootItem}`;
+
+        setProgressMap((previous) => ({
+          ...previous,
+          [rootKey]: {
+            ...previous[rootKey],
+            failed: (previous[rootKey]?.failed ?? 0) + 1,
+            error: message.error ?? "Transfer failed",
+          },
         }));
       };
 
@@ -117,19 +208,30 @@ export function useTransferJob({ onError } = {}) {
 
         switch (message.type) {
           case "jobStart":
+            applyJobStart(message);
+            break;
+
           case "snapshot":
-            applyRoots(message.roots);
+            applyRootSnapshot(message.roots);
             break;
 
           case "rootProgress":
             applyRootProgress(message);
             break;
 
-          case "fileStart":
+          case "fileProgress":
+            applyFileProgress(message);
+            break;
+
           case "fileDone":
+            applyFileDone(message);
+            break;
+
           case "fileFail":
-            // Forwarded by the backend for consumers that need per-file detail.
-            // The current UI only displays root-level progress.
+            applyFileFail(message);
+            break;
+
+          case "fileStart":
             break;
 
           case "jobDone":
