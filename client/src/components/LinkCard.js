@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+
 import {
   Box,
   Button,
@@ -10,12 +12,14 @@ import {
   PopoverContent,
   PopoverTrigger,
   Portal,
+  Spinner,
   Text,
   Tooltip,
 } from "@chakra-ui/react";
 import { FiCopy, FiDownload, FiHardDrive, FiLink2, FiX } from "react-icons/fi";
 import { MdQrCode2 } from "react-icons/md";
-import QRCode from "react-qr-code";
+
+const QRCode = lazy(() => import("react-qr-code"));
 
 const ACCENT = "#818CF8";
 const ACCENT_SOFT = "#A5B4FC";
@@ -75,6 +79,12 @@ const IconAction = ({ icon, label, onClick, danger = false }) => (
   </Tooltip>
 );
 
+const QrCodeFallback = () => (
+  <Flex w="160px" h="160px" align="center" justify="center">
+    <Spinner size="sm" thickness="2px" color="gray.600" />
+  </Flex>
+);
+
 const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
   const isRemote = Boolean(linkItem.isRemote);
 
@@ -87,7 +97,6 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
       boxShadow="0 6px 20px rgba(0,0,0,0.1)"
     >
       <Box p={4}>
-        {/* Header */}
         <Flex align="center" justify="space-between" gap={3}>
           <Flex align="center" gap={2.5} minW={0} flex={1}>
             <Flex
@@ -135,7 +144,6 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
           </Flex>
         </Flex>
 
-        {/* Link */}
         <Flex
           mt={3.5}
           align="center"
@@ -187,7 +195,6 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
           </Tooltip>
         </Flex>
 
-        {/* Actions */}
         <Flex mt={3} align="center" gap={2}>
           <Button
             size="xs"
@@ -214,7 +221,7 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
             Download
           </Button>
 
-          <Popover placement="top-start">
+          <Popover placement="top-start" isLazy>
             <PopoverTrigger>
               <Box>
                 <Button
@@ -274,17 +281,19 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
                     borderRadius="9px"
                     boxShadow="0 4px 14px rgba(0,0,0,0.2)"
                   >
-                    <QRCode
-                      value={linkItem.link}
-                      size={160}
-                      level="H"
-                      bgColor="#FFFFFF"
-                      fgColor="#151821"
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                      }}
-                    />
+                    <Suspense fallback={<QrCodeFallback />}>
+                      <QRCode
+                        value={linkItem.link}
+                        size={160}
+                        level="H"
+                        bgColor="#FFFFFF"
+                        fgColor="#151821"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                        }}
+                      />
+                    </Suspense>
                   </Box>
                 </PopoverBody>
               </PopoverContent>
