@@ -46,8 +46,6 @@ const ActionButton = ({
   icon,
   label,
   color,
-  bg,
-  borderColor,
   hoverBg,
   hoverBorderColor,
   onClick,
@@ -60,23 +58,17 @@ const ActionButton = ({
       justify="center"
       borderRadius="7px"
       cursor="pointer"
-      bg={bg}
+      bg="transparent"
       border="1px solid"
-      borderColor={borderColor}
+      borderColor="rgba(255,255,255,0.07)"
       color={color}
       transition="
         background 120ms ease,
-        border-color 120ms ease,
-        color 120ms ease,
-        transform 120ms ease
+        border-color 120ms ease
       "
       _hover={{
         bg: hoverBg,
         borderColor: hoverBorderColor,
-        transform: "translateY(-1px)",
-      }}
-      _active={{
-        transform: "translateY(0)",
       }}
       onClick={(event) => {
         event.stopPropagation();
@@ -332,10 +324,8 @@ export default function ServerCard({
           icon={FiFileText}
           label="SFTP"
           color="#7FD6A1"
-          bg="rgba(111,207,151,0.075)"
-          borderColor="rgba(111,207,151,0.14)"
-          hoverBg="rgba(111,207,151,0.14)"
-          hoverBorderColor="rgba(111,207,151,0.28)"
+          hoverBg="rgba(111,207,151,0.12)"
+          hoverBorderColor="rgba(111,207,151,0.24)"
           onClick={onConnect}
         />
 
@@ -343,10 +333,8 @@ export default function ServerCard({
           icon={FiTerminal}
           label="SSH"
           color="#A5B4FC"
-          bg="rgba(129,140,248,0.08)"
-          borderColor="rgba(129,140,248,0.15)"
-          hoverBg="rgba(129,140,248,0.15)"
-          hoverBorderColor="rgba(129,140,248,0.3)"
+          hoverBg="rgba(129,140,248,0.12)"
+          hoverBorderColor="rgba(129,140,248,0.25)"
           onClick={onSsh}
         />
 
@@ -354,10 +342,8 @@ export default function ServerCard({
           icon={FiServer}
           label="Server Info"
           color="#7BC8D8"
-          bg="rgba(103,183,199,0.08)"
-          borderColor="rgba(103,183,199,0.15)"
-          hoverBg="rgba(103,183,199,0.15)"
-          hoverBorderColor="rgba(103,183,199,0.3)"
+          hoverBg="rgba(103,183,199,0.12)"
+          hoverBorderColor="rgba(103,183,199,0.25)"
           onClick={onServerInfo}
         />
 
@@ -367,10 +353,8 @@ export default function ServerCard({
           icon={FiTrash2}
           label="Delete"
           color="rgba(229,115,115,0.62)"
-          bg="rgba(229,115,115,0.035)"
-          borderColor="rgba(229,115,115,0.08)"
-          hoverBg="rgba(229,115,115,0.11)"
-          hoverBorderColor="rgba(229,115,115,0.26)"
+          hoverBg="rgba(229,115,115,0.1)"
+          hoverBorderColor="rgba(229,115,115,0.22)"
           onClick={onDelete}
         />
       </Flex>
