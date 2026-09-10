@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Flex, Text, Spinner } from "@chakra-ui/react";
-
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 

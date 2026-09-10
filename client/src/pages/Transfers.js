@@ -154,10 +154,8 @@ const formatTime = (dateStr) => {
 
   const date = new Date(dateStr);
   const now = new Date();
-
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
-
   const diffHours = Math.floor(diffMs / 3600000);
 
   if (diffMins < 1) {
@@ -340,9 +338,7 @@ const StatusIcon = ({ status, size = "11px" }) => {
 
 const ItemRow = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
-
   const failed = item.status === "failed";
-
   const durationMs = getItemDurationMs(item);
 
   return (
@@ -924,21 +920,16 @@ const JobRow = ({ job, onClick }) => {
 
 const Transfers = ({ toast }) => {
   const [jobs, setJobs] = useState([]);
-
   const [loadingJobs, setLoadingJobs] = useState(true);
-
   const [selectedJob, setSelectedJob] = useState(null);
-
   const [clearing, setClearing] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     try {
       const data = await apiClient.get("/api/jobs");
-
       setJobs(data.jobs ?? []);
     } catch (err) {
       console.error("Failed to fetch jobs:", err);
-
       setJobs([]);
     } finally {
       setLoadingJobs(false);

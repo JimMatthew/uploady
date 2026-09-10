@@ -32,21 +32,15 @@ function get_transfer_progress(req, res) {
   // catch-up snapshot if job is already running
   const job = executor.getJob(jobId);
   if (job) {
-    send({
-      type: "jobStart",
-      totalFiles: job.totalFiles,
-      completedFiles: job.completedFiles,
-      failedFiles: job.failedFiles,
-      currentFile: job.currentFile,
-      status: job.status,
-      // send current item statuses so client can render partial progress
-      items: [...job.items.values()].map((item) => ({
-        filename: item.filename,
-        status: item.status,
-        percent: item.percent,
-        error: item.error,
-      })),
-    });
+     send({
+    type: "jobStart",
+    roots: [...job.roots.values()],
+    totalFiles: job.totalFiles,
+    completedFiles: job.completedFiles,
+    failedFiles: job.failedFiles,
+    currentFile: job.currentFile,
+    status: job.status,
+  })
   }
 
   // subscribe to executor events

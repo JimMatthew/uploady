@@ -32,8 +32,7 @@ export function useTransferJob({ onError } = {}) {
 
       activeJobRef.current = jobId;
 
-      // These are the top-level items the user actually started transferring.
-      // Keep this list stable for the lifetime of the job.
+      // Stable list of top-level items initiated by this client.
       const initialTransfers = Object.fromEntries(
         items.map(({ file }) => [
           `${jobId}-${file}`,
@@ -85,42 +84,11 @@ export function useTransferJob({ onError } = {}) {
               return;
             }
 
-            const rootKey = `${jobId}-${root.rootItem}`;
-
-            next[rootKey] = rootToProgress(root);
+            next[`${jobId}-${root.rootItem}`] = rootToProgress(root);
           });
 
           return next;
         });
-      };
-
-      const applyJobStart = (message) => {
-        if (activeJobRef.current !== jobId) {
-          return;
-        }
-
-        // Older/current SSE contract: jobStart provides rootCounts.
-        if (message.rootCounts) {
-          setProgressMap((previous) => {
-            const next = { ...previous };
-
-            Object.keys(initialTransfers).forEach((key) => {
-              const file = initialTransfers[key].file;
-
-              next[key] = {
-                ...next[key],
-                total: message.rootCounts[file] ?? next[key]?.total ?? 1,
-              };
-            });
-
-            return next;
-          });
-        }
-
-        // Also support the newer root snapshot shape when present.
-        if (Array.isArray(message.roots)) {
-          applyRootSnapshot(message.roots);
-        }
       };
 
       const applyRootProgress = (root) => {
@@ -133,61 +101,6 @@ export function useTransferJob({ onError } = {}) {
         setProgressMap((previous) => ({
           ...previous,
           [rootKey]: rootToProgress(root),
-        }));
-      };
-
-      const applyFileProgress = (message) => {
-        if (activeJobRef.current !== jobId || !message.rootItem) {
-          return;
-        }
-
-        const rootKey = `${jobId}-${message.rootItem}`;
-
-        setProgressMap((previous) => ({
-          ...previous,
-          [rootKey]: {
-            ...previous[rootKey],
-            progress: Math.round(message.percent ?? 0),
-          },
-        }));
-      };
-
-      const applyFileDone = (message) => {
-        if (activeJobRef.current !== jobId || !message.rootItem) {
-          return;
-        }
-
-        const rootKey = `${jobId}-${message.rootItem}`;
-        const isTopLevel = message.file === message.rootItem;
-
-        setProgressMap((previous) => ({
-          ...previous,
-          [rootKey]: isTopLevel
-            ? {
-                ...previous[rootKey],
-                progress: 100,
-              }
-            : {
-                ...previous[rootKey],
-                completed: (previous[rootKey]?.completed ?? 0) + 1,
-              },
-        }));
-      };
-
-      const applyFileFail = (message) => {
-        if (activeJobRef.current !== jobId || !message.rootItem) {
-          return;
-        }
-
-        const rootKey = `${jobId}-${message.rootItem}`;
-
-        setProgressMap((previous) => ({
-          ...previous,
-          [rootKey]: {
-            ...previous[rootKey],
-            failed: (previous[rootKey]?.failed ?? 0) + 1,
-            error: message.error ?? "Transfer failed",
-          },
         }));
       };
 
@@ -208,10 +121,6 @@ export function useTransferJob({ onError } = {}) {
 
         switch (message.type) {
           case "jobStart":
-            applyJobStart(message);
-            break;
-
-          case "snapshot":
             applyRootSnapshot(message.roots);
             break;
 
@@ -219,19 +128,11 @@ export function useTransferJob({ onError } = {}) {
             applyRootProgress(message);
             break;
 
-          case "fileProgress":
-            applyFileProgress(message);
-            break;
-
-          case "fileDone":
-            applyFileDone(message);
-            break;
-
-          case "fileFail":
-            applyFileFail(message);
-            break;
-
           case "fileStart":
+          case "fileDone":
+          case "fileFail":
+            // File-level events are available from the backend,
+            // but this UI only renders root-level progress.
             break;
 
           case "jobDone":

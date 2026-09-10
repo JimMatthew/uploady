@@ -66,7 +66,6 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
   } = browser;
 
   const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
-
   const { clipboard } = useClipboard();
 
   const isCompactViewport =
@@ -122,9 +121,9 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
 
   const hasClipboardItems = clipboard.length > 0;
 
- const hasTransfers =
-  Object.keys(startedTransfers ?? {}).length > 0 &&
-  Object.keys(progressMap ?? {}).length > 0;
+  const hasTransfers =
+    Object.keys(startedTransfers ?? {}).length > 0 &&
+    Object.keys(progressMap ?? {}).length > 0;
 
   return (
     <Flex direction="column" h="100%" minH={0} overflow="hidden">
@@ -190,13 +189,13 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
       </Flex>
 
       {hasTransfers && (
-  <Box px={{ base: 3, md: 5 }} pt={3} flexShrink={0}>
-    <TransferProgress
-      transfers={startedTransfers}
-      progressMap={progressMap}
-    />
-  </Box>
-)}
+        <Box px={{ base: 3, md: 5 }} pt={3} flexShrink={0}>
+          <TransferProgress
+            transfers={startedTransfers}
+            progressMap={progressMap}
+          />
+        </Box>
+      )}
 
       {hasClipboardItems && (
         <Box flexShrink={0}>

@@ -1,8 +1,6 @@
 import React, { useMemo } from "react";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
-
 import { FiAlertTriangle, FiWifi } from "react-icons/fi";
-
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
