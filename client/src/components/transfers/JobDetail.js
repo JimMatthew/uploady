@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
-import ActionButton from "./ActionButton";
+import {
+  ActionButton,
+  FilterPill,
+  PageButton,
+} from "./TransferComponents";
 
 import {
   FiArrowRight,
@@ -20,10 +24,6 @@ import {
   formatTime,
   getTransferStatus,
 } from "../../utils/transferUtils";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -54,10 +54,6 @@ const FILTERS = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 const getItemDurationMs = (item) => {
   if (item.durationMs !== null && item.durationMs !== undefined) {
     return item.durationMs;
@@ -73,74 +69,6 @@ const getItemDurationMs = (item) => {
 
   return null;
 };
-
-// ---------------------------------------------------------------------------
-// Shared components local to JobDetail
-// ---------------------------------------------------------------------------
-
-const FilterPill = ({ label, value, active, onClick }) => (
-  <Flex
-    align="center"
-    px="10px"
-    h="26px"
-    borderRadius="6px"
-    border="1px solid"
-    borderColor={active ? "rgba(129,140,248,0.25)" : "rgba(255,255,255,0.07)"}
-    bg={active ? "rgba(129,140,248,0.08)" : "rgba(255,255,255,0.015)"}
-    color={active ? "#A5B4FC" : "rgba(255,255,255,0.34)"}
-    cursor="pointer"
-    fontSize="10px"
-    fontWeight={active ? 600 : 500}
-    fontFamily={mono}
-    transition="
-      background 120ms ease,
-      border-color 120ms ease,
-      color 120ms ease
-    "
-    onClick={() => onClick(value)}
-    userSelect="none"
-    _hover={{
-      bg: active ? "rgba(129,140,248,0.11)" : "rgba(255,255,255,0.035)",
-      borderColor: active ? "rgba(129,140,248,0.34)" : "rgba(255,255,255,0.13)",
-      color: active ? "#A5B4FC" : "rgba(255,255,255,0.62)",
-    }}
-  >
-    {label}
-  </Flex>
-);
-
-const PageButton = ({ onClick, disabled, children }) => (
-  <Flex
-    align="center"
-    justify="center"
-    w="28px"
-    h="28px"
-    borderRadius="6px"
-    border="1px solid"
-    borderColor="rgba(255,255,255,0.08)"
-    bg="rgba(255,255,255,0.02)"
-    cursor={disabled ? "not-allowed" : "pointer"}
-    color={disabled ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.42)"}
-    transition="
-      background 120ms ease,
-      border-color 120ms ease,
-      color 120ms ease
-    "
-    onClick={disabled ? undefined : onClick}
-    userSelect="none"
-    _hover={
-      disabled
-        ? {}
-        : {
-            bg: "rgba(255,255,255,0.045)",
-            borderColor: "rgba(255,255,255,0.14)",
-            color: "rgba(255,255,255,0.8)",
-          }
-    }
-  >
-    {children}
-  </Flex>
-);
 
 // ---------------------------------------------------------------------------
 // Item row
