@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Box, Button, Flex, Icon, Input, Text } from "@chakra-ui/react";
 import { FiAlertCircle, FiLock, FiLogIn, FiUser } from "react-icons/fi";
+import type { IconType } from "react-icons";
 import { useNavigate } from "react-router-dom";
 import apiClient, { ApiError } from "../services/apiClient";
 
@@ -9,6 +11,20 @@ const SURFACE = "#1B1F2A";
 
 const ACCENT = "#818CF8";
 const ACCENT_HOVER = "#A5B4FC";
+
+interface LoginResponse {
+  token: string;
+}
+
+interface LoginFieldProps {
+  label: string;
+  icon: IconType;
+  children: ReactNode;
+}
+
+interface LoginErrorProps {
+  children: ReactNode;
+}
 
 const inputStyles = {
   h: "40px",
@@ -41,12 +57,15 @@ const inputStyles = {
 
 const Login = () => {
   const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     event.preventDefault();
 
     if (loading) {
@@ -57,7 +76,7 @@ const Login = () => {
     setError("");
 
     try {
-      const data = await apiClient.post("/apilogin", {
+      const data = await apiClient.post<LoginResponse>("/apilogin", {
         username,
         password,
       });
@@ -65,12 +84,11 @@ const Login = () => {
       localStorage.setItem("token", data.token);
 
       navigate("/sftp");
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 401) {
         setError("Invalid username or password");
       } else {
-        console.error("Login failed:", err);
-
+        console.error("Login failed:", error);
         setError("Unable to connect to Uploady");
       }
     } finally {
@@ -88,7 +106,6 @@ const Login = () => {
       bg={BACKGROUND}
     >
       {/* Subtle background accent */}
-
       <Box
         position="absolute"
         top="50%"
@@ -215,7 +232,7 @@ const LoginHeader = () => (
   </Flex>
 );
 
-const LoginField = ({ label, icon, children }) => (
+const LoginField = ({ label, icon, children }: LoginFieldProps) => (
   <Box>
     <Text
       mb="6px"
@@ -246,7 +263,7 @@ const LoginField = ({ label, icon, children }) => (
   </Box>
 );
 
-const LoginError = ({ children }) => (
+const LoginError = ({ children }: LoginErrorProps) => (
   <Flex
     align="center"
     gap={2}

@@ -1,8 +1,14 @@
-import React, { useState } from "react";
-import { Box, Flex, Text, Input, Icon } from "@chakra-ui/react";
-import { FiUser, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { Box, Flex, Icon, Input, Text } from "@chakra-ui/react";
+import { FiAlertCircle, FiCheck, FiLock, FiUser } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import apiClient from "../services/apiClient";
+import apiClient, { ApiError } from "../services/apiClient";
+
+interface SetupResponse {
+  token: string;
+}
+
 const inputStyles = {
   bg: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.09)",
@@ -12,8 +18,15 @@ const inputStyles = {
   fontFamily: "'JetBrains Mono', monospace",
   h: "40px",
   px: 3,
-  _placeholder: { color: "rgba(255,255,255,0.2)" },
-  _hover: { borderColor: "rgba(255,255,255,0.18)" },
+
+  _placeholder: {
+    color: "rgba(255,255,255,0.2)",
+  },
+
+  _hover: {
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+
   _focus: {
     borderColor: "#6366F1",
     boxShadow: "0 0 0 2px rgba(99,102,241,0.2)",
@@ -23,15 +36,18 @@ const inputStyles = {
 };
 
 const Setup = () => {
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    event.preventDefault();
     setError("");
 
     if (password !== confirm) {
@@ -44,18 +60,28 @@ const Setup = () => {
       return;
     }
 
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const data = await apiClient.post("/setup", {
+      const data = await apiClient.post<SetupResponse>("/setup", {
         username,
         password,
       });
 
       localStorage.setItem("token", data.token);
+
       navigate("/api/sftp");
-    } catch (err) {
-      setError(err.message || "Setup failed");
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setError(error.message || "Setup failed");
+      } else {
+        console.error("Setup failed:", error);
+        setError("Setup failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -96,7 +122,13 @@ const Setup = () => {
             justifyContent="center"
             boxShadow="0 0 24px rgba(99,102,241,0.35)"
           >
-            <svg width="22" height="22" viewBox="0 0 12 12" fill="none">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
               <rect
                 x="1"
                 y="1"
@@ -106,6 +138,7 @@ const Setup = () => {
                 fill="white"
                 fillOpacity="0.9"
               />
+
               <rect
                 x="7"
                 y="1"
@@ -115,6 +148,7 @@ const Setup = () => {
                 fill="white"
                 fillOpacity="0.5"
               />
+
               <rect
                 x="1"
                 y="7"
@@ -124,6 +158,7 @@ const Setup = () => {
                 fill="white"
                 fillOpacity="0.5"
               />
+
               <rect
                 x="7"
                 y="7"
@@ -135,6 +170,7 @@ const Setup = () => {
               />
             </svg>
           </Box>
+
           <Box textAlign="center">
             <Text
               fontSize="20px"
@@ -145,6 +181,7 @@ const Setup = () => {
             >
               uploady
             </Text>
+
             <Text fontSize="12px" color="rgba(255,255,255,0.3)" mt="2px">
               Create your admin account to get started
             </Text>
@@ -174,6 +211,7 @@ const Setup = () => {
             borderRadius="7px"
           >
             <Icon as={FiCheck} boxSize="13px" color="#818CF8" flexShrink={0} />
+
             <Text
               fontSize="11px"
               color="rgba(255,255,255,0.4)"
@@ -196,6 +234,7 @@ const Setup = () => {
             >
               Username
             </Text>
+
             <Box position="relative">
               <Icon
                 as={FiUser}
@@ -208,11 +247,12 @@ const Setup = () => {
                 pointerEvents="none"
                 zIndex={1}
               />
+
               <Input
                 {...inputStyles}
                 pl={9}
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(event) => setUsername(event.target.value)}
                 placeholder="admin"
                 autoComplete="username"
                 required
@@ -232,6 +272,7 @@ const Setup = () => {
             >
               Password
             </Text>
+
             <Box position="relative">
               <Icon
                 as={FiLock}
@@ -244,12 +285,13 @@ const Setup = () => {
                 pointerEvents="none"
                 zIndex={1}
               />
+
               <Input
                 {...inputStyles}
                 type="password"
                 pl={9}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -269,6 +311,7 @@ const Setup = () => {
             >
               Confirm password
             </Text>
+
             <Box position="relative">
               <Icon
                 as={FiLock}
@@ -281,12 +324,13 @@ const Setup = () => {
                 pointerEvents="none"
                 zIndex={1}
               />
+
               <Input
                 {...inputStyles}
                 type="password"
                 pl={9}
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(event) => setConfirm(event.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -311,6 +355,7 @@ const Setup = () => {
                 color="#EF4444"
                 flexShrink={0}
               />
+
               <Text fontSize="12px" color="rgba(239,68,68,0.9)">
                 {error}
               </Text>
