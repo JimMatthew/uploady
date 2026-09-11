@@ -16,16 +16,38 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react";
+
+import type { IconType } from "react-icons";
 import { FiCopy, FiDownload, FiHardDrive, FiLink2, FiX } from "react-icons/fi";
 import { MdQrCode2 } from "react-icons/md";
+import type { SharedLink } from "../hooks/useSharedLinks";
 
 const QRCode = lazy(() => import("react-qr-code"));
 
-const ACCENT = "#818CF8";
 const ACCENT_SOFT = "#A5B4FC";
+
 const ERROR = "#E57373";
 
-const LocationBadge = ({ label, remote = false }) => (
+interface LocationBadgeProps {
+  label: string;
+  remote?: boolean;
+}
+
+interface IconActionProps {
+  icon: IconType;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+interface LinkCardProps {
+  linkItem: SharedLink;
+  stopSharing: (linkToken: string) => void | Promise<void>;
+  downloadLink: (link: string, fileName: string) => void;
+  copyToClipboard: (text: string) => void | Promise<void>;
+}
+
+const LocationBadge = ({ label, remote = false }: LocationBadgeProps) => (
   <Flex
     align="center"
     gap="5px"
@@ -54,7 +76,12 @@ const LocationBadge = ({ label, remote = false }) => (
   </Flex>
 );
 
-const IconAction = ({ icon, label, onClick, danger = false }) => (
+const IconAction = ({
+  icon,
+  label,
+  onClick,
+  danger = false,
+}: IconActionProps) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Button
       minW="28px"
@@ -85,8 +112,13 @@ const QrCodeFallback = () => (
   </Flex>
 );
 
-const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
-  const isRemote = Boolean(linkItem.isRemote);
+const LinkCard = ({
+  linkItem,
+  stopSharing,
+  downloadLink,
+  copyToClipboard,
+}: LinkCardProps) => {
+  const isRemote = linkItem.isRemote;
 
   return (
     <Box
@@ -139,7 +171,9 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
               icon={FiX}
               label="Stop sharing"
               danger
-              onClick={() => stopSharing(linkItem.token)}
+              onClick={() => {
+                void stopSharing(linkItem.token);
+              }}
             />
           </Flex>
         </Flex>
@@ -183,7 +217,9 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
               variant="ghost"
               borderRadius="6px"
               color="rgba(255,255,255,0.38)"
-              onClick={() => copyToClipboard(linkItem.link)}
+              onClick={() => {
+                void copyToClipboard(linkItem.link);
+              }}
               aria-label="Copy shared link"
               _hover={{
                 bg: "rgba(255,255,255,0.055)",
@@ -201,7 +237,9 @@ const LinkCard = ({ linkItem, stopSharing, downloadLink, copyToClipboard }) => {
             h="29px"
             px={3}
             leftIcon={<Icon as={FiDownload} boxSize="11px" />}
-            onClick={() => downloadLink(linkItem.link, linkItem.fileName)}
+            onClick={() => {
+              downloadLink(linkItem.link, linkItem.fileName);
+            }}
             borderRadius="7px"
             bg="rgba(99,102,241,0.09)"
             border="1px solid"

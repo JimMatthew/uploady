@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 import {
   Box,
@@ -37,7 +37,7 @@ const SharedLinks = () => {
     useSharedLinks();
 
   useEffect(() => {
-    loadLinks();
+    void loadLinks();
   }, [loadLinks]);
 
   const linkCountText = loading
@@ -48,13 +48,23 @@ const SharedLinks = () => {
     <Box
       h="100%"
       overflowY="auto"
-      px={{ base: 4, md: 6 }}
-      py={{ base: 5, md: 6 }}
+      px={{
+        base: 4,
+        md: 6,
+      }}
+      py={{
+        base: 5,
+        md: 6,
+      }}
     >
       <Box maxW="1200px" mx="auto">
         {/* Header */}
+
         <Flex
-          align={{ base: "flex-start", sm: "center" }}
+          align={{
+            base: "flex-start",
+            sm: "center",
+          }}
           justify="space-between"
           direction={{
             base: "column",
@@ -105,7 +115,9 @@ const SharedLinks = () => {
                 animation={loading ? "spin 1s linear infinite" : "none"}
               />
             }
-            onClick={loadLinks}
+            onClick={() => {
+              void loadLinks();
+            }}
             isDisabled={loading}
             variant="ghost"
             border="1px solid"
@@ -124,6 +136,7 @@ const SharedLinks = () => {
         </Flex>
 
         {/* Content */}
+
         {loading ? (
           <LoadingSkeleton />
         ) : links.length > 0 ? (
