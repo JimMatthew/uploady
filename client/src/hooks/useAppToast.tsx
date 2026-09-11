@@ -1,6 +1,28 @@
 import { Box, Text, useToast } from "@chakra-ui/react";
 
-const STATUS_STYLES = {
+type AppToastStatus =
+  | "error"
+  | "success"
+  | "warning"
+  | "info";
+
+interface StatusStyle {
+  border: string;
+  dot: string;
+  glow: string;
+}
+
+interface AppToastOptions {
+  title?: string;
+  description?: string;
+  status?: AppToastStatus;
+  duration?: number;
+}
+
+const STATUS_STYLES: Record<
+  AppToastStatus,
+  StatusStyle
+> = {
   error: {
     border: "rgba(239,68,68,0.6)",
     dot: "#EF4444",
@@ -23,13 +45,26 @@ const STATUS_STYLES = {
   },
 };
 
-const DEFAULT_STATUS = "info";
+const DEFAULT_STATUS: AppToastStatus =
+  "info";
 
-const useAppToast = () => {
+export type AppToast = (
+  options: AppToastOptions,
+) => ReturnType<
+  ReturnType<typeof useToast>
+>;
+
+const useAppToast = (): AppToast => {
   const toast = useToast();
 
-  return ({ title, description, status = DEFAULT_STATUS, duration = 2500 }) => {
-    const style = STATUS_STYLES[status] ?? STATUS_STYLES[DEFAULT_STATUS];
+  return ({
+    title,
+    description,
+    status = DEFAULT_STATUS,
+    duration = 2500,
+  }: AppToastOptions) => {
+    const style =
+      STATUS_STYLES[status];
 
     return toast({
       title,
@@ -68,7 +103,10 @@ const useAppToast = () => {
             boxShadow={`0 0 10px ${style.glow}`}
           />
 
-          <Box flex={1} minW={0}>
+          <Box
+            flex={1}
+            minW={0}
+          >
             {title && (
               <Text
                 fontSize="13px"

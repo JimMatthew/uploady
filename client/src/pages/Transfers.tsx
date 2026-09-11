@@ -1,65 +1,62 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
+import { FiArrowRight, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { useTransferJob } from "../hooks/useTransferJob";
-import {
-  FiAlertTriangle,
-  FiArrowRight,
-  FiCheck,
-  FiClock,
-  FiLoader,
-  FiRefreshCw,
-  FiTrash2,
-  FiX,
-} from "react-icons/fi";
 import JobDetail from "../components/transfers/JobDetail";
-import apiClient from "../services/apiClient";
-import { ActionButton } from "../components/transfers/TransferComponents";
-
-import {
-  deriveJobStatus,
-  formatDuration,
-  formatSize,
-  formatTime,
-  getStatusBackground,
-  getStatusBorder,
-  getTransferStatus,
-} from "../utils/transferUtils";
-
 import JobRow from "../components/transfers/JobRow";
-
+import { ActionButton } from "../components/transfers/TransferComponents";
+import apiClient from "../services/apiClient";
+import type { TransferJob, TransferStatus } from "../types/transfer";
+import type { AppToast } from "../hooks/useAppToast";
 const mono = "'JetBrains Mono', monospace";
 
-const ACTIVE_JOB_STATUSES = new Set([
+interface JobsResponse {
+  jobs?: TransferJob[];
+}
+
+interface TransfersProps {
+  toast: AppToast;
+}
+
+const ACTIVE_JOB_STATUSES = new Set<TransferStatus>([
   "planning",
   "expanding",
   "running",
   "in_progress",
 ]);
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+
+  return fallback;
+};
+
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
-const Transfers = ({ toast }) => {
-  const [jobs, setJobs] = useState([]);
+const Transfers = ({ toast }: TransfersProps) => {
+  const [jobs, setJobs] = useState<TransferJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
-  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
 
-  const attachedJobRef = useRef(null);
+  const attachedJobRef = useRef<string | null>(null);
 
   const { progressMap, attachJob } = useTransferJob({
-    onError: (event) => {
+    onError: (event: any) => {
       console.error("Transfer progress connection interrupted:", event);
     },
   });
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (): Promise<void> => {
     try {
-      const data = await apiClient.get("/api/jobs");
+      const data = await apiClient.get<JobsResponse>("/api/jobs");
 
       setJobs(data.jobs ?? []);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to fetch jobs:", err);
 
       setJobs([]);
@@ -91,6 +88,7 @@ const Transfers = ({ toast }) => {
 
       onDone: () => {
         attachedJobRef.current = null;
+
         fetchJobs();
       },
     });
@@ -101,9 +99,9 @@ const Transfers = ({ toast }) => {
       ? null
       : (jobs.find((job) => job._id === selectedJobId) ?? null);
 
-  const handleRetry = async (jobId) => {
+  const handleRetry = async (jobId: string): Promise<void> => {
     try {
-      await apiClient.post(`/api/jobs/${jobId}/retry`);
+      await apiClient.post(`/api/jobs/${jobId}/retry`, {});
 
       await fetchJobs();
 
@@ -112,18 +110,18 @@ const Transfers = ({ toast }) => {
         status: "success",
         duration: 2000,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to retry job:", err);
 
       toast({
-        title: err.message || "Failed to retry",
+        title: getErrorMessage(err, "Failed to retry"),
         status: "error",
         duration: 2000,
       });
     }
   };
 
-  const handleDelete = async (jobId) => {
+  const handleDelete = async (jobId: string): Promise<void> => {
     try {
       await apiClient.delete(`/api/jobs/${jobId}`);
 
@@ -132,18 +130,18 @@ const Transfers = ({ toast }) => {
       }
 
       await fetchJobs();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to delete job:", err);
 
       toast({
-        title: err.message || "Failed to delete",
+        title: getErrorMessage(err, "Failed to delete"),
         status: "error",
         duration: 2000,
       });
     }
   };
 
-  const handleClearCompleted = async () => {
+  const handleClearCompleted = async (): Promise<void> => {
     setClearing(true);
 
     try {
@@ -152,11 +150,11 @@ const Transfers = ({ toast }) => {
       setSelectedJobId(null);
 
       await fetchJobs();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to clear completed jobs:", err);
 
       toast({
-        title: err.message || "Failed to clear",
+        title: getErrorMessage(err, "Failed to clear"),
         status: "error",
         duration: 2000,
       });
@@ -184,6 +182,7 @@ const Transfers = ({ toast }) => {
   return (
     <Box h="100%" minH={0} display="flex" flexDirection="column">
       {/* Header */}
+
       <Flex
         align="center"
         justify="space-between"
@@ -253,6 +252,7 @@ const Transfers = ({ toast }) => {
       </Flex>
 
       {/* Job list */}
+
       <Box flex={1} minH={0} overflowY="auto">
         {loadingJobs ? (
           <Flex align="center" justify="center" h="200px">

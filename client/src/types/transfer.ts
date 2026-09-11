@@ -63,5 +63,18 @@ export interface TransferRootProgress {
 
 export type TransferProgressMap = Record<
   string,
-  TransferRootProgress
+  TransferProgress
 >;
+
+export interface TransferProgress {
+  file: string;
+  progress: number;
+  total: number | null;
+  completed: number;
+  failed: number;
+  error: string | null;
+}
+
+export interface TransferTrackItem {
+  file: string;
+}

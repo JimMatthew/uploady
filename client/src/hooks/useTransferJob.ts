@@ -1,14 +1,115 @@
 import { useCallback, useRef, useState } from "react";
 
-export function useTransferJob({ onError } = {}) {
-  const [progressMap, setProgressMap] = useState({});
-  const [startedTransfers, setStartedTransfers] = useState({});
+import type {
+  TransferProgress,
+  TransferProgressMap,
+  TransferTrackItem,
+} from "../types/transfer";
 
-  const activeJobRef = useRef(null);
-  const eventSourceRef = useRef(null);
-  const cleanupTimerRef = useRef(null);
+interface TransferRootEvent {
+  rootItem: string;
+  percent?: number | null;
+  totalFiles?: number | null;
+  completedFiles?: number | null;
+  failedFiles?: number | null;
+  error?: string | null;
+}
 
-  const clearTransferState = useCallback((jobId) => {
+interface JobStartEvent {
+  type: "jobStart";
+  roots?: TransferRootEvent[];
+  totalFiles?: number;
+  completedFiles?: number;
+  failedFiles?: number;
+  currentFile?: string | null;
+  status?: string;
+}
+
+interface RootProgressEvent extends TransferRootEvent {
+  type: "rootProgress";
+}
+
+interface FileStartEvent {
+  type: "fileStart";
+  [key: string]: unknown;
+}
+
+interface FileDoneEvent {
+  type: "fileDone";
+  [key: string]: unknown;
+}
+
+interface FileFailEvent {
+  type: "fileFail";
+  [key: string]: unknown;
+}
+
+export interface JobDoneEvent {
+  type: "jobDone";
+  completed: number;
+  failed: number;
+  status: string;
+}
+
+interface ReadyEvent {
+  ready: boolean;
+  type?: undefined;
+}
+
+type TransferSseEvent =
+  | JobStartEvent
+  | RootProgressEvent
+  | FileStartEvent
+  | FileDoneEvent
+  | FileFailEvent
+  | JobDoneEvent
+  | ReadyEvent;
+
+interface UseTransferJobOptions {
+  onError?: (event: Event) => void;
+}
+
+interface TrackJobOptions {
+  jobId: string;
+  items?: TransferTrackItem[];
+  onDone?: (event: JobDoneEvent) => void;
+}
+
+interface AttachJobOptions {
+  jobId: string;
+  onDone?: (event: JobDoneEvent) => void;
+}
+
+interface UseTransferJobResult {
+  progressMap: TransferProgressMap;
+  startedTransfers: TransferProgressMap;
+  trackJob: (options: TrackJobOptions) => void;
+  attachJob: (options: AttachJobOptions) => void;
+}
+
+/**
+ * Tracks live transfer progress for the currently active transfer job.
+ *
+ * The backend currently supports one active transfer at a time, so the hook
+ * maintains a single EventSource connection. Progress from backend root events
+ * is normalized into TransferProgress entries keyed by:
+ *
+ * `${jobId}-${rootItem}`
+ */
+export function useTransferJob({
+  onError,
+}: UseTransferJobOptions = {}): UseTransferJobResult {
+  const [progressMap, setProgressMap] = useState<TransferProgressMap>({});
+
+  const [startedTransfers, setStartedTransfers] = useState<TransferProgressMap>(
+    {},
+  );
+
+  const activeJobRef = useRef<string | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTransferState = useCallback((jobId: string): void => {
     if (activeJobRef.current !== jobId) {
       return;
     }
@@ -22,6 +123,7 @@ export function useTransferJob({ onError } = {}) {
 
     if (cleanupTimerRef.current) {
       clearTimeout(cleanupTimerRef.current);
+
       cleanupTimerRef.current = null;
     }
 
@@ -30,14 +132,16 @@ export function useTransferJob({ onError } = {}) {
   }, []);
 
   const trackJob = useCallback(
-    ({ jobId, items = [], onDone }) => {
+    ({ jobId, items = [], onDone }: TrackJobOptions): void => {
       if (!jobId) {
         console.warn("Cannot track transfer job without a jobId");
+
         return;
       }
 
       if (cleanupTimerRef.current) {
         clearTimeout(cleanupTimerRef.current);
+
         cleanupTimerRef.current = null;
       }
 
@@ -62,7 +166,7 @@ export function useTransferJob({ onError } = {}) {
        * jobStart snapshot from the server will then
        * populate progressMap.
        */
-      const initialTransfers = Object.fromEntries(
+      const initialTransfers: TransferProgressMap = Object.fromEntries(
         items.map(({ file }) => [
           `${jobId}-${file}`,
           {
@@ -77,6 +181,7 @@ export function useTransferJob({ onError } = {}) {
       );
 
       setStartedTransfers(initialTransfers);
+
       setProgressMap({
         ...initialTransfers,
       });
@@ -91,7 +196,7 @@ export function useTransferJob({ onError } = {}) {
 
       eventSourceRef.current = eventSource;
 
-      const rootToProgress = (root) => ({
+      const rootToProgress = (root: TransferRootEvent): TransferProgress => ({
         file: root.rootItem,
         progress: Math.round(root.percent ?? 0),
         total: root.totalFiles ?? null,
@@ -100,13 +205,15 @@ export function useTransferJob({ onError } = {}) {
         error: root.error ?? null,
       });
 
-      const applyRootSnapshot = (roots) => {
+      const applyRootSnapshot = (
+        roots: TransferRootEvent[] | undefined,
+      ): void => {
         if (activeJobRef.current !== jobId || !Array.isArray(roots)) {
           return;
         }
 
         setProgressMap((previous) => {
-          const next = {
+          const next: TransferProgressMap = {
             ...previous,
           };
 
@@ -122,8 +229,8 @@ export function useTransferJob({ onError } = {}) {
         });
       };
 
-      const applyRootProgress = (root) => {
-        if (activeJobRef.current !== jobId || !root?.rootItem) {
+      const applyRootProgress = (root: TransferRootEvent): void => {
+        if (activeJobRef.current !== jobId || !root.rootItem) {
           return;
         }
 
@@ -136,7 +243,7 @@ export function useTransferJob({ onError } = {}) {
         }));
       };
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = (event: MessageEvent<string>) => {
         if (activeJobRef.current !== jobId) {
           eventSource.close();
 
@@ -147,11 +254,11 @@ export function useTransferJob({ onError } = {}) {
           return;
         }
 
-        let message;
+        let message: TransferSseEvent;
 
         try {
-          message = JSON.parse(event.data);
-        } catch (err) {
+          message = JSON.parse(event.data) as TransferSseEvent;
+        } catch (err: unknown) {
           console.error("Invalid transfer progress event:", err, event.data);
 
           return;
@@ -197,15 +304,12 @@ export function useTransferJob({ onError } = {}) {
              * ready/connection event without a type.
              */
             if (!message.ready) {
-              console.warn(
-                `Unknown transfer progress event: ${message.type}`,
-                message,
-              );
+              console.warn("Unknown transfer progress event:", message);
             }
         }
       };
 
-      eventSource.onerror = (event) => {
+      eventSource.onerror = (event: Event) => {
         /*
          * EventSource automatically reconnects.
          *
@@ -233,7 +337,7 @@ export function useTransferJob({ onError } = {}) {
   );
 
   const attachJob = useCallback(
-    ({ jobId, onDone }) => {
+    ({ jobId, onDone }: AttachJobOptions): void => {
       trackJob({
         jobId,
         items: [],
