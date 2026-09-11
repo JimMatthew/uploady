@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import apiClient from "../../services/apiClient";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
-import { ActionButton, FilterPill, PageButton } from "./TransferComponents";
 
 import {
-  FiArrowRight,
   FiChevronLeft,
   FiChevronRight,
   FiRefreshCw,
   FiTrash2,
-  FiX,
-  FiZap,
 } from "react-icons/fi";
+
+import apiClient from "../../services/apiClient";
+import { ActionButton, FilterPill, PageButton } from "./TransferComponents";
 
 import {
   deriveJobStatus,
@@ -21,10 +19,35 @@ import {
   getTransferStatus,
 } from "../../utils/transferUtils";
 
+import type {
+  TransferItem,
+  TransferItemFilter,
+  TransferJob,
+} from "../../types/transfer";
+
 import ItemRow from "./ItemRow";
+
 const mono = "'JetBrains Mono', monospace";
 
-const FILTERS = [
+interface FilterOption {
+  label: string;
+  value: TransferItemFilter;
+}
+
+interface JobItemsResponse {
+  items?: TransferItem[];
+  totalPages?: number;
+  total?: number;
+}
+
+interface JobDetailProps {
+  job: TransferJob;
+  onBack: () => void;
+  onRetry: (jobId: string) => Promise<void>;
+  onDelete: (jobId: string) => void | Promise<void>;
+}
+
+const FILTERS: FilterOption[] = [
   { label: "All", value: "all" },
   { label: "Failed", value: "failed" },
   { label: "Completed", value: "completed" },
@@ -33,26 +56,21 @@ const FILTERS = [
   { label: "Skipped", value: "skipped" },
 ];
 
-// ---------------------------------------------------------------------------
-// Job detail
-// ---------------------------------------------------------------------------
-
-const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
+const JobDetail = ({ job, onBack, onRetry, onDelete }: JobDetailProps) => {
   const jobId = job._id;
-
   const [loadingItems, setLoadingItems] = useState(true);
   const [retrying, setRetrying] = useState(false);
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<TransferItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<TransferItemFilter>("all");
 
   const fetchItems = useCallback(async () => {
     setLoadingItems(true);
 
     try {
-      const data = await apiClient.get(
+      const data = await apiClient.get<JobItemsResponse>(
         `/api/jobs/${jobId}/items?page=${page}&limit=100&status=${statusFilter}`,
       );
 
@@ -75,9 +93,10 @@ const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
   }, [fetchItems]);
 
   const status = deriveJobStatus(job);
+
   const statusConfig = getTransferStatus(status);
 
-  const handleRetry = async () => {
+  const handleRetry = async (): Promise<void> => {
     setRetrying(true);
 
     try {
@@ -88,7 +107,7 @@ const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
     }
   };
 
-  const handleFilterChange = (value) => {
+  const handleFilterChange = (value: TransferItemFilter): void => {
     setStatusFilter(value);
     setPage(1);
   };

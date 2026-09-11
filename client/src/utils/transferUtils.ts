@@ -1,3 +1,5 @@
+import type { IconType } from "react-icons";
+
 import {
   FiAlertTriangle,
   FiArrowRight,
@@ -7,7 +9,20 @@ import {
   FiX,
 } from "react-icons/fi";
 
-export const TRANSFER_STATUS = {
+import type { TransferStatus } from "../types/transfer";
+
+export interface TransferJobStatusSource {
+  status: TransferStatus;
+  failedFiles: number;
+  completedFiles: number;
+}
+
+interface TransferStatusConfig {
+  color: string;
+  icon: IconType;
+}
+
+export const TRANSFER_STATUS: Record<TransferStatus, TransferStatusConfig> = {
   completed: {
     color: "#6FCF97",
     icon: FiCheck,
@@ -64,13 +79,18 @@ export const TRANSFER_STATUS = {
   },
 };
 
-export const getTransferStatus = (status) =>
-  TRANSFER_STATUS[status] ?? {
-    color: "rgba(255,255,255,0.32)",
-    icon: FiClock,
-  };
+const DEFAULT_TRANSFER_STATUS: TransferStatusConfig = {
+  color: "rgba(255,255,255,0.32)",
+  icon: FiClock,
+};
 
-export const deriveJobStatus = (job) => {
+export const getTransferStatus = (
+  status: TransferStatus,
+): TransferStatusConfig => TRANSFER_STATUS[status] ?? DEFAULT_TRANSFER_STATUS;
+
+export const deriveJobStatus = (
+  job: TransferJobStatusSource,
+): TransferStatus => {
   if (job.status !== "completed") {
     return job.status;
   }
@@ -86,7 +106,7 @@ export const deriveJobStatus = (job) => {
   return "completed";
 };
 
-export const getStatusBackground = (status) => {
+export const getStatusBackground = (status: TransferStatus): string => {
   switch (status) {
     case "completed":
       return "rgba(111,207,151,0.06)";
@@ -108,7 +128,7 @@ export const getStatusBackground = (status) => {
   }
 };
 
-export const getStatusBorder = (status) => {
+export const getStatusBorder = (status: TransferStatus): string => {
   switch (status) {
     case "completed":
       return "rgba(111,207,151,0.12)";
@@ -130,7 +150,7 @@ export const getStatusBorder = (status) => {
   }
 };
 
-export const formatDuration = (ms) => {
+export const formatDuration = (ms: number | null | undefined): string => {
   if (ms === null || ms === undefined) {
     return "—";
   }
@@ -146,7 +166,7 @@ export const formatDuration = (ms) => {
   return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
 };
 
-export const formatSize = (bytes) => {
+export const formatSize = (bytes: number | null | undefined): string => {
   if (!bytes) {
     return "—";
   }
@@ -166,7 +186,9 @@ export const formatSize = (bytes) => {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 };
 
-export const formatTime = (dateStr) => {
+export const formatTime = (
+  dateStr: string | Date | null | undefined,
+): string => {
   if (!dateStr) {
     return "—";
   }
@@ -174,7 +196,7 @@ export const formatTime = (dateStr) => {
   const date = new Date(dateStr);
   const now = new Date();
 
-  const diffMs = now - date;
+  const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
 

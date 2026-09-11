@@ -1,6 +1,7 @@
+import type { MouseEventHandler } from "react";
 import { Box, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiArrowRight } from "react-icons/fi";
-
+import type { TransferJob, TransferProgressMap, TransferRootProgress } from "../../types/transfer";
 import {
   deriveJobStatus,
   formatDuration,
@@ -13,7 +14,21 @@ import {
 
 const mono = "'JetBrains Mono', monospace";
 
-const getRootPercent = (root) => {
+interface JobRowProps {
+  job: TransferJob;
+  progressMap: TransferProgressMap;
+  onClick: MouseEventHandler<HTMLDivElement>;
+}
+
+/**
+ * Returns the current completion percentage for a live transfer root.
+ *
+ * Uses explicit byte/file progress when available. Otherwise, calculates
+ * progress from the number of completed and failed items.
+ */
+const getRootPercent = (
+  root: TransferRootProgress,
+): number => {
   if (
     typeof root.progress === "number" &&
     root.progress > 0
@@ -23,18 +38,25 @@ const getRootPercent = (root) => {
 
   if (root.total > 0) {
     return Math.round(
-      ((root.completed + root.failed) / root.total) * 100,
+      ((root.completed + root.failed) / root.total) *
+        100,
     );
   }
 
   return 0;
 };
 
+/**
+ * Displays a summary row for a transfer job.
+ *
+ * Live transfer progress is shown when progress data exists for the job.
+ * Otherwise, persisted job counts are displayed.
+ */
 const JobRow = ({
   job,
   progressMap,
   onClick,
-}) => {
+}: JobRowProps) => {
   const status = deriveJobStatus(job);
   const config = getTransferStatus(status);
 
@@ -44,24 +66,20 @@ const JobRow = ({
     )
     .map(([, value]) => value);
 
-  const hasLiveProgress =
-    liveRoots.length > 0;
+  const hasLiveProgress = liveRoots.length > 0;
 
   const liveTotal = liveRoots.reduce(
-    (sum, root) =>
-      sum + (root.total ?? 0),
+    (sum, root) => sum + (root.total ?? 0),
     0,
   );
 
   const liveCompleted = liveRoots.reduce(
-    (sum, root) =>
-      sum + (root.completed ?? 0),
+    (sum, root) => sum + (root.completed ?? 0),
     0,
   );
 
   const liveFailed = liveRoots.reduce(
-    (sum, root) =>
-      sum + (root.failed ?? 0),
+    (sum, root) => sum + (root.failed ?? 0),
     0,
   );
 
@@ -157,10 +175,7 @@ const JobRow = ({
           </Text>
         </Flex>
 
-        <Flex
-          align="center"
-          gap={3}
-        >
+        <Flex align="center" gap={3}>
           <Text
             fontSize="10px"
             color="rgba(255,255,255,0.38)"
@@ -174,9 +189,7 @@ const JobRow = ({
             color="rgba(255,255,255,0.3)"
             fontFamily={mono}
           >
-            {formatDuration(
-              job.durationMs,
-            )}
+            {formatDuration(job.durationMs)}
           </Text>
 
           {job.totalBytes > 0 && (
@@ -222,10 +235,7 @@ const JobRow = ({
                 h="100%"
                 w={`${Math.min(
                   100,
-                  Math.max(
-                    0,
-                    livePercent,
-                  ),
+                  Math.max(0, livePercent),
                 )}%`}
                 bg="#818CF8"
                 transition="width 150ms linear"

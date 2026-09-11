@@ -9,29 +9,7 @@ import {
 } from "../../utils/transferUtils";
 
 const mono = "'JetBrains Mono', monospace";
-
-/**
- * A single file processed as part of a transfer job.
- *
- * @typedef {Object} TransferItem
- * @property {string} filename - Display name of the transferred file.
- * @property {string} sourcePath - Full path to the source file.
- * @property {string} destinationPath - Full path to the destination file.
- * @property {string|null|undefined} sourceServer - Source server name or ID.
- *   Missing/empty values represent a local source.
- * @property {string} status - Current or final transfer status, such as
- *   "pending", "in_progress", "completed", "failed", or "skipped".
- * @property {number|null|undefined} size - File size in bytes.
- * @property {number|null|undefined} durationMs - Transfer duration in
- *   milliseconds when calculated by the backend.
- * @property {string|Date|null|undefined} startedAt - Time the transfer started.
- * @property {string|Date|null|undefined} completedAt - Time the transfer
- *   completed.
- * @property {number|null|undefined} speedMBs - Average transfer speed in MB/s.
- * @property {string|null|undefined} error - Error message when the transfer
- *   failed.
- */
-
+import type { TransferItem } from "../../types/transfer";
 /**
  * Returns the duration of a transfer item in milliseconds.
  *
@@ -41,7 +19,8 @@ const mono = "'JetBrains Mono', monospace";
  * @param {TransferItem} item
  * @returns {number|null}
  */
-const getItemDurationMs = (item) => {
+
+const getItemDurationMs = (item: TransferItem): number | null => {
   if (item.durationMs !== null && item.durationMs !== undefined) {
     return item.durationMs;
   }
@@ -50,9 +29,15 @@ const getItemDurationMs = (item) => {
     return null;
   }
 
-  return new Date(item.completedAt) - new Date(item.startedAt);
+  return (
+    new Date(item.completedAt).getTime() -
+    new Date(item.startedAt).getTime()
+  );
 };
 
+interface ItemRowProps {
+  item: TransferItem;
+}
 /**
  * Displays a single file from a transfer job.
  *
@@ -63,7 +48,7 @@ const getItemDurationMs = (item) => {
  * @param {TransferItem} props.item - Transfer item to display.
  * @returns {import("react").JSX.Element}
  */
-const ItemRow = ({ item }) => {
+const ItemRow = ({ item }: ItemRowProps) => {
   const [expanded, setExpanded] = useState(false);
 
   const failed = item.status === "failed";
