@@ -1,28 +1,58 @@
-import ePub from "epubjs";
-import { FiChevronLeft, FiChevronRight, FiList, FiX } from "react-icons/fi";
 import { useEffect, useRef, useState } from "react";
-import { Box, Flex, Text, Icon } from "@chakra-ui/react";
-const EpubViewer = ({ src, filename }) => {
-  const viewerRef = useRef(null);
-  const bookRef = useRef(null);
-  const renditionRef = useRef(null);
-  const [toc, setToc] = useState([]);
+import ePub, { type Book, type Rendition } from "epubjs";
+import { Box, Flex, Icon, Text } from "@chakra-ui/react";
+import { FiChevronLeft, FiChevronRight, FiList, FiX } from "react-icons/fi";
+
+interface EpubViewerProps {
+  src: ArrayBuffer;
+  filename: string;
+}
+
+interface TocItem {
+  href: string;
+  label: string;
+  subitems?: TocItem[];
+}
+
+interface DisplayedLocation {
+  page: number;
+  total: number;
+}
+
+interface RenditionLocation {
+  start?: {
+    href?: string;
+    displayed?: DisplayedLocation;
+  };
+}
+
+const EpubViewer = ({ src, filename }: EpubViewerProps) => {
+  const viewerRef = useRef<HTMLDivElement | null>(null);
+  const bookRef = useRef<Book | null>(null);
+  const renditionRef = useRef<Rendition | null>(null);
+
+  const [toc, setToc] = useState<TocItem[]>([]);
   const [showToc, setShowToc] = useState(false);
   const [currentChapter, setCurrentChapter] = useState("");
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(100);
-  const [currentPage, setCurrentPage] = useState(null);
-  const [totalPages, setTotalPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState<number | null>(null);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!src || !viewerRef.current) return;
+    const viewer = viewerRef.current;
 
-    // Give the DOM a tick to settle before epub.js measures the container
-    const init = setTimeout(() => {
+    if (!src || !viewer) {
+      return;
+    }
+
+    // Give the DOM a tick to settle before epub.js measures the container.
+    const init = window.setTimeout(() => {
       const book = ePub(src);
+
       bookRef.current = book;
 
-      const rendition = book.renderTo(viewerRef.current, {
+      const rendition = book.renderTo(viewer, {
         width: "100%",
         height: "100%",
         flow: "paginated",
@@ -39,65 +69,106 @@ const EpubViewer = ({ src, filename }) => {
           fontFamily: "Georgia, serif !important",
           lineHeight: "1.8 !important",
         },
-        a: { color: "#818CF8 !important" },
+        a: {
+          color: "#818CF8 !important",
+        },
       });
 
-      rendition.display().then(() => {
+      void rendition.display().then(() => {
         setLoading(false);
-        // Force epub.js to recalculate layout after it becomes visible
-        setTimeout(() => {
-          rendition.resize("100%", "100%");
+
+        // Force epub.js to recalculate layout after it becomes visible.
+        window.setTimeout(() => {
+          rendition.resize(viewer.clientWidth, viewer.clientHeight);
         }, 50);
       });
 
-      book.loaded.navigation.then((nav) => {
-        setToc(nav.toc);
+      void book.loaded.navigation.then((navigation) => {
+        const navigationToc = navigation.toc as TocItem[];
 
-        rendition.on("locationChanged", (loc) => {
-          if (!loc?.start?.href) return;
+        setToc(navigationToc);
 
-          if (loc.start?.displayed) {
-            setCurrentPage(loc.start.displayed.page);
-            setTotalPages(loc.start.displayed.total);
+        rendition.on("locationChanged", (location: RenditionLocation) => {
+          if (!location?.start?.href) {
+            return;
           }
 
-          const href = loc.start.href.split("/").pop();
-          const chapter = nav.toc?.find(
+          if (location.start.displayed) {
+            setCurrentPage(location.start.displayed.page);
+
+            setTotalPages(location.start.displayed.total);
+          }
+
+          const href = location.start.href.split("/").pop();
+
+          if (!href) {
+            return;
+          }
+
+          const chapter = navigationToc.find(
             (item) =>
               item.href?.split("/").pop() === href || item.href?.includes(href),
           );
-          if (chapter) setCurrentChapter(chapter.label);
+
+          if (chapter) {
+            setCurrentChapter(chapter.label);
+          }
         });
       });
 
-      rendition.on("keydown", (e) => {
-        if (e.key === "ArrowRight") rendition.next();
-        if (e.key === "ArrowLeft") rendition.prev();
+      rendition.on("keydown", (event: KeyboardEvent) => {
+        if (event.key === "ArrowRight") {
+          void rendition.next();
+        }
+
+        if (event.key === "ArrowLeft") {
+          void rendition.prev();
+        }
       });
     }, 50);
 
-    const resizeObserver = new ResizeObserver(() => {
-      renditionRef.current?.resize("100%", "100%");
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+
+      if (!entry) {
+        return;
+      }
+
+      renditionRef.current?.resize(
+        entry.contentRect.width,
+        entry.contentRect.height,
+      );
     });
 
-    resizeObserver.observe(viewerRef.current);
+    resizeObserver.observe(viewer);
 
     return () => {
-      clearTimeout(init);
+      window.clearTimeout(init);
       resizeObserver.disconnect();
+
       bookRef.current?.destroy();
+
+      bookRef.current = null;
+      renditionRef.current = null;
     };
   }, [src]);
 
-  const prev = () => renditionRef.current?.prev();
-  const next = () => renditionRef.current?.next();
+  const prev = (): void => {
+    void renditionRef.current?.prev();
+  };
 
-  const changeFontSize = (size) => {
+  const next = (): void => {
+    void renditionRef.current?.next();
+  };
+
+  const changeFontSize = (size: number): void => {
     setFontSize(size);
+
     renditionRef.current?.themes.fontSize(`${size}%`);
   };
-  const goToChapter = (href) => {
-    renditionRef.current?.display(href);
+
+  const goToChapter = (href: string): void => {
+    void renditionRef.current?.display(href);
     setShowToc(false);
   };
 
@@ -131,13 +202,13 @@ const EpubViewer = ({ src, filename }) => {
             borderColor: "rgba(255,255,255,0.18)",
             color: "rgba(255,255,255,0.8)",
           }}
-          onClick={() => setShowToc(!showToc)}
+          onClick={() => setShowToc((previous) => !previous)}
         >
           <Icon as={FiList} boxSize="12px" />
           Contents
         </Flex>
 
-        {/* Current chapter — takes remaining space */}
+        {/* Current chapter */}
         <Text
           fontSize="12px"
           color="rgba(255,255,255,0.3)"
@@ -158,23 +229,27 @@ const EpubViewer = ({ src, filename }) => {
           >
             A
           </Text>
+
           <input
             type="range"
             min={70}
             max={150}
             step={5}
             value={fontSize}
-            onChange={(e) => changeFontSize(Number(e.target.value))}
+            onChange={(event) => changeFontSize(Number(event.target.value))}
             style={{
               width: "72px",
               height: "3px",
               appearance: "none",
-              background: `linear-gradient(to right, #6366F1 ${((fontSize - 70) / 80) * 100}%, rgba(255,255,255,0.1) ${((fontSize - 70) / 80) * 100}%)`,
+              background: `linear-gradient(to right, #6366F1 ${
+                ((fontSize - 70) / 80) * 100
+              }%, rgba(255,255,255,0.1) ${((fontSize - 70) / 80) * 100}%)`,
               borderRadius: "2px",
               outline: "none",
               cursor: "pointer",
             }}
           />
+
           <Text
             fontSize="13px"
             color="rgba(255,255,255,0.25)"
@@ -185,7 +260,7 @@ const EpubViewer = ({ src, filename }) => {
         </Flex>
 
         {/* Page counter */}
-        {currentPage && totalPages && (
+        {currentPage != null && totalPages != null && (
           <Text
             fontSize="11px"
             color="rgba(255,255,255,0.25)"
@@ -218,6 +293,7 @@ const EpubViewer = ({ src, filename }) => {
           >
             <Icon as={FiChevronLeft} boxSize="14px" />
           </Flex>
+
           <Flex
             w="28px"
             h="28px"
@@ -253,7 +329,11 @@ const EpubViewer = ({ src, filename }) => {
             borderRight="1px solid rgba(255,255,255,0.06)"
             zIndex={10}
             overflowY="auto"
-            css={{ "&::-webkit-scrollbar": { width: "0px" } }}
+            css={{
+              "&::-webkit-scrollbar": {
+                width: "0px",
+              },
+            }}
           >
             <Flex
               align="center"
@@ -271,6 +351,7 @@ const EpubViewer = ({ src, filename }) => {
               >
                 Contents
               </Text>
+
               <Flex
                 w="20px"
                 h="20px"
@@ -288,15 +369,18 @@ const EpubViewer = ({ src, filename }) => {
                 <Icon as={FiX} boxSize="12px" />
               </Flex>
             </Flex>
-            {toc.map((item, i) => (
+
+            {toc.map((item, index) => (
               <Box
-                key={i}
+                key={`${item.href}-${index}`}
                 px={4}
                 py="8px"
                 cursor="pointer"
                 borderBottom="1px solid rgba(255,255,255,0.04)"
                 transition="all 0.12s"
-                _hover={{ bg: "rgba(255,255,255,0.04)" }}
+                _hover={{
+                  bg: "rgba(255,255,255,0.04)",
+                }}
                 onClick={() => goToChapter(item.href)}
               >
                 <Text
@@ -306,25 +390,28 @@ const EpubViewer = ({ src, filename }) => {
                 >
                   {item.label}
                 </Text>
-                {item.subitems?.length > 0 &&
-                  item.subitems.map((sub, j) => (
-                    <Text
-                      key={j}
-                      fontSize="12px"
-                      color="rgba(255,255,255,0.35)"
-                      pl={4}
-                      py="4px"
-                      cursor="pointer"
-                      noOfLines={1}
-                      _hover={{ color: "rgba(255,255,255,0.7)" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goToChapter(sub.href);
-                      }}
-                    >
-                      {sub.label}
-                    </Text>
-                  ))}
+
+                {item.subitems?.map((subitem, subIndex) => (
+                  <Text
+                    key={`${subitem.href}-${subIndex}`}
+                    fontSize="12px"
+                    color="rgba(255,255,255,0.35)"
+                    pl={4}
+                    py="4px"
+                    cursor="pointer"
+                    noOfLines={1}
+                    _hover={{
+                      color: "rgba(255,255,255,0.7)",
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+
+                      goToChapter(subitem.href);
+                    }}
+                  >
+                    {subitem.label}
+                  </Text>
+                ))}
               </Box>
             ))}
           </Box>
@@ -352,6 +439,7 @@ const EpubViewer = ({ src, filename }) => {
               borderTopColor="#818CF8"
               animation="spin 0.7s linear infinite"
             />
+
             <Text fontSize="12px" color="rgba(255,255,255,0.3)">
               Loading book…
             </Text>
@@ -373,6 +461,7 @@ const EpubViewer = ({ src, filename }) => {
         onClick={prev}
         zIndex={5}
       />
+
       <Box
         position="absolute"
         right={0}
