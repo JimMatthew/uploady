@@ -49,7 +49,7 @@ interface SidebarProps {
   onServerInfo: (server: SftpServer) => void;
   onSharedLinks: () => void;
   onTransfers: () => void;
-  onDeleteServer: (serverId: string) => void | Promise<void>;
+  onDeleteServer: (serverId: string) => Promise<boolean>;
   sftpServers: SftpServer[];
   serverStatuses: ServerStatuses;
   onSettings: () => void;

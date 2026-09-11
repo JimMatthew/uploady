@@ -10,6 +10,7 @@ export interface SftpServer {
 }
 
 export type AuthMethod = "password" | "key";
+
 export interface PasswordServerPayload {
   host: string;
   username: string;
@@ -47,7 +48,7 @@ export type SaveServerPayload =
   | ImportedKeyServerPayload
   | GeneratedKeyServerPayload;
 
-interface SavedServer {
+export interface SavedServer {
   id: string;
   host: string;
   username: string;

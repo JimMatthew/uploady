@@ -1,5 +1,3 @@
-import React from "react";
-
 import {
   Box,
   Flex,
@@ -10,12 +8,16 @@ import {
 } from "@chakra-ui/react";
 
 import { FiSidebar } from "react-icons/fi";
-
 import { useWorkspace } from "../hooks/useWorkspace";
 import Sidebar from "../components/Sidebar";
 import TabPanelComp from "../components/TabPanel";
+import type { AppToast } from "../hooks/useAppToast";
 
-const Workspace = ({ toast }) => {
+interface WorkspaceProps {
+  toast: AppToast;
+}
+
+const Workspace = ({ toast }: WorkspaceProps) => {
   const {
     loading,
     sftpServers,
@@ -46,7 +48,7 @@ const Workspace = ({ toast }) => {
     lg: true,
   });
 
-  if (loading || !sftpServers) {
+  if (loading) {
     return (
       <Flex
         align="center"
