@@ -1,12 +1,38 @@
 import { useState } from "react";
 import { useToast } from "@chakra-ui/react";
 
-const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
-  const [progresses, setProgresses] = useState([]);
+interface UseFileUploadOptions {
+  apiEndpoint: string;
+  token: string | null;
+  additionalData?: Record<string, unknown>;
+}
+
+interface UseFileUploadResult {
+  uploadFiles: (
+    files: File[],
+    onUploadSuccess?: () => void,
+    onUploadError?: (error: Error) => void,
+  ) => Promise<void>;
+
+  progresses: number[];
+}
+
+interface UploadErrorResponse {
+  message?: string;
+  error?: string;
+}
+
+const useFileUpload = ({
+  apiEndpoint,
+  token,
+  additionalData = {},
+}: UseFileUploadOptions): UseFileUploadResult => {
+  const [progresses, setProgresses] = useState<number[]>([]);
+
   const toast = useToast();
 
-  const uploadFile = (file, index) => {
-    return new Promise((resolve, reject) => {
+  const uploadFile = (file: File, index: number): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
       xhr.open("POST", apiEndpoint, true);
@@ -15,7 +41,7 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       }
 
-      xhr.upload.onprogress = (event) => {
+      xhr.upload.onprogress = (event: ProgressEvent<EventTarget>) => {
         if (!event.lengthComputable) {
           return;
         }
@@ -24,7 +50,9 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
 
         setProgresses((current) => {
           const next = [...current];
+
           next[index] = progress;
+
           return next;
         });
       };
@@ -33,7 +61,9 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
         if (xhr.status >= 200 && xhr.status < 300) {
           setProgresses((current) => {
             const next = [...current];
+
             next[index] = 100;
+
             return next;
           });
 
@@ -44,11 +74,11 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
         let message = `Upload failed (${xhr.status})`;
 
         try {
-          const response = JSON.parse(xhr.responseText);
+          const response = JSON.parse(xhr.responseText) as UploadErrorResponse;
 
-          if (response?.message) {
+          if (response.message) {
             message = response.message;
-          } else if (response?.error) {
+          } else if (response.error) {
             message = response.error;
           }
         } catch {
@@ -80,8 +110,12 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
     });
   };
 
-  const uploadFiles = async (files, onUploadSuccess, onUploadError) => {
-    if (!files?.length) {
+  const uploadFiles = async (
+    files: File[],
+    onUploadSuccess?: () => void,
+    onUploadError?: (error: Error) => void,
+  ): Promise<void> => {
+    if (!files.length) {
       toast({
         title: "No files selected",
         description: "Please select files to upload",
@@ -93,7 +127,7 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
       return;
     }
 
-    setProgresses(Array(files.length).fill(0));
+    setProgresses(Array.from({ length: files.length }, () => 0));
 
     try {
       await Promise.all(files.map((file, index) => uploadFile(file, index)));
@@ -106,22 +140,29 @@ const useFileUpload = ({ apiEndpoint, token, additionalData = {} }) => {
       });
 
       onUploadSuccess?.();
+
       setProgresses([]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error uploading files:", error);
+
+      const uploadError =
+        error instanceof Error
+          ? error
+          : new Error("An error occurred while uploading files");
 
       toast({
         title: "Upload failed",
-        description: error.message || "An error occurred while uploading files",
+        description: uploadError.message,
         status: "error",
         duration: 3000,
         isClosable: true,
       });
 
-      onUploadError?.(error);
+      onUploadError?.(uploadError);
+
       setProgresses([]);
 
-      throw error;
+      throw uploadError;
     }
   };
 

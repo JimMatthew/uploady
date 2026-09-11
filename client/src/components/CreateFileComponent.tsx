@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Flex, Icon, IconButton, Input, Tooltip } from "@chakra-ui/react";
 import { FiCheck, FiFilePlus, FiX } from "react-icons/fi";
 
-const CreateFileComponent = ({ onOpenFile }) => {
+interface CreateFileComponentProps {
+  onOpenFile: (fileName: string) => void | Promise<void>;
+}
+
+const CreateFileComponent = ({ onOpenFile }: CreateFileComponentProps) => {
   const [expanded, setExpanded] = useState(false);
   const [fileName, setFileName] = useState("");
-
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (expanded) {
@@ -14,12 +17,12 @@ const CreateFileComponent = ({ onOpenFile }) => {
     }
   }, [expanded]);
 
-  const reset = () => {
+  const reset = (): void => {
     setFileName("");
     setExpanded(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     const name = fileName.trim();
 
     if (!name) {
@@ -27,11 +30,11 @@ const CreateFileComponent = ({ onOpenFile }) => {
       return;
     }
 
-    onOpenFile(name);
+    void onOpenFile(name);
     reset();
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter") {
       event.preventDefault();
       handleSubmit();

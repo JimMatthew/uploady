@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+
 import {
   Box,
   Button,
@@ -19,13 +20,28 @@ import {
   FiX,
 } from "react-icons/fi";
 
-import { useClipboard } from "../contexts/ClipboardContext";
+import {
+  useClipboard,
+  type ClipboardItem as ClipboardItemType,
+} from "../contexts/ClipboardContext";
+
 import apiClient from "../services/apiClient";
 
 const CLIPBOARD_ACCENT = "#D6A85F";
 const CUT_ACCENT = "#E59A5A";
 
-const ClipboardItem = ({ item, onRemove }) => {
+interface ClipboardItemProps {
+  item: ClipboardItemType;
+
+  onRemove: (file: string, filePath: string) => void;
+}
+
+interface ClipboardComponentProps {
+  handlePaste: () => void | Promise<void>;
+  pasteable?: boolean;
+}
+
+const ClipboardItem = ({ item, onRemove }: ClipboardItemProps) => {
   const isCut = item.action === "cut";
 
   const icon = isCut ? FiScissors : item.isDirectory ? FiFolder : FiFile;
@@ -87,17 +103,22 @@ const ClipboardItem = ({ item, onRemove }) => {
   );
 };
 
-const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
+const ClipboardComponent = ({
+  handlePaste,
+  pasteable = true,
+}: ClipboardComponentProps) => {
   const { clipboard, clearClipboard, removeFromClipboard } = useClipboard();
 
-  const downloadFileBlob = useCallback((blob, filename) => {
+  const downloadFileBlob = useCallback((blob: Blob, filename: string): void => {
     const url = window.URL.createObjectURL(blob);
+
     const anchor = document.createElement("a");
 
     anchor.href = url;
     anchor.download = filename;
 
     document.body.appendChild(anchor);
+
     anchor.click();
     anchor.remove();
 
@@ -106,21 +127,24 @@ const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
     }, 5000);
   }, []);
 
-  const downloadAsZip = async () => {
+  const downloadAsZip = async (): Promise<void> => {
     try {
       const blob = await apiClient.postBlob("/sftp/api/zip-clipboard", {
         files: clipboard,
       });
 
       downloadFileBlob(blob, `uploady-${Date.now()}.zip`);
-    } catch (err) {
-      console.error("Failed to download clipboard as ZIP:", err);
+    } catch (error: unknown) {
+      console.error("Failed to download clipboard as ZIP:", error);
     }
   };
 
   return (
     <Box
-      px={{ base: 3, md: 5 }}
+      px={{
+        base: 3,
+        md: 5,
+      }}
       py="10px"
       mb={2}
       bg="rgba(255,255,255,0.018)"
@@ -194,7 +218,9 @@ const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
               color="#A5B4FC"
               fontSize="11px"
               fontWeight={600}
-              onClick={handlePaste}
+              onClick={() => {
+                void handlePaste();
+              }}
               _hover={{
                 bg: "rgba(99,102,241,0.2)",
                 borderColor: "rgba(129,140,248,0.4)",
@@ -220,7 +246,9 @@ const ClipboardComponent = ({ handlePaste, pasteable = true }) => {
             color="rgba(255,255,255,0.52)"
             fontSize="11px"
             fontWeight={500}
-            onClick={downloadAsZip}
+            onClick={() => {
+              void downloadAsZip();
+            }}
             _hover={{
               bg: "rgba(255,255,255,0.05)",
               borderColor: "rgba(255,255,255,0.15)",

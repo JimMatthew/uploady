@@ -1,8 +1,24 @@
-import React from "react";
 import { Flex, Icon, Text } from "@chakra-ui/react";
+import type { IconType } from "react-icons";
 import { FiChevronRight, FiHome } from "react-icons/fi";
 
-const Breadcrumbs = ({ breadcrumb = [], onClick }) => {
+import type {
+  BreadcrumbEntry,
+} from "../types/fileBrowser";
+
+interface BreadcrumbsProps {
+  breadcrumb?: BreadcrumbEntry[];
+  onClick: (path: string) => void;
+}
+
+interface BreadcrumbItemProps {
+  icon?: IconType;
+  name: string;
+  active: boolean;
+  onClick?: () => void;
+}
+
+const Breadcrumbs = ({ breadcrumb = [], onClick }: BreadcrumbsProps) => {
   if (!breadcrumb.length) {
     return null;
   }
@@ -33,7 +49,7 @@ const Breadcrumbs = ({ breadcrumb = [], onClick }) => {
         icon={FiHome}
         name={breadcrumb[0].name}
         active={breadcrumb.length === 1}
-        onClick={() => onClick(breadcrumb[0].path ?? "/")}
+        onClick={() => onClick(breadcrumb[0].path || "/")}
       />
 
       {breadcrumb.slice(1).map((crumb, index) => {
@@ -64,38 +80,14 @@ const Breadcrumbs = ({ breadcrumb = [], onClick }) => {
     </Flex>
   );
 };
-
-const BreadcrumbItem = ({ icon, name, active, onClick }) => {
-  const clickable = Boolean(onClick);
-
-  return (
-    <Flex
-      as={clickable ? "button" : "div"}
-      type={clickable ? "button" : undefined}
-      align="center"
-      gap="5px"
-      h="24px"
-      px="4px"
-      flexShrink={0}
-      borderRadius="5px"
-      cursor={clickable ? "pointer" : "default"}
-      color={active ? "rgba(255,255,255,0.84)" : "rgba(255,255,255,0.38)"}
-      bg="transparent"
-      border="none"
-      transition="
-        background 120ms ease,
-        color 120ms ease
-      "
-      _hover={
-        clickable
-          ? {
-              bg: "rgba(255,255,255,0.04)",
-              color: "rgba(255,255,255,0.72)",
-            }
-          : {}
-      }
-      onClick={onClick}
-    >
+const BreadcrumbItem = ({
+  icon,
+  name,
+  active,
+  onClick,
+}: BreadcrumbItemProps) => {
+  const content = (
+    <>
       {icon && (
         <Icon
           as={icon}
@@ -114,6 +106,50 @@ const BreadcrumbItem = ({ icon, name, active, onClick }) => {
       >
         {name}
       </Text>
+    </>
+  );
+
+  const commonProps = {
+    align: "center",
+    gap: "5px",
+    h: "24px",
+    px: "4px",
+    flexShrink: 0,
+    borderRadius: "5px",
+    bg: "transparent",
+    border: "none",
+    transition: `
+      background 120ms ease,
+      color 120ms ease
+    `,
+  } as const;
+
+  if (onClick) {
+    return (
+      <Flex
+        as="button"
+        type="button"
+        {...commonProps}
+        cursor="pointer"
+        color={active ? "rgba(255,255,255,0.84)" : "rgba(255,255,255,0.38)"}
+        _hover={{
+          bg: "rgba(255,255,255,0.04)",
+          color: "rgba(255,255,255,0.72)",
+        }}
+        onClick={onClick}
+      >
+        {content}
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex
+      {...commonProps}
+      cursor="default"
+      color={active ? "rgba(255,255,255,0.84)" : "rgba(255,255,255,0.38)"}
+    >
+      {content}
     </Flex>
   );
 };

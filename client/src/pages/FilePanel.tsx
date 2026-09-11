@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
   Box,
   Flex,
@@ -6,6 +7,7 @@ import {
   Tooltip,
   useBreakpointValue,
 } from "@chakra-ui/react";
+
 import { FiUpload, FiUploadCloud } from "react-icons/fi";
 
 import Breadcrumbs from "../components/Breadcrumbs";
@@ -19,6 +21,7 @@ import CreateFileComponent from "../components/CreateFileComponent";
 import ClipboardComponent from "../components/ClipboardComponent";
 
 import { useClipboard } from "../contexts/ClipboardContext";
+import type { FileBrowser } from "../types/fileBrowser";
 
 const SHORT_SCREEN_HEIGHT = 800;
 const UPLOAD_MODE_KEY = "uploadMode";
@@ -26,20 +29,38 @@ const UPLOAD_MODE_KEY = "uploadMode";
 const UploadMode = {
   DRAG_DROP: "dragdrop",
   COMPACT: "compact",
+} as const;
+
+type UploadModeValue = (typeof UploadMode)[keyof typeof UploadMode];
+
+interface FileUploadProps {
+  apiEndpoint: string;
+  additionalData?: Record<string, unknown>;
+  onUploadSuccess?: () => void;
+}
+
+interface FilePanelProps {
+  browser: FileBrowser;
+
+  onOpenFile: (filename: string, isNew?: boolean) => void | Promise<void>;
+
+  fileUploadProps: FileUploadProps;
+}
+
+interface UploadModeToggleProps {
+  mode: UploadModeValue;
+  onToggle: () => void;
+}
+
+const isUploadMode = (value: string | null): value is UploadModeValue => {
+  return value === UploadMode.DRAG_DROP || value === UploadMode.COMPACT;
 };
 
-/**
- * Shared file browser UI for local and SFTP sources.
- *
- * @param {Object} props
- * @param {import("../types/fileBrowser").FileBrowser} props.browser
- * @param {(filename: string, isNew?: boolean) => void} props.onOpenFile
- * @param {Object} props.fileUploadProps
- * @param {string} props.fileUploadProps.apiEndpoint
- * @param {Object} props.fileUploadProps.additionalData
- * @param {() => void} props.fileUploadProps.onUploadSuccess
- */
-const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
+const FilePanel = ({
+  browser,
+  onOpenFile,
+  fileUploadProps,
+}: FilePanelProps) => {
   const {
     files,
     openFolder,
@@ -81,16 +102,14 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
 
   const [isShortScreen, setIsShortScreen] = useState(false);
 
-  const [uploadMode, setUploadMode] = useState(() => {
+  const [uploadMode, setUploadMode] = useState<UploadModeValue>(() => {
     const savedMode = localStorage.getItem(UPLOAD_MODE_KEY);
 
-    return Object.values(UploadMode).includes(savedMode)
-      ? savedMode
-      : UploadMode.DRAG_DROP;
+    return isUploadMode(savedMode) ? savedMode : UploadMode.DRAG_DROP;
   });
 
   useEffect(() => {
-    const updateScreenHeight = () => {
+    const updateScreenHeight = (): void => {
       setIsShortScreen(window.innerHeight < SHORT_SCREEN_HEIGHT);
     };
 
@@ -109,28 +128,41 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
 
   const showCompactUpload = forceCompact || uploadMode === UploadMode.COMPACT;
 
-  const toggleUploadMode = () => {
-    const nextMode =
+  const toggleUploadMode = (): void => {
+    const nextMode: UploadModeValue =
       uploadMode === UploadMode.DRAG_DROP
         ? UploadMode.COMPACT
         : UploadMode.DRAG_DROP;
 
     setUploadMode(nextMode);
+
     localStorage.setItem(UPLOAD_MODE_KEY, nextMode);
   };
 
   const hasClipboardItems = clipboard.length > 0;
 
   const hasTransfers =
-    Object.keys(startedTransfers ?? {}).length > 0 &&
-    Object.keys(progressMap ?? {}).length > 0;
+    Object.keys(startedTransfers).length > 0 &&
+    Object.keys(progressMap).length > 0;
+
+  /*
+   * The local browser may briefly have no
+   * listing while loading, whereas the SFTP
+   * browser starts with an empty directory.
+   */
+  const folders = files?.folders ?? [];
+
+  const fileEntries = files?.files ?? [];
 
   return (
     <Flex direction="column" h="100%" minH={0} overflow="hidden">
       {showDropZone && (
         <Box
           flexShrink={0}
-          px={{ base: 3, md: 5 }}
+          px={{
+            base: 3,
+            md: 5,
+          }}
           py={4}
           bg="rgba(255,255,255,0.008)"
           borderBottom="1px solid"
@@ -150,7 +182,10 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
         align="center"
         justify="space-between"
         gap={3}
-        px={{ base: 3, md: 5 }}
+        px={{
+          base: 3,
+          md: 5,
+        }}
         py={forceCompact ? 2 : "10px"}
         minH="48px"
         flexShrink={0}
@@ -180,7 +215,11 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
 
           <CreateFolderComponent handleCreateFolder={createFolder} />
 
-          <CreateFileComponent onOpenFile={(name) => onOpenFile(name, true)} />
+          <CreateFileComponent
+            onOpenFile={(name) => {
+              void onOpenFile(name, true);
+            }}
+          />
 
           {!forceCompact && (
             <UploadModeToggle mode={uploadMode} onToggle={toggleUploadMode} />
@@ -189,7 +228,14 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
       </Flex>
 
       {hasTransfers && (
-        <Box px={{ base: 3, md: 5 }} pt={3} flexShrink={0}>
+        <Box
+          px={{
+            base: 3,
+            md: 5,
+          }}
+          pt={3}
+          flexShrink={0}
+        >
           <TransferProgress
             transfers={startedTransfers}
             progressMap={progressMap}
@@ -205,7 +251,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
 
       <Box flex={1} minH={0} overflowY="auto" overflowX="hidden">
         <FolderList
-          folders={files.folders}
+          folders={folders}
           openFolder={openFolder}
           deleteFolder={deleteFolder}
           downloadFolder={downloadFolder}
@@ -213,7 +259,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
         />
 
         <FileList
-          files={files.files}
+          files={fileEntries}
           downloadFile={downloadFile}
           deleteFile={deleteFile}
           shareFile={shareFile}
@@ -227,7 +273,7 @@ const FilePanel = ({ browser, onOpenFile, fileUploadProps }) => {
   );
 };
 
-const UploadModeToggle = ({ mode, onToggle }) => {
+const UploadModeToggle = ({ mode, onToggle }: UploadModeToggleProps) => {
   const showingDropZone = mode === UploadMode.DRAG_DROP;
 
   const label = showingDropZone ? "Hide drop zone" : "Show drop zone";

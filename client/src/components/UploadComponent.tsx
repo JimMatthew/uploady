@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+
 import {
   Box,
   Button,
@@ -11,11 +12,18 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
+
 import { FiCheck, FiFile, FiUpload, FiX } from "react-icons/fi";
 
 import useFileUpload from "../controllers/useFileUpload";
 
-const formatSize = (bytes) => {
+interface UploadProps {
+  apiEndpoint: string;
+  additionalData?: Record<string, unknown>;
+  onUploadSuccess?: () => void;
+}
+
+const formatSize = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
   }
@@ -31,11 +39,16 @@ const formatSize = (bytes) => {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
-function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
-  const [files, setFiles] = useState([]);
+function Upload({
+  apiEndpoint,
+  additionalData = {},
+  onUploadSuccess,
+}: UploadProps) {
+  const [files, setFiles] = useState<File[]>([]);
+
   const [uploading, setUploading] = useState(false);
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { uploadFiles, progresses } = useFileUpload({
     apiEndpoint,
@@ -43,7 +56,7 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
     additionalData,
   });
 
-  const handleFileChange = (event) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const selectedFiles = Array.from(event.target.files ?? []);
 
     if (!selectedFiles.length) {
@@ -56,15 +69,19 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
     event.target.value = "";
   };
 
-  const handleCancel = (index) => {
-    if (uploading) return;
+  const handleCancel = (index: number): void => {
+    if (uploading) {
+      return;
+    }
 
     setFiles((current) =>
       current.filter((_, currentIndex) => currentIndex !== index),
     );
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     event.preventDefault();
 
     if (!files.length || uploading) {
@@ -88,6 +105,7 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
   };
 
   const hasFiles = files.length > 0;
+
   const canUpload = hasFiles && !uploading;
 
   return (
@@ -140,7 +158,9 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
             }
           >
             {hasFiles
-              ? `${files.length} ${files.length === 1 ? "file" : "files"} selected`
+              ? `${files.length} ${
+                  files.length === 1 ? "file" : "files"
+                } selected`
               : "Choose files…"}
           </Text>
 
@@ -150,7 +170,9 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
             multiple
             disabled={uploading}
             onChange={handleFileChange}
-            style={{ display: "none" }}
+            style={{
+              display: "none",
+            }}
           />
         </Box>
 
@@ -209,6 +231,7 @@ function Upload({ apiEndpoint, additionalData = {}, onUploadSuccess }) {
         >
           {files.map((file, index) => {
             const progress = progresses[index] ?? 0;
+
             const done = progress >= 100;
 
             return (

@@ -1,32 +1,58 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { useClipboard } from "../contexts/ClipboardContext";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useClipboard, type ClipboardItem } from "../contexts/ClipboardContext";
 import { useTransferJob } from "./useTransferJob";
 import apiClient from "../services/apiClient";
 import { joinPath } from "../utils/path";
 
-const EMPTY_DIRECTORY = {
+import type {
+  BreadcrumbEntry,
+  FileBrowser,
+  FileEntry,
+  FolderEntry,
+} from "../types/fileBrowser";
+
+import type { AppToast } from "./useAppToast";
+
+interface SftpDirectory {
+  currentDirectory: string;
+  files: FileEntry[];
+  folders: FolderEntry[];
+}
+
+interface CopyFilesResponse {
+  jobId: string;
+}
+
+interface UseSftpFileFolderViewerOptions {
+  serverId: string;
+  toast: AppToast;
+}
+
+const EMPTY_DIRECTORY: SftpDirectory = {
   currentDirectory: "/",
   files: [],
   folders: [],
 };
 
-/**
- * @returns {import("../types/fileBrowser").FileBrowser}
- */
-export function useSftpFileFolderViewer({ serverId, toast }) {
-  const [files, setFiles] = useState(EMPTY_DIRECTORY);
+export function useSftpFileFolderViewer({
+  serverId,
+  toast,
+}: UseSftpFileFolderViewerOptions): FileBrowser {
+  const [files, setFiles] = useState<SftpDirectory>(EMPTY_DIRECTORY);
   const [loading, setLoading] = useState(true);
-
   const currentDirectoryRef = useRef("/");
 
   const showToast = useCallback(
-    (title, status, description = null) => {
+    (
+      title: string,
+      status: "error" | "success" | "warning" | "info",
+      description?: string,
+    ): void => {
       toast({
         title,
         description,
         status,
         duration: 3000,
-        isClosable: true,
       });
     },
     [toast],
@@ -38,7 +64,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
 
   const { copyFile, clipboard, clearClipboard, cutFile } = useClipboard();
 
-  const currentDirectory = files?.currentDirectory ?? "/";
+  const currentDirectory = files.currentDirectory ?? "/";
 
   useEffect(() => {
     currentDirectoryRef.current = currentDirectory;
@@ -49,28 +75,33 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   const connectToServer = useCallback(
-    async (signal) => {
-      const data = await apiClient.get(`/sftp/api/connect/${serverId}/`, {
-        signal,
-      });
+    async (signal: AbortSignal): Promise<SftpDirectory> => {
+      const data = await apiClient.get<SftpDirectory>(
+        `/sftp/api/connect/${serverId}/`,
+        {
+          signal,
+        },
+      );
 
       setFiles(data);
+
       return data;
     },
     [serverId],
   );
 
   const changeDirectory = useCallback(
-    async (directory) => {
+    async (directory: string): Promise<SftpDirectory | null> => {
       try {
-        const data = await apiClient.get(
+        const data = await apiClient.get<SftpDirectory>(
           `/sftp/api/connect/${serverId}/${directory}/`,
         );
 
         setFiles(data);
+
         return data;
-      } catch (error) {
-        if (error.name !== "AbortError") {
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
           showToast("Error listing directory", "error");
         }
 
@@ -81,13 +112,13 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const openFolder = useCallback(
-    (folder) => {
+    (folder: string): Promise<SftpDirectory | null> => {
       return changeDirectory(joinPath(currentDirectory, folder));
     },
     [changeDirectory, currentDirectory],
   );
 
-  const reload = useCallback(() => {
+  const reload = useCallback((): Promise<SftpDirectory | null> => {
     return changeDirectory(currentDirectory);
   }, [changeDirectory, currentDirectory]);
 
@@ -101,11 +132,11 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     setLoading(true);
     setFiles(EMPTY_DIRECTORY);
 
-    const connect = async () => {
+    const connect = async (): Promise<void> => {
       try {
         await connectToServer(controller.signal);
-      } catch (error) {
-        if (error.name !== "AbortError") {
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
           showToast("Error connecting to server", "error");
         }
       } finally {
@@ -115,7 +146,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
       }
     };
 
-    connect();
+    void connect();
 
     return () => {
       controller.abort();
@@ -126,7 +157,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // Downloads
   // ---------------------------------------------------------------------------
 
-  const downloadFileBlob = useCallback((blob, filename) => {
+  const downloadFileBlob = useCallback((blob: Blob, filename: string): void => {
     const url = window.URL.createObjectURL(blob);
 
     const anchor = document.createElement("a");
@@ -135,6 +166,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     anchor.download = filename;
 
     document.body.appendChild(anchor);
+
     anchor.click();
     anchor.remove();
 
@@ -146,7 +178,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   }, []);
 
   const downloadFile = useCallback(
-    (filename) => {
+    (filename: string): void => {
       const token = localStorage.getItem("token");
 
       const path = joinPath(
@@ -157,7 +189,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
       );
 
       const params = new URLSearchParams({
-        token,
+        ...(token ? { token } : {}),
         t: Date.now().toString(),
       });
 
@@ -167,7 +199,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const downloadFolder = useCallback(
-    async (folderName) => {
+    async (folderName: string): Promise<void> => {
       try {
         const blob = await apiClient.getBlob(
           joinPath(
@@ -193,7 +225,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   const deleteFile = useCallback(
-    async (filename) => {
+    async (filename: string): Promise<void> => {
       try {
         await apiClient.post("/sftp/api/delete-file", {
           currentDirectory,
@@ -212,7 +244,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const renameFile = useCallback(
-    async (filename, newFilename) => {
+    async (filename: string, newFilename: string): Promise<void> => {
       try {
         await apiClient.post("/sftp/api/renameFile", {
           currentPath: currentDirectory,
@@ -232,7 +264,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const shareFile = useCallback(
-    async (filename) => {
+    async (filename: string): Promise<void> => {
       const remotePath = joinPath(currentDirectory, filename);
 
       try {
@@ -254,7 +286,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   const deleteFolder = useCallback(
-    async (folder) => {
+    async (folder: string): Promise<void> => {
       try {
         await apiClient.post("/sftp/api/delete-folder", {
           currentDirectory,
@@ -273,7 +305,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const createFolder = useCallback(
-    async (folder) => {
+    async (folder: string): Promise<void> => {
       try {
         await apiClient.post("/sftp/api/create-folder", {
           currentPath: currentDirectory,
@@ -296,7 +328,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   const handleCopy = useCallback(
-    (filename) => {
+    (filename: string): void => {
       copyFile({
         file: filename,
         path: currentDirectory,
@@ -309,7 +341,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const copyFolder = useCallback(
-    (folder) => {
+    (folder: string): void => {
       copyFile({
         file: folder,
         path: currentDirectory,
@@ -322,7 +354,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   );
 
   const handleCut = useCallback(
-    (filename) => {
+    (filename: string): void => {
       cutFile({
         file: filename,
         path: currentDirectory,
@@ -334,7 +366,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     [cutFile, currentDirectory, serverId],
   );
 
-  const handlePaste = useCallback(async () => {
+  const handlePaste = useCallback(async (): Promise<void> => {
     if (!clipboard.length) {
       return;
     }
@@ -342,13 +374,16 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
     const destinationDirectory = currentDirectory;
 
     try {
-      const items = [...clipboard];
+      const items: ClipboardItem[] = [...clipboard];
 
-      const { jobId } = await apiClient.post("/sftp/api/copy-files", {
-        files: items,
-        newPath: destinationDirectory,
-        newServerId: serverId,
-      });
+      const { jobId } = await apiClient.post<CopyFilesResponse>(
+        "/sftp/api/copy-files",
+        {
+          files: items,
+          newPath: destinationDirectory,
+          newServerId: serverId,
+        },
+      );
 
       clearClipboard();
 
@@ -360,7 +395,7 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
           // Don't pull the user back to the directory
           // where the transfer originally started.
           if (currentDirectoryRef.current === destinationDirectory) {
-            changeDirectory(destinationDirectory);
+            void changeDirectory(destinationDirectory);
           }
         },
       });
@@ -381,8 +416,8 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // Breadcrumbs
   // ---------------------------------------------------------------------------
 
-  const breadcrumbs = useMemo(() => {
-    const result = [
+  const breadcrumbs = useMemo<BreadcrumbEntry[]>(() => {
+    const result: BreadcrumbEntry[] = [
       {
         name: "Home",
         path: "/",
@@ -411,8 +446,14 @@ export function useSftpFileFolderViewer({ serverId, toast }) {
   // ---------------------------------------------------------------------------
 
   return {
-    files,
+    files: {
+      files: files.files,
+      folders: files.folders,
+    },
+
     loading,
+
+    currentPath: currentDirectory,
 
     openFolder,
     changeDirectory,

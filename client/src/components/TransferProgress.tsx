@@ -1,17 +1,25 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react";
-
 import { FiArrowRight, FiCheck, FiFolder } from "react-icons/fi";
+import type { TransferProgressMap } from "../types/transfer";
 
-const TransferProgress = ({ transfers, progressMap }) => (
+interface TransferProgressProps {
+  transfers: TransferProgressMap;
+  progressMap: TransferProgressMap;
+}
+
+const TransferProgress = ({
+  transfers,
+  progressMap,
+}: TransferProgressProps) => (
   <Box mb={3} display="flex" flexDirection="column" gap={2}>
     {Object.entries(transfers).map(([id, { file }]) => {
-      const entry = progressMap[id] || {};
+      const entry = progressMap[id];
 
-      const pct = entry.progress ?? 0;
+      const pct = entry?.progress ?? 0;
 
-      const completed = entry.completed ?? 0;
+      const completed = entry?.completed ?? 0;
 
-      const total = entry.total ?? 0;
+      const total = entry?.total ?? 0;
 
       const isFolder =
         completed > 0 || (total > 0 && pct === 0 && completed === 0);
@@ -44,9 +52,9 @@ const TransferProgress = ({ transfers, progressMap }) => (
           }
           borderRadius="9px"
           transition="
-              background 200ms ease,
-              border-color 200ms ease
-            "
+            background 200ms ease,
+            border-color 200ms ease
+          "
         >
           <Flex align="center" justify="space-between" gap={3} mb="8px">
             <Flex align="center" gap={2} minW={0}>
@@ -107,9 +115,9 @@ const TransferProgress = ({ transfers, progressMap }) => (
               bg={done ? "#6FCF97" : "#818CF8"}
               borderRadius="full"
               transition="
-                  width 180ms ease,
-                  background 200ms ease
-                "
+                width 180ms ease,
+                background 200ms ease
+              "
             />
           </Box>
         </Box>

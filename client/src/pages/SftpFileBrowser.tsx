@@ -1,36 +1,82 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
 import { FiAlertTriangle, FiWifi } from "react-icons/fi";
 import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
-const SftpFileBrowser = ({ serverId, toast, openFile, host }) => {
+import type { AppToast } from "../hooks/useAppToast";
+
+interface SftpFileSource {
+  type: "sftp";
+  serverId: string;
+  currentDirectory: string;
+  host: string;
+}
+
+interface OpenFileOptions {
+  filename: string;
+  source: SftpFileSource;
+  isNew?: boolean;
+}
+
+interface SftpFileBrowserProps {
+  serverId: string;
+  toast: AppToast;
+
+  openFile: (options: OpenFileOptions) => void | Promise<void>;
+
+  host: string;
+}
+
+interface FileUploadProps {
+  apiEndpoint: string;
+
+  additionalData: {
+    serverId: string;
+    currentDirectory: string;
+  };
+
+  onUploadSuccess: () => void | Promise<void>;
+}
+
+const SftpFileBrowser = ({
+  serverId,
+  toast,
+  openFile,
+  host,
+}: SftpFileBrowserProps) => {
   const browser = useSftpFileFolderViewer({
     serverId,
     toast,
   });
 
-  const fileUploadProps = useMemo(
+  const fileUploadProps = useMemo<FileUploadProps>(
     () => ({
       apiEndpoint: "/sftp/api/upload",
+
       additionalData: {
         serverId,
-        currentDirectory: browser.files?.currentDirectory,
+        currentDirectory: browser.currentPath,
       },
-      onUploadSuccess: browser.reload,
+
+      onUploadSuccess: () => {
+        void browser.reload();
+      },
     }),
-    [browser.files?.currentDirectory, browser.reload, serverId],
+    [browser.currentPath, browser.reload, serverId],
   );
 
-  const onOpenFile = (filename, isNew) => {
-    openFile({
+  const onOpenFile = (filename: string, isNew?: boolean): void => {
+    void openFile({
       filename,
+
       source: {
         type: "sftp",
         serverId,
-        currentDirectory: browser.files.currentDirectory,
+        currentDirectory: browser.currentPath,
         host,
       },
+
       isNew,
     });
   };

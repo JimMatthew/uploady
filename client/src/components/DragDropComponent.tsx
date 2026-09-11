@@ -1,5 +1,7 @@
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
+import type { HTMLAttributes } from "react";
 import { useDropzone } from "react-dropzone";
+
 import {
   Box,
   Button,
@@ -11,62 +13,59 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import {
-  FiFile,
-  FiUploadCloud,
-  FiX,
-} from "react-icons/fi";
+
+import { FiFile, FiUploadCloud, FiX } from "react-icons/fi";
 
 import useFileUpload from "../controllers/useFileUpload";
+
+interface DragAndDropComponentProps {
+  apiEndpoint: string;
+  additionalData?: Record<string, unknown>;
+  onUploadSuccess?: () => void;
+  onUploadError?: (error: unknown) => void;
+}
 
 const DragAndDropComponent = ({
   apiEndpoint,
   additionalData = {},
   onUploadSuccess,
   onUploadError,
-}) => {
-  const [files, setFiles] = useState([]);
+}: DragAndDropComponentProps) => {
+  const [files, setFiles] = useState<File[]>([]);
 
   const token = localStorage.getItem("token");
 
-  const {
-    uploadFiles,
-    progresses,
-  } = useFileUpload({
+  const { uploadFiles, progresses } = useFileUpload({
     apiEndpoint,
     token,
     additionalData,
   });
 
-  const onDrop = useCallback((acceptedFiles) => {
-    setFiles((current) => [
-      ...current,
-      ...acceptedFiles,
-    ]);
+  const onDrop = useCallback((acceptedFiles: File[]): void => {
+    setFiles((current) => [...current, ...acceptedFiles]);
   }, []);
 
-  const {
-    getRootProps,
-    getInputProps,
-    isDragActive,
-  } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
   });
 
-  const handleUpload = async () => {
-    if (files.length === 0) return;
+  const handleUpload = async (): Promise<void> => {
+    if (files.length === 0) {
+      return;
+    }
 
     try {
       await uploadFiles(files, () => {
         setFiles([]);
+
         onUploadSuccess?.();
       });
-    } catch (err) {
-      onUploadError?.(err);
+    } catch (error: unknown) {
+      onUploadError?.(error);
     }
   };
 
-  const removeFile = (index) => {
+  const removeFile = (index: number): void => {
     setFiles((current) =>
       current.filter((_, currentIndex) => currentIndex !== index),
     );
@@ -75,14 +74,9 @@ const DragAndDropComponent = ({
   const hasFiles = files.length > 0;
 
   return (
-    <VStack
-      spacing={3}
-      w="100%"
-      maxW="480px"
-      align="stretch"
-    >
+    <VStack spacing={3} w="100%" maxW="480px" align="stretch">
       <Box
-        {...getRootProps()}
+        {...getRootProps<HTMLAttributes<HTMLDivElement>>()}
         w="100%"
         minH="132px"
         px={4}
@@ -90,15 +84,9 @@ const DragAndDropComponent = ({
         borderRadius="10px"
         border="1px dashed"
         borderColor={
-          isDragActive
-            ? "rgba(129,140,248,0.45)"
-            : "rgba(255,255,255,0.11)"
+          isDragActive ? "rgba(129,140,248,0.45)" : "rgba(255,255,255,0.11)"
         }
-        bg={
-          isDragActive
-            ? "rgba(129,140,248,0.07)"
-            : "rgba(255,255,255,0.018)"
-        }
+        bg={isDragActive ? "rgba(129,140,248,0.07)" : "rgba(255,255,255,0.018)"}
         cursor="pointer"
         transition="
           background 120ms ease,
@@ -137,30 +125,20 @@ const DragAndDropComponent = ({
             }
             border="1px solid"
             borderColor={
-              isDragActive
-                ? "rgba(129,140,248,0.2)"
-                : "rgba(255,255,255,0.06)"
+              isDragActive ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.06)"
             }
           >
             <Icon
               as={FiUploadCloud}
               boxSize="17px"
-              color={
-                isDragActive
-                  ? "#A5B4FC"
-                  : "rgba(255,255,255,0.32)"
-              }
+              color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.32)"}
             />
           </Flex>
 
           <Text
             fontSize="12px"
             fontWeight={isDragActive ? 600 : 500}
-            color={
-              isDragActive
-                ? "#A5B4FC"
-                : "rgba(255,255,255,0.54)"
-            }
+            color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.54)"}
           >
             {isDragActive
               ? "Drop files to add them"
@@ -168,10 +146,7 @@ const DragAndDropComponent = ({
           </Text>
 
           {!isDragActive && (
-            <Text
-              fontSize="10px"
-              color="rgba(255,255,255,0.25)"
-            >
+            <Text fontSize="10px" color="rgba(255,255,255,0.25)">
               Files will be uploaded to the current directory
             </Text>
           )}
@@ -222,15 +197,8 @@ const DragAndDropComponent = ({
                   />
                 </Flex>
 
-                <Box
-                  flex={1}
-                  minW={0}
-                >
-                  <Flex
-                    align="center"
-                    justify="space-between"
-                    gap={3}
-                  >
+                <Box flex={1} minW={0}>
+                  <Flex align="center" justify="space-between" gap={3}>
                     <Text
                       minW={0}
                       fontSize="11px"
@@ -266,11 +234,7 @@ const DragAndDropComponent = ({
                   )}
                 </Box>
 
-                <Tooltip
-                  label="Remove"
-                  hasArrow
-                  openDelay={400}
-                >
+                <Tooltip label="Remove" hasArrow openDelay={400}>
                   <IconButton
                     aria-label={`Remove ${file.name}`}
                     icon={<FiX size={12} />}
@@ -303,22 +267,12 @@ const DragAndDropComponent = ({
         fontSize="12px"
         fontWeight={600}
         isDisabled={!hasFiles}
-        bg={
-          hasFiles
-            ? "rgba(129,140,248,0.14)"
-            : "rgba(255,255,255,0.025)"
-        }
+        bg={hasFiles ? "rgba(129,140,248,0.14)" : "rgba(255,255,255,0.025)"}
         border="1px solid"
         borderColor={
-          hasFiles
-            ? "rgba(129,140,248,0.24)"
-            : "rgba(255,255,255,0.06)"
+          hasFiles ? "rgba(129,140,248,0.24)" : "rgba(255,255,255,0.06)"
         }
-        color={
-          hasFiles
-            ? "#A5B4FC"
-            : "rgba(255,255,255,0.2)"
-        }
+        color={hasFiles ? "#A5B4FC" : "rgba(255,255,255,0.2)"}
         _hover={
           hasFiles
             ? {
@@ -338,7 +292,9 @@ const DragAndDropComponent = ({
           opacity: 1,
           cursor: "not-allowed",
         }}
-        onClick={handleUpload}
+        onClick={() => {
+          void handleUpload();
+        }}
       >
         {hasFiles
           ? `Upload ${files.length} ${files.length === 1 ? "file" : "files"}`
@@ -348,7 +304,7 @@ const DragAndDropComponent = ({
   );
 };
 
-const formatFileSize = (bytes) => {
+const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
   }

@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Flex, Icon, IconButton, Input, Tooltip } from "@chakra-ui/react";
 import { FiCheck, FiFolderPlus, FiX } from "react-icons/fi";
 
-const CreateFolderComponent = ({ handleCreateFolder }) => {
+interface CreateFolderComponentProps {
+  handleCreateFolder: (folderName: string) => void | Promise<void>;
+}
+
+const CreateFolderComponent = ({
+  handleCreateFolder,
+}: CreateFolderComponentProps) => {
   const [expanded, setExpanded] = useState(false);
   const [folderName, setFolderName] = useState("");
 
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (expanded) {
@@ -14,12 +20,12 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
     }
   }, [expanded]);
 
-  const reset = () => {
+  const reset = (): void => {
     setFolderName("");
     setExpanded(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     const name = folderName.trim();
 
     if (!name) {
@@ -27,11 +33,12 @@ const CreateFolderComponent = ({ handleCreateFolder }) => {
       return;
     }
 
-    handleCreateFolder(name);
+    void handleCreateFolder(name);
+
     reset();
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter") {
       event.preventDefault();
       handleSubmit();
