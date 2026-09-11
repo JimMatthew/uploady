@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
-import {
-  ActionButton,
-  FilterPill,
-  PageButton,
-} from "./TransferComponents";
+import { ActionButton, FilterPill, PageButton } from "./TransferComponents";
 
 import {
   FiArrowRight,
@@ -25,207 +21,17 @@ import {
   getTransferStatus,
 } from "../../utils/transferUtils";
 
+import ItemRow from "./ItemRow";
 const mono = "'JetBrains Mono', monospace";
 
 const FILTERS = [
-  {
-    label: "All",
-    value: "all",
-  },
-  {
-    label: "Failed",
-    value: "failed",
-  },
-  {
-    label: "Completed",
-    value: "completed",
-  },
-  {
-    label: "In Progress",
-    value: "in_progress",
-  },
-  {
-    label: "Pending",
-    value: "pending",
-  },
-  {
-    label: "Skipped",
-    value: "skipped",
-  },
+  { label: "All", value: "all" },
+  { label: "Failed", value: "failed" },
+  { label: "Completed", value: "completed" },
+  { label: "In Progress", value: "in_progress" },
+  { label: "Pending", value: "pending" },
+  { label: "Skipped", value: "skipped" },
 ];
-
-const getItemDurationMs = (item) => {
-  if (item.durationMs !== null && item.durationMs !== undefined) {
-    return item.durationMs;
-  }
-
-  if (item.startedAt && item.completedAt) {
-    return new Date(item.completedAt) - new Date(item.startedAt);
-  }
-
-  if (item.startedAt && item.status === "in_progress") {
-    return new Date() - new Date(item.startedAt);
-  }
-
-  return null;
-};
-
-// ---------------------------------------------------------------------------
-// Item row
-// ---------------------------------------------------------------------------
-
-const ItemRow = ({ item }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  const failed = item.status === "failed";
-  const durationMs = getItemDurationMs(item);
-  const statusConfig = getTransferStatus(item.status);
-
-  return (
-    <Box>
-      <Flex
-        align="center"
-        gap={3}
-        px={4}
-        py="9px"
-        borderBottom="1px solid"
-        borderColor="rgba(255,255,255,0.04)"
-        cursor={failed ? "pointer" : "default"}
-        transition="background 120ms ease"
-        onClick={() => {
-          if (failed) {
-            setExpanded((current) => !current);
-          }
-        }}
-        _hover={
-          failed
-            ? {
-                bg: "rgba(229,115,115,0.025)",
-              }
-            : {
-                bg: "rgba(255,255,255,0.012)",
-              }
-        }
-      >
-        <Icon
-          as={statusConfig.icon}
-          boxSize="11px"
-          color={statusConfig.color}
-          flexShrink={0}
-        />
-
-        <Box flex={1} minW={0}>
-          <Text
-            fontSize="12px"
-            fontWeight={500}
-            fontFamily={mono}
-            color={failed ? "rgba(229,115,115,0.88)" : "rgba(255,255,255,0.82)"}
-            letterSpacing="-0.01em"
-            noOfLines={1}
-            mb="3px"
-          >
-            {item.filename}
-          </Text>
-
-          <Flex align="center" gap={2} minW={0}>
-            <Text
-              fontSize="10px"
-              fontFamily={mono}
-              color="rgba(255,255,255,0.38)"
-              noOfLines={1}
-            >
-              {item.sourceServer || "local"}:{item.sourcePath}
-            </Text>
-
-            <Icon
-              as={FiArrowRight}
-              boxSize="8px"
-              color="rgba(255,255,255,0.2)"
-              flexShrink={0}
-            />
-
-            <Text
-              fontSize="10px"
-              fontFamily={mono}
-              color="rgba(255,255,255,0.38)"
-              noOfLines={1}
-            >
-              {item.destinationPath}
-            </Text>
-          </Flex>
-        </Box>
-
-        <Flex align="center" gap={4} flexShrink={0}>
-          <Text
-            fontSize="10px"
-            color="rgba(255,255,255,0.42)"
-            fontFamily={mono}
-            minW="58px"
-            textAlign="right"
-          >
-            {formatSize(item.size)}
-          </Text>
-
-          <Text
-            fontSize="10px"
-            color="rgba(255,255,255,0.38)"
-            fontFamily={mono}
-            minW="50px"
-            textAlign="right"
-          >
-            {formatDuration(durationMs)}
-          </Text>
-
-          {item.speedMBs ? (
-            <Flex align="center" justify="flex-end" gap={1} minW="78px">
-              <Icon as={FiZap} boxSize="9px" color="#A5B4FC" />
-
-              <Text
-                fontSize="10px"
-                color="#A5B4FC"
-                fontFamily={mono}
-                fontWeight={500}
-              >
-                {item.speedMBs} MB/s
-              </Text>
-            </Flex>
-          ) : (
-            <Box minW="78px" />
-          )}
-        </Flex>
-      </Flex>
-
-      {expanded && item.error && (
-        <Flex
-          px={8}
-          py={2}
-          gap={2}
-          align="flex-start"
-          bg="rgba(229,115,115,0.045)"
-          borderBottom="1px solid"
-          borderColor="rgba(229,115,115,0.08)"
-        >
-          <Icon
-            as={FiX}
-            boxSize="10px"
-            color="rgba(229,115,115,0.65)"
-            mt="2px"
-            flexShrink={0}
-          />
-
-          <Text
-            fontSize="10px"
-            fontFamily={mono}
-            color="rgba(229,115,115,0.78)"
-            lineHeight="1.6"
-          >
-            {item.error}
-          </Text>
-        </Flex>
-      )}
-    </Box>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Job detail
