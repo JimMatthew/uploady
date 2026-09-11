@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
+import { useTransferJob } from "../hooks/useTransferJob";
 import {
   FiAlertTriangle,
   FiArrowRight,
@@ -107,6 +108,13 @@ const FILTERS = [
   },
 ];
 
+const ACTIVE_JOB_STATUSES = new Set([
+  "planning",
+  "expanding",
+  "running",
+  "in_progress",
+]);
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -209,6 +217,50 @@ const getItemDurationMs = (item) => {
   }
 
   return null;
+};
+
+const getStatusBackground = (status) => {
+  switch (status) {
+    case "completed":
+      return "rgba(111,207,151,0.06)";
+
+    case "running":
+    case "planning":
+    case "expanding":
+    case "in_progress":
+      return "rgba(129,140,248,0.06)";
+
+    case "failed":
+      return "rgba(229,115,115,0.06)";
+
+    case "partial":
+      return "rgba(214,168,95,0.06)";
+
+    default:
+      return "rgba(255,255,255,0.025)";
+  }
+};
+
+const getStatusBorder = (status) => {
+  switch (status) {
+    case "completed":
+      return "rgba(111,207,151,0.12)";
+
+    case "running":
+    case "planning":
+    case "expanding":
+    case "in_progress":
+      return "rgba(129,140,248,0.12)";
+
+    case "failed":
+      return "rgba(229,115,115,0.12)";
+
+    case "partial":
+      return "rgba(214,168,95,0.12)";
+
+    default:
+      return "rgba(255,255,255,0.08)";
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -484,6 +536,7 @@ const ItemRow = ({ item }) => {
 
 const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
   const jobId = job._id;
+
   const [loadingItems, setLoadingItems] = useState(true);
   const [retrying, setRetrying] = useState(false);
   const [items, setItems] = useState([]);
@@ -523,6 +576,7 @@ const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
 
   const handleRetry = async () => {
     setRetrying(true);
+
     try {
       await onRetry(jobId);
       onBack();
@@ -793,11 +847,47 @@ const JobDetail = ({ job, onBack, onRetry, onDelete }) => {
 // Job row
 // ---------------------------------------------------------------------------
 
-const JobRow = ({ job, onClick }) => {
+const JobRow = ({ job, progressMap, onClick }) => {
   const status = deriveJobStatus(job);
-
   const config = getStatus(status);
 
+  const liveRoots = Object.entries(progressMap)
+    .filter(([key]) => key.startsWith(`${job._id}-`))
+    .map(([, value]) => value);
+
+  const hasLiveProgress = liveRoots.length > 0;
+
+  const liveTotal = liveRoots.reduce((sum, root) => sum + (root.total ?? 0), 0);
+
+  const liveCompleted = liveRoots.reduce(
+    (sum, root) => sum + (root.completed ?? 0),
+    0,
+  );
+
+  const liveFailed = liveRoots.reduce(
+    (sum, root) => sum + (root.failed ?? 0),
+    0,
+  );
+
+  const getRootPercent = (root) => {
+    if (typeof root.progress === "number" && root.progress > 0) {
+      return root.progress;
+    }
+
+    if (root.total > 0) {
+      return Math.round(((root.completed + root.failed) / root.total) * 100);
+    }
+
+    return 0;
+  };
+
+  const livePercent =
+    liveRoots.length > 0
+      ? Math.round(
+          liveRoots.reduce((sum, root) => sum + getRootPercent(root), 0) /
+            liveRoots.length,
+        )
+      : 0;
   return (
     <Flex
       align="center"
@@ -820,9 +910,9 @@ const JobRow = ({ job, onClick }) => {
         h="24px"
         borderRadius="6px"
         flexShrink={0}
-        bg={`${config.color}10`}
+        bg={getStatusBackground(status)}
         border="1px solid"
-        borderColor={`${config.color}1F`}
+        borderColor={getStatusBorder(status)}
       >
         <Icon as={config.icon} boxSize="10px" color={config.color} />
       </Flex>
@@ -894,19 +984,54 @@ const JobRow = ({ job, onClick }) => {
         </Flex>
       </Box>
 
-      <Flex direction="column" align="flex-end" gap="2px" flexShrink={0}>
+      <Flex
+        direction="column"
+        align="flex-end"
+        gap="3px"
+        flexShrink={0}
+        minW="90px"
+      >
         <Text
           fontSize="11px"
           fontWeight={600}
           fontFamily={mono}
           color={config.color}
         >
-          {job.completedFiles}/{job.totalFiles}
+          {hasLiveProgress
+            ? `${liveCompleted}/${liveTotal}`
+            : `${job.completedFiles}/${job.totalFiles}`}
         </Text>
 
-        {job.failedFiles > 0 && (
+        {hasLiveProgress && (
+          <>
+            <Box
+              w="80px"
+              h="3px"
+              borderRadius="full"
+              bg="rgba(255,255,255,0.08)"
+              overflow="hidden"
+            >
+              <Box
+                h="100%"
+                w={`${Math.min(100, Math.max(0, livePercent))}%`}
+                bg="#818CF8"
+                transition="width 150ms linear"
+              />
+            </Box>
+
+            <Text
+              fontSize="9px"
+              color="rgba(255,255,255,0.38)"
+              fontFamily={mono}
+            >
+              {livePercent}%
+            </Text>
+          </>
+        )}
+
+        {(hasLiveProgress ? liveFailed : job.failedFiles) > 0 && (
           <Text fontSize="9px" color="#E57373" fontFamily={mono}>
-            {job.failedFiles} failed
+            {hasLiveProgress ? liveFailed : job.failedFiles} failed
           </Text>
         )}
       </Flex>
@@ -921,15 +1046,25 @@ const JobRow = ({ job, onClick }) => {
 const Transfers = ({ toast }) => {
   const [jobs, setJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
   const [clearing, setClearing] = useState(false);
+
+  const attachedJobRef = useRef(null);
+
+  const { progressMap, attachJob } = useTransferJob({
+    onError: (event) => {
+      console.error("Transfer progress connection interrupted:", event);
+    },
+  });
 
   const fetchJobs = useCallback(async () => {
     try {
       const data = await apiClient.get("/api/jobs");
+
       setJobs(data.jobs ?? []);
     } catch (err) {
       console.error("Failed to fetch jobs:", err);
+
       setJobs([]);
     } finally {
       setLoadingJobs(false);
@@ -939,6 +1074,35 @@ const Transfers = ({ toast }) => {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  useEffect(() => {
+    const activeJob = jobs.find((job) => ACTIVE_JOB_STATUSES.has(job.status));
+
+    if (!activeJob) {
+      attachedJobRef.current = null;
+      return;
+    }
+
+    if (attachedJobRef.current === activeJob._id) {
+      return;
+    }
+
+    attachedJobRef.current = activeJob._id;
+
+    attachJob({
+      jobId: activeJob._id,
+
+      onDone: () => {
+        attachedJobRef.current = null;
+        fetchJobs();
+      },
+    });
+  }, [jobs, attachJob, fetchJobs]);
+
+  const selectedJob =
+    selectedJobId === null
+      ? null
+      : (jobs.find((job) => job._id === selectedJobId) ?? null);
 
   const handleRetry = async (jobId) => {
     try {
@@ -966,7 +1130,10 @@ const Transfers = ({ toast }) => {
     try {
       await apiClient.delete(`/api/jobs/${jobId}`);
 
-      setSelectedJob(null);
+      if (selectedJobId === jobId) {
+        setSelectedJobId(null);
+      }
+
       await fetchJobs();
     } catch (err) {
       console.error("Failed to delete job:", err);
@@ -985,6 +1152,8 @@ const Transfers = ({ toast }) => {
     try {
       await apiClient.delete("/api/jobs");
 
+      setSelectedJobId(null);
+
       await fetchJobs();
     } catch (err) {
       console.error("Failed to clear completed jobs:", err);
@@ -999,14 +1168,20 @@ const Transfers = ({ toast }) => {
     }
   };
 
-  const hasCompleted = jobs.some((job) => deriveJobStatus(job) === "completed");
+  /*
+   * A partially-successful job is persisted by the
+   * backend as "completed" and only derived as
+   * "partial" in the UI, so check the persisted
+   * status here rather than deriveJobStatus().
+   */
+  const hasCompleted = jobs.some((job) => job.status === "completed");
 
   if (selectedJob) {
     return (
       <JobDetail
         job={selectedJob}
         onBack={() => {
-          setSelectedJob(null);
+          setSelectedJobId(null);
           fetchJobs();
         }}
         onRetry={handleRetry}
@@ -1137,7 +1312,8 @@ const Transfers = ({ toast }) => {
             <JobRow
               key={job._id}
               job={job}
-              onClick={() => setSelectedJob(job)}
+              progressMap={progressMap}
+              onClick={() => setSelectedJobId(job._id)}
             />
           ))
         )}

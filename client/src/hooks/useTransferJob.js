@@ -5,6 +5,7 @@ export function useTransferJob({ onError } = {}) {
   const [startedTransfers, setStartedTransfers] = useState({});
 
   const activeJobRef = useRef(null);
+  const eventSourceRef = useRef(null);
   const cleanupTimerRef = useRef(null);
 
   const clearTransferState = useCallback((jobId) => {
@@ -13,6 +14,16 @@ export function useTransferJob({ onError } = {}) {
     }
 
     activeJobRef.current = null;
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    if (cleanupTimerRef.current) {
+      clearTimeout(cleanupTimerRef.current);
+      cleanupTimerRef.current = null;
+    }
 
     setProgressMap({});
     setStartedTransfers({});
@@ -30,9 +41,27 @@ export function useTransferJob({ onError } = {}) {
         cleanupTimerRef.current = null;
       }
 
+      /*
+       * Only one active transfer is supported by the
+       * backend right now. If we're switching jobs,
+       * close the previous SSE connection.
+       */
+      if (eventSourceRef.current && activeJobRef.current !== jobId) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+
       activeJobRef.current = jobId;
 
-      // Stable list of top-level items initiated by this client.
+      /*
+       * Stable list of top-level items initiated by
+       * this client.
+       *
+       * attachJob() passes an empty array because it
+       * is attaching to an already-running job. The
+       * jobStart snapshot from the server will then
+       * populate progressMap.
+       */
       const initialTransfers = Object.fromEntries(
         items.map(({ file }) => [
           `${jobId}-${file}`,
@@ -48,7 +77,9 @@ export function useTransferJob({ onError } = {}) {
       );
 
       setStartedTransfers(initialTransfers);
-      setProgressMap({ ...initialTransfers });
+      setProgressMap({
+        ...initialTransfers,
+      });
 
       const token = localStorage.getItem("token");
 
@@ -57,6 +88,8 @@ export function useTransferJob({ onError } = {}) {
           token ?? "",
         )}`,
       );
+
+      eventSourceRef.current = eventSource;
 
       const rootToProgress = (root) => ({
         file: root.rootItem,
@@ -68,16 +101,14 @@ export function useTransferJob({ onError } = {}) {
       });
 
       const applyRootSnapshot = (roots) => {
-        if (
-          activeJobRef.current !== jobId ||
-          !Array.isArray(roots) ||
-          roots.length === 0
-        ) {
+        if (activeJobRef.current !== jobId || !Array.isArray(roots)) {
           return;
         }
 
         setProgressMap((previous) => {
-          const next = { ...previous };
+          const next = {
+            ...previous,
+          };
 
           roots.forEach((root) => {
             if (!root?.rootItem) {
@@ -100,6 +131,7 @@ export function useTransferJob({ onError } = {}) {
 
         setProgressMap((previous) => ({
           ...previous,
+
           [rootKey]: rootToProgress(root),
         }));
       };
@@ -107,6 +139,11 @@ export function useTransferJob({ onError } = {}) {
       eventSource.onmessage = (event) => {
         if (activeJobRef.current !== jobId) {
           eventSource.close();
+
+          if (eventSourceRef.current === eventSource) {
+            eventSourceRef.current = null;
+          }
+
           return;
         }
 
@@ -116,6 +153,7 @@ export function useTransferJob({ onError } = {}) {
           message = JSON.parse(event.data);
         } catch (err) {
           console.error("Invalid transfer progress event:", err, event.data);
+
           return;
         }
 
@@ -131,23 +169,33 @@ export function useTransferJob({ onError } = {}) {
           case "fileStart":
           case "fileDone":
           case "fileFail":
-            // File-level events are available from the backend,
-            // but this UI only renders root-level progress.
+            /*
+             * File-level events are available from
+             * the backend, but this hook currently
+             * exposes root-level progress.
+             */
             break;
 
           case "jobDone":
             eventSource.close();
 
-            onDone?.();
+            if (eventSourceRef.current === eventSource) {
+              eventSourceRef.current = null;
+            }
+
+            onDone?.(message);
 
             cleanupTimerRef.current = setTimeout(() => {
               clearTransferState(jobId);
-              cleanupTimerRef.current = null;
             }, 1500);
 
             break;
 
           default:
+            /*
+             * The SSE controller may send a simple
+             * ready/connection event without a type.
+             */
             if (!message.ready) {
               console.warn(
                 `Unknown transfer progress event: ${message.type}`,
@@ -158,22 +206,47 @@ export function useTransferJob({ onError } = {}) {
       };
 
       eventSource.onerror = (event) => {
-        eventSource.close();
-
+        /*
+         * EventSource automatically reconnects.
+         *
+         * Do not close or clear progress here for
+         * transient network failures. When it
+         * reconnects, the backend sends the current
+         * job snapshot again.
+         */
         if (activeJobRef.current !== jobId) {
+          eventSource.close();
+
+          if (eventSourceRef.current === eventSource) {
+            eventSourceRef.current = null;
+          }
+
           return;
         }
 
-        clearTransferState(jobId);
+        console.warn(`Transfer SSE connection interrupted for ${jobId}`, event);
+
         onError?.(event);
       };
     },
     [clearTransferState, onError],
   );
 
+  const attachJob = useCallback(
+    ({ jobId, onDone }) => {
+      trackJob({
+        jobId,
+        items: [],
+        onDone,
+      });
+    },
+    [trackJob],
+  );
+
   return {
     progressMap,
     startedTransfers,
     trackJob,
+    attachJob,
   };
 }

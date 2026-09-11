@@ -26,7 +26,21 @@ export default defineConfig({
 
     react(),
   ],
+server: {
+    proxy: {
+      "/api": {
+        target: "https://localhost:3001",
+        changeOrigin: true,
+        secure: false,
+      },
 
+      "/sftp": {
+        target: "https://localhost:3001",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   optimizeDeps: {
     esbuildOptions: {
       loader: {

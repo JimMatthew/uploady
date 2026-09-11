@@ -47,7 +47,8 @@
     "build": "vite build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "dev": "vite"
   },
   "eslintConfig": {
     "extends": [
