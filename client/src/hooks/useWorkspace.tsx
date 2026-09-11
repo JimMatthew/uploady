@@ -18,6 +18,7 @@ import apiClient from "../services/apiClient";
 import type {
   SaveServerPayload,
   SaveServerResponse,
+  SftpServer
 } from "../types/server";
 import {
   SaveServer,
@@ -27,6 +28,7 @@ import {
 
 import type { AppToast } from "./useAppToast";
 import type { ServerStatuses } from "../types/server";
+import { WorkspaceTab } from "../types/workspace";
 
 const SshConsole = lazy(() => import("../pages/SshConsole"));
 const FileEdit = lazy(() => import("../pages/FileEdit"));
@@ -40,23 +42,8 @@ const Actions = lazy(() => import("../pages/ActionsTab"));
 // Types
 // -----------------------------------------------------------------------------
 
-export interface SftpServer {
-  _id: string;
-  host: string;
-  name?: string;
-  hostname?: string;
-  username?: string;
-  authType?: "password" | "key";
-  keyId?: string;
-  publicKey?: string;
-}
 interface ServerListData {
   servers: SftpServer[];
-}
-interface WorkspaceTab {
-  id: number;
-  label: string;
-  content: ReactNode;
 }
 
 interface OpenTabOptions {
@@ -145,17 +132,11 @@ export function useWorkspace({
   toast,
 }: UseWorkspaceOptions): UseWorkspaceResult {
   const nextTabId = useRef(1);
-
   const [loading, setLoading] = useState(true);
-
   const [sftpServers, setSftpServers] = useState<SftpServer[]>([]);
-
   const [serverStatuses, setServerStatuses] = useState<ServerStatuses>({});
-
   const [showSidebar, setShowSidebar] = useState(false);
-
   const [tabs, setTabs] = useState<WorkspaceTab[]>([]);
-
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // ---------------------------------------------------------------------------

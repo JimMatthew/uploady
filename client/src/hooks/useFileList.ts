@@ -20,7 +20,7 @@ interface PasteResponse {
   jobId: string;
 }
 
-export function useFileList({ toast }: UseFileListOptions): FileBrowser{
+export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   const [files, setFiles] = useState<FileListing | null>(null);
   const [currentPath, setCurrentPath] = useState("files");
   const [loading, setLoading] = useState(true);
@@ -481,10 +481,10 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser{
   // ---------------------------------------------------------------------------
 
   return {
-     files: {
-    files: files?.files ?? [],
-    folders: files?.folders ?? [],
-  },
+    files: {
+      files: files?.files ?? [],
+      folders: files?.folders ?? [],
+    },
     loading,
 
     currentPath: relativePath ?? "",

@@ -1,26 +1,23 @@
-import React from "react";
-import {
-  Box,
-  Center,
-  Flex,
-  Icon,
-  Text,
-} from "@chakra-ui/react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { Box, Center, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiLayout, FiX } from "react-icons/fi";
+import { WorkspaceTab } from "../types/workspace";
+
+interface TabPanelProps {
+  tabs: WorkspaceTab[];
+  activeTabIndex: number;
+  setActiveTabIndex: Dispatch<SetStateAction<number>>;
+  closeTab: (tabId: number) => void;
+}
 
 const TabPanelComp = ({
   tabs,
   activeTabIndex,
   setActiveTabIndex,
   closeTab,
-}) => {
+}: TabPanelProps) => {
   return (
-    <Box
-      h="100%"
-      display="flex"
-      flexDirection="column"
-      minH={0}
-    >
+    <Box h="100%" display="flex" flexDirection="column" minH={0}>
       {/* Tab bar */}
       <Flex
         align="stretch"
@@ -33,8 +30,7 @@ const TabPanelComp = ({
         borderColor="rgba(255,255,255,0.07)"
         sx={{
           scrollbarWidth: "auto",
-          scrollbarColor:
-            "rgba(255,255,255,0.16) rgba(255,255,255,0.025)",
+          scrollbarColor: "rgba(255,255,255,0.16) rgba(255,255,255,0.025)",
 
           "::-webkit-scrollbar": {
             height: "6px",
@@ -59,8 +55,8 @@ const TabPanelComp = ({
         }}
       >
         {tabs.length > 0 ? (
-          tabs.map((tab, i) => {
-            const isActive = i === activeTabIndex;
+          tabs.map((tab, index) => {
+            const isActive = index === activeTabIndex;
 
             return (
               <Flex
@@ -75,18 +71,14 @@ const TabPanelComp = ({
                 flexShrink={0}
                 cursor="pointer"
                 position="relative"
-                bg={
-                  isActive
-                    ? "rgba(255,255,255,0.04)"
-                    : "transparent"
-                }
+                bg={isActive ? "rgba(255,255,255,0.04)" : "transparent"}
                 borderRight="1px solid"
                 borderRightColor="rgba(255,255,255,0.045)"
                 transition="
                   background 120ms ease,
                   color 120ms ease
                 "
-                onClick={() => setActiveTabIndex(i)}
+                onClick={() => setActiveTabIndex(index)}
                 _hover={{
                   bg: isActive
                     ? "rgba(255,255,255,0.05)"
@@ -142,8 +134,8 @@ const TabPanelComp = ({
                     background 120ms ease,
                     color 120ms ease
                   "
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={(event) => {
+                    event.stopPropagation();
                     closeTab(tab.id);
                   }}
                   _groupHover={{
@@ -160,11 +152,7 @@ const TabPanelComp = ({
             );
           })
         ) : (
-          <Flex
-            align="center"
-            px={4}
-            h="40px"
-          >
+          <Flex align="center" px={4} h="40px">
             <Text
               fontSize="11px"
               fontWeight={500}
@@ -178,20 +166,12 @@ const TabPanelComp = ({
       </Flex>
 
       {/* Panel content */}
-      <Box
-        flex={1}
-        minH={0}
-        overflow="hidden"
-      >
+      <Box flex={1} minH={0} overflow="hidden">
         {tabs.length > 0 ? (
-          tabs.map((tab, i) => (
+          tabs.map((tab, index) => (
             <Box
               key={tab.id}
-              display={
-                i === activeTabIndex
-                  ? "flex"
-                  : "none"
-              }
+              display={index === activeTabIndex ? "flex" : "none"}
               flexDirection="column"
               h="100%"
               w="100%"
@@ -202,12 +182,7 @@ const TabPanelComp = ({
             </Box>
           ))
         ) : (
-          <Center
-            h="100%"
-            flexDirection="column"
-            gap={3}
-            px={6}
-          >
+          <Center h="100%" flexDirection="column" gap={3} px={6}>
             <Flex
               align="center"
               justify="center"
@@ -225,11 +200,7 @@ const TabPanelComp = ({
               />
             </Flex>
 
-            <Flex
-              direction="column"
-              align="center"
-              gap="3px"
-            >
+            <Flex direction="column" align="center" gap="3px">
               <Text
                 fontSize="13px"
                 fontWeight={500}

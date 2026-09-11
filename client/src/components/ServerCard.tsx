@@ -1,46 +1,105 @@
-import { useState, useEffect } from "react";
-import { Text, Box, Flex, Tooltip, Icon, Progress } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Box, Flex, Icon, Progress, Text, Tooltip } from "@chakra-ui/react";
 
 import {
+  FiActivity,
+  FiChevronDown,
+  FiClock,
+  FiCpu,
   FiFileText,
+  FiHardDrive,
+  FiServer,
   FiTerminal,
   FiTrash2,
-  FiChevronDown,
-  FiHardDrive,
-  FiCpu,
-  FiActivity,
-  FiClock,
-  FiServer,
 } from "react-icons/fi";
 
+import type { IconType } from "react-icons";
 import apiClient from "../services/apiClient";
+import type { ServerStatuses } from "../types/server";
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface ServerDiskStats {
+  usedGb?: number | null;
+  totalGb?: number | null;
+}
+
+interface ServerStats {
+  cpu?: number | null;
+  memory?: number | null;
+  uptimeSeconds?: number | null;
+  disk?: ServerDiskStats | null;
+}
+
+interface ActionButtonProps {
+  icon: IconType;
+  label: string;
+  color: string;
+  hoverBg: string;
+  hoverBorderColor: string;
+  onClick?: () => unknown;
+}
+
+interface StatRowProps {
+  icon: IconType;
+  label: string;
+  value?: ReactNode;
+  children?: ReactNode;
+}
+
+interface DiskBarProps {
+  used?: number | null;
+  total?: number | null;
+}
+
+interface ServerCardProps {
+  serverId: string;
+  serverName: string;
+  serverStatuses: ServerStatuses;
+  onConnect: () => void;
+  onSsh: () => void;
+  onServerInfo: () => void;
+  onDelete: () => boolean | Promise<boolean>;
+}
+
+// -----------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
-const formatBytes = (gb) => {
-  if (gb == null) return "—";
+const formatBytes = (gb: number | null | undefined): string => {
+  if (gb == null) {
+    return "—";
+  }
 
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(gb * 1024).toFixed(0)} MB`;
 };
 
-const formatUptime = (seconds) => {
-  if (seconds == null) return "—";
+const formatUptime = (seconds: number | null | undefined): string => {
+  if (seconds == null) {
+    return "—";
+  }
 
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
 
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
 
   return `${minutes}m`;
 };
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Sub-components
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 const ActionButton = ({
   icon,
@@ -49,7 +108,7 @@ const ActionButton = ({
   hoverBg,
   hoverBorderColor,
   onClick,
-}) => (
+}: ActionButtonProps) => (
   <Tooltip label={label} hasArrow openDelay={400}>
     <Flex
       w="30px"
@@ -80,7 +139,7 @@ const ActionButton = ({
   </Tooltip>
 );
 
-const StatRow = ({ icon, label, value, children }) => (
+const StatRow = ({ icon, label, value, children }: StatRowProps) => (
   <Flex align="center" gap={2} minH="18px">
     <Icon
       as={icon}
@@ -112,7 +171,7 @@ const StatRow = ({ icon, label, value, children }) => (
   </Flex>
 );
 
-const DiskBar = ({ used, total }) => {
+const DiskBar = ({ used, total }: DiskBarProps) => {
   if (used == null || total == null || total === 0) {
     return (
       <Text
@@ -157,9 +216,9 @@ const DiskBar = ({ used, total }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Main component
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 export default function ServerCard({
   serverId,
@@ -169,9 +228,9 @@ export default function ServerCard({
   onSsh,
   onServerInfo,
   onDelete,
-}) {
+}: ServerCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<ServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
   const status = serverStatuses[serverId];
@@ -185,18 +244,20 @@ export default function ServerCard({
 
     let cancelled = false;
 
-    const fetchStats = async () => {
+    const fetchStats = async (): Promise<void> => {
       setStatsLoading(true);
 
       try {
-        const data = await apiClient.get(`/sftp/server-stats/${serverId}`);
+        const data = await apiClient.get<ServerStats>(
+          `/sftp/server-stats/${serverId}`,
+        );
 
         if (!cancelled) {
           setStats(data);
         }
-      } catch (err) {
+      } catch (error: unknown) {
         if (!cancelled) {
-          console.error(`Failed to load stats for server ${serverId}:`, err);
+          console.error(`Failed to load stats for server ${serverId}:`, error);
 
           setStats(null);
         }
@@ -207,7 +268,7 @@ export default function ServerCard({
       }
     };
 
-    fetchStats();
+    void fetchStats();
 
     return () => {
       cancelled = true;
@@ -242,7 +303,7 @@ export default function ServerCard({
         justify="space-between"
         mb="8px"
         cursor="pointer"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => setExpanded((previous) => !previous)}
       >
         <Text
           minW={0}

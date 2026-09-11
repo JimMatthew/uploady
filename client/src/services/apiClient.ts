@@ -22,11 +22,7 @@ class ApiError extends Error {
   status: number;
   data: unknown;
 
-  constructor(
-    message: string,
-    status: number,
-    data: unknown = null,
-  ) {
+  constructor(message: string, status: number, data: unknown = null) {
     super(message);
 
     this.name = "ApiError";
@@ -35,12 +31,7 @@ class ApiError extends Error {
   }
 }
 
-type ResponseType =
-  | "json"
-  | "blob"
-  | "arrayBuffer"
-  | "text"
-  | "response";
+type ResponseType = "json" | "blob" | "arrayBuffer" | "text" | "response";
 
 interface ResponseOptions {
   responseType?: ResponseType;
@@ -51,8 +42,7 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-const getToken = (): string | null =>
-  localStorage.getItem("token");
+const getToken = (): string | null => localStorage.getItem("token");
 
 /**
  * Performs an HTTP request and normalizes the response.
@@ -71,9 +61,7 @@ const getToken = (): string | null =>
 const request = async <T = unknown>(
   url: string,
   options: RequestInit = {},
-  {
-    responseType = "json",
-  }: ResponseOptions = {},
+  { responseType = "json" }: ResponseOptions = {},
 ): Promise<T | Blob | ArrayBuffer | string | Response | null> => {
   const token = getToken();
 
@@ -81,10 +69,7 @@ const request = async <T = unknown>(
   const isLoginRequest = url === "/apilogin";
 
   if (!isLoginRequest && token) {
-    headers.set(
-      "Authorization",
-      `Bearer ${token}`,
-    );
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   // Let the browser set Content-Type + multipart boundary for FormData.
@@ -93,10 +78,7 @@ const request = async <T = unknown>(
     !(options.body instanceof FormData) &&
     !headers.has("Content-Type")
   ) {
-    headers.set(
-      "Content-Type",
-      "application/json",
-    );
+    headers.set("Content-Type", "application/json");
   }
 
   let response: Response;
@@ -107,33 +89,21 @@ const request = async <T = unknown>(
       headers,
     });
   } catch {
-    throw new ApiError(
-      "Unable to connect to server",
-      0,
-      null,
-    );
+    throw new ApiError("Unable to connect to server", 0, null);
   }
 
-  if (
-    !isLoginRequest &&
-    response.status === 401
-  ) {
+  if (!isLoginRequest && response.status === 401) {
     localStorage.removeItem("token");
     window.location.href = "/";
 
-    throw new ApiError(
-      "Unauthorized",
-      401,
-    );
+    throw new ApiError("Unauthorized", 401);
   }
 
   if (!response.ok) {
-    let data: ApiErrorResponse | null =
-      null;
+    let data: ApiErrorResponse | null = null;
 
     try {
-      data =
-        (await response.json()) as ApiErrorResponse;
+      data = (await response.json()) as ApiErrorResponse;
     } catch {
       // Response wasn't JSON.
     }
@@ -144,11 +114,7 @@ const request = async <T = unknown>(
       response.statusText ||
       `Request failed: ${response.status}`;
 
-    throw new ApiError(
-      message,
-      response.status,
-      data,
-    );
+    throw new ApiError(message, response.status, data);
   }
 
   if (response.status === 204) {
