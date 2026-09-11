@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
@@ -9,26 +9,93 @@ import "../xterm.css";
 import { Box, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiExternalLink, FiRefreshCw, FiTerminal } from "react-icons/fi";
 
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
 const TERMINAL_BACKGROUND = "#0B0D12";
+
 const TOOLBAR_BACKGROUND = "#10131A";
+
 const ACCENT = "#818CF8";
 
-const CONNECTION_STATES = {
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+type ConnectionState = "connecting" | "connected" | "error" | "closed";
+
+interface ConnectionStateConfig {
+  color: string;
+  textColor: string;
+  label: string;
+}
+
+interface SshConsoleProps {
+  serverId: string;
+  host?: string | null;
+  isPopout?: boolean;
+  initialCommand?: string | null;
+}
+
+interface ConnectedMessage {
+  event: "connected";
+}
+
+interface ShellReadyMessage {
+  event: "shellReady";
+}
+
+interface OutputMessage {
+  event: "output";
+  data: string;
+}
+
+interface ConnectionErrorMessage {
+  event: "connectionError";
+  data: string;
+}
+
+interface ShellErrorMessage {
+  event: "shellError";
+  data: string;
+}
+
+interface ClosedMessage {
+  event: "closed";
+}
+
+type SshSocketMessage =
+  | ConnectedMessage
+  | ShellReadyMessage
+  | OutputMessage
+  | ConnectionErrorMessage
+  | ShellErrorMessage
+  | ClosedMessage;
+
+// -----------------------------------------------------------------------------
+// Connection states
+// -----------------------------------------------------------------------------
+
+const CONNECTION_STATES: Record<ConnectionState, ConnectionStateConfig> = {
   connecting: {
     color: "rgba(255,255,255,0.25)",
     textColor: "rgba(255,255,255,0.4)",
     label: "Connecting…",
   },
+
   connected: {
     color: "#6FCF97",
     textColor: "#8DD9AB",
     label: "Connected",
   },
+
   error: {
     color: "#E57373",
     textColor: "#EF9A9A",
     label: "Error",
   },
+
   closed: {
     color: "#D6A85F",
     textColor: "#E2BE82",
@@ -36,25 +103,31 @@ const CONNECTION_STATES = {
   },
 };
 
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
 const SshConsole = ({
   serverId,
   host,
   isPopout = false,
   initialCommand = null,
-}) => {
-  const terminalRef = useRef(null);
-  const term = useRef(null);
-  const fitAddon = useRef(null);
-
+}: SshConsoleProps) => {
+  const terminalRef = useRef<HTMLDivElement | null>(null);
+  const term = useRef<Terminal | null>(null);
+  const fitAddon = useRef<FitAddon | null>(null);
   const isInit = useRef(false);
   const initialCommandSent = useRef(false);
-
-  const [connState, setConnState] = useState("connecting");
+  const [connState, setConnState] = useState<ConnectionState>("connecting");
   const [reconnectKey, setReconnectKey] = useState(0);
 
   const isHttps = window.location.protocol === "https:";
 
-  const handlePopOut = () => {
+  // ---------------------------------------------------------------------------
+  // Pop out
+  // ---------------------------------------------------------------------------
+
+  const handlePopOut = (): void => {
     const params = new URLSearchParams({
       serverId,
       host: host ?? "",
@@ -67,19 +140,29 @@ const SshConsole = ({
     );
   };
 
-  const handleReconnect = () => {
+  const handleReconnect = (): void => {
     setReconnectKey((key) => key + 1);
   };
+
+  // ---------------------------------------------------------------------------
+  // Terminal lifecycle
+  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     isInit.current = false;
     initialCommandSent.current = false;
-
     setConnState("connecting");
+    const terminalElement = terminalRef.current;
 
-    // ─── Terminal Setup ─────────────────────────────────────────────────────
+    if (!terminalElement) {
+      return;
+    }
 
-    term.current = new Terminal({
+    // -------------------------------------------------------------------------
+    // Terminal setup
+    // -------------------------------------------------------------------------
+
+    const terminal = new Terminal({
       cursorBlink: true,
       fontSize: 13,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
@@ -87,12 +170,9 @@ const SshConsole = ({
       theme: {
         background: TERMINAL_BACKGROUND,
         foreground: "#D7DAE0",
-
         cursor: ACCENT,
         cursorAccent: TERMINAL_BACKGROUND,
-
         selectionBackground: "rgba(129,140,248,0.24)",
-
         black: "#181A20",
         red: "#E06C75",
         green: "#8FCB8F",
@@ -101,7 +181,6 @@ const SshConsole = ({
         magenta: "#B98BD4",
         cyan: "#67B7C7",
         white: "#D7DAE0",
-
         brightBlack: "#5C6370",
         brightRed: "#F07C84",
         brightGreen: "#A6D89A",
@@ -113,30 +192,37 @@ const SshConsole = ({
       },
     });
 
-    fitAddon.current = new FitAddon();
+    const fitter = new FitAddon();
 
-    term.current.loadAddon(fitAddon.current);
-    term.current.open(terminalRef.current);
+    term.current = terminal;
+    fitAddon.current = fitter;
+
+    terminal.loadAddon(fitter);
+
+    terminal.open(terminalElement);
 
     try {
-      term.current.loadAddon(new WebglAddon());
+      terminal.loadAddon(new WebglAddon());
     } catch {
-      // WebGL unavailable. xterm will use its fallback renderer.
+      // WebGL unavailable.
+      // xterm will use its
+      // fallback renderer.
     }
 
-    // ─── WebSocket ──────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // WebSocket
+    // -------------------------------------------------------------------------
 
     const wsProtocol = isHttps ? "wss" : "ws";
+
     const socket = new WebSocket(`${wsProtocol}://${window.location.host}/ssh`);
 
-    // ─── Helpers ────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
-    const sendResize = () => {
-      if (!term.current || !fitAddon.current) {
-        return;
-      }
-
-      fitAddon.current.fit();
+    const sendResize = (): void => {
+      fitter.fit();
 
       if (socket.readyState !== WebSocket.OPEN) {
         return;
@@ -145,21 +231,23 @@ const SshConsole = ({
       socket.send(
         JSON.stringify({
           event: "resize",
-          rows: term.current.rows,
-          cols: term.current.cols,
+          rows: terminal.rows,
+          cols: terminal.cols,
         }),
       );
     };
 
-    const writeError = (message) => {
-      term.current?.write(`\r\n\x1b[31m*** ${message} ***\x1b[0m\r\n`);
+    const writeError = (message: string): void => {
+      terminal.write(`\r\n\x1b[31m*** ${message} ***\x1b[0m\r\n`);
     };
 
-    const writeWarning = (message) => {
-      term.current?.write(`\r\n\x1b[33m*** ${message} ***\x1b[0m\r\n`);
+    const writeWarning = (message: string): void => {
+      terminal.write(`\r\n\x1b[33m*** ${message} ***\x1b[0m\r\n`);
     };
 
-    // ─── Socket Events ──────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Socket events
+    // -------------------------------------------------------------------------
 
     socket.onopen = () => {
       socket.send(
@@ -170,13 +258,13 @@ const SshConsole = ({
       );
     };
 
-    socket.onmessage = (event) => {
-      let message;
+    socket.onmessage = (event: MessageEvent) => {
+      let message: SshSocketMessage;
 
       try {
-        message = JSON.parse(event.data);
-      } catch (err) {
-        console.error("SshConsole: failed to parse WebSocket message", err);
+        message = JSON.parse(event.data as string) as SshSocketMessage;
+      } catch (error: unknown) {
+        console.error("SshConsole: failed to parse WebSocket message", error);
 
         return;
       }
@@ -185,8 +273,10 @@ const SshConsole = ({
         case "connected":
           setConnState("connected");
 
-          // Session is established, so make sure the remote PTY
-          // receives the current terminal dimensions.
+          // Session is established,
+          // so make sure the remote
+          // PTY receives the current
+          // terminal dimensions.
           requestAnimationFrame(() => {
             sendResize();
           });
@@ -201,14 +291,13 @@ const SshConsole = ({
           ) {
             initialCommandSent.current = true;
 
-            // Wait until the terminal has been laid out before fitting
-            // and sending the initial command.
             requestAnimationFrame(() => {
               sendResize();
 
               socket.send(
                 JSON.stringify({
                   event: "input",
+
                   data: `${initialCommand}\r`,
                 }),
               );
@@ -218,7 +307,8 @@ const SshConsole = ({
           break;
 
         case "output":
-          term.current?.write(message.data);
+          terminal.write(message.data);
+
           break;
 
         case "connectionError":
@@ -241,9 +331,6 @@ const SshConsole = ({
           writeWarning("SSH SESSION CLOSED");
 
           break;
-
-        default:
-          break;
       }
     };
 
@@ -259,11 +346,14 @@ const SshConsole = ({
       writeWarning("SESSION CLOSED");
     };
 
-    // ─── Input ──────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Input
+    // -------------------------------------------------------------------------
 
-    const inputDisposable = term.current.onData((data) => {
+    const inputDisposable = terminal.onData((data: string) => {
       if (!isInit.current) {
         isInit.current = true;
+
         sendResize();
       }
 
@@ -279,13 +369,17 @@ const SshConsole = ({
       );
     });
 
-    // ─── Window Resize ──────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Window resize
+    // -------------------------------------------------------------------------
 
-    fitAddon.current.fit();
+    fitter.fit();
 
     window.addEventListener("resize", sendResize);
 
-    // ─── Cleanup ────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Cleanup
+    // -------------------------------------------------------------------------
 
     return () => {
       window.removeEventListener("resize", sendResize);
@@ -299,19 +393,24 @@ const SshConsole = ({
         socket.close();
       }
 
-      term.current?.dispose();
+      terminal.dispose();
 
       term.current = null;
       fitAddon.current = null;
     };
   }, [serverId, reconnectKey, isHttps, initialCommand]);
 
-  // ─── Connection Status ────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Connection status
+  // ---------------------------------------------------------------------------
 
-  const status = CONNECTION_STATES[connState] ?? CONNECTION_STATES.connecting;
+  const status = CONNECTION_STATES[connState];
+
   const canReconnect = connState === "error" || connState === "closed";
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <Box
@@ -382,6 +481,7 @@ const SshConsole = ({
         {canReconnect && (
           <Box
             as="button"
+            type="button"
             onClick={handleReconnect}
             display="flex"
             alignItems="center"
@@ -420,6 +520,7 @@ const SshConsole = ({
         {!isPopout && (
           <Box
             as="button"
+            type="button"
             onClick={handlePopOut}
             display="flex"
             alignItems="center"

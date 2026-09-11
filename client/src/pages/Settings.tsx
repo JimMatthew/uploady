@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import {
   Box,
@@ -9,6 +10,8 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
+
+import type { IconType } from "react-icons";
 
 import {
   FiClock,
@@ -21,16 +24,90 @@ import {
 
 import apiClient from "../services/apiClient";
 
+import type { AppToast } from "../hooks/useAppToast";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface SharedSshKey {
+  id: string;
+  name: string;
+  publicKey?: string;
+}
+
+interface SessionSettings {
+  jwtLifetimeMinutes: number;
+}
+
+interface SettingsResponse {
+  session: SessionSettings;
+}
+
+interface SettingsProps {
+  toast: AppToast;
+}
+
+interface SettingsSectionProps {
+  icon: IconType;
+  title: string;
+  description: string;
+  children: ReactNode;
+}
+
+interface SettingRowProps {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}
+
+interface SettingStatusProps {
+  children: ReactNode;
+}
+
+interface KeyCreatorProps {
+  keyName: string;
+  generating: boolean;
+  onChange: (value: string) => void;
+  onGenerate: () => void | Promise<void>;
+}
+
+interface KeyListProps {
+  keys: SharedSshKey[];
+
+  onCopy: (key: SharedSshKey) => void | Promise<void>;
+
+  onDelete: (key: SharedSshKey) => void | Promise<void>;
+}
+
+interface KeyRowProps {
+  sshKey: SharedSshKey;
+  showBorder: boolean;
+  onCopy: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}
+
+interface LoadingStateProps {
+  label: string;
+}
+
+// -----------------------------------------------------------------------------
+// Styles
+// -----------------------------------------------------------------------------
+
 const inputStyles = {
   borderColor: "whiteAlpha.100",
   bg: "whiteAlpha.50",
   color: "whiteAlpha.800",
+
   _placeholder: {
     color: "whiteAlpha.300",
   },
+
   _hover: {
     borderColor: "whiteAlpha.200",
   },
+
   _focusVisible: {
     borderColor: "#6366F1",
     boxShadow: "0 0 0 1px #6366F1",
@@ -41,20 +118,37 @@ const primaryButtonStyles = {
   bg: "rgba(99,102,241,0.15)",
   color: "#A5B4FC",
   border: "1px solid rgba(99,102,241,0.3)",
+
   _hover: {
     bg: "rgba(99,102,241,0.25)",
   },
+
   _active: {
     bg: "rgba(99,102,241,0.32)",
   },
 };
 
-const Settings = ({ toast }) => {
-  const [keys, setKeys] = useState([]);
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+const getErrorMessage = (error: unknown): string | undefined => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return undefined;
+};
+
+// -----------------------------------------------------------------------------
+// Settings
+// -----------------------------------------------------------------------------
+
+const Settings = ({ toast }: SettingsProps) => {
+  const [keys, setKeys] = useState<SharedSshKey[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [keyName, setKeyName] = useState("");
-
   const [sessionTimeout, setSessionTimeout] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSession, setSavingSession] = useState(false);
@@ -63,18 +157,19 @@ const Settings = ({ toast }) => {
   // SSH keys
   // ---------------------------------------------------------------------------
 
-  const loadKeys = useCallback(async () => {
+  const loadKeys = useCallback(async (): Promise<void> => {
     setLoadingKeys(true);
 
     try {
-      const data = await apiClient.get("/api/keys/shared");
-      setKeys(data);
-    } catch (err) {
-      console.error("Failed to load SSH keys:", err);
+      const data = await apiClient.get<SharedSshKey[]>("/api/keys/shared");
 
-      toast?.({
+      setKeys(data);
+    } catch (error: unknown) {
+      console.error("Failed to load SSH keys:", error);
+
+      toast({
         title: "Failed to load SSH keys",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -82,11 +177,11 @@ const Settings = ({ toast }) => {
     }
   }, [toast]);
 
-  const generateKey = async () => {
+  const generateKey = async (): Promise<void> => {
     const name = keyName.trim();
 
     if (!name) {
-      toast?.({
+      toast({
         title: "Key name required",
         status: "warning",
       });
@@ -102,18 +197,19 @@ const Settings = ({ toast }) => {
       });
 
       setKeyName("");
+
       await loadKeys();
 
-      toast?.({
+      toast({
         title: "SSH key generated",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to generate SSH key:", err);
+    } catch (error: unknown) {
+      console.error("Failed to generate SSH key:", error);
 
-      toast?.({
+      toast({
         title: "Failed to generate SSH key",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -121,7 +217,7 @@ const Settings = ({ toast }) => {
     }
   };
 
-  const deleteKey = async (key) => {
+  const deleteKey = async (key: SharedSshKey): Promise<void> => {
     const confirmed = window.confirm(`Delete SSH key "${key.name}"?`);
 
     if (!confirmed) {
@@ -133,22 +229,22 @@ const Settings = ({ toast }) => {
 
       setKeys((current) => current.filter((item) => item.id !== key.id));
 
-      toast?.({
+      toast({
         title: "SSH key deleted",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to delete SSH key:", err);
+    } catch (error: unknown) {
+      console.error("Failed to delete SSH key:", error);
 
-      toast?.({
+      toast({
         title: "Failed to delete SSH key",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     }
   };
 
-  const copyPublicKey = async (key) => {
+  const copyPublicKey = async (key: SharedSshKey): Promise<void> => {
     if (!key.publicKey) {
       return;
     }
@@ -156,14 +252,14 @@ const Settings = ({ toast }) => {
     try {
       await navigator.clipboard.writeText(key.publicKey);
 
-      toast?.({
+      toast({
         title: "Public key copied",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to copy public key:", err);
+    } catch (error: unknown) {
+      console.error("Failed to copy public key:", error);
 
-      toast?.({
+      toast({
         title: "Failed to copy public key",
         status: "error",
       });
@@ -174,19 +270,19 @@ const Settings = ({ toast }) => {
   // Application settings
   // ---------------------------------------------------------------------------
 
-  const loadSettings = useCallback(async () => {
+  const loadSettings = useCallback(async (): Promise<void> => {
     setLoadingSettings(true);
 
     try {
-      const data = await apiClient.get("/api/settings");
+      const data = await apiClient.get<SettingsResponse>("/api/settings");
 
       setSessionTimeout(String(data.session.jwtLifetimeMinutes));
-    } catch (err) {
-      console.error("Failed to load settings:", err);
+    } catch (error: unknown) {
+      console.error("Failed to load settings:", error);
 
-      toast?.({
+      toast({
         title: "Failed to load settings",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -194,11 +290,11 @@ const Settings = ({ toast }) => {
     }
   }, [toast]);
 
-  const saveSessionSettings = async () => {
+  const saveSessionSettings = async (): Promise<void> => {
     const lifetime = Number(sessionTimeout);
 
     if (!Number.isFinite(lifetime) || lifetime <= 0) {
-      toast?.({
+      toast({
         title: "Invalid session lifetime",
         description: "Session lifetime must be greater than 0 minutes.",
         status: "warning",
@@ -210,22 +306,25 @@ const Settings = ({ toast }) => {
     setSavingSession(true);
 
     try {
-      const data = await apiClient.patch("/api/settings/session", {
-        jwtLifetimeMinutes: lifetime,
-      });
+      const data = await apiClient.patch<SettingsResponse>(
+        "/api/settings/session",
+        {
+          jwtLifetimeMinutes: lifetime,
+        },
+      );
 
       setSessionTimeout(String(data.session.jwtLifetimeMinutes));
 
-      toast?.({
+      toast({
         title: "Session settings saved",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to save session settings:", err);
+    } catch (error: unknown) {
+      console.error("Failed to save session settings:", error);
 
-      toast?.({
+      toast({
         title: "Failed to save session settings",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -238,8 +337,8 @@ const Settings = ({ toast }) => {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    loadKeys();
-    loadSettings();
+    void loadKeys();
+    void loadSettings();
   }, [loadKeys, loadSettings]);
 
   // ---------------------------------------------------------------------------
@@ -250,8 +349,14 @@ const Settings = ({ toast }) => {
     <Box
       h="100%"
       overflowY="auto"
-      px={{ base: 4, md: 8 }}
-      py={{ base: 5, md: 7 }}
+      px={{
+        base: 4,
+        md: 8,
+      }}
+      py={{
+        base: 5,
+        md: 7,
+      }}
     >
       <Box maxW="900px" mx="auto">
         <PageHeader />
@@ -306,7 +411,9 @@ const Settings = ({ toast }) => {
 
                 <Button
                   size="sm"
-                  onClick={saveSessionSettings}
+                  onClick={() => {
+                    void saveSessionSettings();
+                  }}
                   isLoading={savingSession}
                   {...primaryButtonStyles}
                 >
@@ -337,6 +444,10 @@ const Settings = ({ toast }) => {
   );
 };
 
+// -----------------------------------------------------------------------------
+// Page header
+// -----------------------------------------------------------------------------
+
 const PageHeader = () => (
   <Box mb={9}>
     <Text
@@ -354,7 +465,16 @@ const PageHeader = () => (
   </Box>
 );
 
-const SettingsSection = ({ icon, title, description, children }) => (
+// -----------------------------------------------------------------------------
+// Settings section
+// -----------------------------------------------------------------------------
+
+const SettingsSection = ({
+  icon,
+  title,
+  description,
+  children,
+}: SettingsSectionProps) => (
   <Box mb={10}>
     <Flex align="center" gap={3} mb={4}>
       <Flex
@@ -387,11 +507,21 @@ const SettingsSection = ({ icon, title, description, children }) => (
   </Box>
 );
 
-const SettingRow = ({ title, description, children }) => (
+// -----------------------------------------------------------------------------
+// Setting row
+// -----------------------------------------------------------------------------
+
+const SettingRow = ({ title, description, children }: SettingRowProps) => (
   <Flex
-    align={{ base: "stretch", sm: "center" }}
+    align={{
+      base: "stretch",
+      sm: "center",
+    }}
     justify="space-between"
-    direction={{ base: "column", sm: "row" }}
+    direction={{
+      base: "column",
+      sm: "row",
+    }}
     gap={5}
     py={3}
   >
@@ -415,29 +545,47 @@ const SettingDivider = () => (
   <Box borderTop="1px solid" borderColor="whiteAlpha.50" />
 );
 
-const SettingStatus = ({ children }) => (
+const SettingStatus = ({ children }: SettingStatusProps) => (
   <Text fontSize="11px" color="whiteAlpha.300">
     {children}
   </Text>
 );
 
-const KeyCreator = ({ keyName, generating, onChange, onGenerate }) => (
+// -----------------------------------------------------------------------------
+// Key creator
+// -----------------------------------------------------------------------------
+
+const KeyCreator = ({
+  keyName,
+  generating,
+  onChange,
+  onGenerate,
+}: KeyCreatorProps) => (
   <Flex
     gap={2}
     mb={5}
-    direction={{ base: "column", sm: "row" }}
-    align={{ base: "stretch", sm: "center" }}
+    direction={{
+      base: "column",
+      sm: "row",
+    }}
+    align={{
+      base: "stretch",
+      sm: "center",
+    }}
   >
     <Input
       value={keyName}
       onChange={(event) => onChange(event.target.value)}
       placeholder="Key name"
       size="sm"
-      maxW={{ base: "100%", sm: "320px" }}
+      maxW={{
+        base: "100%",
+        sm: "320px",
+      }}
       {...inputStyles}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
-          onGenerate();
+          void onGenerate();
         }
       }}
     />
@@ -445,9 +593,14 @@ const KeyCreator = ({ keyName, generating, onChange, onGenerate }) => (
     <Button
       size="sm"
       leftIcon={<FiPlus />}
-      onClick={onGenerate}
+      onClick={() => {
+        void onGenerate();
+      }}
       isLoading={generating}
-      alignSelf={{ base: "stretch", sm: "auto" }}
+      alignSelf={{
+        base: "stretch",
+        sm: "auto",
+      }}
       {...primaryButtonStyles}
     >
       Generate Key
@@ -455,7 +608,11 @@ const KeyCreator = ({ keyName, generating, onChange, onGenerate }) => (
   </Flex>
 );
 
-const KeyList = ({ keys, onCopy, onDelete }) => (
+// -----------------------------------------------------------------------------
+// Key list
+// -----------------------------------------------------------------------------
+
+const KeyList = ({ keys, onCopy, onDelete }: KeyListProps) => (
   <Box
     border="1px solid"
     borderColor="whiteAlpha.100"
@@ -474,11 +631,21 @@ const KeyList = ({ keys, onCopy, onDelete }) => (
   </Box>
 );
 
-const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }) => (
+// -----------------------------------------------------------------------------
+// Key row
+// -----------------------------------------------------------------------------
+
+const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }: KeyRowProps) => (
   <Flex
-    align={{ base: "stretch", md: "center" }}
+    align={{
+      base: "stretch",
+      md: "center",
+    }}
     justify="space-between"
-    direction={{ base: "column", md: "row" }}
+    direction={{
+      base: "column",
+      md: "row",
+    }}
     gap={4}
     px={4}
     py={3}
@@ -513,7 +680,9 @@ const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }) => (
         size="xs"
         variant="ghost"
         leftIcon={<FiCopy />}
-        onClick={onCopy}
+        onClick={() => {
+          void onCopy();
+        }}
         isDisabled={!sshKey.publicKey}
         color="whiteAlpha.500"
         _hover={{
@@ -528,7 +697,9 @@ const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }) => (
         size="xs"
         variant="ghost"
         leftIcon={<FiTrash2 />}
-        onClick={onDelete}
+        onClick={() => {
+          void onDelete();
+        }}
         color="whiteAlpha.400"
         _hover={{
           color: "#FCA5A5",
@@ -541,7 +712,11 @@ const KeyRow = ({ sshKey, showBorder, onCopy, onDelete }) => (
   </Flex>
 );
 
-const LoadingState = ({ label }) => (
+// -----------------------------------------------------------------------------
+// States
+// -----------------------------------------------------------------------------
+
+const LoadingState = ({ label }: LoadingStateProps) => (
   <Flex align="center" justify="center" gap={3} py={8}>
     <Spinner size="sm" thickness="2px" color="whiteAlpha.500" />
 

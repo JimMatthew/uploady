@@ -8,7 +8,24 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 
+import type { IconType } from "react-icons";
 import { FiCopy, FiShare2, FiTrash2, FiX } from "react-icons/fi";
+
+interface ToolbarButtonProps {
+  icon: IconType;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}
+
+interface ToolbarProps {
+  selected: Set<string>;
+  copySelected: () => void;
+  shareSelected: () => void;
+  deleteSelected: () => void;
+  clearSelection: () => void;
+}
 
 const ToolbarButton = ({
   icon,
@@ -16,7 +33,7 @@ const ToolbarButton = ({
   onClick,
   disabled = false,
   danger = false,
-}) => (
+}: ToolbarButtonProps) => (
   <Button
     size="xs"
     h="30px"
@@ -76,11 +93,12 @@ const Toolbar = ({
   shareSelected,
   deleteSelected,
   clearSelection,
-}) => {
-  const isDesktop = useBreakpointValue({
-    base: false,
-    lg: true,
-  });
+}: ToolbarProps) => {
+  const isDesktop =
+    useBreakpointValue({
+      base: false,
+      lg: true,
+    }) ?? false;
 
   const hasSelection = selected.size > 0;
 
@@ -88,7 +106,10 @@ const Toolbar = ({
     <Flex
       align="center"
       gap="6px"
-      px={{ base: 3, md: 4 }}
+      px={{
+        base: 3,
+        md: 4,
+      }}
       minH="46px"
       borderBottom="1px solid"
       borderColor="rgba(255,255,255,0.06)"
