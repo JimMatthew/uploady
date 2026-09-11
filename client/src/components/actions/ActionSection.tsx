@@ -1,6 +1,23 @@
-import React, { useState } from "react";
-import { Box, Flex, Text, Icon, Collapse } from "@chakra-ui/react";
+import { useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { Box, Collapse, Flex, Icon, Text } from "@chakra-ui/react";
+import type { IconType } from "react-icons";
 import { FiChevronDown, FiChevronRight } from "react-icons/fi";
+
+interface ActionSectionProps {
+  icon: IconType;
+  title: string;
+  description: string;
+  children: ReactNode;
+
+  headerExtra?: ReactNode;
+
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
 
 const ActionSection = ({
   icon,
@@ -12,14 +29,30 @@ const ActionSection = ({
   defaultOpen = true,
   isOpen: isOpenProp,
   onToggle,
-}) => {
+}: ActionSectionProps) => {
   const isControlled = isOpenProp !== undefined;
+
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
+
   const isOpen = isControlled ? isOpenProp : internalOpen;
-  const toggle = isControlled
-    ? onToggle
-    : () => setInternalOpen((prev) => !prev);
+
+  const toggle = (): void => {
+    if (isControlled) {
+      onToggle?.();
+      return;
+    }
+
+    setInternalOpen((previous) => !previous);
+  };
+
   const canToggle = collapsible;
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggle();
+    }
+  };
 
   return (
     <Box
@@ -39,16 +72,7 @@ const ActionSection = ({
         onClick={canToggle ? toggle : undefined}
         role={canToggle ? "button" : undefined}
         tabIndex={canToggle ? 0 : undefined}
-        onKeyDown={
-          canToggle
-            ? (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggle();
-                }
-              }
-            : undefined
-        }
+        onKeyDown={canToggle ? handleKeyDown : undefined}
       >
         <Flex
           align="center"

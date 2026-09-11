@@ -1,12 +1,11 @@
 import apiClient, { ApiError } from "../services/apiClient";
 
 import type { AppToast } from "../hooks/useAppToast";
+import type { ServerStatus, ServerStatuses } from "../types/server";
 
 type AuthType = "password" | "key";
 
 type KeyMode = "saved" | "import" | "generate";
-
-type ServerStatus = "online" | "offline";
 
 interface Server {
   _id: string;
@@ -15,8 +14,6 @@ interface Server {
 interface ServerListData {
   servers: Server[];
 }
-
-type ServerStatuses = Record<string, ServerStatus>;
 
 interface SaveServerParams {
   host: string;

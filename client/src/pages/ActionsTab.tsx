@@ -1,37 +1,66 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import {
-  Box,
-  Flex,
-  Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Button,
-  Spinner,
-  Icon,
   AlertDialog,
   AlertDialogBody,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Box,
+  Button,
+  Flex,
+  Icon,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Spinner,
+  Text,
   useDisclosure,
 } from "@chakra-ui/react";
 
-import { FiPlus, FiZap, FiSearch, FiRefreshCw } from "react-icons/fi";
+import { FiPlus, FiRefreshCw, FiSearch, FiZap } from "react-icons/fi";
 import apiClient from "../services/apiClient";
 import ActionCreateForm from "../components/actions/ActionCreateForm";
 import ActionRow from "../components/actions/ActionRow";
 import ActionSection from "../components/actions/ActionSection";
 
-const emptyAction = {
+import type {
+  ActionDraft,
+  ActionExecutionResult,
+  ActionOutput,
+  SavedAction,
+} from "../types/action";
+
+import type { AppToast } from "../hooks/useAppToast";
+import type { SftpServer } from "../types/server";
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface OpenSshOptions {
+  initialCommand?: string;
+}
+
+interface ActionsProps {
+  toast: AppToast;
+  servers?: SftpServer[];
+  openSsh: (
+    server: SftpServer,
+    options?: OpenSshOptions,
+  ) => void;
+}
+
+interface EmptyMessageProps {
+  children: ReactNode;
+}
+
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
+const EMPTY_ACTION: ActionDraft = {
   name: "",
   description: "",
   serverId: "",
@@ -39,19 +68,52 @@ const emptyAction = {
   mode: "capture",
 };
 
-const Actions = ({ toast, servers = [], openSsh }) => {
-  const serverList = servers?.servers ?? [];
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
 
-  const [actions, setActions] = useState([]);
+const getErrorMessage = (error: unknown): string | undefined => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return undefined;
+};
+
+const copyToClipboard = async (text: string): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error: unknown) {
+    console.error("Failed to copy command:", error);
+  }
+};
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
+const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
+  const serverList = servers;
+
+  const [actions, setActions] = useState<SavedAction[]>([]);
+
   const [loading, setLoading] = useState(true);
+
   const [loadFailed, setLoadFailed] = useState(false);
+
   const [creating, setCreating] = useState(false);
-  const [runningIds, setRunningIds] = useState(() => new Set());
-  const [deletingIds, setDeletingIds] = useState(() => new Set());
-  const [newAction, setNewAction] = useState(emptyAction);
-  const [outputs, setOutputs] = useState({});
+
+  const [runningIds, setRunningIds] = useState<Set<string>>(() => new Set());
+
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(() => new Set());
+
+  const [newAction, setNewAction] = useState<ActionDraft>(EMPTY_ACTION);
+
+  const [outputs, setOutputs] = useState<Record<string, ActionOutput>>({});
+
   const [search, setSearch] = useState("");
-  const [pendingDelete, setPendingDelete] = useState(null);
+
+  const [pendingDelete, setPendingDelete] = useState<SavedAction | null>(null);
 
   const {
     isOpen: isDeleteOpen,
@@ -59,8 +121,9 @@ const Actions = ({ toast, servers = [], openSsh }) => {
     onClose: closeDeleteDialog,
   } = useDisclosure();
 
-  const cancelDeleteRef = useRef(null);
-  const [newActionOpen, setNewActionOpen] = useState(() => {
+  const cancelDeleteRef = useRef<HTMLButtonElement | null>(null);
+
+  const [newActionOpen, setNewActionOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem("uploady.actions.newActionOpen");
 
     if (saved === null) {
@@ -76,26 +139,27 @@ const Actions = ({ toast, servers = [], openSsh }) => {
       String(newActionOpen),
     );
   }, [newActionOpen]);
+
   // ---------------------------------------------------------------------------
   // Load
   // ---------------------------------------------------------------------------
 
-  const loadActions = useCallback(async () => {
+  const loadActions = useCallback(async (): Promise<void> => {
     setLoading(true);
     setLoadFailed(false);
 
     try {
-      const data = await apiClient.get("/api/actions");
+      const data = await apiClient.get<SavedAction[]>("/api/actions");
 
       setActions(data);
-    } catch (err) {
-      console.error("Failed to load actions:", err);
+    } catch (error: unknown) {
+      console.error("Failed to load actions:", error);
 
       setLoadFailed(true);
 
       toast?.({
         title: "Couldn't load actions",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -104,15 +168,16 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   }, [toast]);
 
   useEffect(() => {
-    loadActions();
+    void loadActions();
   }, [loadActions]);
 
   // ---------------------------------------------------------------------------
   // Create
   // ---------------------------------------------------------------------------
 
-  const createAction = async () => {
+  const createAction = async (): Promise<void> => {
     const name = newAction.name.trim();
+
     const command = newAction.command.trim();
 
     if (!name) {
@@ -145,7 +210,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
     setCreating(true);
 
     try {
-      const created = await apiClient.post("/api/actions", {
+      const created = await apiClient.post<SavedAction>("/api/actions", {
         name,
         description: newAction.description.trim(),
         serverId: newAction.serverId,
@@ -153,20 +218,22 @@ const Actions = ({ toast, servers = [], openSsh }) => {
         mode: newAction.mode,
       });
 
-      setActions((prev) => [...prev, created]);
+      setActions((previous) => [...previous, created]);
 
-      setNewAction(emptyAction);
+      setNewAction({
+        ...EMPTY_ACTION,
+      });
 
       toast?.({
         title: "Action created",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to create action:", err);
+    } catch (error: unknown) {
+      console.error("Failed to create action:", error);
 
       toast?.({
         title: "Failed to create action",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
@@ -178,12 +245,12 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   // Delete
   // ---------------------------------------------------------------------------
 
-  const requestDelete = (action) => {
+  const requestDelete = (action: SavedAction): void => {
     setPendingDelete(action);
     openDeleteDialog();
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (): Promise<void> => {
     const action = pendingDelete;
 
     if (!action) {
@@ -192,12 +259,14 @@ const Actions = ({ toast, servers = [], openSsh }) => {
 
     closeDeleteDialog();
 
-    setDeletingIds((prev) => new Set(prev).add(action._id));
+    setDeletingIds((previous) => new Set(previous).add(action._id));
 
     try {
       await apiClient.delete(`/api/actions/${action._id}`);
 
-      setActions((prev) => prev.filter((item) => item._id !== action._id));
+      setActions((previous) =>
+        previous.filter((item) => item._id !== action._id),
+      );
 
       clearOutput(action._id);
 
@@ -205,18 +274,20 @@ const Actions = ({ toast, servers = [], openSsh }) => {
         title: "Action deleted",
         status: "success",
       });
-    } catch (err) {
-      console.error("Failed to delete action:", err);
+    } catch (error: unknown) {
+      console.error("Failed to delete action:", error);
 
       toast?.({
         title: "Failed to delete action",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
+      setDeletingIds((previous) => {
+        const next = new Set(previous);
+
         next.delete(action._id);
+
         return next;
       });
 
@@ -228,25 +299,34 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   // Execute
   // ---------------------------------------------------------------------------
 
-  const executeAction = async (action) => {
-    setRunningIds((prev) => new Set(prev).add(action._id));
+  const executeAction = async (action: SavedAction): Promise<void> => {
+    setRunningIds((previous) => new Set(previous).add(action._id));
 
     try {
-      const result = await apiClient.post(`/api/actions/${action._id}/run`);
+      const result = await apiClient.post<ActionExecutionResult>(
+        `/api/actions/${action._id}/run`,
+        {},
+      );
 
       if (result.mode === "capture") {
-        setOutputs((prev) => ({
-          ...prev,
-          [action._id]: result.output ?? result,
+        const output: ActionOutput = {
+          stdout: result.output?.stdout ?? result.stdout ?? "",
+
+          stderr: result.output?.stderr ?? result.stderr ?? "",
+
+          exitCode: result.output?.exitCode ?? result.exitCode ?? -1,
+        };
+
+        setOutputs((previous) => ({
+          ...previous,
+          [action._id]: output,
         }));
 
         return;
       }
 
       if (result.mode === "terminal") {
-        const server = serverList.find(
-          (server) => server._id === result.serverId,
-        );
+        const server = serverList.find((item) => item._id === result.serverId);
 
         if (!server) {
           throw new Error("Server not found");
@@ -258,33 +338,33 @@ const Actions = ({ toast, servers = [], openSsh }) => {
 
         return;
       }
-
-      toast?.({
-        title: "Unrecognized action mode",
-        description: `"${result.mode}" isn't handled yet.`,
-        status: "warning",
-      });
-    } catch (err) {
-      console.error("Failed to execute action:", err);
+    } catch (error: unknown) {
+      console.error("Failed to execute action:", error);
 
       toast?.({
         title: "Action failed",
-        description: err.message,
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {
-      setRunningIds((prev) => {
-        const next = new Set(prev);
+      setRunningIds((previous) => {
+        const next = new Set(previous);
+
         next.delete(action._id);
+
         return next;
       });
     }
   };
 
-  const clearOutput = (actionId) => {
-    setOutputs((prev) => {
-      const next = { ...prev };
+  const clearOutput = (actionId: string): void => {
+    setOutputs((previous) => {
+      const next = {
+        ...previous,
+      };
+
       delete next[actionId];
+
       return next;
     });
   };
@@ -293,7 +373,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   // Helpers / filtering
   // ---------------------------------------------------------------------------
 
-  const getServerName = (serverId) => {
+  const getServerName = (serverId: string): string => {
     const server = serverList.find((item) => item._id === serverId);
 
     if (!server) {
@@ -313,7 +393,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
     return actions.filter((action) => {
       const haystack = [
         action.name,
-        action.description,
+        action.description ?? "",
         action.command,
         getServerName(action.serverId),
       ]
@@ -329,7 +409,15 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   // ---------------------------------------------------------------------------
 
   return (
-    <Box h="100%" overflowY="auto" px={{ base: 4, md: 8 }} py={6}>
+    <Box
+      h="100%"
+      overflowY="auto"
+      px={{
+        base: 4,
+        md: 8,
+      }}
+      py={6}
+    >
       <Box maxW="900px" mx="auto">
         <Box mb={8}>
           <Text fontSize="20px" fontWeight={600} color="rgba(255,255,255,0.9)">
@@ -347,7 +435,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
           description="Create a reusable command for one of your servers."
           collapsible
           isOpen={newActionOpen}
-          onToggle={() => setNewActionOpen((prev) => !prev)}
+          onToggle={() => setNewActionOpen((previous) => !previous)}
         >
           <ActionCreateForm
             action={newAction}
@@ -401,7 +489,9 @@ const Actions = ({ toast, servers = [], openSsh }) => {
               <Button
                 size="xs"
                 leftIcon={<FiRefreshCw />}
-                onClick={loadActions}
+                onClick={() => {
+                  void loadActions();
+                }}
                 variant="ghost"
               >
                 Try again
@@ -424,7 +514,7 @@ const Actions = ({ toast, servers = [], openSsh }) => {
                   onExecute={() => executeAction(action)}
                   onDelete={() => requestDelete(action)}
                   onClearOutput={() => clearOutput(action._id)}
-                  toast={toast}
+                  onCopyCommand={() => copyToClipboard(action.command)}
                 />
               ))}
             </Flex>
@@ -445,7 +535,8 @@ const Actions = ({ toast, servers = [], openSsh }) => {
             color="rgba(255,255,255,0.85)"
           >
             <AlertDialogHeader fontSize="14px" fontWeight={600}>
-              Delete "{pendingDelete?.name}"?
+              Delete "{pendingDelete?.name}
+              "?
             </AlertDialogHeader>
 
             <AlertDialogBody fontSize="13px" color="rgba(255,255,255,0.5)">
@@ -463,7 +554,9 @@ const Actions = ({ toast, servers = [], openSsh }) => {
               </Button>
 
               <Button
-                onClick={confirmDelete}
+                onClick={() => {
+                  void confirmDelete();
+                }}
                 size="sm"
                 bg="rgba(239,68,68,0.15)"
                 color="#FCA5A5"
@@ -478,7 +571,11 @@ const Actions = ({ toast, servers = [], openSsh }) => {
   );
 };
 
-const EmptyMessage = ({ children }) => (
+// -----------------------------------------------------------------------------
+// Empty state
+// -----------------------------------------------------------------------------
+
+const EmptyMessage = ({ children }: EmptyMessageProps) => (
   <Box
     py={8}
     textAlign="center"

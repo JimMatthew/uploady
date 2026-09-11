@@ -1,4 +1,5 @@
-import React, { memo } from "react";
+import { memo } from "react";
+import type { ReactNode } from "react";
 
 import { Box, Flex, Icon, Text, VStack } from "@chakra-ui/react";
 
@@ -12,9 +13,54 @@ import {
   FiZap,
 } from "react-icons/fi";
 
+import type { IconType } from "react-icons";
+
 import ServerCard from "../components/ServerCard";
 
-const NavButton = ({ icon, label, onClick }) => (
+import type {
+  ServerStatuses,
+  SftpServer,
+} from "../types/server";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface NavButtonProps {
+  icon: IconType;
+  label: string;
+  onClick: () => void;
+}
+
+interface AddServerButtonProps {
+  onClick: () => void;
+}
+
+interface SectionLabelProps {
+  children: ReactNode;
+  count?: number;
+}
+
+interface SidebarProps {
+  onConnect: (server: SftpServer) => void;
+  onLocalFiles: () => void;
+  onNewServer: () => void;
+  onSsh: (server: SftpServer) => void;
+  onServerInfo: (server: SftpServer) => void;
+  onSharedLinks: () => void;
+  onTransfers: () => void;
+  onDeleteServer: (serverId: string) => void | Promise<void>;
+  sftpServers: SftpServer[];
+  serverStatuses: ServerStatuses;
+  onSettings: () => void;
+  onActions: () => void;
+}
+
+// -----------------------------------------------------------------------------
+// Navigation button
+// -----------------------------------------------------------------------------
+
+const NavButton = ({ icon, label, onClick }: NavButtonProps) => (
   <Flex
     align="center"
     gap={3}
@@ -47,7 +93,11 @@ const NavButton = ({ icon, label, onClick }) => (
   </Flex>
 );
 
-const AddServerButton = ({ onClick }) => (
+// -----------------------------------------------------------------------------
+// Add server button
+// -----------------------------------------------------------------------------
+
+const AddServerButton = ({ onClick }: AddServerButtonProps) => (
   <Flex
     align="center"
     justify="center"
@@ -81,7 +131,11 @@ const AddServerButton = ({ onClick }) => (
   </Flex>
 );
 
-const SectionLabel = ({ children, count }) => (
+// -----------------------------------------------------------------------------
+// Section label
+// -----------------------------------------------------------------------------
+
+const SectionLabel = ({ children, count }: SectionLabelProps) => (
   <Flex align="center" justify="space-between" px={3} pb="5px">
     <Text
       fontSize="10px"
@@ -118,6 +172,10 @@ const SectionLabel = ({ children, count }) => (
   </Flex>
 );
 
+// -----------------------------------------------------------------------------
+// Sidebar
+// -----------------------------------------------------------------------------
+
 const Sidebar = memo(function Sidebar({
   onConnect,
   onLocalFiles,
@@ -131,13 +189,12 @@ const Sidebar = memo(function Sidebar({
   serverStatuses,
   onSettings,
   onActions,
-}) {
-  const servers = sftpServers?.servers ?? [];
+}: SidebarProps) {
+  const servers = sftpServers ?? [];
 
   return (
     <Box
       w="240px"
-
       h="100%"
       overflowY="auto"
       bg="#151821"
@@ -172,13 +229,29 @@ const Sidebar = memo(function Sidebar({
           onClick={onLocalFiles}
         />
 
-        <NavButton icon={FiZap} label="Actions" onClick={onActions} />
+        <NavButton
+          icon={FiZap}
+          label="Actions"
+          onClick={onActions}
+        />
 
-        <NavButton icon={FiRepeat} label="Transfers" onClick={onTransfers} />
+        <NavButton
+          icon={FiRepeat}
+          label="Transfers"
+          onClick={onTransfers}
+        />
 
-        <NavButton icon={FiLink} label="Shared Links" onClick={onSharedLinks} />
+        <NavButton
+          icon={FiLink}
+          label="Shared Links"
+          onClick={onSharedLinks}
+        />
 
-        <NavButton icon={FiSettings} label="Settings" onClick={onSettings} />
+        <NavButton
+          icon={FiSettings}
+          label="Settings"
+          onClick={onSettings}
+        />
 
         <AddServerButton onClick={onNewServer} />
       </VStack>
@@ -187,7 +260,9 @@ const Sidebar = memo(function Sidebar({
 
       {/* Servers */}
       <VStack align="stretch" spacing={1} p={3} flex={1}>
-        <SectionLabel count={servers.length}>Servers</SectionLabel>
+        <SectionLabel count={servers.length}>
+          Servers
+        </SectionLabel>
 
         {servers.length > 0 ? (
           servers.map((server) => (
@@ -221,7 +296,10 @@ const Sidebar = memo(function Sidebar({
               color="rgba(255,255,255,0.16)"
             />
 
-            <Text fontSize="11px" color="rgba(255,255,255,0.25)">
+            <Text
+              fontSize="11px"
+              color="rgba(255,255,255,0.25)"
+            >
               No servers yet
             </Text>
           </Flex>

@@ -1,9 +1,65 @@
 import { useEffect, useRef, useState } from "react";
+import type { MouseEventHandler } from "react";
 import { Box, Button, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiFile, FiMonitor, FiSave, FiServer } from "react-icons/fi";
-
 import apiClient from "../services/apiClient";
 import FileViewer from "../components/fileViewer/FileViewer";
+import type { FileViewerType } from "../components/fileViewer/FileViewer";
+import type { AppToast } from "../hooks/useAppToast";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface ArchiveSource {
+  type: "archive";
+  archivePath: string;
+  entry: string;
+}
+
+interface LocalSource {
+  type: "local";
+}
+
+interface SftpSource {
+  type: "sftp";
+  serverId?: string;
+  currentDirectory?: string;
+  host?: string;
+}
+
+type FileEditSource = ArchiveSource | LocalSource | SftpSource;
+
+interface FileEditProps {
+  serverId?: string;
+  currentDirectory: string;
+  filename: string;
+  toast: AppToast;
+  host?: string;
+  remote?: boolean;
+  isNew?: boolean;
+  source?: FileEditSource;
+  readOnly?: boolean;
+}
+
+interface SaveButtonProps {
+  saving: boolean;
+  onClick: () => void | Promise<void>;
+}
+
+interface FileHeaderProps {
+  remote: boolean;
+  host?: string;
+  currentDirectory: string;
+  filename: string;
+  saving: boolean;
+  onSave: () => void | Promise<void>;
+  showSave: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// File type detection
+// -----------------------------------------------------------------------------
 
 const VIDEO_EXTS = new Set(["mp4", "webm", "ogg"]);
 
@@ -11,10 +67,17 @@ const AUDIO_EXTS = new Set(["mp3", "wav", "ogg"]);
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
-const getExt = (filename) =>
-  filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
+const getExt = (filename: string): string => {
+  const lastDot = filename.lastIndexOf(".");
 
-const getFileType = (filename) => {
+  if (lastDot === -1 || lastDot === filename.length - 1) {
+    return "";
+  }
+
+  return filename.slice(lastDot + 1).toLowerCase();
+};
+
+const getFileType = (filename: string): FileViewerType => {
   const ext = getExt(filename);
 
   if (VIDEO_EXTS.has(ext)) {
@@ -40,7 +103,15 @@ const getFileType = (filename) => {
   return "text";
 };
 
-const SaveButton = ({ saving, onClick }) => {
+// -----------------------------------------------------------------------------
+// Save button
+// -----------------------------------------------------------------------------
+
+const SaveButton = ({ saving, onClick }: SaveButtonProps) => {
+  const handleClick: MouseEventHandler<HTMLButtonElement> = () => {
+    void onClick();
+  };
+
   return (
     <Button
       h="30px"
@@ -68,12 +139,16 @@ const SaveButton = ({ saving, onClick }) => {
       _active={{
         bg: "rgba(129,140,248,0.21)",
       }}
-      onClick={onClick}
+      onClick={handleClick}
     >
       Save
     </Button>
   );
 };
+
+// -----------------------------------------------------------------------------
+// Header
+// -----------------------------------------------------------------------------
 
 const FileHeader = ({
   remote,
@@ -83,12 +158,15 @@ const FileHeader = ({
   saving,
   onSave,
   showSave,
-}) => {
+}: FileHeaderProps) => {
   return (
     <Flex
       align="center"
       gap={3}
-      px={{ base: 3, md: 5 }}
+      px={{
+        base: 3,
+        md: 5,
+      }}
       h="48px"
       minH="48px"
       flexShrink={0}
@@ -120,7 +198,7 @@ const FileHeader = ({
           color="rgba(255,255,255,0.42)"
           whiteSpace="nowrap"
         >
-          {remote ? host : "local"}
+          {remote ? (host ?? "remote") : "local"}
         </Text>
       </Flex>
 
@@ -164,6 +242,10 @@ const FileHeader = ({
   );
 };
 
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
 const FileEdit = ({
   serverId,
   currentDirectory,
@@ -174,21 +256,21 @@ const FileEdit = ({
   isNew = false,
   source,
   readOnly = false,
-}) => {
+}: FileEditProps) => {
   const [text, setText] = useState("");
-  const [objectUrl, setObjectUrl] = useState(null);
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [epubData, setEpubData] = useState(null);
-
-  const objectUrlRef = useRef(null);
-
+  const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const fileType = getFileType(filename);
 
-  const buildUrl = () => {
+  const buildUrl = (): string => {
     if (source?.type === "archive") {
+      const archiveSource = source as ArchiveSource;
+
       const params = new URLSearchParams({
-        path: source.archivePath,
-        entry: source.entry,
+        path: archiveSource.archivePath,
+        entry: archiveSource.entry,
       });
 
       return `/api/archive/local/entry?${params}`;
@@ -203,16 +285,22 @@ const FileEdit = ({
 
   const streamUrl = `/api/downloadstream/${currentDirectory}/${filename}`;
 
-  const clearObjectUrl = () => {
-    if (!objectUrlRef.current) {
+  const clearObjectUrl = (): void => {
+    const url = objectUrlRef.current;
+
+    if (!url) {
       return;
     }
 
-    URL.revokeObjectURL(objectUrlRef.current);
+    URL.revokeObjectURL(url);
+
     objectUrlRef.current = null;
   };
 
-  const fetchAsObjectUrl = async (mimeType, signal) => {
+  const fetchAsObjectUrl = async (
+    mimeType: string,
+    signal: AbortSignal,
+  ): Promise<void> => {
     const blob = await apiClient.getBlob(buildUrl(), {
       signal,
     });
@@ -224,13 +312,18 @@ const FileEdit = ({
     const url = URL.createObjectURL(typedBlob);
 
     objectUrlRef.current = url;
+
     setObjectUrl(url);
   };
 
-  const streamTextFile = async (signal) => {
+  const streamTextFile = async (signal: AbortSignal): Promise<void> => {
     const response = await apiClient.getResponse(buildUrl(), {
       signal,
     });
+
+    if (!response.body) {
+      throw new Error("Response body is unavailable");
+    }
 
     const reader = response.body.getReader();
 
@@ -253,10 +346,11 @@ const FileEdit = ({
     }
 
     result += decoder.decode();
+
     setText(result);
   };
 
-  const fetchEpub = async (signal) => {
+  const fetchEpub = async (signal: AbortSignal): Promise<void> => {
     const buffer = await apiClient.getArrayBuffer(buildUrl(), {
       signal,
     });
@@ -275,7 +369,7 @@ const FileEdit = ({
 
     clearObjectUrl();
 
-    const loadFile = async () => {
+    const loadFile = async (): Promise<void> => {
       if (isNew) {
         return;
       }
@@ -303,14 +397,16 @@ const FileEdit = ({
           default:
             break;
         }
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Failed to load file:", err);
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
         }
+
+        console.error("Failed to load file:", error);
       }
     };
 
-    loadFile();
+    void loadFile();
 
     return () => {
       controller.abort();
@@ -323,11 +419,11 @@ const FileEdit = ({
     fileType,
     isNew,
     source?.type,
-    source?.archivePath,
-    source?.entry,
+    source?.type === "archive" ? source.archivePath : undefined,
+    source?.type === "archive" ? source.entry : undefined,
   ]);
 
-  const saveFile = async () => {
+  const saveFile = async (): Promise<void> => {
     if (saving) {
       return;
     }
@@ -338,6 +434,10 @@ const FileEdit = ({
       const formData = new FormData();
 
       if (remote) {
+        if (!serverId) {
+          throw new Error("Server ID is required for remote files");
+        }
+
         formData.append("currentDirectory", currentDirectory);
 
         formData.append("serverId", serverId);
@@ -362,17 +462,15 @@ const FileEdit = ({
         title: "Saved",
         status: "success",
         duration: 2000,
-        isClosable: true,
       });
-    } catch (err) {
-      console.error("Failed to save file:", err);
+    } catch (error: unknown) {
+      console.error("Failed to save file:", error);
 
       toast({
         title: "Save failed",
-        description: err.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         status: "error",
         duration: 2000,
-        isClosable: true,
       });
     } finally {
       setSaving(false);
@@ -397,8 +495,8 @@ const FileEdit = ({
           filename={filename}
           text={text}
           setText={setText}
-          objectUrl={objectUrl}
-          epubData={epubData}
+          objectUrl={objectUrl ?? undefined}
+          epubData={epubData ?? undefined}
           streamUrl={streamUrl}
           readOnly={readOnly}
         />

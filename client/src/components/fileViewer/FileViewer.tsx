@@ -5,7 +5,25 @@ import PdfViewer from "./PdfViewer";
 import ImageViewer from "../ImageViewer";
 
 const TextViewer = lazy(() => import("./TextViewer"));
+
 const EpubViewer = lazy(() => import("../EpubViewer"));
+
+export type FileViewerType =
+  "video" | "audio" | "image" | "pdf" | "epub" | "text";
+
+interface FileViewerProps {
+  fileType: FileViewerType;
+  filename: string;
+
+  text: string;
+  setText: (text: string) => void;
+
+  objectUrl?: string;
+  epubData?: ArrayBuffer;
+  streamUrl?: string;
+
+  readOnly?: boolean;
+}
 
 export default function FileViewer({
   fileType,
@@ -15,31 +33,38 @@ export default function FileViewer({
   objectUrl,
   epubData,
   streamUrl,
-  readOnly,
-}) {
-  let viewer;
+  readOnly = false,
+}: FileViewerProps) {
+  let viewer: React.ReactNode;
 
   switch (fileType) {
     case "video":
-      viewer = <VideoViewer src={streamUrl} />;
+      viewer = streamUrl ? <VideoViewer src={streamUrl} /> : null;
       break;
 
     case "audio":
-      viewer = <AudioViewer src={streamUrl} filename={filename} />;
+      viewer = streamUrl ? (
+        <AudioViewer src={streamUrl} filename={filename} />
+      ) : null;
       break;
 
     case "image":
-      viewer = <ImageViewer src={objectUrl} alt={filename} />;
+      viewer = objectUrl ? (
+        <ImageViewer src={objectUrl} alt={filename} onSave={() => {}} />
+      ) : null;
       break;
 
     case "pdf":
-      viewer = <PdfViewer src={objectUrl} />;
+      viewer = objectUrl ? <PdfViewer src={objectUrl} /> : null;
       break;
 
     case "epub":
-      viewer = <EpubViewer src={epubData} filename={filename} />;
+      viewer = epubData ? (
+        <EpubViewer src={epubData} filename={filename} />
+      ) : null;
       break;
 
+    case "text":
     default:
       viewer = (
         <TextViewer
@@ -49,6 +74,7 @@ export default function FileViewer({
           readOnly={readOnly}
         />
       );
+      break;
   }
 
   return <Suspense fallback={<div>Loading viewer...</div>}>{viewer}</Suspense>;

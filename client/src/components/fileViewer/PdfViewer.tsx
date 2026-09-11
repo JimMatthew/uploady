@@ -1,4 +1,10 @@
-export default function PdfViewer({ src }) {
+interface PdfViewerProps {
+  src: string;
+}
+
+export default function PdfViewer({
+  src,
+}: PdfViewerProps) {
   return (
     <iframe
       src={src}

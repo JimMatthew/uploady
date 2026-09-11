@@ -7,16 +7,26 @@ import {
   Suspense,
 } from "react";
 
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+
 import SftpFileBrowser from "../pages/SftpFileBrowser";
 import LocalFileBrowser from "../pages/LocalFileBrowser";
 import AddServer from "../components/AddServer";
 import SharedLinks from "../components/SharedLinks";
+
 import apiClient from "../services/apiClient";
+import type {
+  SaveServerPayload,
+  SaveServerResponse,
+} from "../types/server";
 import {
   SaveServer,
   DeleteServer,
   fetchServerStatuses,
 } from "../controllers/StoreServer";
+
+import type { AppToast } from "./useAppToast";
+import type { ServerStatuses } from "../types/server";
 
 const SshConsole = lazy(() => import("../pages/SshConsole"));
 const FileEdit = lazy(() => import("../pages/FileEdit"));
@@ -26,26 +36,136 @@ const Settings = lazy(() => import("../pages/Settings"));
 const ArchiveViewer = lazy(() => import("../pages/ArchiveViewer"));
 const Actions = lazy(() => import("../pages/ActionsTab"));
 
-export function useWorkspace({ toast }) {
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+export interface SftpServer {
+  _id: string;
+  host: string;
+  name?: string;
+  hostname?: string;
+  username?: string;
+  authType?: "password" | "key";
+  keyId?: string;
+  publicKey?: string;
+}
+interface ServerListData {
+  servers: SftpServer[];
+}
+interface WorkspaceTab {
+  id: number;
+  label: string;
+  content: ReactNode;
+}
+
+interface OpenTabOptions {
+  label: string;
+  content: ReactNode;
+}
+
+export interface LocalFileSource {
+  type: "local";
+  currentDirectory: string;
+  serverId?: never;
+  host?: never;
+}
+
+export interface SftpFileSource {
+  type: "sftp";
+  currentDirectory: string;
+  serverId: string;
+  host?: string;
+}
+
+export interface ArchiveFileSource {
+  type: "archive";
+  currentDirectory: string;
+  archivePath: string;
+  entry: string;
+  serverId?: never;
+  host?: never;
+}
+
+export type WorkspaceFileSource =
+  LocalFileSource | SftpFileSource | ArchiveFileSource;
+
+interface OpenFileOptions {
+  filename: string;
+  source: WorkspaceFileSource;
+  isNew?: boolean;
+  readOnly?: boolean;
+}
+
+interface OpenSshOptions {
+  initialCommand?: string;
+}
+
+interface FetchServersOptions {
+  showLoading?: boolean;
+}
+
+interface UseWorkspaceOptions {
+  toast: AppToast;
+}
+
+interface UseWorkspaceResult {
+  loading: boolean;
+
+  sftpServers: SftpServer[];
+  serverStatuses: ServerStatuses;
+
+  showSidebar: boolean;
+  setShowSidebar: Dispatch<SetStateAction<boolean>>;
+
+  tabs: WorkspaceTab[];
+  activeTabIndex: number;
+  setActiveTabIndex: Dispatch<SetStateAction<number>>;
+  closeTab: (tabId: number) => void;
+
+  openSftp: (server: SftpServer) => void;
+  openSsh: (server: SftpServer, options?: OpenSshOptions) => void;
+
+  openServerInfo: (server: SftpServer) => void;
+  openNewServer: () => void;
+  openLocalFiles: () => void;
+  openSharedLinks: () => void;
+  openTransfers: () => void;
+  openSettings: () => void;
+  openActions: () => void;
+
+  deleteServer: (serverId: string) => Promise<boolean>;
+}
+
+// -----------------------------------------------------------------------------
+// Hook
+// -----------------------------------------------------------------------------
+
+export function useWorkspace({
+  toast,
+}: UseWorkspaceOptions): UseWorkspaceResult {
   const nextTabId = useRef(1);
 
   const [loading, setLoading] = useState(true);
-  const [sftpServers, setSftpServers] = useState([]);
-  const [serverStatuses, setServerStatuses] = useState({});
+
+  const [sftpServers, setSftpServers] = useState<SftpServer[]>([]);
+
+  const [serverStatuses, setServerStatuses] = useState<ServerStatuses>({});
 
   const [showSidebar, setShowSidebar] = useState(false);
 
-  const [tabs, setTabs] = useState([]);
+  const [tabs, setTabs] = useState<WorkspaceTab[]>([]);
+
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // ---------------------------------------------------------------------------
   // Tab management
   // ---------------------------------------------------------------------------
 
-  const openTab = useCallback(({ label, content }) => {
-    setTabs((prev) => {
-      const next = [
-        ...prev,
+  const openTab = useCallback(({ label, content }: OpenTabOptions): void => {
+    setTabs((previous) => {
+      const next: WorkspaceTab[] = [
+        ...previous,
         {
           id: nextTabId.current++,
           label,
@@ -59,15 +179,15 @@ export function useWorkspace({ toast }) {
     });
   }, []);
 
-  const closeTab = useCallback((tabId) => {
-    setTabs((prev) => {
-      const index = prev.findIndex((tab) => tab.id === tabId);
+  const closeTab = useCallback((tabId: number): void => {
+    setTabs((previous) => {
+      const index = previous.findIndex((tab) => tab.id === tabId);
 
       if (index === -1) {
-        return prev;
+        return previous;
       }
 
-      const next = prev.filter((tab) => tab.id !== tabId);
+      const next = previous.filter((tab) => tab.id !== tabId);
 
       setActiveTabIndex((activeIndex) => {
         if (next.length === 0) {
@@ -93,49 +213,54 @@ export function useWorkspace({ toast }) {
   // Server management
   // ---------------------------------------------------------------------------
 
-  const fetchServers = useCallback(async ({ showLoading = false } = {}) => {
+ const fetchServers = useCallback(
+  async ({ showLoading = false }: FetchServersOptions = {}): Promise<void> => {
     if (showLoading) {
       setLoading(true);
     }
 
     try {
-      const data = await apiClient.get("/sftp/api/");
+      const data = await apiClient.get<ServerListData>("/sftp/api/");
 
-      setSftpServers(data);
+      setSftpServers(data.servers);
 
-      fetchServerStatuses({
+      void fetchServerStatuses({
         data,
         setServerStatuses,
-      }).catch((err) => {
-        console.error("Failed to fetch server statuses:", err);
+      }).catch((error: unknown) => {
+        console.error("Failed to fetch server statuses:", error);
       });
-    } catch (err) {
-      console.error("Failed to fetch servers:", err);
+    } catch (error: unknown) {
+      console.error("Failed to fetch servers:", error);
     } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  }, []);
+  },
+  [],
+);
 
-  const saveServer = useCallback(
-    async (server) => {
-      const result = await SaveServer({
-        ...server,
-        toast,
-      });
+const saveServer = useCallback(
+  async (
+    payload: SaveServerPayload,
+  ): Promise<SaveServerResponse | null> => {
+    const result = await SaveServer({
+      ...payload,
+      toast,
+    });
 
-      if (result) {
-        await fetchServers();
-      }
+    if (result) {
+      await fetchServers();
+    }
 
-      return result;
-    },
-    [toast, fetchServers],
-  );
+    return result;
+  },
+  [toast, fetchServers],
+);
 
   const deleteServer = useCallback(
-    async (serverId) => {
+    async (serverId: string): Promise<boolean> => {
       const deleted = await DeleteServer({
         serverId,
         toast,
@@ -150,7 +275,7 @@ export function useWorkspace({ toast }) {
     [toast, fetchServers],
   );
 
-  const openSettings = useCallback(() => {
+  const openSettings = useCallback((): void => {
     openTab({
       label: "Settings",
       content: (
@@ -160,15 +285,21 @@ export function useWorkspace({ toast }) {
       ),
     });
   }, [openTab, toast]);
+
   // ---------------------------------------------------------------------------
   // File tabs
   // ---------------------------------------------------------------------------
 
   const openFile = useCallback(
-    ({ filename, source, isNew = false, readOnly = false }) => {
+    ({
+      filename,
+      source,
+      isNew = false,
+      readOnly = false,
+    }: OpenFileOptions): void => {
       const extension = filename.split(".").pop()?.toLowerCase();
 
-      let content;
+      let content: ReactNode;
 
       if (extension === "zip" && source.type === "local") {
         const archivePath = source.currentDirectory
@@ -189,11 +320,11 @@ export function useWorkspace({ toast }) {
         content = (
           <Suspense fallback={<div>Loading file viewer...</div>}>
             <FileEdit
-              serverId={source.serverId}
+              serverId={source.type === "sftp" ? source.serverId : undefined}
               currentDirectory={source.currentDirectory}
               filename={filename}
               toast={toast}
-              host={source.host}
+              host={source.type === "sftp" ? source.host : undefined}
               remote={source.type === "sftp"}
               isNew={isNew}
               source={source}
@@ -211,10 +342,10 @@ export function useWorkspace({ toast }) {
     [openTab, toast],
   );
 
-  const openLocalFiles = useCallback(() => {
+  const openLocalFiles = useCallback((): void => {
     openTab({
       label: "Local",
-      content: <LocalFileBrowser toast={toast} hideLink openFile={openFile} />,
+      content: <LocalFileBrowser toast={toast} openFile={openFile} />,
     });
   }, [openTab, toast, openFile]);
 
@@ -223,7 +354,7 @@ export function useWorkspace({ toast }) {
   // ---------------------------------------------------------------------------
 
   const openSftp = useCallback(
-    (server) => {
+    (server: SftpServer): void => {
       openTab({
         label: `${server.host} - SFTP`,
         content: (
@@ -240,7 +371,7 @@ export function useWorkspace({ toast }) {
   );
 
   const openSsh = useCallback(
-    (server, { initialCommand } = {}) => {
+    (server: SftpServer, { initialCommand }: OpenSshOptions = {}): void => {
       openTab({
         label: `${server.host} - SSH`,
         content: (
@@ -257,7 +388,7 @@ export function useWorkspace({ toast }) {
     [openTab],
   );
 
-  const openActions = useCallback(() => {
+  const openActions = useCallback((): void => {
     openTab({
       label: "Actions",
       content: (
@@ -269,7 +400,7 @@ export function useWorkspace({ toast }) {
   }, [openTab, toast, sftpServers, openSsh]);
 
   const openServerInfo = useCallback(
-    (server) => {
+    (server: SftpServer): void => {
       openTab({
         label: `${server.host} - Info`,
         content: (
@@ -282,7 +413,7 @@ export function useWorkspace({ toast }) {
     [openTab],
   );
 
-  const openNewServer = useCallback(() => {
+  const openNewServer = useCallback((): void => {
     openTab({
       label: "New Server",
       content: <AddServer handleSaveServer={saveServer} />,
@@ -293,7 +424,7 @@ export function useWorkspace({ toast }) {
   // Utility tabs
   // ---------------------------------------------------------------------------
 
-  const openTransfers = useCallback(() => {
+  const openTransfers = useCallback((): void => {
     openTab({
       label: "Transfers",
       content: (
@@ -304,7 +435,7 @@ export function useWorkspace({ toast }) {
     });
   }, [openTab, toast]);
 
-  const openSharedLinks = useCallback(() => {
+  const openSharedLinks = useCallback((): void => {
     openTab({
       label: "Links",
       content: <SharedLinks />,
@@ -316,7 +447,9 @@ export function useWorkspace({ toast }) {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    fetchServers({ showLoading: true });
+    void fetchServers({
+      showLoading: true,
+    });
   }, [fetchServers]);
 
   return {

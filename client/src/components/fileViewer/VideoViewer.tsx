@@ -1,15 +1,19 @@
 import { Box } from "@chakra-ui/react";
 
-export default function VideoViewer({ src }) {
+interface VideoViewerProps {
+  src: string;
+}
+
+export default function VideoViewer({ src }: VideoViewerProps) {
   return (
     <Box bg="#000" borderRadius="8px" overflow="hidden">
       <video
         controls
+        src={src}
         style={{
           width: "100%",
           display: "block",
         }}
-        src={src}
       >
         Video not supported
       </video>

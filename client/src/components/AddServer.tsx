@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 
 import {
@@ -17,12 +16,14 @@ import {
 import { FiAlertCircle, FiSave, FiServer } from "react-icons/fi";
 
 import apiClient from "../services/apiClient";
-
+import type {
+  SaveServerPayload,
+  SaveServerResponse,
+  AuthMethod
+} from "../types/server";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
-
-type AuthMethod = "password" | "key";
 
 type KeyMode = "saved" | "import" | "generate";
 
@@ -49,57 +50,6 @@ interface GeneratedKey {
   username: string;
   publicKey: string;
 }
-
-interface SavedServer {
-  id: string;
-  host: string;
-  username: string;
-  authType: AuthMethod;
-  keyId?: string;
-  publicKey?: string;
-}
-
-export interface SaveServerResponse {
-  message: string;
-  server: SavedServer;
-}
-
-export interface PasswordServerPayload {
-  host: string;
-  username: string;
-  authType: "password";
-  password: string;
-}
-
-export interface SavedKeyServerPayload {
-  host: string;
-  username: string;
-  authType: "key";
-  keyMode: "saved";
-  keyId: string;
-}
-
-export interface ImportedKeyServerPayload {
-  host: string;
-  username: string;
-  authType: "key";
-  keyMode: "import";
-  key: string;
-  passphrase?: string;
-}
-
-export interface GeneratedKeyServerPayload {
-  host: string;
-  username: string;
-  authType: "key";
-  keyMode: "generate";
-}
-
-export type SaveServerPayload =
-  | PasswordServerPayload
-  | SavedKeyServerPayload
-  | ImportedKeyServerPayload
-  | GeneratedKeyServerPayload;
 
 interface AddServerProps {
   handleSaveServer: (

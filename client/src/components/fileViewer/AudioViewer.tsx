@@ -1,36 +1,66 @@
 import { useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { Box, Flex, Text } from "@chakra-ui/react";
 
-export default function AudioViewer({ src, filename }) {
-  const audioRef = useRef(null);
+interface AudioViewerProps {
+  src: string;
+  filename: string;
+}
+
+export default function AudioViewer({ src, filename }: AudioViewerProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const toggle = () => {
-    if (!audioRef.current) {
+  const toggle = async (): Promise<void> => {
+    const audio = audioRef.current;
+
+    if (!audio) {
       return;
     }
 
     if (playing) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+      audio.pause();
+      setPlaying(false);
+      return;
     }
 
-    setPlaying(!playing);
+    try {
+      await audio.play();
+      setPlaying(true);
+    } catch (error: unknown) {
+      console.error("Failed to play audio:", error);
+    }
   };
 
-  const formatTime = (seconds) => {
-    if (!seconds || isNaN(seconds)) {
+  const formatTime = (seconds: number): string => {
+    if (!seconds || !Number.isFinite(seconds)) {
       return "0:00";
     }
+
     const minutes = Math.floor(seconds / 60);
+
     const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:` + remainingSeconds.toString().padStart(2, "0");
+
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const progress = duration ? (currentTime / duration) * 100 : 0;
+  const handleSeek = (event: MouseEvent<HTMLDivElement>): void => {
+    const audio = audioRef.current;
+
+    if (!audio || !duration) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    const percent = (event.clientX - rect.left) / rect.width;
+
+    audio.currentTime = percent * duration;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <Flex
@@ -85,15 +115,7 @@ export default function AudioViewer({ src, filename }) {
           bg="rgba(255,255,255,0.07)"
           borderRadius="full"
           cursor="pointer"
-          onClick={(e) => {
-            if (!audioRef.current || !duration) {
-              return;
-            }
-
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            audioRef.current.currentTime = percent * duration;
-          }}
+          onClick={handleSeek}
         >
           <Box
             h="100%"
@@ -133,7 +155,9 @@ export default function AudioViewer({ src, filename }) {
         border="1px solid"
         borderColor={playing ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.1)"}
         cursor="pointer"
-        onClick={toggle}
+        onClick={() => {
+          void toggle();
+        }}
       >
         {playing ? (
           <Flex gap="3px">
@@ -144,9 +168,7 @@ export default function AudioViewer({ src, filename }) {
         ) : (
           <Box
             borderStyle="solid"
-            borderColor={
-              "transparent transparent " + "transparent rgba(255,255,255,0.7)"
-            }
+            borderColor="transparent transparent transparent rgba(255,255,255,0.7)"
             borderWidth="7px 0 7px 12px"
             ml="2px"
           />
@@ -156,8 +178,12 @@ export default function AudioViewer({ src, filename }) {
       <audio
         ref={audioRef}
         src={src}
-        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        onTimeUpdate={(event) =>
+          setCurrentTime(event.currentTarget.currentTime)
+        }
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         style={{
           display: "none",

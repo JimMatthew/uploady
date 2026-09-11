@@ -1,35 +1,67 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
-  Box,
-  Flex,
-  Text,
-  Button,
-  IconButton,
-  Spinner,
-  Icon,
   Badge,
+  Box,
+  Button,
+  Flex,
+  Icon,
+  IconButton,
   Spacer,
+  Spinner,
+  Text,
   Tooltip,
 } from "@chakra-ui/react";
 
 import {
-  FiPlay,
-  FiTrash2,
-  FiTerminal,
+  FiCopy,
   FiMaximize2,
   FiMinimize2,
-  FiCopy,
+  FiPlay,
+  FiTerminal,
+  FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { ActionOutput, SavedAction } from "../../types/action";
 
-const copyToClipboard = async (text) => {
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface ActionRowProps {
+  action: SavedAction;
+
+  serverName: string;
+
+  output?: ActionOutput | null;
+
+  isRunning: boolean;
+  isDeleting: boolean;
+
+  onExecute: () => void | Promise<void>;
+
+  onDelete: () => void | Promise<void>;
+
+  onClearOutput: () => void;
+
+  onCopyCommand: () => void | Promise<void>;
+}
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+const copyToClipboard = async (text: string): Promise<void> => {
   try {
     await navigator.clipboard.writeText(text);
-  } catch (err) {
-    console.error("Failed to copy to clipboard:", err);
+  } catch (error: unknown) {
+    console.error("Failed to copy to clipboard:", error);
   }
 };
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
 
 const ActionRow = ({
   action,
@@ -41,7 +73,7 @@ const ActionRow = ({
   onDelete,
   onClearOutput,
   onCopyCommand,
-}) => {
+}: ActionRowProps) => {
   const [outputExpanded, setOutputExpanded] = useState(false);
 
   return (
@@ -55,9 +87,15 @@ const ActionRow = ({
       transition="opacity 0.15s"
     >
       <Flex
-        align={{ base: "stretch", md: "center" }}
+        align={{
+          base: "stretch",
+          md: "center",
+        }}
         justify="space-between"
-        direction={{ base: "column", md: "row" }}
+        direction={{
+          base: "column",
+          md: "row",
+        }}
         gap={3}
       >
         <Box minW={0} flex={1}>
@@ -99,9 +137,11 @@ const ActionRow = ({
 
           <Flex mt={2} align="center" gap={2} color="rgba(255,255,255,0.25)">
             <Icon as={FiTerminal} boxSize="11px" flexShrink={0} />
+
             <Text fontSize="10px" whiteSpace="nowrap">
               {serverName}
             </Text>
+
             <Text
               fontSize="10px"
               fontFamily="'JetBrains Mono', monospace"
@@ -111,10 +151,14 @@ const ActionRow = ({
             >
               {action.command}
             </Text>
+
             <Tooltip label="Copy command" fontSize="11px">
               <Box
                 as="button"
-                onClick={onCopyCommand}
+                type="button"
+                onClick={() => {
+                  void onCopyCommand();
+                }}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -123,7 +167,10 @@ const ActionRow = ({
                 h="18px"
                 borderRadius="4px"
                 color="rgba(255,255,255,0.25)"
-                _hover={{ color: "#A5B4FC", bg: "rgba(99,102,241,0.1)" }}
+                _hover={{
+                  color: "#A5B4FC",
+                  bg: "rgba(99,102,241,0.1)",
+                }}
                 aria-label="Copy command"
               >
                 <Icon as={FiCopy} boxSize="10px" />
@@ -137,11 +184,16 @@ const ActionRow = ({
             size="xs"
             variant="ghost"
             leftIcon={<FiPlay />}
-            onClick={onExecute}
+            onClick={() => {
+              void onExecute();
+            }}
             isLoading={isRunning}
             isDisabled={isDeleting}
             color="rgba(255,255,255,0.5)"
-            _hover={{ color: "#A5B4FC", bg: "rgba(99,102,241,0.1)" }}
+            _hover={{
+              color: "#A5B4FC",
+              bg: "rgba(99,102,241,0.1)",
+            }}
           >
             Execute
           </Button>
@@ -150,11 +202,16 @@ const ActionRow = ({
             size="xs"
             variant="ghost"
             icon={isDeleting ? <Spinner size="xs" /> : <FiTrash2 />}
-            onClick={onDelete}
+            onClick={() => {
+              void onDelete();
+            }}
             isDisabled={isDeleting}
             aria-label="Delete action"
             color="rgba(255,255,255,0.4)"
-            _hover={{ color: "#FCA5A5", bg: "rgba(239,68,68,0.08)" }}
+            _hover={{
+              color: "#FCA5A5",
+              bg: "rgba(239,68,68,0.08)",
+            }}
           />
         </Flex>
       </Flex>
@@ -170,7 +227,9 @@ const ActionRow = ({
             >
               Output
             </Text>
+
             <Spacer />
+
             <Text
               fontSize="10px"
               color={
@@ -181,14 +240,16 @@ const ActionRow = ({
             >
               Exit {output.exitCode}
             </Text>
+
             <Tooltip label="Copy output" fontSize="11px">
               <Box
                 as="button"
-                onClick={() =>
-                  copyToClipboard(
+                type="button"
+                onClick={() => {
+                  void copyToClipboard(
                     [output.stdout, output.stderr].filter(Boolean).join("\n"),
-                  )
-                }
+                  );
+                }}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -196,15 +257,20 @@ const ActionRow = ({
                 h="22px"
                 borderRadius="5px"
                 color="rgba(255,255,255,0.35)"
-                _hover={{ color: "#A5B4FC", bg: "rgba(99,102,241,0.1)" }}
+                _hover={{
+                  color: "#A5B4FC",
+                  bg: "rgba(99,102,241,0.1)",
+                }}
                 aria-label="Copy output"
               >
                 <Icon as={FiCopy} boxSize="11px" />
               </Box>
             </Tooltip>
+
             <Box
               as="button"
-              onClick={() => setOutputExpanded((prev) => !prev)}
+              type="button"
+              onClick={() => setOutputExpanded((previous) => !previous)}
               display="flex"
               alignItems="center"
               justifyContent="center"
@@ -212,7 +278,10 @@ const ActionRow = ({
               h="22px"
               borderRadius="5px"
               color="rgba(255,255,255,0.35)"
-              _hover={{ color: "#A5B4FC", bg: "rgba(99,102,241,0.1)" }}
+              _hover={{
+                color: "#A5B4FC",
+                bg: "rgba(99,102,241,0.1)",
+              }}
               aria-label={outputExpanded ? "Collapse output" : "Expand output"}
               title={outputExpanded ? "Collapse output" : "Expand output"}
             >
@@ -225,6 +294,7 @@ const ActionRow = ({
             <Tooltip label="Hide output" fontSize="11px">
               <Box
                 as="button"
+                type="button"
                 onClick={onClearOutput}
                 display="flex"
                 alignItems="center"
@@ -233,7 +303,10 @@ const ActionRow = ({
                 h="22px"
                 borderRadius="5px"
                 color="rgba(255,255,255,0.35)"
-                _hover={{ color: "#FCA5A5", bg: "rgba(239,68,68,0.08)" }}
+                _hover={{
+                  color: "#FCA5A5",
+                  bg: "rgba(239,68,68,0.08)",
+                }}
                 aria-label="Hide output"
               >
                 <Icon as={FiX} boxSize="12px" />

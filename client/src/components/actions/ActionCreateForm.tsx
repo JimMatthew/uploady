@@ -1,14 +1,46 @@
-import React from "react";
+import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
+
 import {
-  Flex,
-  Text,
-  Textarea,
   Button,
+  Flex,
   Icon,
   Input,
   Select,
+  Text,
+  Textarea,
 } from "@chakra-ui/react";
-import { FiPlus, FiAlertCircle } from "react-icons/fi";
+
+import type { InputProps, SelectProps } from "@chakra-ui/react";
+
+import { FiAlertCircle, FiPlus } from "react-icons/fi";
+import { ActionMode, ActionDraft } from "../../types/action";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+interface ActionServer {
+  _id: string;
+  name?: string;
+  host?: string;
+  hostname?: string;
+}
+
+interface ActionCreateFormProps {
+  action: ActionDraft;
+
+  setAction: Dispatch<SetStateAction<ActionDraft>>;
+
+  serverList: ActionServer[];
+
+  creating: boolean;
+
+  onCreate: () => void | Promise<void>;
+}
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
 
 const ActionCreateForm = ({
   action,
@@ -16,13 +48,16 @@ const ActionCreateForm = ({
   serverList,
   creating,
   onCreate,
-}) => {
+}: ActionCreateFormProps) => {
   const hasServers = serverList.length > 0;
 
-  const handleCommandKeyDown = (event) => {
+  const handleCommandKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>,
+  ): void => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
-      onCreate();
+
+      void onCreate();
     }
   };
 
@@ -51,12 +86,19 @@ const ActionCreateForm = ({
         </Flex>
       )}
 
-      <Flex direction={{ base: "column", md: "row" }} gap={3} mb={3}>
+      <Flex
+        direction={{
+          base: "column",
+          md: "row",
+        }}
+        gap={3}
+        mb={3}
+      >
         <ActionInput
           value={action.name}
           onChange={(event) =>
-            setAction((prev) => ({
-              ...prev,
+            setAction((previous) => ({
+              ...previous,
               name: event.target.value,
             }))
           }
@@ -68,19 +110,22 @@ const ActionCreateForm = ({
         <ActionSelect
           value={action.serverId}
           onChange={(event) =>
-            setAction((prev) => ({
-              ...prev,
+            setAction((previous) => ({
+              ...previous,
               serverId: event.target.value,
             }))
           }
           isDisabled={creating || !hasServers}
-          maxW={{ base: "100%", md: "240px" }}
+          maxW={{
+            base: "100%",
+            md: "240px",
+          }}
         >
           <option value="">Select server</option>
 
           {serverList.map((server) => (
             <option key={server._id} value={server._id}>
-              {server.name || server.host || server.hostname}
+              {server.name || server.host || server.hostname || server._id}
             </option>
           ))}
         </ActionSelect>
@@ -88,15 +133,19 @@ const ActionCreateForm = ({
         <ActionSelect
           value={action.mode}
           onChange={(event) =>
-            setAction((prev) => ({
-              ...prev,
-              mode: event.target.value,
+            setAction((previous) => ({
+              ...previous,
+              mode: event.target.value as ActionMode,
             }))
           }
           isDisabled={creating}
-          maxW={{ base: "100%", md: "170px" }}
+          maxW={{
+            base: "100%",
+            md: "170px",
+          }}
         >
           <option value="capture">Capture Output</option>
+
           <option value="terminal">Open Terminal</option>
         </ActionSelect>
       </Flex>
@@ -104,8 +153,8 @@ const ActionCreateForm = ({
       <ActionInput
         value={action.description}
         onChange={(event) =>
-          setAction((prev) => ({
-            ...prev,
+          setAction((previous) => ({
+            ...previous,
             description: event.target.value,
           }))
         }
@@ -117,8 +166,8 @@ const ActionCreateForm = ({
       <Textarea
         value={action.command}
         onChange={(event) =>
-          setAction((prev) => ({
-            ...prev,
+          setAction((previous) => ({
+            ...previous,
             command: event.target.value,
           }))
         }
@@ -149,7 +198,9 @@ const ActionCreateForm = ({
         <Button
           size="sm"
           leftIcon={<FiPlus />}
-          onClick={onCreate}
+          onClick={() => {
+            void onCreate();
+          }}
           isLoading={creating}
           isDisabled={!hasServers}
           bg="rgba(99,102,241,0.15)"
@@ -166,7 +217,11 @@ const ActionCreateForm = ({
   );
 };
 
-const ActionInput = (props) => (
+// -----------------------------------------------------------------------------
+// Styled controls
+// -----------------------------------------------------------------------------
+
+const ActionInput = (props: InputProps) => (
   <Input
     size="sm"
     borderColor="rgba(255,255,255,0.08)"
@@ -182,7 +237,7 @@ const ActionInput = (props) => (
   />
 );
 
-const ActionSelect = (props) => (
+const ActionSelect = (props: SelectProps) => (
   <Select
     size="sm"
     borderColor="rgba(255,255,255,0.08)"

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Box, Flex, Text, Icon, Progress, Button } from "@chakra-ui/react";
+import type { IconType } from "react-icons";
 import {
   FiServer,
   FiHardDrive,
@@ -10,30 +12,160 @@ import {
   FiSquare,
   FiRefreshCw,
 } from "react-icons/fi";
+
 import apiClient from "../services/apiClient";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type ServiceState =
+  "running" | "stopped" | "failed" | "starting" | "stopping" | "unknown";
+
+type ServiceStateGroup =
+  "running" | "stopped" | "failed" | "transitioning" | "unknown";
+
+type ServiceAction = "start" | "stop" | "restart";
+
+interface ServerService {
+  name: string;
+  state: ServiceState;
+  description?: string | null;
+}
+
+interface ServiceData {
+  supported?: boolean;
+  manager?: string | null;
+  services?: ServerService[];
+}
+
+interface ServerDiskStats {
+  usedGb?: number | null;
+  totalGb?: number | null;
+}
+
+interface ServerStats {
+  cpu?: number | null;
+  memory?: number | null;
+  uptimeSeconds?: number | null;
+  disk?: ServerDiskStats | null;
+}
+
+interface PublicKeyResponse {
+  publicKey?: string | null;
+}
+
+interface ServerInfoProps {
+  serverId: string;
+  host: string;
+}
+
+interface StatCardProps {
+  icon: IconType;
+  label: string;
+  value?: ReactNode;
+  children?: ReactNode;
+}
+
+interface DiskUsageProps {
+  used?: number | null;
+  total?: number | null;
+}
+
+interface ServiceRowProps {
+  service: ServerService;
+  onAction: (
+    serviceName: string,
+    action: ServiceAction,
+  ) => void | Promise<void>;
+  pendingAction?: ServiceAction | null;
+}
+
+type ServiceActions = Record<string, ServiceAction>;
+
+type ServiceCounts = Record<ServiceStateGroup, number>;
+
+interface StateFilter {
+  key: ServiceStateGroup;
+  label: string;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const STATE_FILTERS: StateFilter[] = [
+  {
+    key: "running",
+    label: "Running",
+  },
+  {
+    key: "stopped",
+    label: "Stopped",
+  },
+  {
+    key: "failed",
+    label: "Failed",
+  },
+  {
+    key: "transitioning",
+    label: "Starting / Stopping",
+  },
+  {
+    key: "unknown",
+    label: "Unknown",
+  },
+];
+
+const DEFAULT_SERVICE_COUNTS: ServiceCounts = {
+  running: 0,
+  stopped: 0,
+  failed: 0,
+  transitioning: 0,
+  unknown: 0,
+};
+
+const DEFAULT_VISIBLE_STATES: ServiceStateGroup[] = [
+  "running",
+  "stopped",
+  "failed",
+  "transitioning",
+  "unknown",
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatBytes = (gb) => {
-  if (gb === undefined || gb === null) return "—";
+const formatBytes = (gb?: number | null): string => {
+  if (gb === undefined || gb === null) {
+    return "—";
+  }
 
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(gb * 1024).toFixed(0)} MB`;
 };
 
-const formatUptime = (seconds) => {
-  if (!seconds) return "—";
+const formatUptime = (seconds?: number | null): string => {
+  if (!seconds) {
+    return "—";
+  }
 
   const d = Math.floor(seconds / 86400);
   const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
 
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
+  if (d > 0) {
+    return `${d}d ${h}h`;
+  }
+
+  if (h > 0) {
+    return `${h}h ${m}m`;
+  }
 
   return `${m}m`;
 };
-const getStateGroup = (service) => {
+
+const getStateGroup = (service: ServerService): ServiceStateGroup => {
   switch (service.state) {
     case "running":
       return "running";
@@ -53,7 +185,7 @@ const getStateGroup = (service) => {
   }
 };
 
-const getStateLabel = (service) => {
+const getStateLabel = (service: ServerService): string => {
   switch (service.state) {
     case "running":
       return "Running";
@@ -75,7 +207,7 @@ const getStateLabel = (service) => {
   }
 };
 
-const getStateColor = (service) => {
+const getStateColor = (service: ServerService): string => {
   switch (service.state) {
     case "running":
       return "#22C55E";
@@ -95,11 +227,24 @@ const getStateColor = (service) => {
   }
 };
 
+const getPendingActionLabel = (action: ServiceAction): string => {
+  switch (action) {
+    case "start":
+      return "Starting";
+
+    case "stop":
+      return "Stopping";
+
+    case "restart":
+      return "Restarting";
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const StatCard = ({ icon, label, value, children }) => (
+const StatCard = ({ icon, label, value, children }: StatCardProps) => (
   <Box
     p={4}
     bg="rgba(255,255,255,0.02)"
@@ -133,7 +278,7 @@ const StatCard = ({ icon, label, value, children }) => (
   </Box>
 );
 
-const DiskUsage = ({ used, total }) => {
+const DiskUsage = ({ used, total }: DiskUsageProps) => {
   if (
     used === undefined ||
     used === null ||
@@ -191,7 +336,7 @@ const DiskUsage = ({ used, total }) => {
   );
 };
 
-const ServiceRow = ({ service, onAction, pendingAction }) => {
+const ServiceRow = ({ service, onAction, pendingAction }: ServiceRowProps) => {
   const isBusy = Boolean(pendingAction);
   const transitioning =
     service.state === "starting" || service.state === "stopping";
@@ -244,11 +389,7 @@ const ServiceRow = ({ service, onAction, pendingAction }) => {
             fontFamily="'JetBrains Mono', monospace"
           >
             {pendingAction
-              ? pendingAction === "start"
-                ? "Starting"
-                : pendingAction === "stop"
-                  ? "Stopping"
-                  : "Restarting"
+              ? getPendingActionLabel(pendingAction)
               : getStateLabel(service)}
           </Text>
         </Flex>
@@ -266,7 +407,9 @@ const ServiceRow = ({ service, onAction, pendingAction }) => {
               aria-label={`Start ${service.name}`}
               title="Start"
               isDisabled={isBusy || transitioning}
-              onClick={() => onAction(service.name, "start")}
+              onClick={() => {
+                void onAction(service.name, "start");
+              }}
               _hover={{
                 bg: "rgba(34,197,94,0.08)",
                 color: "#22C55E",
@@ -289,7 +432,9 @@ const ServiceRow = ({ service, onAction, pendingAction }) => {
                 aria-label={`Restart ${service.name}`}
                 title="Restart"
                 isDisabled={isBusy || transitioning}
-                onClick={() => onAction(service.name, "restart")}
+                onClick={() => {
+                  void onAction(service.name, "restart");
+                }}
                 _hover={{
                   bg: "rgba(245,158,11,0.08)",
                   color: "#F59E0B",
@@ -309,7 +454,9 @@ const ServiceRow = ({ service, onAction, pendingAction }) => {
                 aria-label={`Stop ${service.name}`}
                 title="Stop"
                 isDisabled={isBusy || transitioning}
-                onClick={() => onAction(service.name, "stop")}
+                onClick={() => {
+                  void onAction(service.name, "stop");
+                }}
                 _hover={{
                   bg: "rgba(239,68,68,0.08)",
                   color: "#EF4444",
@@ -329,21 +476,25 @@ const ServiceRow = ({ service, onAction, pendingAction }) => {
 // Component
 // ---------------------------------------------------------------------------
 
-const ServerInfo = ({ serverId, host }) => {
-  const [stats, setStats] = useState(null);
+const ServerInfo = ({ serverId, host }: ServerInfoProps) => {
+  const [stats, setStats] = useState<ServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsUnavailable, setStatsUnavailable] = useState(false);
-  const [publicKey, setPublicKey] = useState(null);
+
+  const [publicKey, setPublicKey] = useState<string | null>(null);
   const [publicKeyLoading, setPublicKeyLoading] = useState(true);
-  const [serviceData, setServiceData] = useState(null);
+
+  const [serviceData, setServiceData] = useState<ServiceData | null>(null);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
-  const [serviceActions, setServiceActions] = useState({});
-  const [visibleStates, setVisibleStates] = useState(
-    new Set(["running", "stopped", "failed", "transitioning", "unknown"]),
+
+  const [serviceActions, setServiceActions] = useState<ServiceActions>({});
+
+  const [visibleStates, setVisibleStates] = useState<Set<ServiceStateGroup>>(
+    () => new Set(DEFAULT_VISIBLE_STATES),
   );
 
-  const toggleState = (state) => {
+  const toggleState = (state: ServiceStateGroup): void => {
     setVisibleStates((current) => {
       const next = new Set(current);
 
@@ -357,7 +508,10 @@ const ServerInfo = ({ serverId, host }) => {
     });
   };
 
-  const runServiceAction = async (serviceName, action) => {
+  const runServiceAction = async (
+    serviceName: string,
+    action: ServiceAction,
+  ): Promise<void> => {
     setServiceActions((current) => ({
       ...current,
       [serviceName]: action,
@@ -368,16 +522,21 @@ const ServerInfo = ({ serverId, host }) => {
         `/sftp/server-services/${serverId}/services/${encodeURIComponent(
           serviceName,
         )}/${action}`,
+        {},
       );
 
-      const data = await apiClient.get(`/sftp/server-services/${serverId}`);
+      const data = await apiClient.get<ServiceData>(
+        `/sftp/server-services/${serverId}`,
+      );
 
       setServiceData(data);
-    } catch (err) {
-      console.error(`Failed to ${action} service ${serviceName}:`, err);
+    } catch (error: unknown) {
+      console.error(`Failed to ${action} service ${serviceName}:`, error);
     } finally {
       setServiceActions((current) => {
-        const next = { ...current };
+        const next = {
+          ...current,
+        };
 
         delete next[serviceName];
 
@@ -385,49 +544,46 @@ const ServerInfo = ({ serverId, host }) => {
       });
     }
   };
+
   const filteredServices =
     serviceData?.services?.filter((service) =>
       visibleStates.has(getStateGroup(service)),
     ) ?? [];
 
-  const serviceCounts = serviceData?.services?.reduce(
-    (counts, service) => {
-      const state = getStateGroup(service);
+  const serviceCounts: ServiceCounts =
+    serviceData?.services?.reduce<ServiceCounts>(
+      (counts, service) => {
+        const state = getStateGroup(service);
 
-      counts[state]++;
-      return counts;
-    },
-    {
-      running: 0,
-      stopped: 0,
-      failed: 0,
-      transitioning: 0,
-      unknown: 0,
-    },
-  ) ?? {
-    running: 0,
-    stopped: 0,
-    failed: 0,
-    transitioning: 0,
-    unknown: 0,
-  };
+        counts[state] += 1;
+
+        return counts;
+      },
+      {
+        ...DEFAULT_SERVICE_COUNTS,
+      },
+    ) ?? {
+      ...DEFAULT_SERVICE_COUNTS,
+    };
 
   useEffect(() => {
     let cancelled = false;
 
-    const fetchStats = async () => {
+    const fetchStats = async (): Promise<void> => {
       setStatsLoading(true);
       setStatsUnavailable(false);
 
       try {
-        const data = await apiClient.get(`/sftp/server-stats/${serverId}`);
+        const data = await apiClient.get<ServerStats>(
+          `/sftp/server-stats/${serverId}`,
+        );
 
         if (!cancelled) {
           setStats(data);
         }
-      } catch (err) {
+      } catch (error: unknown) {
         if (!cancelled) {
-          console.error("Failed to load server stats:", err);
+          console.error("Failed to load server stats:", error);
           setStatsUnavailable(true);
         }
       } finally {
@@ -437,19 +593,21 @@ const ServerInfo = ({ serverId, host }) => {
       }
     };
 
-    const fetchServices = async () => {
+    const fetchServices = async (): Promise<void> => {
       setServicesLoading(true);
       setServicesUnavailable(false);
 
       try {
-        const data = await apiClient.get(`/sftp/server-services/${serverId}`);
+        const data = await apiClient.get<ServiceData>(
+          `/sftp/server-services/${serverId}`,
+        );
 
         if (!cancelled) {
           setServiceData(data);
         }
-      } catch (err) {
+      } catch (error: unknown) {
         if (!cancelled) {
-          console.error("Failed to load server services:", err);
+          console.error("Failed to load server services:", error);
           setServicesUnavailable(true);
         }
       } finally {
@@ -459,20 +617,20 @@ const ServerInfo = ({ serverId, host }) => {
       }
     };
 
-    const fetchPublicKey = async () => {
+    const fetchPublicKey = async (): Promise<void> => {
       setPublicKeyLoading(true);
 
       try {
-        const data = await apiClient.get(
+        const data = await apiClient.get<PublicKeyResponse>(
           `/sftp/api/servers/${serverId}/public-key`,
         );
 
         if (!cancelled) {
           setPublicKey(data.publicKey ?? null);
         }
-      } catch (err) {
+      } catch (error: unknown) {
         if (!cancelled) {
-          console.error("Failed to load public key:", err);
+          console.error("Failed to load public key:", error);
           setPublicKey(null);
         }
       } finally {
@@ -482,9 +640,9 @@ const ServerInfo = ({ serverId, host }) => {
       }
     };
 
-    fetchStats();
-    fetchServices();
-    fetchPublicKey();
+    void fetchStats();
+    void fetchServices();
+    void fetchPublicKey();
 
     return () => {
       cancelled = true;
@@ -632,6 +790,7 @@ const ServerInfo = ({ serverId, host }) => {
           </Box>
         </Box>
       )}
+
       {/* Services */}
       <Box mt={6}>
         <Flex align="center" justify="space-between" mb={3}>
@@ -644,29 +803,9 @@ const ServerInfo = ({ serverId, host }) => {
           >
             Services
           </Text>
+
           <Flex gap={2} mb={3} flexWrap="wrap">
-            {[
-              {
-                key: "running",
-                label: "Running",
-              },
-              {
-                key: "stopped",
-                label: "Stopped",
-              },
-              {
-                key: "failed",
-                label: "Failed",
-              },
-              {
-                key: "transitioning",
-                label: "Starting / Stopping",
-              },
-              {
-                key: "unknown",
-                label: "Unknown",
-              },
-            ].map(({ key, label }) => {
+            {STATE_FILTERS.map(({ key, label }) => {
               const selected = visibleStates.has(key);
 
               return (
@@ -706,6 +845,7 @@ const ServerInfo = ({ serverId, host }) => {
               );
             })}
           </Flex>
+
           {serviceData?.manager && (
             <Text
               fontSize="10px"

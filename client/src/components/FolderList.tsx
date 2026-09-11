@@ -7,18 +7,9 @@ import {
   type MouseEvent,
 } from "react";
 
-import {
-  Box,
-  Flex,
-  HStack,
-  Icon,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Flex, HStack, Icon, Text } from "@chakra-ui/react";
 
-import {
-  FiChevronUp,
-  FiChevronDown,
-} from "react-icons/fi";
+import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 
 import FolderItem from "./FolderItem";
 import ItemMenu from "./FileMenu";
@@ -44,21 +35,13 @@ interface MenuPosition {
 interface FolderListProps {
   folders: FolderEntry[];
 
-  openFolder: (
-    folder: string,
-  ) => void;
+  openFolder: (folder: string) => void;
 
-  deleteFolder: (
-    folder: string,
-  ) => void | Promise<void>;
+  deleteFolder: (folder: string) => void | Promise<void>;
 
-  downloadFolder: (
-    folder: string,
-  ) => void | Promise<void>;
+  downloadFolder: (folder: string) => void | Promise<void>;
 
-  copyFolder: (
-    folder: string,
-  ) => void | Promise<void>;
+  copyFolder: (folder: string) => void | Promise<void>;
 }
 
 const FolderList = ({
@@ -68,24 +51,16 @@ const FolderList = ({
   downloadFolder,
   copyFolder,
 }: FolderListProps) => {
-  const menuRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    );
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const [sortDir, setSortDir] =
-    useState<SortDirection>("asc");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
 
-  const [menuPos, setMenuPos] =
-    useState<MenuPosition>({
-      x: 0,
-      y: 0,
-    });
+  const [menuPos, setMenuPos] = useState<MenuPosition>({
+    x: 0,
+    y: 0,
+  });
 
-  const [
-    contextMenu,
-    setContextMenu,
-  ] = useState<ContextMenuState>({
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     x: 0,
     y: 0,
     folder: null,
@@ -93,10 +68,7 @@ const FolderList = ({
   });
 
   const openMenu = useCallback(
-    (
-      event: MouseEvent<HTMLDivElement>,
-      name: string,
-    ) => {
+    (event: MouseEvent<HTMLDivElement>, name: string) => {
       event.preventDefault();
 
       setContextMenu({
@@ -114,26 +86,19 @@ const FolderList = ({
     [],
   );
 
-  const closeMenu = useCallback(
-    () => {
-      setContextMenu((menu) => ({
-        ...menu,
-        visible: false,
-      }));
-    },
-    [],
-  );
+  const closeMenu = useCallback(() => {
+    setContextMenu((menu) => ({
+      ...menu,
+      visible: false,
+    }));
+  }, []);
 
   useEffect(() => {
-    if (
-      !contextMenu.visible ||
-      !menuRef.current
-    ) {
+    if (!contextMenu.visible || !menuRef.current) {
       return;
     }
 
-    const menu =
-      menuRef.current.getBoundingClientRect();
+    const menu = menuRef.current.getBoundingClientRect();
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -142,17 +107,11 @@ const FolderList = ({
     let y = contextMenu.y;
 
     if (x + menu.width > vw) {
-      x =
-        vw -
-        menu.width -
-        8;
+      x = vw - menu.width - 8;
     }
 
     if (y + menu.height > vh) {
-      y =
-        vh -
-        menu.height -
-        8;
+      y = vh - menu.height - 8;
     }
 
     x = Math.max(8, x);
@@ -162,31 +121,17 @@ const FolderList = ({
       x,
       y,
     });
-  }, [
-    contextMenu.visible,
-    contextMenu.x,
-    contextMenu.y,
-  ]);
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
 
-  const toggleSort =
-    useCallback(() => {
-      setSortDir((current) =>
-        current === "asc"
-          ? "desc"
-          : "asc",
-      );
-    }, []);
+  const toggleSort = useCallback(() => {
+    setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+  }, []);
 
   const sorted = useMemo(() => {
-    return [...folders].sort(
-      (a, b) =>
-        sortDir === "asc"
-          ? a.name.localeCompare(
-              b.name,
-            )
-          : b.name.localeCompare(
-              a.name,
-            ),
+    return [...folders].sort((a, b) =>
+      sortDir === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name),
     );
   }, [folders, sortDir]);
 
@@ -258,26 +203,16 @@ const FolderList = ({
           onClick={toggleSort}
           _hover={{
             bg: "rgba(255,255,255,0.06)",
-            borderColor:
-              "rgba(255,255,255,0.13)",
-            color:
-              "rgba(255,255,255,0.72)",
+            borderColor: "rgba(255,255,255,0.13)",
+            color: "rgba(255,255,255,0.72)",
           }}
         >
-          <Text
-            fontSize="10px"
-            fontWeight={500}
-            letterSpacing="0.02em"
-          >
+          <Text fontSize="10px" fontWeight={500} letterSpacing="0.02em">
             Name
           </Text>
 
           <Icon
-            as={
-              sortDir === "asc"
-                ? FiChevronUp
-                : FiChevronDown
-            }
+            as={sortDir === "asc" ? FiChevronUp : FiChevronDown}
             boxSize="11px"
           />
         </Flex>
@@ -287,38 +222,23 @@ const FolderList = ({
         <FolderItem
           key={folder.name}
           folder={folder.name}
-          changeDirectory={
-            openFolder
-          }
-          onOpenMenu={
-            openMenu
-          }
+          changeDirectory={openFolder}
+          onOpenMenu={openMenu}
         />
       ))}
 
-      {contextMenu.visible &&
-        contextMenu.folder && (
-          <ItemMenu
-            ref={menuRef}
-            item={
-              contextMenu.folder
-            }
-            top={menuPos.y}
-            left={menuPos.x}
-            closeMenu={
-              closeMenu
-            }
-            copyItem={
-              copyFolder
-            }
-            deleteItem={
-              deleteFolder
-            }
-            downloadItem={
-              downloadFolder
-            }
-          />
-        )}
+      {contextMenu.visible && contextMenu.folder && (
+        <ItemMenu
+          ref={menuRef}
+          item={contextMenu.folder}
+          top={menuPos.y}
+          left={menuPos.x}
+          closeMenu={closeMenu}
+          copyItem={copyFolder}
+          deleteItem={deleteFolder}
+          downloadItem={downloadFolder}
+        />
+      )}
     </Box>
   );
 };
