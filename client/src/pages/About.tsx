@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
+
+import type { IconType } from "react-icons";
 import {
   FiGithub,
   FiFolder,
@@ -9,20 +13,73 @@ import {
   FiServer,
   FiDatabase,
 } from "react-icons/fi";
+
 import apiClient, { ApiError } from "../services/apiClient";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+interface MemoryStats {
+  rss?: number | null;
+  heapTotal?: number | null;
+  heapUsed?: number | null;
+  external?: number | null;
+  arrayBuffers?: number | null;
+}
 
-const DATABASE_NAMES = {
+interface ProcessStats {
+  version?: string | null;
+
+  runtime?: string | null;
+  runtimeVersion?: string | null;
+  engine?: string | null;
+  engineVersion?: string | null;
+  architecture?: string | null;
+  pid?: number | null;
+  uptime?: number | null;
+
+  database?: string | null;
+  databaseServer?: string | null;
+
+  hostname?: string | null;
+  osName?: string | null;
+  osRelease?: string | null;
+  osVersion?: string | null;
+  platform?: string | null;
+
+  memory?: MemoryStats | null;
+}
+
+interface StatRowProps {
+  label: string;
+  value?: ReactNode;
+  accent?: string;
+}
+
+interface SectionHeaderProps {
+  icon: IconType;
+  label: string;
+}
+
+interface NavButtonProps {
+  onClick?: () => void;
+  href?: string;
+  icon: IconType;
+  label: string;
+  accent?: boolean;
+}
+
+const DATABASE_NAMES: Record<string, string> = {
   sqlite: "SQLite",
   mongo: "MongoDB",
 };
 
-const formatDatabase = (database) => {
-  return DATABASE_NAMES[database] ?? database ?? "—";
+const formatDatabase = (database?: string | null): string => {
+  if (!database) {
+    return "—";
+  }
+
+  return DATABASE_NAMES[database] ?? database;
 };
 
-const formatUptime = (seconds) => {
+const formatUptime = (seconds?: number | null): string => {
   if (seconds == null) {
     return "—";
   }
@@ -46,7 +103,7 @@ const formatUptime = (seconds) => {
   return `${Math.round(seconds)}s`;
 };
 
-const formatMegabytes = (bytes) => {
+const formatMegabytes = (bytes?: number | null): string => {
   if (bytes == null) {
     return "—";
   }
@@ -54,9 +111,7 @@ const formatMegabytes = (bytes) => {
   return `${(bytes / 1e6).toFixed(1)} MB`;
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const StatRow = ({ label, value, accent }) => (
+const StatRow = ({ label, value, accent }: StatRowProps) => (
   <Flex
     align="center"
     justify="space-between"
@@ -73,14 +128,14 @@ const StatRow = ({ label, value, accent }) => (
       fontSize="12px"
       fontWeight={600}
       fontFamily="'JetBrains Mono', monospace"
-      color={accent || "rgba(255,255,255,0.75)"}
+      color={accent ?? "rgba(255,255,255,0.75)"}
     >
       {value ?? "—"}
     </Text>
   </Flex>
 );
 
-const SectionHeader = ({ icon, label }) => (
+const SectionHeader = ({ icon, label }: SectionHeaderProps) => (
   <Box px={4} py="10px" borderBottom="1px solid rgba(255,255,255,0.06)">
     <Flex align="center" gap={2}>
       <Icon as={icon} boxSize="12px" color="rgba(255,255,255,0.25)" />
@@ -98,73 +153,83 @@ const SectionHeader = ({ icon, label }) => (
   </Box>
 );
 
-const NavButton = ({ onClick, href, icon, label, accent = false }) => {
-  const externalProps = href
-    ? {
-        as: "a",
-        href,
-        target: "_blank",
-        rel: "noreferrer",
-      }
-    : {};
+const NavButton = ({
+  onClick,
+  href,
+  icon,
+  label,
+  accent = false,
+}: NavButtonProps) => {
+  const commonProps = {
+    align: "center",
+    gap: 2,
+    px: 4,
+    h: "34px",
+    borderRadius: "8px",
+    border: "1px solid",
+    borderColor: accent ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.08)",
+    bg: accent ? "rgba(99,102,241,0.08)" : "transparent",
+    color: accent ? "#818CF8" : "rgba(255,255,255,0.4)",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textDecoration: "none",
+    transition: "all 0.12s",
+    _hover: {
+      bg: accent ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.04)",
+      borderColor: accent ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.15)",
+      color: accent ? "#A5B4FC" : "rgba(255,255,255,0.7)",
+      textDecoration: "none",
+    },
+  };
+
+  if (href) {
+    return (
+      <Flex
+        as="a"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        {...commonProps}
+      >
+        <Icon as={icon} boxSize="13px" />
+        {label}
+      </Flex>
+    );
+  }
 
   return (
-    <Flex
-      {...externalProps}
-      align="center"
-      gap={2}
-      px={4}
-      h="34px"
-      borderRadius="8px"
-      border="1px solid"
-      borderColor={accent ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.08)"}
-      bg={accent ? "rgba(99,102,241,0.08)" : "transparent"}
-      color={accent ? "#818CF8" : "rgba(255,255,255,0.4)"}
-      fontSize="12px"
-      fontWeight={600}
-      cursor="pointer"
-      textDecoration="none"
-      transition="all 0.12s"
-      _hover={{
-        bg: accent ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.04)",
-        borderColor: accent ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.15)",
-        color: accent ? "#A5B4FC" : "rgba(255,255,255,0.7)",
-        textDecoration: "none",
-      }}
-      onClick={href ? undefined : onClick}
-    >
+    <Flex {...commonProps} onClick={onClick}>
       <Icon as={icon} boxSize="13px" />
       {label}
     </Flex>
   );
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 const About = () => {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<ProcessStats | null>(null);
   const [loadError, setLoadError] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStats = async (): Promise<void> => {
       try {
-        const data = await apiClient.get("/api/pstats");
+        const data = await apiClient.get<ProcessStats>("/api/pstats");
 
         setStats(data);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
+      } catch (error: unknown) {
+        if (error instanceof ApiError && error.status === 401) {
           navigate("/");
           return;
         }
 
-        console.error("Failed to fetch stats:", err);
+        console.error("Failed to fetch stats:", error);
         setLoadError(true);
       }
     };
 
-    fetchStats();
+    void fetchStats();
   }, [navigate]);
 
   return (

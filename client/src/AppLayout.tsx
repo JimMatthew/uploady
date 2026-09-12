@@ -1,7 +1,13 @@
+import type { ReactNode } from "react";
 import { Box, Flex } from "@chakra-ui/react";
+import { Global } from "@emotion/react";
+
 import Footer from "./components/Footer";
 import Header from "./components/Header";
-import { Global } from "@emotion/react";
+
+interface AppLayoutProps {
+  children: ReactNode;
+}
 
 const GlobalStyles = () => (
   <Global
@@ -16,15 +22,18 @@ const GlobalStyles = () => (
   />
 );
 
-const AppLayout = ({ children }) => {
+const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <Flex h="100dvh" direction="column" overflow="hidden">
       <GlobalStyles />
-      <Header flexShrink={0} />
+
+      <Header />
+
       <Box flex={1} overflow="hidden">
         {children}
       </Box>
-      <Footer flexShrink={0} />
+
+      <Footer />
     </Flex>
   );
 };
