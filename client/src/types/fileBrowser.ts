@@ -14,9 +14,8 @@ export interface FolderEntry {
 }
 
 export interface FileListing {
-  files?: FileEntry[];
-  folders?: FolderEntry[];
-  relativePath?: string | null;
+  files: FileEntry[];
+  folders: FolderEntry[];
 }
 
 export type FileAction = (

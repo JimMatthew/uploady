@@ -1,5 +1,4 @@
 import { Box, Flex, Text, useBreakpointValue } from "@chakra-ui/react";
-
 import { FiLogOut } from "react-icons/fi";
 
 const Header = () => {
@@ -8,7 +7,7 @@ const Header = () => {
     md: true,
   });
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       const res = await fetch("/apilogout", {
         method: "GET",
@@ -17,8 +16,8 @@ const Header = () => {
       if (res.ok) {
         window.location.href = "/";
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error: unknown) {
+      console.error(error);
     }
   };
 
@@ -104,12 +103,8 @@ const Header = () => {
         bg="rgba(255,255,255,0.02)"
         cursor="pointer"
         color="rgba(255,255,255,0.42)"
-        transition="
-          background 120ms ease,
-          border-color 120ms ease,
-          color 120ms ease
-        "
-        onClick={handleLogout}
+        transition="background 120ms ease, border-color 120ms ease, color 120ms ease"
+        onClick={() => void handleLogout()}
         _hover={{
           bg: "rgba(229,115,115,0.07)",
           borderColor: "rgba(229,115,115,0.2)",

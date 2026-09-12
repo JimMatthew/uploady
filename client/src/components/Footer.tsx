@@ -36,10 +36,7 @@ const Footer = () => {
         color="rgba(255,255,255,0.3)"
         letterSpacing="-0.01em"
         textDecoration="none"
-        transition="
-          background 120ms ease,
-          color 120ms ease
-        "
+        transition="background 120ms ease, color 120ms ease"
         _hover={{
           bg: "rgba(255,255,255,0.04)",
           color: "rgba(255,255,255,0.65)",

@@ -4,13 +4,15 @@ export type ClipboardAction = "copy" | "cut";
 
 export type ClipboardSource =
   | "local"
-  | "sftp";
+  | "sftp"
+  | "archive";
 
 export interface ClipboardSourceItem {
   file: string;
   path: string;
   source: ClipboardSource;
   serverId?: string | null;
+  archivePath?: string;
   isDirectory?: boolean;
 }
 
@@ -19,6 +21,7 @@ export interface ClipboardItem {
   path: string;
   source: ClipboardSource;
   serverId: string | null;
+  archivePath?: string;
   isDirectory: boolean;
   action: ClipboardAction;
 }

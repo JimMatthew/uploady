@@ -8,15 +8,14 @@ import type {
   BreadcrumbEntry,
   FileBrowser,
   FileEntry,
+  FileListing,
   FolderEntry,
 } from "../types/fileBrowser";
 
 import type { AppToast } from "./useAppToast";
 
-interface SftpDirectory {
+interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;
-  files: FileEntry[];
-  folders: FolderEntry[];
 }
 
 interface CopyFilesResponse {
@@ -28,7 +27,7 @@ interface UseSftpFileFolderViewerOptions {
   toast: AppToast;
 }
 
-const EMPTY_DIRECTORY: SftpDirectory = {
+const EMPTY_DIRECTORY: SftpDirectoryResponse = {
   currentDirectory: "/",
   files: [],
   folders: [],
@@ -38,7 +37,7 @@ export function useSftpFileFolderViewer({
   serverId,
   toast,
 }: UseSftpFileFolderViewerOptions): FileBrowser {
-  const [files, setFiles] = useState<SftpDirectory>(EMPTY_DIRECTORY);
+  const [files, setFiles] = useState<SftpDirectoryResponse>(EMPTY_DIRECTORY);
   const [loading, setLoading] = useState(true);
   const currentDirectoryRef = useRef("/");
 
@@ -75,8 +74,8 @@ export function useSftpFileFolderViewer({
   // ---------------------------------------------------------------------------
 
   const connectToServer = useCallback(
-    async (signal: AbortSignal): Promise<SftpDirectory> => {
-      const data = await apiClient.get<SftpDirectory>(
+    async (signal: AbortSignal): Promise<SftpDirectoryResponse> => {
+      const data = await apiClient.get<SftpDirectoryResponse>(
         `/sftp/api/connect/${serverId}/`,
         {
           signal,
@@ -91,9 +90,9 @@ export function useSftpFileFolderViewer({
   );
 
   const changeDirectory = useCallback(
-    async (directory: string): Promise<SftpDirectory | null> => {
+    async (directory: string): Promise<SftpDirectoryResponse | null> => {
       try {
-        const data = await apiClient.get<SftpDirectory>(
+        const data = await apiClient.get<SftpDirectoryResponse>(
           `/sftp/api/connect/${serverId}/${directory}/`,
         );
 
@@ -112,13 +111,13 @@ export function useSftpFileFolderViewer({
   );
 
   const openFolder = useCallback(
-    (folder: string): Promise<SftpDirectory | null> => {
+    (folder: string): Promise<SftpDirectoryResponse | null> => {
       return changeDirectory(joinPath(currentDirectory, folder));
     },
     [changeDirectory, currentDirectory],
   );
 
-  const reload = useCallback((): Promise<SftpDirectory | null> => {
+  const reload = useCallback((): Promise<SftpDirectoryResponse | null> => {
     return changeDirectory(currentDirectory);
   }, [changeDirectory, currentDirectory]);
 

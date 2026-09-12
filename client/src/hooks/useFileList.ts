@@ -20,8 +20,12 @@ interface PasteResponse {
   jobId: string;
 }
 
+interface LocalDirectoryResponse extends FileListing {
+  relativePath?: string | null;
+}
+
 export function useFileList({ toast }: UseFileListOptions): FileBrowser {
-  const [files, setFiles] = useState<FileListing | null>(null);
+  const [files, setFiles] = useState<LocalDirectoryResponse | null>(null);
   const [currentPath, setCurrentPath] = useState("files");
   const [loading, setLoading] = useState(true);
   const requestIdRef = useRef(0);
@@ -100,7 +104,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
       const requestId = ++requestIdRef.current;
 
       try {
-        const data = await apiClient.get<FileListing>(
+        const data = await apiClient.get<LocalDirectoryResponse>(
           `/api/${encodePath(path)}/`,
         );
 

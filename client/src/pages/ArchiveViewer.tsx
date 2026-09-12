@@ -1,22 +1,94 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MouseEvent, ReactNode } from "react";
+
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
-import { FiArchive, FiArrowLeft, FiCopy, FiFolder } from "react-icons/fi";
+import type { IconType } from "react-icons";
+import { FiArchive, FiCopy, FiFolder } from "react-icons/fi";
+
 import Breadcrumbs from "../components/Breadcrumbs";
 import FileItem from "../components/FileItem";
 import FolderItem from "../components/FolderItem";
 import ItemMenu from "../components/FileMenu";
 import ClipboardComponent from "../components/ClipboardComponent";
-import apiClient from "../services/apiClient";
-import { useClipboard } from "../contexts/ClipboardContext";
-import { getParentDirectory, getPathName } from "../utils/path";
 
-const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
-  const [entries, setEntries] = useState([]);
+import apiClient, { ApiError } from "../services/apiClient";
+import { useClipboard } from "../contexts/ClipboardContext";
+import { getPathName } from "../utils/path";
+
+import type { AppToast } from "../hooks/useAppToast";
+import type { BreadcrumbEntry } from "../types/fileBrowser";
+import type { ClipboardSourceItem } from "../contexts/ClipboardContext";
+
+interface ArchiveEntry {
+  name: string;
+  size: number;
+  directory: boolean;
+}
+
+interface ArchiveResponse {
+  entries?: ArchiveEntry[];
+}
+
+interface ArchiveFileSource {
+  type: "archive";
+  archivePath: string;
+  entry: string;
+}
+
+interface OpenArchiveFileOptions {
+  filename: string;
+  source: ArchiveFileSource;
+  readOnly: true;
+}
+
+interface ArchiveViewerProps {
+  archivePath: string;
+  filename: string;
+  toast: AppToast;
+  openFile: (options: OpenArchiveFileOptions) => void | Promise<void>;
+}
+
+interface ArchiveContextMenu {
+  x: number;
+  y: number;
+  entry: ArchiveEntry | null;
+  visible: boolean;
+}
+
+interface ArchiveHeaderProps {
+  filename: string;
+  breadcrumb: BreadcrumbEntry[];
+  selectedCount: number;
+  onNavigate: (path: string) => void;
+  onCopy: () => void;
+}
+
+interface ToolbarButtonProps {
+  icon: IconType;
+  children: ReactNode;
+  onClick: () => void;
+}
+
+interface ArchiveContentsProps {
+  entries: ArchiveEntry[];
+  selectedEntryNames: Set<string>;
+  onOpen: (entry: ArchiveEntry) => void;
+  onSelect: (entry: ArchiveEntry) => void;
+  onOpenMenu: (event: MouseEvent<HTMLDivElement>, entry: ArchiveEntry) => void;
+}
+
+const ArchiveViewer = ({
+  archivePath,
+  filename,
+  toast,
+  openFile,
+}: ArchiveViewerProps) => {
+  const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [currentDirectory, setCurrentDirectory] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedEntries, setSelectedEntries] = useState([]);
+  const [selectedEntries, setSelectedEntries] = useState<ArchiveEntry[]>([]);
 
-  const [contextMenu, setContextMenu] = useState({
+  const [contextMenu, setContextMenu] = useState<ArchiveContextMenu>({
     x: 0,
     y: 0,
     entry: null,
@@ -30,27 +102,35 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     [filename, currentDirectory],
   );
 
-  const navigateToDirectory = useCallback((path) => {
-    setCurrentDirectory(path);
+  const navigateToDirectory = useCallback((path: string): void => {
+    const archivePath = path === "/" ? "" : path.replace(/^\/+/, "");
+
+    setCurrentDirectory(archivePath);
     setSelectedEntries([]);
   }, []);
 
-  const loadArchive = useCallback(async () => {
+  const loadArchive = useCallback(async (): Promise<void> => {
     setLoading(true);
 
     try {
       const path = encodeURIComponent(archivePath);
-      const data = await apiClient.get(`/api/archive/local?path=${path}`);
+
+      const data = await apiClient.get<ArchiveResponse>(
+        `/api/archive/local?path=${path}`,
+      );
 
       setEntries(data.entries ?? []);
       setCurrentDirectory("");
       setSelectedEntries([]);
-    } catch (err) {
-      console.error("Failed to open archive:", err);
+    } catch (error: unknown) {
+      console.error("Failed to open archive:", error);
 
-      toast?.({
+      toast({
         title: "Failed to open archive",
-        description: err.message,
+        description:
+          error instanceof ApiError
+            ? error.message
+            : "Unable to read archive contents",
         status: "error",
       });
     } finally {
@@ -59,7 +139,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   }, [archivePath, toast]);
 
   useEffect(() => {
-    loadArchive();
+    void loadArchive();
   }, [loadArchive]);
 
   const visibleEntries = useMemo(
@@ -73,14 +153,14 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   );
 
   const openEntry = useCallback(
-    (entry) => {
+    (entry: ArchiveEntry): void => {
       if (entry.directory) {
         setCurrentDirectory(entry.name);
         setSelectedEntries([]);
         return;
       }
 
-      openFile({
+      void openFile({
         filename: getPathName(entry.name),
         source: {
           type: "archive",
@@ -93,7 +173,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     [archivePath, openFile],
   );
 
-  const toggleEntrySelection = useCallback((entry) => {
+  const toggleEntrySelection = useCallback((entry: ArchiveEntry): void => {
     setSelectedEntries((current) => {
       const selected = current.some((item) => item.name === entry.name);
 
@@ -105,7 +185,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     });
   }, []);
 
-  const copySelected = useCallback(() => {
+  const copySelected = useCallback((): void => {
     if (!selectedEntries.length) {
       return;
     }
@@ -116,7 +196,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   }, [selectedEntries, copyFile, archivePath]);
 
   const copyArchiveEntry = useCallback(
-    (entry) => {
+    (entry: ArchiveEntry | null): void => {
       if (!entry) {
         return;
       }
@@ -126,18 +206,21 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
     [copyFile, archivePath],
   );
 
-  const openMenu = useCallback((event, entry) => {
-    event.preventDefault();
+  const openMenu = useCallback(
+    (event: MouseEvent<HTMLDivElement>, entry: ArchiveEntry): void => {
+      event.preventDefault();
 
-    setContextMenu({
-      x: event.clientX,
-      y: event.clientY,
-      entry,
-      visible: true,
-    });
-  }, []);
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        entry,
+        visible: true,
+      });
+    },
+    [],
+  );
 
-  const closeMenu = useCallback(() => {
+  const closeMenu = useCallback((): void => {
     setContextMenu((current) => ({
       ...current,
       visible: false,
@@ -162,7 +245,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
 
       {clipboard[0] && (
         <Box borderBottom="1px solid" borderColor="whiteAlpha.100">
-          <ClipboardComponent pasteable={false} />
+          <ClipboardComponent handlePaste={() => {}} pasteable={false} />
         </Box>
       )}
 
@@ -186,7 +269,7 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
           left={contextMenu.x}
           item={getPathName(contextMenu.entry.name)}
           closeMenu={closeMenu}
-          openItem={() => openEntry(contextMenu.entry)}
+          openItem={() => openEntry(contextMenu.entry!)}
           copyItem={() => copyArchiveEntry(contextMenu.entry)}
         />
       )}
@@ -194,8 +277,11 @@ const ArchiveViewer = ({ archivePath, filename, toast, openFile }) => {
   );
 };
 
-function buildArchiveBreadcrumb(filename, currentDirectory) {
-  const breadcrumb = [
+function buildArchiveBreadcrumb(
+  filename: string,
+  currentDirectory: string,
+): BreadcrumbEntry[] {
+  const breadcrumb: BreadcrumbEntry[] = [
     {
       name: filename,
       path: "",
@@ -228,7 +314,7 @@ const ArchiveHeader = ({
   selectedCount,
   onNavigate,
   onCopy,
-}) => {
+}: ArchiveHeaderProps) => {
   return (
     <Box
       flexShrink={0}
@@ -277,7 +363,7 @@ const ArchiveHeader = ({
   );
 };
 
-const ToolbarButton = ({ icon, children, onClick }) => (
+const ToolbarButton = ({ icon, children, onClick }: ToolbarButtonProps) => (
   <Flex
     as="button"
     type="button"
@@ -343,7 +429,7 @@ const ArchiveContents = ({
   onOpen,
   onSelect,
   onOpenMenu,
-}) => {
+}: ArchiveContentsProps) => {
   if (!entries.length) {
     return <ArchiveEmptyState />;
   }
@@ -413,7 +499,10 @@ const ArchiveEmptyState = () => (
   </Flex>
 );
 
-function getDirectoryEntries(entries, currentDirectory) {
+function getDirectoryEntries(
+  entries: ArchiveEntry[],
+  currentDirectory: string,
+): ArchiveEntry[] {
   return entries
     .filter((entry) => {
       if (!entry.name.startsWith(currentDirectory)) {
@@ -435,24 +524,23 @@ function getDirectoryEntries(entries, currentDirectory) {
         return a.directory ? -1 : 1;
       }
 
-      return getPathName(a.name).localeCompare(
-        getPathName(b.name),
-        undefined,
-        {
-          numeric: true,
-          sensitivity: "base",
-        },
-      );
+      return getPathName(a.name).localeCompare(getPathName(b.name), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
     });
 }
 
-function createClipboardEntry(entry, archivePath) {
+function createClipboardEntry(
+  entry: ArchiveEntry,
+  archivePath: string,
+): ClipboardSourceItem {
   const entryPath = entry.directory
     ? entry.name.replace(/\/+$/, "")
     : entry.name;
 
   const parts = entryPath.split("/");
-  const file = parts.pop();
+  const file = parts.pop() ?? "";
   const path = parts.length ? `${parts.join("/")}/` : "";
 
   return {
