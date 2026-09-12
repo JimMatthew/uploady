@@ -11,24 +11,12 @@ import { Box, Flex, HStack, Icon, Text } from "@chakra-ui/react";
 import { FiChevronUp, FiChevronDown } from "react-icons/fi";
 import FolderItem from "./FolderItem";
 import ItemMenu from "./FileMenu";
-
-type SortDirection = "asc" | "desc";
-
-interface FolderEntry {
-  name: string;
-}
-
-interface ContextMenuState {
-  x: number;
-  y: number;
-  folder: string | null;
-  visible: boolean;
-}
-
-interface MenuPosition {
-  x: number;
-  y: number;
-}
+import {
+  ContextMenuState,
+  FolderEntry,
+  MenuPosition,
+  SortDirection,
+} from "../types/fileBrowser";
 
 interface FolderListProps {
   folders: FolderEntry[];
@@ -50,18 +38,14 @@ const FolderList = ({
   copyFolder,
 }: FolderListProps) => {
   const menuRef = useRef<HTMLDivElement | null>(null);
-
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
 
-  const [menuPos, setMenuPos] = useState<MenuPosition>({
-    x: 0,
-    y: 0,
-  });
-
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    x: 0,
-    y: 0,
-    folder: null,
+    position: {
+      x: 0,
+      y: 0,
+    },
+    target: null,
     visible: false,
   });
 
@@ -70,15 +54,12 @@ const FolderList = ({
       event.preventDefault();
 
       setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        folder: name,
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+        },
+        target: name,
         visible: true,
-      });
-
-      setMenuPos({
-        x: event.clientX,
-        y: event.clientY,
       });
     },
     [],
@@ -101,8 +82,7 @@ const FolderList = ({
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let x = contextMenu.x;
-    let y = contextMenu.y;
+    let { x, y } = contextMenu.position;
 
     if (x + menu.width > vw) {
       x = vw - menu.width - 8;
@@ -115,11 +95,20 @@ const FolderList = ({
     x = Math.max(8, x);
     y = Math.max(8, y);
 
-    setMenuPos({
-      x,
-      y,
+    setContextMenu((menuState) => {
+      if (menuState.position.x === x && menuState.position.y === y) {
+        return menuState;
+      }
+
+      return {
+        ...menuState,
+        position: {
+          x,
+          y,
+        },
+      };
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
+  }, [contextMenu.visible, contextMenu.position.x, contextMenu.position.y]);
 
   const toggleSort = useCallback(() => {
     setSortDir((current) => (current === "asc" ? "desc" : "asc"));
@@ -225,12 +214,12 @@ const FolderList = ({
         />
       ))}
 
-      {contextMenu.visible && contextMenu.folder && (
+      {contextMenu.visible && contextMenu.target && (
         <ItemMenu
           ref={menuRef}
-          item={contextMenu.folder}
-          top={menuPos.y}
-          left={menuPos.x}
+          item={contextMenu.target}
+          top={contextMenu.position.y}
+          left={contextMenu.position.x}
           closeMenu={closeMenu}
           copyItem={copyFolder}
           deleteItem={deleteFolder}

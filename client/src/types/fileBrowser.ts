@@ -59,6 +59,17 @@ export type FileBatchAction = (
   fileNames: string[],
 ) => void | Promise<void>;
 
+export interface MenuPosition {
+  x: number;
+  y: number;
+}
+
+export interface ContextMenuState {
+  position: MenuPosition;
+  target: string | null;
+  visible: boolean;
+}
+
 export interface FileBrowser {
   currentPath: string,
   files: FileListing;

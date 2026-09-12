@@ -174,7 +174,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const downloadFile = useCallback(
     async (name: string): Promise<void> => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 
@@ -198,7 +198,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const downloadFolder = useCallback(
     async (folderName: string): Promise<void> => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 
@@ -237,7 +237,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const deleteFile = useCallback(
     async (name: string): Promise<void> => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 
@@ -261,7 +261,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const deleteFiles = useCallback(
     async (names: string[]): Promise<void> => {
-      if (!relativePath || names.length === 0) {
+      if (relativePath == null || names.length === 0) {
         return;
       }
 
@@ -290,7 +290,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const renameFile = useCallback(
     async (name: string, newName: string): Promise<void> => {
-      if (!name || !newName || !relativePath) {
+      if (!name || !newName || relativePath == null) {
         showToast("Missing required fields", "error");
 
         return;
@@ -300,7 +300,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         await apiClient.post("/api/rename-file", {
           filename: name,
           newFilename: newName,
-          currentPath: relativePath,
+          currentPath: relativePath || "/",
         });
 
         await reload();
@@ -317,7 +317,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const shareFile = useCallback(
     async (name: string): Promise<void> => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 
@@ -351,7 +351,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const createFolder = useCallback(
     async (folderName: string): Promise<void> => {
-      if (!folderName || !relativePath) {
+      if (!folderName || relativePath == null) {
         return;
       }
 
@@ -372,31 +372,29 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [relativePath, reload, showToast],
   );
+const deleteFolder = useCallback(
+  async (folderName: string): Promise<void> => {
+    if (!folderName || relativePath == null) {
+      return;
+    }
 
-  const deleteFolder = useCallback(
-    async (folderName: string): Promise<void> => {
-      if (!folderName || !relativePath) {
-        return;
-      }
+    try {
+      await apiClient.post("/api/delete-folder", {
+        folderName,
+        folderPath: relativePath || "/",
+      });
 
-      try {
-        await apiClient.post("/api/delete-folder", {
-          folderName,
-          folderPath: relativePath,
-        });
+      await reload();
 
-        await reload();
+      showToast("Folder deleted", "success");
+    } catch (error: unknown) {
+      console.error("Error deleting folder:", error);
 
-        showToast("Folder deleted", "success");
-      } catch (error: unknown) {
-        console.error("Error deleting folder:", error);
-
-        showToast("Error deleting folder", "error");
-      }
-    },
-    [relativePath, reload, showToast],
-  );
-
+      showToast("Error deleting folder", "error");
+    }
+  },
+  [relativePath, reload, showToast],
+);
   // ---------------------------------------------------------------------------
   // Clipboard operations
   // ---------------------------------------------------------------------------
@@ -434,7 +432,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const cutFile = useCallback(
     (name: string): void => {
-      if (!relativePath) {
+      if (relativePath == null) {
         return;
       }
 
@@ -449,7 +447,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   );
 
   const paste = useCallback(async (): Promise<void> => {
-    if (!clipboard.length || !relativePath) {
+    if (!clipboard.length || relativePath == null) {
       return;
     }
 

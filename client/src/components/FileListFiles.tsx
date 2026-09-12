@@ -17,6 +17,8 @@ import type {
   FileAction,
   RenameFileAction,
   FileBatchAction,
+  MenuPosition,
+  ContextMenuState,
 } from "../types/fileBrowser";
 const SORT_FIELDS = ["name", "size", "date"] as const;
 
@@ -35,18 +37,6 @@ interface FileListProps {
   copyFile: FileAction;
   cutFile: FileAction;
   openFile: FileAction;
-}
-
-interface MenuPosition {
-  x: number;
-  y: number;
-}
-
-interface ContextMenuState {
-  x: number;
-  y: number;
-  file: string | null;
-  visible: boolean;
 }
 
 export default function FileList({
@@ -91,15 +81,12 @@ export default function FileList({
   const dragVisitedRef = useRef<Set<string>>(new Set());
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
 
-  const [menuPos, setMenuPos] = useState<MenuPosition>({
-    x: 0,
-    y: 0,
-  });
-
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+     position: {
     x: 0,
     y: 0,
-    file: null,
+  },
+    target: null,
     visible: false,
   });
 
@@ -108,15 +95,12 @@ export default function FileList({
       event.preventDefault();
 
       setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        file: fileName,
+       position: {
+    x: event.clientX,
+    y: event.clientY,
+  },
+        target: fileName,
         visible: true,
-      });
-
-      setMenuPos({
-        x: event.clientX,
-        y: event.clientY,
       });
     },
     [],
@@ -221,8 +205,7 @@ export default function FileList({
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let x = contextMenu.x;
-    let y = contextMenu.y;
+    let { x, y } = contextMenu.position;
 
     if (x + menu.width > vw) {
       x = vw - menu.width - 8;
@@ -235,11 +218,20 @@ export default function FileList({
     x = Math.max(8, x);
     y = Math.max(8, y);
 
-    setMenuPos({
-      x,
-      y,
+    setContextMenu((menuState) => {
+      if (menuState.position.x === x && menuState.position.y === y) {
+        return menuState;
+      }
+
+      return {
+        ...menuState,
+        position: {
+          x,
+          y,
+        },
+      };
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
+  }, [contextMenu.visible, contextMenu.position.x, contextMenu.position.y]);
 
   return (
     <Box>
@@ -398,12 +390,12 @@ export default function FileList({
         ))
       )}
 
-      {contextMenu.visible && contextMenu.file && (
+      {contextMenu.visible && contextMenu.target && (
         <ItemMenu
           ref={menuRef}
-          item={contextMenu.file}
-          top={menuPos.y}
-          left={menuPos.x}
+          item={contextMenu.target}
+          top={contextMenu.position.y}
+          left={contextMenu.position.x}
           closeMenu={closeMenu}
           copyItem={copyFile}
           cutItem={cutFile}
