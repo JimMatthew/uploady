@@ -95,7 +95,6 @@ const EpubViewer = ({ src, filename }: EpubViewerProps) => {
 
           if (location.start.displayed) {
             setCurrentPage(location.start.displayed.page);
-
             setTotalPages(location.start.displayed.total);
           }
 

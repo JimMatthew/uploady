@@ -94,25 +94,15 @@ const copyToClipboard = async (text: string): Promise<void> => {
 
 const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
   const serverList = servers;
-
   const [actions, setActions] = useState<SavedAction[]>([]);
-
   const [loading, setLoading] = useState(true);
-
   const [loadFailed, setLoadFailed] = useState(false);
-
   const [creating, setCreating] = useState(false);
-
   const [runningIds, setRunningIds] = useState<Set<string>>(() => new Set());
-
   const [deletingIds, setDeletingIds] = useState<Set<string>>(() => new Set());
-
   const [newAction, setNewAction] = useState<ActionDraft>(EMPTY_ACTION);
-
   const [outputs, setOutputs] = useState<Record<string, ActionOutput>>({});
-
   const [search, setSearch] = useState("");
-
   const [pendingDelete, setPendingDelete] = useState<SavedAction | null>(null);
 
   const {
@@ -311,9 +301,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
       if (result.mode === "capture") {
         const output: ActionOutput = {
           stdout: result.output?.stdout ?? result.stdout ?? "",
-
           stderr: result.output?.stderr ?? result.stderr ?? "",
-
           exitCode: result.output?.exitCode ?? result.exitCode ?? -1,
         };
 

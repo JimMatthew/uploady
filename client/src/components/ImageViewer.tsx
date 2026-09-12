@@ -175,7 +175,6 @@ const ImageViewer = ({ src, alt = "", onSave }: ImageViewerProps) => {
 
     try {
       const blob = await getCroppedImg(displaySrc, croppedAreaPixels, 0);
-
       const url = URL.createObjectURL(blob);
 
       setCroppedSrc((current) => {

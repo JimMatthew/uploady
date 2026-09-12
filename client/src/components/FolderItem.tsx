@@ -93,9 +93,7 @@ const FolderItem = memo(function FolderItem({
         fill="none"
         style={{
           flexShrink: 0,
-
           transition: "transform 0.12s ease, opacity 0.12s ease",
-
           opacity: 0.3,
         }}
       >

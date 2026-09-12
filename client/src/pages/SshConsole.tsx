@@ -14,9 +14,7 @@ import { FiExternalLink, FiRefreshCw, FiTerminal } from "react-icons/fi";
 // -----------------------------------------------------------------------------
 
 const TERMINAL_BACKGROUND = "#0B0D12";
-
 const TOOLBAR_BACKGROUND = "#10131A";
-
 const ACCENT = "#818CF8";
 
 // -----------------------------------------------------------------------------
@@ -198,7 +196,6 @@ const SshConsole = ({
     fitAddon.current = fitter;
 
     terminal.loadAddon(fitter);
-
     terminal.open(terminalElement);
 
     try {
@@ -374,7 +371,6 @@ const SshConsole = ({
     // -------------------------------------------------------------------------
 
     fitter.fit();
-
     window.addEventListener("resize", sendResize);
 
     // -------------------------------------------------------------------------

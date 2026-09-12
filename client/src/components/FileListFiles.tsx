@@ -7,9 +7,7 @@ import {
 } from "react";
 
 import { Box, HStack, Text, Icon, Flex } from "@chakra-ui/react";
-
 import { FiChevronUp, FiChevronDown, FiFileText } from "react-icons/fi";
-
 import { useFileListState } from "../hooks/useFileListFile";
 import FileItem from "./FileItem";
 import Toolbar from "./Toolbar";

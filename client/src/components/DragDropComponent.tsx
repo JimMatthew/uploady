@@ -15,7 +15,6 @@ import {
 } from "@chakra-ui/react";
 
 import { FiFile, FiUploadCloud, FiX } from "react-icons/fi";
-
 import useFileUpload from "../controllers/useFileUpload";
 
 interface DragAndDropComponentProps {
@@ -32,7 +31,6 @@ const DragAndDropComponent = ({
   onUploadError,
 }: DragAndDropComponentProps) => {
   const [files, setFiles] = useState<File[]>([]);
-
   const token = localStorage.getItem("token");
 
   const { uploadFiles, progresses } = useFileUpload({

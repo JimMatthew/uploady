@@ -516,7 +516,6 @@ function getDirectoryEntries(
       }
 
       const trimmed = relative.replace(/\/+$/, "");
-
       return !trimmed.includes("/");
     })
     .sort((a, b) => {

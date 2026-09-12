@@ -1,6 +1,5 @@
 import { memo } from "react";
 import type { ReactNode } from "react";
-
 import { Box, Flex, Icon, Text, VStack } from "@chakra-ui/react";
 
 import {
@@ -14,7 +13,6 @@ import {
 } from "react-icons/fi";
 
 import type { IconType } from "react-icons";
-
 import ServerCard from "../components/ServerCard";
 
 import type {

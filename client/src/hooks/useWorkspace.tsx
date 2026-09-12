@@ -67,9 +67,9 @@ export interface SftpFileSource {
 
 export interface ArchiveFileSource {
   type: "archive";
-  currentDirectory: string;
   archivePath: string;
   entry: string;
+  currentDirectory?: never;
   serverId?: never;
   host?: never;
 }
@@ -270,58 +270,60 @@ const saveServer = useCallback(
   // ---------------------------------------------------------------------------
   // File tabs
   // ---------------------------------------------------------------------------
+const openFile = useCallback(
+  ({
+    filename,
+    source,
+    isNew = false,
+    readOnly = false,
+  }: OpenFileOptions): void => {
+    const extension = filename.split(".").pop()?.toLowerCase();
 
-  const openFile = useCallback(
-    ({
-      filename,
-      source,
-      isNew = false,
-      readOnly = false,
-    }: OpenFileOptions): void => {
-      const extension = filename.split(".").pop()?.toLowerCase();
+    let content: ReactNode;
 
-      let content: ReactNode;
+    if (extension === "zip" && source.type === "local") {
+      const archivePath = source.currentDirectory
+        ? `${source.currentDirectory}/${filename}`
+        : filename;
 
-      if (extension === "zip" && source.type === "local") {
-        const archivePath = source.currentDirectory
-          ? `${source.currentDirectory}/${filename}`
-          : filename;
+      content = (
+        <Suspense fallback={<div>Loading archive...</div>}>
+          <ArchiveViewer
+            archivePath={archivePath}
+            filename={filename}
+            toast={toast}
+            openFile={openFile}
+          />
+        </Suspense>
+      );
+    } else {
+      const currentDirectory =
+        source.type === "archive" ? "" : source.currentDirectory;
 
-        content = (
-          <Suspense fallback={<div>Loading archive...</div>}>
-            <ArchiveViewer
-              archivePath={archivePath}
-              filename={filename}
-              toast={toast}
-              openFile={openFile}
-            />
-          </Suspense>
-        );
-      } else {
-        content = (
-          <Suspense fallback={<div>Loading file viewer...</div>}>
-            <FileEdit
-              serverId={source.type === "sftp" ? source.serverId : undefined}
-              currentDirectory={source.currentDirectory}
-              filename={filename}
-              toast={toast}
-              host={source.type === "sftp" ? source.host : undefined}
-              remote={source.type === "sftp"}
-              isNew={isNew}
-              source={source}
-              readOnly={readOnly}
-            />
-          </Suspense>
-        );
-      }
+      content = (
+        <Suspense fallback={<div>Loading file viewer...</div>}>
+          <FileEdit
+            serverId={source.type === "sftp" ? source.serverId : undefined}
+            currentDirectory={currentDirectory}
+            filename={filename}
+            toast={toast}
+            host={source.type === "sftp" ? source.host : undefined}
+            remote={source.type === "sftp"}
+            isNew={isNew}
+            source={source}
+            readOnly={readOnly}
+          />
+        </Suspense>
+      );
+    }
 
-      openTab({
-        label: filename,
-        content,
-      });
-    },
-    [openTab, toast],
-  );
+    openTab({
+      label: filename,
+      content,
+    });
+  },
+  [openTab, toast],
+);
 
   const openLocalFiles = useCallback((): void => {
     openTab({

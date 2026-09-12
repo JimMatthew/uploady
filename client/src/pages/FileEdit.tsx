@@ -62,9 +62,7 @@ interface FileHeaderProps {
 // -----------------------------------------------------------------------------
 
 const VIDEO_EXTS = new Set(["mp4", "webm", "ogg"]);
-
 const AUDIO_EXTS = new Set(["mp3", "wav", "ogg"]);
-
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
 const getExt = (filename: string): string => {
@@ -326,9 +324,7 @@ const FileEdit = ({
     }
 
     const reader = response.body.getReader();
-
     const decoder = new TextDecoder();
-
     let result = "";
 
     while (true) {
@@ -346,7 +342,6 @@ const FileEdit = ({
     }
 
     result += decoder.decode();
-
     setText(result);
   };
 
@@ -360,13 +355,11 @@ const FileEdit = ({
 
   useEffect(() => {
     const controller = new AbortController();
-
     const { signal } = controller;
 
     setText("");
     setObjectUrl(null);
     setEpubData(null);
-
     clearObjectUrl();
 
     const loadFile = async (): Promise<void> => {

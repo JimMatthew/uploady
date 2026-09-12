@@ -8,9 +8,7 @@ import {
 } from "react";
 
 import { Box, Flex, HStack, Icon, Text } from "@chakra-ui/react";
-
 import { FiChevronUp, FiChevronDown } from "react-icons/fi";
-
 import FolderItem from "./FolderItem";
 import ItemMenu from "./FileMenu";
 
