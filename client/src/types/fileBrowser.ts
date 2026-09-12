@@ -27,14 +27,22 @@ export type RenameFileAction = (
   newName: string,
 ) => void | Promise<void>;
 
+  export const SORT_FIELDS = {
+  NAME: "name",
+  SIZE: "size",
+  DATE: "date",
+} as const;
+
 export type SortField =
-  | "name"
-  | "size"
-  | "date";
+  (typeof SORT_FIELDS)[keyof typeof SORT_FIELDS];
+
+export const SORT_DIRECTIONS = {
+  ASC: "asc",
+  DESC: "desc",
+} as const;
 
 export type SortDirection =
-  | "asc"
-  | "desc";
+  (typeof SORT_DIRECTIONS)[keyof typeof SORT_DIRECTIONS];
 
 export interface BreadcrumbEntry {
   name: string;

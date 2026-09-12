@@ -77,9 +77,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const downloadBlob = useCallback((blob: Blob, filename: string): void => {
     const url = window.URL.createObjectURL(blob);
-
     const anchor = document.createElement("a");
-
     anchor.href = url;
     anchor.download = filename;
 
@@ -182,7 +180,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
       try {
         const path = encodePath(relativePath);
-
         const filename = encodeURIComponent(name);
 
         const blob = await apiClient.getBlob(
@@ -207,7 +204,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
       try {
         const path = encodePath(relativePath);
-
         const folder = encodeURIComponent(folderName);
 
         const blob = await apiClient.getBlob(
@@ -236,7 +232,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
       try {
         const path = encodePath(relativePath);
-
         const filename = encodeURIComponent(name);
 
         await apiClient.post(`/api/delete/${path}/${filename}`, {

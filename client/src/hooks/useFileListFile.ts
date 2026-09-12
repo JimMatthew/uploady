@@ -5,16 +5,11 @@ import type {
   SortField,
   SortDirection,
 } from "../types/fileBrowser";
-export const SORT_FIELDS = {
-  NAME: "name",
-  SIZE: "size",
-  DATE: "date",
-} as const;
 
-export const SORT_DIRECTIONS = {
-  ASC: "asc",
-  DESC: "desc",
-} as const;
+import {
+  SORT_DIRECTIONS,
+  SORT_FIELDS,
+} from "../types/fileBrowser";
 
 interface UseFileListStateOptions {
   files?: FileEntry[];
@@ -173,9 +168,7 @@ export function useFileListState({
         }
         case SORT_FIELDS.DATE: {
           const aTime = a.date != null ? new Date(a.date).getTime() : 0;
-
           const bTime = b.date != null ? new Date(b.date).getTime() : 0;
-
           comparison = aTime - bTime;
           break;
         }
