@@ -515,5 +515,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
     progressMap,
     startedTransfers,
+    error: null
   };
 }

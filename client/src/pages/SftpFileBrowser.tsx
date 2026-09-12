@@ -5,6 +5,7 @@ import { useSftpFileFolderViewer } from "../hooks/useSftpFileFolderViewer";
 import FilePanel from "./FilePanel";
 
 import type { AppToast } from "../hooks/useAppToast";
+import type { FileUploadProps } from "../types/fileBrowser";
 
 interface SftpFileSource {
   type: "sftp";
@@ -26,17 +27,6 @@ interface SftpFileBrowserProps {
   openFile: (options: OpenFileOptions) => void | Promise<void>;
 
   host: string;
-}
-
-interface FileUploadProps {
-  apiEndpoint: string;
-
-  additionalData: {
-    serverId: string;
-    currentDirectory: string;
-  };
-
-  onUploadSuccess: () => void | Promise<void>;
 }
 
 const SftpFileBrowser = ({
@@ -111,11 +101,7 @@ const SftpFileBrowser = ({
     );
   }
 
-  if (
-    !browser.files ||
-    !Array.isArray(browser.files.folders) ||
-    !Array.isArray(browser.files.files)
-  ) {
+  if (browser.error) {
     return (
       <Flex
         align="center"
@@ -153,6 +139,10 @@ const SftpFileBrowser = ({
             color="rgba(255,255,255,0.3)"
           >
             {host}
+          </Text>
+
+          <Text mt={1} fontSize="11px" color="rgba(255,255,255,0.32)">
+            {browser.error}
           </Text>
         </Box>
       </Flex>

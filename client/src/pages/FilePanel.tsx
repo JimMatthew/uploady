@@ -9,7 +9,6 @@ import {
 } from "@chakra-ui/react";
 
 import { FiUpload, FiUploadCloud } from "react-icons/fi";
-
 import Breadcrumbs from "../components/Breadcrumbs";
 import Upload from "../components/UploadComponent";
 import DragAndDropComponent from "../components/DragDropComponent";
@@ -19,9 +18,8 @@ import FileList from "../components/FileListFiles";
 import TransferProgress from "../components/TransferProgress";
 import CreateFileComponent from "../components/CreateFileComponent";
 import ClipboardComponent from "../components/ClipboardComponent";
-
 import { useClipboard } from "../contexts/ClipboardContext";
-import type { FileBrowser } from "../types/fileBrowser";
+import type { FileBrowser, FileUploadProps } from "../types/fileBrowser";
 
 const SHORT_SCREEN_HEIGHT = 800;
 const UPLOAD_MODE_KEY = "uploadMode";
@@ -32,12 +30,6 @@ const UploadMode = {
 } as const;
 
 type UploadModeValue = (typeof UploadMode)[keyof typeof UploadMode];
-
-interface FileUploadProps {
-  apiEndpoint: string;
-  additionalData?: Record<string, unknown>;
-  onUploadSuccess?: () => void;
-}
 
 interface FilePanelProps {
   browser: FileBrowser;
@@ -114,7 +106,6 @@ const FilePanel = ({
     };
 
     updateScreenHeight();
-
     window.addEventListener("resize", updateScreenHeight);
 
     return () => {
@@ -123,9 +114,7 @@ const FilePanel = ({
   }, []);
 
   const forceCompact = isCompactViewport || isShortScreen;
-
   const showDropZone = !forceCompact && uploadMode === UploadMode.DRAG_DROP;
-
   const showCompactUpload = forceCompact || uploadMode === UploadMode.COMPACT;
 
   const toggleUploadMode = (): void => {
@@ -135,7 +124,6 @@ const FilePanel = ({
         : UploadMode.DRAG_DROP;
 
     setUploadMode(nextMode);
-
     localStorage.setItem(UPLOAD_MODE_KEY, nextMode);
   };
 
@@ -145,14 +133,8 @@ const FilePanel = ({
     Object.keys(startedTransfers).length > 0 &&
     Object.keys(progressMap).length > 0;
 
-  /*
-   * The local browser may briefly have no
-   * listing while loading, whereas the SFTP
-   * browser starts with an empty directory.
-   */
-  const folders = files?.folders ?? [];
-
-  const fileEntries = files?.files ?? [];
+  const folders = files.folders;
+  const fileEntries = files.files;
 
   return (
     <Flex direction="column" h="100%" minH={0} overflow="hidden">
@@ -275,7 +257,6 @@ const FilePanel = ({
 
 const UploadModeToggle = ({ mode, onToggle }: UploadModeToggleProps) => {
   const showingDropZone = mode === UploadMode.DRAG_DROP;
-
   const label = showingDropZone ? "Hide drop zone" : "Show drop zone";
 
   return (

@@ -41,9 +41,15 @@ export interface BreadcrumbEntry {
   path: string;
 }
 
+export interface FileUploadProps {
+  apiEndpoint: string;
+  additionalData?: Record<string, unknown>;
+  onUploadSuccess?: () => void | Promise<void>;
+}
+
 export interface FileBrowser {
   currentPath: string,
-  files: FileListing | null;
+  files: FileListing;
   loading: boolean;
 
   openFolder: (
@@ -78,4 +84,6 @@ export interface FileBrowser {
 
   progressMap: TransferProgressMap;
   startedTransfers: TransferProgressMap;
+
+  error: string | null;
 }

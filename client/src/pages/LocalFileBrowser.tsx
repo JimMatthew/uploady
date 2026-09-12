@@ -3,6 +3,7 @@ import { Flex, Spinner, Text } from "@chakra-ui/react";
 import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 import type { AppToast } from "../hooks/useAppToast";
+import type { FileUploadProps } from "../types/fileBrowser";
 
 interface LocalFileSource {
   type: "local";
@@ -19,12 +20,6 @@ interface LocalFileBrowserProps {
   toast: AppToast;
 
   openFile: (options: OpenFileOptions) => void | Promise<void>;
-}
-
-interface FileUploadProps {
-  apiEndpoint: string;
-  additionalData: Record<string, unknown>;
-  onUploadSuccess: () => void | Promise<void>;
 }
 
 const LocalFileBrowser = ({ toast, openFile }: LocalFileBrowserProps) => {

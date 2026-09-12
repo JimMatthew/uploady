@@ -40,7 +40,7 @@ export function useSftpFileFolderViewer({
   const [files, setFiles] = useState<SftpDirectoryResponse>(EMPTY_DIRECTORY);
   const [loading, setLoading] = useState(true);
   const currentDirectoryRef = useRef("/");
-
+const [error, setError] = useState<string | null>(null);
   const showToast = useCallback(
     (
       title: string,
@@ -125,32 +125,41 @@ export function useSftpFileFolderViewer({
   // Initial connection
   // ---------------------------------------------------------------------------
 
-  useEffect(() => {
-    const controller = new AbortController();
+ useEffect(() => {
+  const controller = new AbortController();
 
-    setLoading(true);
-    setFiles(EMPTY_DIRECTORY);
+  setLoading(true);
+  setError(null);
+  setFiles(EMPTY_DIRECTORY);
 
-    const connect = async (): Promise<void> => {
-      try {
-        await connectToServer(controller.signal);
-      } catch (error: unknown) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          showToast("Error connecting to server", "error");
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+  const connect = async (): Promise<void> => {
+    try {
+      await connectToServer(controller.signal);
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
       }
-    };
 
-    void connect();
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to connect to server";
 
-    return () => {
-      controller.abort();
-    };
-  }, [connectToServer, showToast]);
+      setError(message);
+      showToast("Error connecting to server", "error");
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  void connect();
+
+  return () => {
+    controller.abort();
+  };
+}, [connectToServer, showToast]);
 
   // ---------------------------------------------------------------------------
   // Downloads
@@ -476,5 +485,6 @@ export function useSftpFileFolderViewer({
 
     progressMap,
     startedTransfers,
+    error
   };
 }
