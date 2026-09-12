@@ -1,26 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-
 import { Box, Flex, Icon, Spinner, Text } from "@chakra-ui/react";
 import type { IconType } from "react-icons";
 import { FiArchive, FiCopy, FiFolder } from "react-icons/fi";
-
 import Breadcrumbs from "../components/Breadcrumbs";
 import FileItem from "../components/FileItem";
 import FolderItem from "../components/FolderItem";
 import ItemMenu from "../components/FileMenu";
 import ClipboardComponent from "../components/ClipboardComponent";
-
 import apiClient, { ApiError } from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { getPathName } from "../utils/path";
-
 import type { AppToast } from "../hooks/useAppToast";
 import type { BreadcrumbEntry } from "../types/fileBrowser";
 import type { ClipboardSourceItem } from "../contexts/ClipboardContext";
-import type {
-  OpenArchiveFileOptions,
-} from "../types/workspace";
+import type { OpenArchiveFileOptions } from "../types/workspace";
 
 interface ArchiveEntry {
   name: string;
@@ -36,9 +30,7 @@ interface ArchiveViewerProps {
   archivePath: string;
   filename: string;
   toast: AppToast;
-  openFile: (
-    options: OpenArchiveFileOptions,
-  ) => void | Promise<void>;
+  openFile: (options: OpenArchiveFileOptions) => void | Promise<void>;
 }
 
 interface ArchiveContextMenu {

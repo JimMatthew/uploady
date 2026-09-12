@@ -292,9 +292,6 @@ const openFile = useCallback(
         </Suspense>
       );
     } else {
-      const currentDirectory =
-        source.type === "archive" ? "" : source.currentDirectory;
-
       content = (
         <Suspense fallback={<div>Loading file viewer...</div>}>
           <FileEdit

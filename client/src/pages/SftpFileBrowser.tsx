@@ -143,6 +143,7 @@ const SftpFileBrowser = ({
       browser={browser}
       onOpenFile={onOpenFile}
       fileUploadProps={fileUploadProps}
+      toast={toast}
     />
   );
 };

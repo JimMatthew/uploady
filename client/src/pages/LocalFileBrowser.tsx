@@ -70,6 +70,7 @@ const LocalFileBrowser = ({ toast, openFile }: LocalFileBrowserProps) => {
       browser={browser}
       onOpenFile={onOpenFile}
       fileUploadProps={fileUploadProps}
+      toast={toast}
     />
   );
 };

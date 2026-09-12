@@ -20,7 +20,7 @@ import CreateFileComponent from "../components/CreateFileComponent";
 import ClipboardComponent from "../components/ClipboardComponent";
 import { useClipboard } from "../contexts/ClipboardContext";
 import type { FileBrowser, FileUploadProps } from "../types/fileBrowser";
-
+import type { AppToast } from "../hooks/useAppToast";
 const SHORT_SCREEN_HEIGHT = 800;
 const UPLOAD_MODE_KEY = "uploadMode";
 
@@ -37,6 +37,7 @@ interface FilePanelProps {
   onOpenFile: (filename: string, isNew?: boolean) => void | Promise<void>;
 
   fileUploadProps: FileUploadProps;
+  toast: AppToast;
 }
 
 interface UploadModeToggleProps {
@@ -52,6 +53,7 @@ const FilePanel = ({
   browser,
   onOpenFile,
   fileUploadProps,
+  toast,
 }: FilePanelProps) => {
   const {
     files,
@@ -137,6 +139,26 @@ const FilePanel = ({
   const folders = files.folders;
   const fileEntries = files.files;
 
+  const createNewFile = (filename: string): void => {
+    const trimmedName = filename.trim();
+
+    const nameExists =
+      fileEntries.some((file) => file.name === trimmedName) ||
+      folders.some((folder) => folder.name === trimmedName);
+
+    if (nameExists) {
+      toast({
+        title: "File already exists",
+        description: `"${trimmedName}" already exists in this folder.`,
+        status: "error",
+      });
+
+      return;
+    }
+
+    void onOpenFile(trimmedName, true);
+  };
+
   return (
     <Flex direction="column" h="100%" minH={0} overflow="hidden">
       {showDropZone && (
@@ -198,11 +220,7 @@ const FilePanel = ({
 
           <CreateFolderComponent handleCreateFolder={createFolder} />
 
-          <CreateFileComponent
-            onOpenFile={(name) => {
-              void onOpenFile(name, true);
-            }}
-          />
+          <CreateFileComponent onOpenFile={createNewFile} />
 
           {!forceCompact && (
             <UploadModeToggle mode={uploadMode} onToggle={toggleUploadMode} />

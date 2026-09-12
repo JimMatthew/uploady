@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-
 import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Icon, Spinner } from "@chakra-ui/react";
-
 import type { IconType } from "react-icons";
 import {
   FiGithub,
