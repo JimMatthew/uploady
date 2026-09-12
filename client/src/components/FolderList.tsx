@@ -14,7 +14,6 @@ import ItemMenu from "./FileMenu";
 import {
   ContextMenuState,
   FolderEntry,
-  MenuPosition,
   SortDirection,
 } from "../types/fileBrowser";
 
@@ -102,10 +101,7 @@ const FolderList = ({
 
       return {
         ...menuState,
-        position: {
-          x,
-          y,
-        },
+        position: { x, y },
       };
     });
   }, [contextMenu.visible, contextMenu.position.x, contextMenu.position.y]);

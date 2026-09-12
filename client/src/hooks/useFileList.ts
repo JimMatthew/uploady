@@ -372,6 +372,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [relativePath, reload, showToast],
   );
+  
 const deleteFolder = useCallback(
   async (folderName: string): Promise<void> => {
     if (!folderName || relativePath == null) {

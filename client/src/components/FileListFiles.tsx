@@ -29,7 +29,7 @@ interface FileListProps {
 
   downloadFile: FileAction;
   deleteFile: FileAction;
-  deleteFiles: FileBatchAction
+  deleteFiles: FileBatchAction;
   shareFile: FileAction;
 
   renameFile: RenameFileAction;
@@ -82,10 +82,10 @@ export default function FileList({
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-     position: {
-    x: 0,
-    y: 0,
-  },
+    position: {
+      x: 0,
+      y: 0,
+    },
     target: null,
     visible: false,
   });
@@ -95,10 +95,10 @@ export default function FileList({
       event.preventDefault();
 
       setContextMenu({
-       position: {
-    x: event.clientX,
-    y: event.clientY,
-  },
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+        },
         target: fileName,
         visible: true,
       });
@@ -225,10 +225,7 @@ export default function FileList({
 
       return {
         ...menuState,
-        position: {
-          x,
-          y,
-        },
+        position: { x, y },
       };
     });
   }, [contextMenu.visible, contextMenu.position.x, contextMenu.position.y]);
