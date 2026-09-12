@@ -17,7 +17,7 @@ import ServerCard from "../components/ServerCard";
 
 import type {
   ServerStatuses,
-  SftpServer,
+  ServerSummary
 } from "../types/server";
 
 // -----------------------------------------------------------------------------
@@ -40,15 +40,15 @@ interface SectionLabelProps {
 }
 
 interface SidebarProps {
-  onConnect: (server: SftpServer) => void;
+  onConnect: (server: ServerSummary) => void;
   onLocalFiles: () => void;
   onNewServer: () => void;
-  onSsh: (server: SftpServer) => void;
-  onServerInfo: (server: SftpServer) => void;
+  onSsh: (server: ServerSummary) => void;
+  onServerInfo: (server: ServerSummary) => void;
   onSharedLinks: () => void;
   onTransfers: () => void;
   onDeleteServer: (serverId: string) => Promise<boolean>;
-  sftpServers: SftpServer[];
+  sftpServers: ServerSummary[];
   serverStatuses: ServerStatuses;
   onSettings: () => void;
   onActions: () => void;
@@ -189,7 +189,7 @@ const Sidebar = memo(function Sidebar({
   onActions,
 }: SidebarProps) {
   const servers = sftpServers ?? [];
-
+  console.log(servers)
   return (
     <Box
       w="240px"

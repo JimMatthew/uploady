@@ -1,6 +1,9 @@
-export interface SftpServer {
+export interface ServerSummary {
   _id: string;
   host: string;
+}
+
+export interface SftpServer extends ServerSummary {
   name?: string;
   hostname?: string;
   username?: string;
@@ -53,15 +56,14 @@ export interface SavedServer {
   host: string;
   username: string;
   authType: AuthMethod;
-  keyId?: string;
-  publicKey?: string;
+  keyId: string | null;
+  publicKey: string | null;
 }
 
 export interface SaveServerResponse {
   message: string;
   server: SavedServer;
 }
-
 
 export type ServerStatus = "online" | "offline";
 

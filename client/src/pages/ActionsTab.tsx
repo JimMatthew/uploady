@@ -34,7 +34,7 @@ import type {
 } from "../types/action";
 
 import type { AppToast } from "../hooks/useAppToast";
-import type { SftpServer } from "../types/server";
+import type { SftpServer, ServerSummary } from "../types/server";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -45,9 +45,9 @@ interface OpenSshOptions {
 
 interface ActionsProps {
   toast: AppToast;
-  servers?: SftpServer[];
+  servers?: ServerSummary[];
   openSsh: (
-    server: SftpServer,
+    server: ServerSummary,
     options?: OpenSshOptions,
   ) => void;
 }
@@ -362,14 +362,10 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
   // ---------------------------------------------------------------------------
 
   const getServerName = (serverId: string): string => {
-    const server = serverList.find((item) => item._id === serverId);
+  const server = serverList.find((item) => item._id === serverId);
 
-    if (!server) {
-      return "Unknown server";
-    }
-
-    return server.name || server.host || server.hostname || "Unknown server";
-  };
+  return server?.host ?? "Unknown server";
+};
 
   const filteredActions = useMemo(() => {
     const query = search.trim().toLowerCase();

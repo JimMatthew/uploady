@@ -18,7 +18,8 @@ import apiClient from "../services/apiClient";
 import type {
   SaveServerPayload,
   SaveServerResponse,
-  SftpServer
+  //SftpServer,
+  ServerSummary
 } from "../types/server";
 import {
   SaveServer,
@@ -28,7 +29,7 @@ import {
 
 import type { AppToast } from "./useAppToast";
 import type { ServerStatuses } from "../types/server";
-import { WorkspaceTab } from "../types/workspace";
+import { OpenFileOptions, WorkspaceTab } from "../types/workspace";
 
 const SshConsole = lazy(() => import("../pages/SshConsole"));
 const FileEdit = lazy(() => import("../pages/FileEdit"));
@@ -43,7 +44,7 @@ const Actions = lazy(() => import("../pages/ActionsTab"));
 // -----------------------------------------------------------------------------
 
 interface ServerListData {
-  servers: SftpServer[];
+  servers: ServerSummary[];
 }
 
 interface OpenTabOptions {
@@ -77,12 +78,6 @@ export interface ArchiveFileSource {
 export type WorkspaceFileSource =
   LocalFileSource | SftpFileSource | ArchiveFileSource;
 
-interface OpenFileOptions {
-  filename: string;
-  source: WorkspaceFileSource;
-  isNew?: boolean;
-  readOnly?: boolean;
-}
 
 interface OpenSshOptions {
   initialCommand?: string;
@@ -99,7 +94,7 @@ interface UseWorkspaceOptions {
 interface UseWorkspaceResult {
   loading: boolean;
 
-  sftpServers: SftpServer[];
+  sftpServers: ServerSummary[];
   serverStatuses: ServerStatuses;
 
   showSidebar: boolean;
@@ -110,10 +105,10 @@ interface UseWorkspaceResult {
   setActiveTabIndex: Dispatch<SetStateAction<number>>;
   closeTab: (tabId: number) => void;
 
-  openSftp: (server: SftpServer) => void;
-  openSsh: (server: SftpServer, options?: OpenSshOptions) => void;
+  openSftp: (server: ServerSummary) => void;
+  openSsh: (server: ServerSummary, options?: OpenSshOptions) => void;
 
-  openServerInfo: (server: SftpServer) => void;
+  openServerInfo: (server: ServerSummary) => void;
   openNewServer: () => void;
   openLocalFiles: () => void;
   openSharedLinks: () => void;
@@ -133,7 +128,7 @@ export function useWorkspace({
 }: UseWorkspaceOptions): UseWorkspaceResult {
   const nextTabId = useRef(1);
   const [loading, setLoading] = useState(true);
-  const [sftpServers, setSftpServers] = useState<SftpServer[]>([]);
+  const [sftpServers, setSftpServers] = useState<ServerSummary[]>([]);
   const [serverStatuses, setServerStatuses] = useState<ServerStatuses>({});
   const [showSidebar, setShowSidebar] = useState(false);
   const [tabs, setTabs] = useState<WorkspaceTab[]>([]);
@@ -303,12 +298,8 @@ const openFile = useCallback(
       content = (
         <Suspense fallback={<div>Loading file viewer...</div>}>
           <FileEdit
-            serverId={source.type === "sftp" ? source.serverId : undefined}
-            currentDirectory={currentDirectory}
             filename={filename}
             toast={toast}
-            host={source.type === "sftp" ? source.host : undefined}
-            remote={source.type === "sftp"}
             isNew={isNew}
             source={source}
             readOnly={readOnly}
@@ -337,7 +328,7 @@ const openFile = useCallback(
   // ---------------------------------------------------------------------------
 
   const openSftp = useCallback(
-    (server: SftpServer): void => {
+    (server: ServerSummary): void => {
       openTab({
         label: `${server.host} - SFTP`,
         content: (
@@ -354,7 +345,7 @@ const openFile = useCallback(
   );
 
   const openSsh = useCallback(
-    (server: SftpServer, { initialCommand }: OpenSshOptions = {}): void => {
+    (server: ServerSummary, { initialCommand }: OpenSshOptions = {}): void => {
       openTab({
         label: `${server.host} - SSH`,
         content: (
@@ -383,7 +374,7 @@ const openFile = useCallback(
   }, [openTab, toast, sftpServers, openSsh]);
 
   const openServerInfo = useCallback(
-    (server: SftpServer): void => {
+    (server: ServerSummary): void => {
       openTab({
         label: `${server.host} - Info`,
         content: (

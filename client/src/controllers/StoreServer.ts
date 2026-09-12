@@ -7,7 +7,7 @@ import type {
   SaveServerResponse,
   ServerStatuses,
   ServerStatus,
-  SftpServer,
+  ServerSummary
 } from "../types/server";
 
 // -----------------------------------------------------------------------------
@@ -19,7 +19,7 @@ export type SaveServerParams = SaveServerPayload & {
 };
 
 interface ServerListData {
-  servers: SftpServer[];
+  servers: ServerSummary[];
 }
 
 interface ServerStatusResponse {

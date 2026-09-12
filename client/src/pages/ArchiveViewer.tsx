@@ -18,6 +18,9 @@ import { getPathName } from "../utils/path";
 import type { AppToast } from "../hooks/useAppToast";
 import type { BreadcrumbEntry } from "../types/fileBrowser";
 import type { ClipboardSourceItem } from "../contexts/ClipboardContext";
+import type {
+  OpenArchiveFileOptions,
+} from "../types/workspace";
 
 interface ArchiveEntry {
   name: string;
@@ -26,26 +29,16 @@ interface ArchiveEntry {
 }
 
 interface ArchiveResponse {
-  entries?: ArchiveEntry[];
-}
-
-interface ArchiveFileSource {
-  type: "archive";
-  archivePath: string;
-  entry: string;
-}
-
-interface OpenArchiveFileOptions {
-  filename: string;
-  source: ArchiveFileSource;
-  readOnly: true;
+  entries: ArchiveEntry[];
 }
 
 interface ArchiveViewerProps {
   archivePath: string;
   filename: string;
   toast: AppToast;
-  openFile: (options: OpenArchiveFileOptions) => void | Promise<void>;
+  openFile: (
+    options: OpenArchiveFileOptions,
+  ) => void | Promise<void>;
 }
 
 interface ArchiveContextMenu {
@@ -119,7 +112,7 @@ const ArchiveViewer = ({
         `/api/archive/local?path=${path}`,
       );
 
-      setEntries(data.entries ?? []);
+      setEntries(data.entries);
       setCurrentDirectory("");
       setSelectedEntries([]);
     } catch (error: unknown) {

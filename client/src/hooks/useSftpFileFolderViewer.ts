@@ -7,9 +7,7 @@ import { joinPath } from "../utils/path";
 import type {
   BreadcrumbEntry,
   FileBrowser,
-  FileEntry,
   FileListing,
-  FolderEntry,
 } from "../types/fileBrowser";
 
 import type { AppToast } from "./useAppToast";
@@ -40,7 +38,7 @@ export function useSftpFileFolderViewer({
   const [files, setFiles] = useState<SftpDirectoryResponse>(EMPTY_DIRECTORY);
   const [loading, setLoading] = useState(true);
   const currentDirectoryRef = useRef("/");
-const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const showToast = useCallback(
     (
       title: string,
@@ -125,41 +123,41 @@ const [error, setError] = useState<string | null>(null);
   // Initial connection
   // ---------------------------------------------------------------------------
 
- useEffect(() => {
-  const controller = new AbortController();
+  useEffect(() => {
+    const controller = new AbortController();
 
-  setLoading(true);
-  setError(null);
-  setFiles(EMPTY_DIRECTORY);
+    setLoading(true);
+    setError(null);
+    setFiles(EMPTY_DIRECTORY);
 
-  const connect = async (): Promise<void> => {
-    try {
-      await connectToServer(controller.signal);
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
+    const connect = async (): Promise<void> => {
+      try {
+        await connectToServer(controller.signal);
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to connect to server";
+
+        setError(message);
+        showToast("Error connecting to server", "error");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
+    };
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unable to connect to server";
+    void connect();
 
-      setError(message);
-      showToast("Error connecting to server", "error");
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  void connect();
-
-  return () => {
-    controller.abort();
-  };
-}, [connectToServer, showToast]);
+    return () => {
+      controller.abort();
+    };
+  }, [connectToServer, showToast]);
 
   // ---------------------------------------------------------------------------
   // Downloads
@@ -229,24 +227,64 @@ const [error, setError] = useState<string | null>(null);
   // ---------------------------------------------------------------------------
   // File operations
   // ---------------------------------------------------------------------------
+  const deleteFileRequest = useCallback(
+    async (filename: string, directory: string): Promise<void> => {
+      await apiClient.post("/sftp/api/delete-file", {
+        currentDirectory: directory,
+        serverId,
+        fileName: filename,
+      });
+    },
+    [serverId],
+  );
 
   const deleteFile = useCallback(
     async (filename: string): Promise<void> => {
-      try {
-        await apiClient.post("/sftp/api/delete-file", {
-          currentDirectory,
-          serverId,
-          fileName: filename,
-        });
+      const deleteDirectory = currentDirectory;
 
-        await changeDirectory(currentDirectory);
+      try {
+        await deleteFileRequest(filename, deleteDirectory);
+
+        if (currentDirectoryRef.current === deleteDirectory) {
+          await changeDirectory(deleteDirectory);
+        }
 
         showToast("File deleted", "success");
       } catch {
         showToast("Error deleting file", "error");
       }
     },
-    [serverId, currentDirectory, changeDirectory, showToast],
+    [currentDirectory, deleteFileRequest, changeDirectory, showToast],
+  );
+
+  const deleteFiles = useCallback(
+    async (filenames: string[]): Promise<void> => {
+      if (filenames.length === 0) {
+        return;
+      }
+
+      const deleteDirectory = currentDirectory;
+
+      try {
+        await Promise.all(
+          filenames.map((filename) =>
+            deleteFileRequest(filename, deleteDirectory),
+          ),
+        );
+
+        if (currentDirectoryRef.current === deleteDirectory) {
+          await changeDirectory(deleteDirectory);
+        }
+
+        showToast(
+          filenames.length === 1 ? "File deleted" : "Files deleted",
+          "success",
+        );
+      } catch {
+        showToast("Error deleting files", "error");
+      }
+    },
+    [currentDirectory, deleteFileRequest, changeDirectory, showToast],
   );
 
   const renameFile = useCallback(
@@ -468,6 +506,7 @@ const [error, setError] = useState<string | null>(null);
     downloadFile,
     downloadFolder,
     deleteFile,
+    deleteFiles,
     renameFile,
     shareFile,
 
@@ -483,6 +522,6 @@ const [error, setError] = useState<string | null>(null);
 
     progressMap,
     startedTransfers,
-    error
+    error,
   };
 }

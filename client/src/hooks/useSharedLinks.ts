@@ -1,10 +1,7 @@
 import { useCallback, useState } from "react";
 
-import { useToast } from "@chakra-ui/react";
-
 import apiClient from "../services/apiClient";
-
-type ToastStatus = "success" | "error" | "warning" | "info";
+import useAppToast from "./useAppToast";
 
 export interface SharedLink {
   _id: string;
@@ -27,32 +24,16 @@ interface UseSharedLinksResult {
   loading: boolean;
 
   loadLinks: () => Promise<void>;
-
   deleteLink: (linkToken: string) => Promise<void>;
-
   copyToClipboard: (text: string) => Promise<void>;
-
   clickLink: (link: string, fileName: string) => void;
 }
 
 export function useSharedLinks(): UseSharedLinksResult {
   const [links, setLinks] = useState<SharedLink[]>([]);
-
   const [loading, setLoading] = useState(true);
 
-  const toast = useToast();
-
-  const showToast = useCallback(
-    (title: string, status: ToastStatus): void => {
-      toast({
-        title,
-        status,
-        duration: 2500,
-        isClosable: true,
-      });
-    },
-    [toast],
-  );
+  const toast = useAppToast();
 
   // ---------------------------------------------------------------------------
   // Fetch
@@ -68,11 +49,14 @@ export function useSharedLinks(): UseSharedLinksResult {
     } catch (error: unknown) {
       console.error("Error loading links:", error);
 
-      showToast("Error loading shared links", "error");
+      toast({
+        title: "Error loading shared links",
+        status: "error",
+      });
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [toast]);
 
   // ---------------------------------------------------------------------------
   // Delete
@@ -89,14 +73,20 @@ export function useSharedLinks(): UseSharedLinksResult {
           previous.filter((link) => link.token !== linkToken),
         );
 
-        showToast("Link deleted", "success");
+        toast({
+          title: "Link deleted",
+          status: "success",
+        });
       } catch (error: unknown) {
         console.error("Error deleting link:", error);
 
-        showToast("Error deleting link", "error");
+        toast({
+          title: "Error deleting link",
+          status: "error",
+        });
       }
     },
-    [showToast],
+    [toast],
   );
 
   // ---------------------------------------------------------------------------
@@ -110,23 +100,33 @@ export function useSharedLinks(): UseSharedLinksResult {
           await navigator.clipboard.writeText(text);
         } else {
           const textarea = document.createElement("textarea");
+
           textarea.value = text;
           textarea.style.position = "fixed";
           textarea.style.opacity = "0";
+
           document.body.appendChild(textarea);
+
           textarea.select();
           document.execCommand("copy");
+
           textarea.remove();
         }
 
-        showToast("Link copied!", "success");
+        toast({
+          title: "Link copied!",
+          status: "success",
+        });
       } catch (error: unknown) {
         console.error("Failed to copy to clipboard:", error);
 
-        showToast("Failed to copy link", "error");
+        toast({
+          title: "Failed to copy link",
+          status: "error",
+        });
       }
     },
-    [showToast],
+    [toast],
   );
 
   // ---------------------------------------------------------------------------
@@ -148,10 +148,13 @@ export function useSharedLinks(): UseSharedLinksResult {
       } catch (error: unknown) {
         console.error("Download error:", error);
 
-        showToast("Error downloading file", "error");
+        toast({
+          title: "Error downloading file",
+          status: "error",
+        });
       }
     },
-    [showToast],
+    [toast],
   );
 
   return {

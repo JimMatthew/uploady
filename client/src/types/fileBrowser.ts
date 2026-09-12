@@ -55,6 +55,10 @@ export interface FileUploadProps {
   onUploadSuccess?: () => void | Promise<void>;
 }
 
+export type FileBatchAction = (
+  fileNames: string[],
+) => void | Promise<void>;
+
 export interface FileBrowser {
   currentPath: string,
   files: FileListing;
@@ -75,6 +79,7 @@ export interface FileBrowser {
   downloadFolder: FileAction;
 
   deleteFile: FileAction;
+  deleteFiles: FileBatchAction;
   renameFile: RenameFileAction;
   shareFile: FileAction;
 

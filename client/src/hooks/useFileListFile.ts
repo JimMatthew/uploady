@@ -4,6 +4,7 @@ import type {
   FileAction,
   SortField,
   SortDirection,
+  FileBatchAction,
 } from "../types/fileBrowser";
 
 import {
@@ -15,6 +16,7 @@ interface UseFileListStateOptions {
   files?: FileEntry[];
   copyFile?: FileAction;
   deleteFile?: FileAction;
+  deleteFiles?: FileBatchAction;
   shareFile?: FileAction;
 }
 
@@ -41,6 +43,7 @@ export function useFileListState({
   files = [],
   copyFile,
   deleteFile,
+  deleteFiles,
   shareFile,
 }: UseFileListStateOptions): UseFileListStateResult {
   const [sortField, setSortField] = useState<SortField>(SORT_FIELDS.NAME);
@@ -124,10 +127,14 @@ export function useFileListState({
     [executeForSelected, copyFile],
   );
 
-  const deleteSelected = useCallback(
-    () => executeForSelected(deleteFile),
-    [executeForSelected, deleteFile],
-  );
+  const deleteSelected = useCallback(async (): Promise<void> => {
+  if (!deleteFiles || selected.size === 0) {
+    return;
+  }
+
+  await deleteFiles([...selected]);
+  clearSelection();
+}, [deleteFiles, selected, clearSelection]);
 
   const shareSelected = useCallback(
     () => executeForSelected(shareFile),

@@ -223,6 +223,17 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // ---------------------------------------------------------------------------
   // File operations
   // ---------------------------------------------------------------------------
+  const deleteFileRequest = useCallback(
+    async (name: string, path: string): Promise<void> => {
+      const encodedPath = encodePath(path);
+      const filename = encodeURIComponent(name);
+
+      await apiClient.post(`/api/delete/${encodedPath}/${filename}`, {
+        fileName: name,
+      });
+    },
+    [encodePath],
+  );
 
   const deleteFile = useCallback(
     async (name: string): Promise<void> => {
@@ -230,24 +241,51 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         return;
       }
 
+      const deleteDirectory = relativePath;
+
       try {
-        const path = encodePath(relativePath);
-        const filename = encodeURIComponent(name);
+        await deleteFileRequest(name, deleteDirectory);
 
-        await apiClient.post(`/api/delete/${path}/${filename}`, {
-          fileName: name,
-        });
-
-        await reload();
+        if (relativePath === deleteDirectory) {
+          await reload();
+        }
 
         showToast("File deleted", "success");
       } catch (error: unknown) {
         console.error("Error deleting file:", error);
-
         showToast("Error deleting file", "error");
       }
     },
-    [relativePath, encodePath, reload, showToast],
+    [relativePath, deleteFileRequest, reload, showToast],
+  );
+
+  const deleteFiles = useCallback(
+    async (names: string[]): Promise<void> => {
+      if (!relativePath || names.length === 0) {
+        return;
+      }
+
+      const deleteDirectory = relativePath;
+
+      try {
+        await Promise.all(
+          names.map((name) => deleteFileRequest(name, deleteDirectory)),
+        );
+
+        if (relativePath === deleteDirectory) {
+          await reload();
+        }
+
+        showToast(
+          names.length === 1 ? "File deleted" : "Files deleted",
+          "success",
+        );
+      } catch (error: unknown) {
+        console.error("Error deleting files:", error);
+        showToast("Error deleting files", "error");
+      }
+    },
+    [relativePath, deleteFileRequest, reload, showToast],
   );
 
   const renameFile = useCallback(
@@ -492,6 +530,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     reload,
 
     downloadFile,
+    deleteFiles,
     downloadFolder,
 
     deleteFile,
@@ -510,6 +549,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
     progressMap,
     startedTransfers,
-    error: null
+    error: null,
   };
 }

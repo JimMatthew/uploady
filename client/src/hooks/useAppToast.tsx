@@ -1,6 +1,6 @@
 import { Box, Text, useToast } from "@chakra-ui/react";
 
-type AppToastStatus =
+export type AppToastStatus =
   | "error"
   | "success"
   | "warning"

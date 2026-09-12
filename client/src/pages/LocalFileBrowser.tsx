@@ -4,22 +4,16 @@ import { useFileList } from "../hooks/useFileList";
 import FilePanel from "./FilePanel";
 import type { AppToast } from "../hooks/useAppToast";
 import type { FileUploadProps } from "../types/fileBrowser";
-
-interface LocalFileSource {
-  type: "local";
-  currentDirectory: string;
-}
-
-interface OpenFileOptions {
-  filename: string;
-  source: LocalFileSource;
-  isNew?: boolean;
-}
+import type {
+  LocalFileSource,
+  OpenFileOptions,
+} from "../types/workspace";
 
 interface LocalFileBrowserProps {
   toast: AppToast;
-
-  openFile: (options: OpenFileOptions) => void | Promise<void>;
+  openFile: (
+    options: OpenFileOptions<LocalFileSource>,
+  ) => void | Promise<void>;
 }
 
 const LocalFileBrowser = ({ toast, openFile }: LocalFileBrowserProps) => {
@@ -45,12 +39,10 @@ const LocalFileBrowser = ({ toast, openFile }: LocalFileBrowserProps) => {
   const onOpenFile = (filename: string, isNew?: boolean): void => {
     void openFile({
       filename,
-
       source: {
         type: "local",
         currentDirectory: browser.currentPath,
       },
-
       isNew,
     });
   };

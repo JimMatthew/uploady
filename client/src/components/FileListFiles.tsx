@@ -16,6 +16,7 @@ import type {
   FileEntry,
   FileAction,
   RenameFileAction,
+  FileBatchAction,
 } from "../types/fileBrowser";
 const SORT_FIELDS = ["name", "size", "date"] as const;
 
@@ -24,15 +25,16 @@ type SortField = (typeof SORT_FIELDS)[number];
 interface FileListProps {
   files: FileEntry[];
 
-  downloadFile?: FileAction;
-  deleteFile?: FileAction;
-  shareFile?: FileAction;
+  downloadFile: FileAction;
+  deleteFile: FileAction;
+  deleteFiles: FileBatchAction
+  shareFile: FileAction;
 
   renameFile: RenameFileAction;
 
-  copyFile?: FileAction;
-  cutFile?: FileAction;
-  openFile?: FileAction;
+  copyFile: FileAction;
+  cutFile: FileAction;
+  openFile: FileAction;
 }
 
 interface MenuPosition {
@@ -51,6 +53,7 @@ export default function FileList({
   files,
   downloadFile,
   deleteFile,
+  deleteFiles,
   shareFile,
   renameFile,
   copyFile,
@@ -73,6 +76,7 @@ export default function FileList({
     files,
     copyFile,
     deleteFile,
+    deleteFiles,
     shareFile,
   });
 

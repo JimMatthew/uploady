@@ -61,6 +61,7 @@ const FilePanel = ({
     downloadFile,
     downloadFolder,
     deleteFile,
+    deleteFiles,
     renameFile,
     shareFile,
 
@@ -244,6 +245,7 @@ const FilePanel = ({
           files={fileEntries}
           downloadFile={downloadFile}
           deleteFile={deleteFile}
+          deleteFiles={deleteFiles}
           shareFile={shareFile}
           renameFile={renameFile}
           copyFile={copyFile}

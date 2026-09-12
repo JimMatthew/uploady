@@ -6,39 +6,18 @@ import apiClient from "../services/apiClient";
 import FileViewer from "../components/fileViewer/FileViewer";
 import type { FileViewerType } from "../components/fileViewer/FileViewer";
 import type { AppToast } from "../hooks/useAppToast";
-
+import type {
+  WorkspaceFileSource,
+} from "../types/workspace";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-interface ArchiveSource {
-  type: "archive";
-  archivePath: string;
-  entry: string;
-}
-
-interface LocalSource {
-  type: "local";
-}
-
-interface SftpSource {
-  type: "sftp";
-  serverId?: string;
-  currentDirectory?: string;
-  host?: string;
-}
-
-type FileEditSource = ArchiveSource | LocalSource | SftpSource;
-
 interface FileEditProps {
-  serverId?: string;
-  currentDirectory: string;
   filename: string;
   toast: AppToast;
-  host?: string;
-  remote?: boolean;
+  source: WorkspaceFileSource;
   isNew?: boolean;
-  source?: FileEditSource;
   readOnly?: boolean;
 }
 
@@ -245,12 +224,8 @@ const FileHeader = ({
 // -----------------------------------------------------------------------------
 
 const FileEdit = ({
-  serverId,
-  currentDirectory,
   filename,
   toast,
-  host,
-  remote = true,
   isNew = false,
   source,
   readOnly = false,
@@ -261,24 +236,38 @@ const FileEdit = ({
   const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const fileType = getFileType(filename);
+  const remote = source.type === "sftp";
+
+  const currentDirectory =
+    source.type === "archive"
+      ? ""
+      : source.currentDirectory;
+
+  const serverId =
+    source.type === "sftp"
+      ? source.serverId
+      : undefined;
+
+  const host =
+    source.type === "sftp"
+      ? source.host
+      : undefined;
 
   const buildUrl = (): string => {
-    if (source?.type === "archive") {
-      const archiveSource = source as ArchiveSource;
-
+    if (source.type === "archive") {
       const params = new URLSearchParams({
-        path: archiveSource.archivePath,
-        entry: archiveSource.entry,
+        path: source.archivePath,
+        entry: source.entry,
       });
 
       return `/api/archive/local/entry?${params}`;
     }
 
-    if (serverId) {
-      return `/sftp/api/download/${serverId}/${currentDirectory}/${filename}`;
+    if (source.type === "sftp") {
+      return `/sftp/api/download/${source.serverId}/${source.currentDirectory}/${filename}`;
     }
 
-    return `/api/download/${currentDirectory}/${filename}`;
+    return `/api/download/${source.currentDirectory}/${filename}`;
   };
 
   const streamUrl = `/api/downloadstream/${currentDirectory}/${filename}`;
@@ -426,16 +415,11 @@ const FileEdit = ({
     try {
       const formData = new FormData();
 
-      if (remote) {
-        if (!serverId) {
-          throw new Error("Server ID is required for remote files");
-        }
-
-        formData.append("currentDirectory", currentDirectory);
-
-        formData.append("serverId", serverId);
-      } else {
-        formData.append("folderPath", currentDirectory);
+      if (source.type === "sftp") {
+        formData.append("currentDirectory", source.currentDirectory);
+        formData.append("serverId", source.serverId);
+      } else if (source.type === "local") {
+        formData.append("folderPath", source.currentDirectory);
       }
 
       formData.append(

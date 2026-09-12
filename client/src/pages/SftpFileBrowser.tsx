@@ -6,27 +6,16 @@ import FilePanel from "./FilePanel";
 
 import type { AppToast } from "../hooks/useAppToast";
 import type { FileUploadProps } from "../types/fileBrowser";
-
-interface SftpFileSource {
-  type: "sftp";
-  serverId: string;
-  currentDirectory: string;
-  host: string;
-}
-
-interface OpenFileOptions {
-  filename: string;
-  source: SftpFileSource;
-  isNew?: boolean;
-}
+import { OpenFileOptions, SftpFileSource } from "../types/workspace";
 
 interface SftpFileBrowserProps {
   serverId: string;
+  host: string;
   toast: AppToast;
 
-  openFile: (options: OpenFileOptions) => void | Promise<void>;
-
-  host: string;
+  openFile: (
+    options: OpenFileOptions<SftpFileSource>,
+  ) => void | Promise<void>;
 }
 
 const SftpFileBrowser = ({
