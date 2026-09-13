@@ -16,12 +16,7 @@ import {
 import { FiCheck, FiFile, FiUpload, FiX } from "react-icons/fi";
 
 import useFileUpload from "../controllers/useFileUpload";
-
-interface UploadProps {
-  apiEndpoint: string;
-  additionalData?: Record<string, unknown>;
-  onUploadSuccess?: () => void;
-}
+import type { FileUploadProps } from "../types/fileBrowser";
 
 const formatSize = (bytes: number): string => {
   if (bytes < 1024) {
@@ -43,7 +38,7 @@ function Upload({
   apiEndpoint,
   additionalData = {},
   onUploadSuccess,
-}: UploadProps) {
+}: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
 
   const [uploading, setUploading] = useState(false);

@@ -323,7 +323,7 @@ const openFile = useCallback(
             <SshConsole
               serverId={server._id}
               host={server.host}
-              initialCommand={initialCommand}
+              {...(initialCommand !== undefined ? { initialCommand } : {})}
             />
           </Suspense>
         ),

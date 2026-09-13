@@ -6,9 +6,8 @@ import apiClient from "../services/apiClient";
 import FileViewer from "../components/fileViewer/FileViewer";
 import type { FileViewerType } from "../components/fileViewer/FileViewer";
 import type { AppToast } from "../hooks/useAppToast";
-import type {
-  WorkspaceFileSource,
-} from "../types/workspace";
+import type { WorkspaceFileSource } from "../types/workspace";
+import { propIfPresent } from "../utils/PropHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -239,19 +238,11 @@ const FileEdit = ({
   const remote = source.type === "sftp";
 
   const currentDirectory =
-    source.type === "archive"
-      ? ""
-      : source.currentDirectory;
+    source.type === "archive" ? "" : source.currentDirectory;
 
-  const serverId =
-    source.type === "sftp"
-      ? source.serverId
-      : undefined;
+  const serverId = source.type === "sftp" ? source.serverId : undefined;
 
-  const host =
-    source.type === "sftp"
-      ? source.host
-      : undefined;
+  const host = source.type === "sftp" ? source.host : undefined;
 
   const buildUrl = (): string => {
     if (source.type === "archive") {
@@ -458,7 +449,7 @@ const FileEdit = ({
     <Flex direction="column" h="100%" minH={0} overflow="hidden" bg="#1B1F2A">
       <FileHeader
         remote={remote}
-        host={host}
+        {...propIfPresent("host", host)}
         currentDirectory={currentDirectory}
         filename={filename}
         saving={saving}
@@ -472,8 +463,8 @@ const FileEdit = ({
           filename={filename}
           text={text}
           setText={setText}
-          objectUrl={objectUrl ?? undefined}
-          epubData={epubData ?? undefined}
+          {...propIfPresent("objectUrl", objectUrl)}
+          {...propIfPresent("epubData", epubData)}
           streamUrl={streamUrl}
           readOnly={readOnly}
         />

@@ -24,6 +24,7 @@ import {
 
 import apiClient from "../services/apiClient";
 import type { AppToast } from "../hooks/useAppToast";
+import { propIfPresent } from "../utils/PropHelper";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -168,7 +169,7 @@ const Settings = ({ toast }: SettingsProps) => {
 
       toast({
         title: "Failed to load SSH keys",
-        description: getErrorMessage(error),
+        ...propIfPresent("description", getErrorMessage(error)),
         status: "error",
       });
     } finally {
@@ -208,7 +209,7 @@ const Settings = ({ toast }: SettingsProps) => {
 
       toast({
         title: "Failed to generate SSH key",
-        description: getErrorMessage(error),
+        ...propIfPresent("description", getErrorMessage(error)),
         status: "error",
       });
     } finally {
@@ -237,7 +238,7 @@ const Settings = ({ toast }: SettingsProps) => {
 
       toast({
         title: "Failed to delete SSH key",
-        description: getErrorMessage(error),
+        ...propIfPresent("description", getErrorMessage(error)),
         status: "error",
       });
     }
@@ -281,7 +282,7 @@ const Settings = ({ toast }: SettingsProps) => {
 
       toast({
         title: "Failed to load settings",
-        description: getErrorMessage(error),
+        ...propIfPresent("description", getErrorMessage(error)),
         status: "error",
       });
     } finally {
@@ -323,7 +324,7 @@ const Settings = ({ toast }: SettingsProps) => {
 
       toast({
         title: "Failed to save session settings",
-        description: getErrorMessage(error),
+        ...propIfPresent("description", getErrorMessage(error)),
         status: "error",
       });
     } finally {

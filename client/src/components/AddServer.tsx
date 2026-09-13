@@ -21,6 +21,7 @@ import type {
   SaveServerResponse,
   AuthMethod,
 } from "../types/server";
+import { propIfPresent } from "../utils/PropHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -357,7 +358,7 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
         border="1px solid rgba(255,255,255,0.07)"
         borderRadius="12px"
       >
-        <Field label="Host" required error={errors.host}>
+        <Field label="Host" required {...propIfPresent("error", errors.host)}>
           <Input
             name="host"
             placeholder="192.168.1.1 or hostname"
@@ -367,7 +368,11 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
           />
         </Field>
 
-        <Field label="Username" required error={errors.username}>
+        <Field
+          label="Username"
+          required
+          {...propIfPresent("error", errors.username)}
+        >
           <Input
             name="username"
             placeholder="root"
@@ -399,7 +404,11 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
         {/* Password auth */}
 
         {form.authMethod === "password" && (
-          <Field label="Password" required error={errors.password}>
+          <Field
+            label="Password"
+            required
+            {...propIfPresent("error", errors.password)}
+          >
             <Input
               name="password"
               type="password"
@@ -438,7 +447,11 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
 
             {form.keyMode === "import" && (
               <VStack spacing={4} align="stretch">
-                <Field label="Private Key" required error={errors.privateKey}>
+                <Field
+                  label="Private Key"
+                  required
+                  {...propIfPresent("error", errors.privateKey)}
+                >
                   <Textarea
                     name="privateKey"
                     placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
@@ -465,7 +478,11 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
             )}
 
             {form.keyMode === "saved" && (
-              <Field label="Saved Key" required error={errors.keyId}>
+              <Field
+                label="Saved Key"
+                required
+                {...propIfPresent("error", errors.keyId)}
+              >
                 <Select
                   name="keyId"
                   value={form.keyId}

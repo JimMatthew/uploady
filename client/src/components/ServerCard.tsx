@@ -17,6 +17,7 @@ import {
 import type { IconType } from "react-icons";
 import apiClient from "../services/apiClient";
 import type { ServerStatuses } from "../types/server";
+import { propIfPresent } from "../utils/PropHelper";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -456,8 +457,8 @@ export default function ServerCard({
             <Flex direction="column" gap={2}>
               <StatRow icon={FiHardDrive} label="disk">
                 <DiskBar
-                  used={stats.disk?.usedGb}
-                  total={stats.disk?.totalGb}
+                  {...propIfPresent("used", stats.disk?.usedGb)}
+                  {...propIfPresent("total", stats.disk?.totalGb)}
                 />
               </StatRow>
 

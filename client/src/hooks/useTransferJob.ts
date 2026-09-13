@@ -341,7 +341,7 @@ export function useTransferJob({
       trackJob({
         jobId,
         items: [],
-        onDone,
+        ...(onDone !== undefined ? { onDone } : {}),
       });
     },
     [trackJob],

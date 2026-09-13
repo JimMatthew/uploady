@@ -31,9 +31,9 @@ interface ConnectionStateConfig {
 
 interface SshConsoleProps {
   serverId: string;
-  host?: string | null;
+  host?: string;
   isPopout?: boolean;
-  initialCommand?: string | null;
+  initialCommand?: string;
 }
 
 interface ConnectedMessage {
@@ -109,7 +109,7 @@ const SshConsole = ({
   serverId,
   host,
   isPopout = false,
-  initialCommand = null,
+  initialCommand,
 }: SshConsoleProps) => {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const term = useRef<Terminal | null>(null);

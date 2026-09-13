@@ -43,7 +43,7 @@ const LocalFileBrowser = ({ toast, openFile }: LocalFileBrowserProps) => {
         type: "local",
         currentDirectory: browser.currentPath,
       },
-      isNew,
+      ...(isNew !== undefined ? { isNew } : {})
     });
   };
 

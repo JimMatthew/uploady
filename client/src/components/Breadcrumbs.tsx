@@ -2,9 +2,8 @@ import { Flex, Icon, Text } from "@chakra-ui/react";
 import type { IconType } from "react-icons";
 import { FiChevronRight, FiHome } from "react-icons/fi";
 
-import type {
-  BreadcrumbEntry,
-} from "../types/fileBrowser";
+import type { BreadcrumbEntry } from "../types/fileBrowser";
+import { propIfPresent } from "../utils/PropHelper";
 
 interface BreadcrumbsProps {
   breadcrumb?: BreadcrumbEntry[];
@@ -19,7 +18,8 @@ interface BreadcrumbItemProps {
 }
 
 const Breadcrumbs = ({ breadcrumb = [], onClick }: BreadcrumbsProps) => {
-  if (!breadcrumb.length) {
+  const [root, ...rest] = breadcrumb;
+  if (!root) {
     return null;
   }
 
@@ -47,13 +47,13 @@ const Breadcrumbs = ({ breadcrumb = [], onClick }: BreadcrumbsProps) => {
     >
       <BreadcrumbItem
         icon={FiHome}
-        name={breadcrumb[0].name}
+        name={root.name}
         active={breadcrumb.length === 1}
-        onClick={() => onClick(breadcrumb[0].path || "/")}
+        onClick={() => onClick(root.path || "/")}
       />
 
-      {breadcrumb.slice(1).map((crumb, index) => {
-        const isLast = index === breadcrumb.length - 2;
+      {rest.map((crumb, index) => {
+        const isLast = index === breadcrumb.length - 1;
 
         return (
           <Flex
@@ -72,7 +72,10 @@ const Breadcrumbs = ({ breadcrumb = [], onClick }: BreadcrumbsProps) => {
             <BreadcrumbItem
               name={crumb.name}
               active={isLast}
-              onClick={isLast ? undefined : () => onClick(crumb.path)}
+              {...propIfPresent(
+                "onClick",
+                isLast ? undefined : () => onClick(crumb.path),
+              )}
             />
           </Flex>
         );

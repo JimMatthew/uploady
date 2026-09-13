@@ -33,7 +33,7 @@ interface ActionRowProps {
 
   serverName: string;
 
-  output?: ActionOutput | null;
+  output?: ActionOutput;
 
   isRunning: boolean;
   isDeleting: boolean;

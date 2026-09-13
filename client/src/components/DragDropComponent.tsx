@@ -16,13 +16,11 @@ import {
 
 import { FiFile, FiUploadCloud, FiX } from "react-icons/fi";
 import useFileUpload from "../controllers/useFileUpload";
+import { FileUploadProps } from "../types/fileBrowser";
 
-interface DragAndDropComponentProps {
-  apiEndpoint: string;
-  additionalData?: Record<string, unknown>;
-  onUploadSuccess?: () => void;
+type DragAndDropComponentProps = FileUploadProps & {
   onUploadError?: (error: unknown) => void;
-}
+};
 
 const DragAndDropComponent = ({
   apiEndpoint,
@@ -74,7 +72,6 @@ const DragAndDropComponent = ({
   return (
     <VStack spacing={3} w="100%" maxW="480px" align="stretch">
       <Box
-        {...getRootProps<HTMLAttributes<HTMLDivElement>>()}
         w="100%"
         minH="132px"
         px={4}
@@ -99,56 +96,60 @@ const DragAndDropComponent = ({
             : "rgba(255,255,255,0.028)",
         }}
       >
-        <input {...getInputProps()} />
+        <div {...getRootProps()}>
+          <input {...getInputProps()} />
 
-        <Flex
-          h="100%"
-          minH="90px"
-          direction="column"
-          align="center"
-          justify="center"
-          gap={2}
-          textAlign="center"
-        >
           <Flex
+            h="100%"
+            minH="90px"
+            direction="column"
             align="center"
             justify="center"
-            w="38px"
-            h="38px"
-            borderRadius="9px"
-            bg={
-              isDragActive
-                ? "rgba(129,140,248,0.11)"
-                : "rgba(255,255,255,0.035)"
-            }
-            border="1px solid"
-            borderColor={
-              isDragActive ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.06)"
-            }
+            gap={2}
+            textAlign="center"
           >
-            <Icon
-              as={FiUploadCloud}
-              boxSize="17px"
-              color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.32)"}
-            />
-          </Flex>
+            <Flex
+              align="center"
+              justify="center"
+              w="38px"
+              h="38px"
+              borderRadius="9px"
+              bg={
+                isDragActive
+                  ? "rgba(129,140,248,0.11)"
+                  : "rgba(255,255,255,0.035)"
+              }
+              border="1px solid"
+              borderColor={
+                isDragActive
+                  ? "rgba(129,140,248,0.2)"
+                  : "rgba(255,255,255,0.06)"
+              }
+            >
+              <Icon
+                as={FiUploadCloud}
+                boxSize="17px"
+                color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.32)"}
+              />
+            </Flex>
 
-          <Text
-            fontSize="12px"
-            fontWeight={isDragActive ? 600 : 500}
-            color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.54)"}
-          >
-            {isDragActive
-              ? "Drop files to add them"
-              : "Drag files here or click to browse"}
-          </Text>
-
-          {!isDragActive && (
-            <Text fontSize="10px" color="rgba(255,255,255,0.25)">
-              Files will be uploaded to the current directory
+            <Text
+              fontSize="12px"
+              fontWeight={isDragActive ? 600 : 500}
+              color={isDragActive ? "#A5B4FC" : "rgba(255,255,255,0.54)"}
+            >
+              {isDragActive
+                ? "Drop files to add them"
+                : "Drag files here or click to browse"}
             </Text>
-          )}
-        </Flex>
+
+            {!isDragActive && (
+              <Text fontSize="10px" color="rgba(255,255,255,0.25)">
+                Files will be uploaded to the current directory
+              </Text>
+            )}
+          </Flex>
+        </div>
       </Box>
 
       {hasFiles && (

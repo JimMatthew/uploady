@@ -81,7 +81,6 @@ const FilePanel = ({
     startedTransfers,
   } = browser;
 
-  const { apiEndpoint, additionalData, onUploadSuccess } = fileUploadProps;
   const { clipboard } = useClipboard();
 
   const isCompactViewport =
@@ -174,11 +173,7 @@ const FilePanel = ({
           borderColor="rgba(255,255,255,0.055)"
         >
           <Flex justify="center">
-            <DragAndDropComponent
-              apiEndpoint={apiEndpoint}
-              additionalData={additionalData}
-              onUploadSuccess={onUploadSuccess}
-            />
+            <DragAndDropComponent {...fileUploadProps} />
           </Flex>
         </Box>
       )}
@@ -211,11 +206,7 @@ const FilePanel = ({
 
         <Flex align="center" gap="6px" flexShrink={0}>
           {showCompactUpload && (
-            <Upload
-              apiEndpoint={apiEndpoint}
-              additionalData={additionalData}
-              onUploadSuccess={onUploadSuccess}
-            />
+            <Upload {...fileUploadProps} />
           )}
 
           <CreateFolderComponent handleCreateFolder={createFolder} />

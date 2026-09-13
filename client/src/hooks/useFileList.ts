@@ -4,7 +4,7 @@ import { joinPath } from "../utils/path";
 import apiClient, { ApiError } from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useTransferJob } from "../hooks/useTransferJob";
-import type { AppToast } from "./useAppToast";
+import type { AppToast, AppToastStatus } from "./useAppToast";
 
 import type {
   BreadcrumbEntry,
@@ -42,22 +42,21 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // ---------------------------------------------------------------------------
   // Notifications
   // ---------------------------------------------------------------------------
-
-  const showToast = useCallback(
-    (
-      title: string,
-      status: "error" | "success" | "warning" | "info",
-      description?: string,
-    ): void => {
-      toast({
-        title,
-        description,
-        status,
-        duration: 3000,
-      });
-    },
-    [toast],
-  );
+const showToast = useCallback(
+  (
+    title: string,
+    status: AppToastStatus,
+    description?: string,
+  ): void => {
+    toast({
+      title,
+      status,
+      duration: 3000,
+      ...(description !== undefined ? { description } : {}),
+    });
+  },
+  [toast],
+);
 
   // ---------------------------------------------------------------------------
   // Transfer tracking

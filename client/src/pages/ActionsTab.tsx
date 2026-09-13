@@ -35,6 +35,7 @@ import type {
 
 import type { AppToast } from "../hooks/useAppToast";
 import type { SftpServer, ServerSummary } from "../types/server";
+import { propIfPresent } from "../utils/PropHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -46,10 +47,7 @@ interface OpenSshOptions {
 interface ActionsProps {
   toast: AppToast;
   servers?: ServerSummary[];
-  openSsh: (
-    server: ServerSummary,
-    options?: OpenSshOptions,
-  ) => void;
+  openSsh: (server: ServerSummary, options?: OpenSshOptions) => void;
 }
 
 interface EmptyMessageProps {
@@ -149,7 +147,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
 
       toast?.({
         title: "Couldn't load actions",
-        description: getErrorMessage(error),
+        description: getErrorMessage(error) || "",
         status: "error",
       });
     } finally {
@@ -223,7 +221,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
 
       toast?.({
         title: "Failed to create action",
-        description: getErrorMessage(error),
+        description: getErrorMessage(error) || "",
         status: "error",
       });
     } finally {
@@ -269,7 +267,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
 
       toast?.({
         title: "Failed to delete action",
-        description: getErrorMessage(error),
+        description: getErrorMessage(error) || "",
         status: "error",
       });
     } finally {
@@ -331,7 +329,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
 
       toast?.({
         title: "Action failed",
-        description: getErrorMessage(error),
+        description: getErrorMessage(error) || "",
         status: "error",
       });
     } finally {
@@ -362,10 +360,10 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
   // ---------------------------------------------------------------------------
 
   const getServerName = (serverId: string): string => {
-  const server = serverList.find((item) => item._id === serverId);
+    const server = serverList.find((item) => item._id === serverId);
 
-  return server?.host ?? "Unknown server";
-};
+    return server?.host ?? "Unknown server";
+  };
 
   const filteredActions = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -492,7 +490,7 @@ const Actions = ({ toast, servers = [], openSsh }: ActionsProps) => {
                   key={action._id}
                   action={action}
                   serverName={getServerName(action.serverId)}
-                  output={outputs[action._id]}
+                  {...propIfPresent("output", outputs[action._id])}
                   isRunning={runningIds.has(action._id)}
                   isDeleting={deletingIds.has(action._id)}
                   onExecute={() => executeAction(action)}

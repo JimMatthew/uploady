@@ -47,7 +47,7 @@ export function useSftpFileFolderViewer({
     ): void => {
       toast({
         title,
-        description,
+        ...(description !== undefined ? { description } : {}),
         status,
         duration: 3000,
       });
