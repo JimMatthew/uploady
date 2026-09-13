@@ -16,8 +16,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true
-    
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
   },
   "include": ["src"]
 }

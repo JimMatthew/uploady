@@ -7,6 +7,7 @@ import FilePanel from "./FilePanel";
 import type { AppToast } from "../hooks/useAppToast";
 import type { FileUploadProps } from "../types/fileBrowser";
 import { OpenFileOptions, SftpFileSource } from "../types/workspace";
+import {propIfPresent} from "../utils/PropHelper";
 
 interface SftpFileBrowserProps {
   serverId: string;
@@ -56,7 +57,7 @@ const SftpFileBrowser = ({
         host,
       },
 
-      isNew,
+      ...propIfPresent("isNew", isNew),
     });
   };
 

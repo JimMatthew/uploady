@@ -6,7 +6,7 @@ const SshConsole = lazy(() => import("./SshConsole"));
 const SshPopout = () => {
   const params = new URLSearchParams(window.location.search);
   const serverId = params.get("serverId");
-  const host = params.get("host");
+  const host = params.get("host") || "";
 
   if (!serverId) {
     return (

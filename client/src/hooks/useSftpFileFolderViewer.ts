@@ -10,7 +10,8 @@ import type {
   FileListing,
 } from "../types/fileBrowser";
 
-import type { AppToast } from "./useAppToast";
+import type {AppToast, AppToastStatus} from "./useAppToast";
+import {propIfPresent} from "../utils/PropHelper";
 
 interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;
@@ -42,12 +43,12 @@ export function useSftpFileFolderViewer({
   const showToast = useCallback(
     (
       title: string,
-      status: "error" | "success" | "warning" | "info",
+      status: AppToastStatus,
       description?: string,
     ): void => {
       toast({
         title,
-        ...(description !== undefined ? { description } : {}),
+        ...propIfPresent("description", description),
         status,
         duration: 3000,
       });
