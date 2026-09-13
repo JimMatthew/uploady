@@ -92,7 +92,7 @@ const request = async <T = unknown>(
     throw new ApiError("Unable to connect to server", 0, null);
   }
 
-  if (!isLoginRequest && response.status === 401) {
+  if (!isLoginRequest && (response.status === 401 || response.status === 403)) {
     localStorage.removeItem("token");
     window.location.href = "/";
 

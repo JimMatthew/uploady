@@ -372,30 +372,30 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [relativePath, reload, showToast],
   );
-  
-const deleteFolder = useCallback(
-  async (folderName: string): Promise<void> => {
-    if (!folderName || relativePath == null) {
-      return;
-    }
 
-    try {
-      await apiClient.post("/api/delete-folder", {
-        folderName,
-        folderPath: relativePath || "/",
-      });
+  const deleteFolder = useCallback(
+    async (folderName: string): Promise<void> => {
+      if (!folderName || relativePath == null) {
+        return;
+      }
 
-      await reload();
+      try {
+        await apiClient.post("/api/delete-folder", {
+          folderName,
+          folderPath: relativePath || "/",
+        });
 
-      showToast("Folder deleted", "success");
-    } catch (error: unknown) {
-      console.error("Error deleting folder:", error);
+        await reload();
 
-      showToast("Error deleting folder", "error");
-    }
-  },
-  [relativePath, reload, showToast],
-);
+        showToast("Folder deleted", "success");
+      } catch (error: unknown) {
+        console.error("Error deleting folder:", error);
+
+        showToast("Error deleting folder", "error");
+      }
+    },
+    [relativePath, reload, showToast],
+  );
   // ---------------------------------------------------------------------------
   // Clipboard operations
   // ---------------------------------------------------------------------------
