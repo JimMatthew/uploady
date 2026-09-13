@@ -19,7 +19,7 @@ import apiClient from "../services/apiClient";
 import type {
   SaveServerPayload,
   SaveServerResponse,
-  AuthMethod
+  AuthMethod,
 } from "../types/server";
 // -----------------------------------------------------------------------------
 // Types
@@ -226,9 +226,55 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
     return errs;
   };
 
+  const buildSaveServerPayload = (): SaveServerPayload => {
+    const host = form.host.trim();
+    const username = form.username.trim();
+
+    switch (form.authMethod) {
+      case "password":
+        return {
+          host,
+          username,
+          authType: "password",
+          password: form.password,
+        };
+
+      case "key":
+        switch (form.keyMode) {
+          case "saved":
+            return {
+              host,
+              username,
+              authType: "key",
+              keyMode: "saved",
+              keyId: form.keyId,
+            };
+
+          case "import":
+            return {
+              host,
+              username,
+              authType: "key",
+              keyMode: "import",
+              key: form.privateKey.trim(),
+              ...(form.passphrase && {
+                passphrase: form.passphrase,
+              }),
+            };
+
+          case "generate":
+            return {
+              host,
+              username,
+              authType: "key",
+              keyMode: "generate",
+            };
+        }
+    }
+  };
+
   const handleSave = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
-
     setSubmitted(true);
 
     const errs = validate();
@@ -238,48 +284,7 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
       return;
     }
 
-    const host = form.host.trim();
-
-    const username = form.username.trim();
-
-    let payload: SaveServerPayload;
-
-    if (form.authMethod === "password") {
-      payload = {
-        host,
-        username,
-        authType: "password",
-        password: form.password,
-      };
-    } else if (form.keyMode === "saved") {
-      payload = {
-        host,
-        username,
-        authType: "key",
-        keyMode: "saved",
-        keyId: form.keyId,
-      };
-    } else if (form.keyMode === "import") {
-      payload = {
-        host,
-        username,
-        authType: "key",
-        keyMode: "import",
-        key: form.privateKey.trim(),
-        ...(form.passphrase
-          ? {
-              passphrase: form.passphrase,
-            }
-          : {}),
-      };
-    } else {
-      payload = {
-        host,
-        username,
-        authType: "key",
-        keyMode: "generate",
-      };
-    }
+    const payload = buildSaveServerPayload();
 
     const result = await handleSaveServer(payload);
 
@@ -293,8 +298,8 @@ const AddServer = ({ handleSaveServer }: AddServerProps) => {
       result.server.publicKey
     ) {
       setGeneratedKey({
-        host,
-        username,
+        host: payload.host,
+        username: payload.username,
         publicKey: result.server.publicKey,
       });
     } else {

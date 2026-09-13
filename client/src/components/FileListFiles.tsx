@@ -17,7 +17,6 @@ import type {
   FileAction,
   RenameFileAction,
   FileBatchAction,
-  MenuPosition,
   ContextMenuState,
 } from "../types/fileBrowser";
 const SORT_FIELDS = ["name", "size", "date"] as const;
@@ -65,7 +64,6 @@ export default function FileList({
   } = useFileListState({
     files,
     copyFile,
-    deleteFile,
     deleteFiles,
     shareFile,
   });

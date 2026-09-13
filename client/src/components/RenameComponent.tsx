@@ -4,7 +4,7 @@ import { Flex, HStack, Icon, Input } from "@chakra-ui/react";
 import { FiCheck, FiX } from "react-icons/fi";
 
 interface RenameComponentProps {
-  currentName?: string;
+  currentName: string;
   handleRename: (newFilename: string) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -14,7 +14,7 @@ const RenameComponent = ({
   onCancel,
   currentName,
 }: RenameComponentProps) => {
-  const [newFilename, setNewFilename] = useState(currentName ?? "");
+  const [newFilename, setNewFilename] = useState(currentName);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -28,9 +28,9 @@ const RenameComponent = ({
 
     input.focus();
 
-    const dotIndex = currentName?.lastIndexOf(".") ?? -1;
+    const dotIndex = currentName.lastIndexOf(".");
 
-    const end = dotIndex > 0 ? dotIndex : (currentName?.length ?? 0);
+    const end = dotIndex > 0 ? dotIndex : (currentName.length);
 
     input.setSelectionRange(0, end);
   }, [currentName]);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import type {
   FileEntry,
   FileAction,
@@ -7,17 +8,13 @@ import type {
   FileBatchAction,
 } from "../types/fileBrowser";
 
-import {
-  SORT_DIRECTIONS,
-  SORT_FIELDS,
-} from "../types/fileBrowser";
+import { SORT_DIRECTIONS, SORT_FIELDS } from "../types/fileBrowser";
 
 interface UseFileListStateOptions {
-  files?: FileEntry[];
-  copyFile?: FileAction;
-  deleteFile?: FileAction;
-  deleteFiles?: FileBatchAction;
-  shareFile?: FileAction;
+  files: FileEntry[];
+  copyFile: FileAction;
+  deleteFiles: FileBatchAction;
+  shareFile: FileAction;
 }
 
 interface UseFileListStateResult {
@@ -28,10 +25,9 @@ interface UseFileListStateResult {
   setSortField: (field: SortField) => void;
   toggleSortDirection: () => void;
 
-  selected: Set<string>;
+  selected: ReadonlySet<string>;
   toggleSelect: (fileName: string) => void;
   clearSelection: () => void;
-
   setFileSelected: (fileName: string, shouldSelect: boolean) => void;
 
   copySelected: () => Promise<void>;
@@ -40,9 +36,8 @@ interface UseFileListStateResult {
 }
 
 export function useFileListState({
-  files = [],
+  files,
   copyFile,
-  deleteFile,
   deleteFiles,
   shareFile,
 }: UseFileListStateOptions): UseFileListStateResult {
@@ -104,11 +99,7 @@ export function useFileListState({
   );
 
   const executeForSelected = useCallback(
-    async (operation?: FileAction): Promise<void> => {
-      if (!operation) {
-        return;
-      }
-
+    async (operation: FileAction): Promise<void> => {
       const selectedFiles = [...selected];
 
       if (selectedFiles.length === 0) {
@@ -116,7 +107,6 @@ export function useFileListState({
       }
 
       await Promise.all(selectedFiles.map(operation));
-
       clearSelection();
     },
     [selected, clearSelection],
@@ -128,13 +118,13 @@ export function useFileListState({
   );
 
   const deleteSelected = useCallback(async (): Promise<void> => {
-  if (!deleteFiles || selected.size === 0) {
-    return;
-  }
+    if (selected.size === 0) {
+      return;
+    }
 
-  await deleteFiles([...selected]);
-  clearSelection();
-}, [deleteFiles, selected, clearSelection]);
+    await deleteFiles([...selected]);
+    clearSelection();
+  }, [deleteFiles, selected, clearSelection]);
 
   const shareSelected = useCallback(
     () => executeForSelected(shareFile),
@@ -173,15 +163,16 @@ export function useFileListState({
 
           break;
         }
+
         case SORT_FIELDS.DATE: {
           const aTime = a.date != null ? new Date(a.date).getTime() : 0;
           const bTime = b.date != null ? new Date(b.date).getTime() : 0;
+
           comparison = aTime - bTime;
           break;
         }
 
         case SORT_FIELDS.NAME:
-        default:
           comparison = a.name.localeCompare(b.name, undefined, {
             numeric: true,
             sensitivity: "base",

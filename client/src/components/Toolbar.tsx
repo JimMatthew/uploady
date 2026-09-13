@@ -20,7 +20,7 @@ interface ToolbarButtonProps {
 }
 
 interface ToolbarProps {
-  selected: Set<string>;
+  selected: ReadonlySet<string>;
   copySelected: () => void;
   shareSelected: () => void;
   deleteSelected: () => void;

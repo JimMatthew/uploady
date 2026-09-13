@@ -444,9 +444,6 @@ const ArchiveContents = ({
             isSelected={selectedEntryNames.has(entry.name)}
             onSelect={() => onSelect(entry)}
             onOpenMenu={(event) => onOpenMenu(event, entry)}
-            isRenaming={false}
-            onRename={() => {}}
-            onRenameClose={() => {}}
           />
         );
       })}

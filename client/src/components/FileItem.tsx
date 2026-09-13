@@ -4,26 +4,35 @@ import RenameComponent from "./RenameComponent";
 type FileSize = number | string | null | undefined;
 type FileDate = string | number | Date | null | undefined;
 
-interface FileItemProps {
+interface BaseFileItemProps {
   name: string;
   size?: FileSize;
   date?: FileDate;
 
   isSelected: boolean;
-  isRenaming: boolean;
 
   onSelect?: (name: string) => void;
-
   onDragSelectStart?: (name: string) => void;
-
   onDragSelectEnter?: (name: string) => void;
 
   onOpenMenu: (event: MouseEvent<HTMLDivElement>, name: string) => void;
+}
 
+interface RenameableFileItemProps extends BaseFileItemProps {
+  isRenaming: boolean;
   onRename: (currentName: string, newName: string) => void | Promise<void>;
-
   onRenameClose: () => void;
 }
+
+interface NonRenameableFileItemProps extends BaseFileItemProps {
+  isRenaming?: never;
+  onRename?: never;
+  onRenameClose?: never;
+}
+
+type FileItemProps =
+  | RenameableFileItemProps
+  | NonRenameableFileItemProps;
 
 const EXT_COLORS: Record<string, string> = {
   PDF: "#E57373",

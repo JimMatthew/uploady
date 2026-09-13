@@ -52,33 +52,6 @@ interface OpenTabOptions {
   content: ReactNode;
 }
 
-export interface LocalFileSource {
-  type: "local";
-  currentDirectory: string;
-  serverId?: never;
-  host?: never;
-}
-
-export interface SftpFileSource {
-  type: "sftp";
-  currentDirectory: string;
-  serverId: string;
-  host?: string;
-}
-
-export interface ArchiveFileSource {
-  type: "archive";
-  archivePath: string;
-  entry: string;
-  currentDirectory?: never;
-  serverId?: never;
-  host?: never;
-}
-
-export type WorkspaceFileSource =
-  LocalFileSource | SftpFileSource | ArchiveFileSource;
-
-
 interface OpenSshOptions {
   initialCommand?: string;
 }

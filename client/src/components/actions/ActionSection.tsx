@@ -31,9 +31,7 @@ const ActionSection = ({
   onToggle,
 }: ActionSectionProps) => {
   const isControlled = isOpenProp !== undefined;
-
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
-
   const isOpen = isControlled ? isOpenProp : internalOpen;
 
   const toggle = (): void => {
