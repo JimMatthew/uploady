@@ -17,7 +17,7 @@ import {
 import type { IconType } from "react-icons";
 import apiClient from "../services/apiClient";
 import type { ServerStatuses } from "../types/server";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 
 // -----------------------------------------------------------------------------
 // Types

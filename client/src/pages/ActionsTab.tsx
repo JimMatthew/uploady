@@ -35,7 +35,7 @@ import type {
 
 import type { AppToast } from "../hooks/useAppToast";
 import type { SftpServer, ServerSummary } from "../types/server";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------

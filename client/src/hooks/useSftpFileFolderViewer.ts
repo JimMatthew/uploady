@@ -11,7 +11,7 @@ import type {
 } from "../types/fileBrowser";
 
 import type {AppToast, AppToastStatus} from "./useAppToast";
-import {propIfPresent} from "../utils/PropHelper";
+import {propIfPresent} from "../utils/propHelper";
 
 interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;

@@ -24,7 +24,7 @@ import {
 
 import apiClient from "../services/apiClient";
 import type { AppToast } from "../hooks/useAppToast";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 
 // -----------------------------------------------------------------------------
 // Types

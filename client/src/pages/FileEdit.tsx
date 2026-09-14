@@ -7,7 +7,7 @@ import FileViewer from "../components/fileViewer/FileViewer";
 import type { FileViewerType } from "../components/fileViewer/FileViewer";
 import type { AppToast } from "../hooks/useAppToast";
 import type { WorkspaceFileSource } from "../types/workspace";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------

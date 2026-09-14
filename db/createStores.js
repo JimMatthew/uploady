@@ -1,22 +1,30 @@
-const {MongoServerStore} = require("./stores/mongo/mongoServerStore");
+const { MongoServerStore } = require("./stores/mongo/mongoServerStore");
 const { MongoUserStore } = require("./stores/mongo/mongoUserStore");
 const { MongoSharedFileStore } = require("./stores/mongo/mongoSharedFileStore");
-const MongoTransferJobStore = require("./stores/mongo/mongoTransferJobStore");
-const MongoTransferItemStore = require("./stores/mongo/mongoTransferItemStore");
+const {
+  MongoTransferJobStore,
+} = require("./stores/mongo/mongoTransferJobStore");
+const {
+  MongoTransferItemStore,
+} = require("./stores/mongo/mongoTransferItemStore");
 const { MongoSshKeyStore } = require("./stores/mongo/mongoSshKeyStore");
-const {MongoSettingsStore} = require("./stores/mongo/mongoAppSettings");
-const {MongoActionStore} = require("./stores/mongo/mongoActionStore");
+const { MongoSettingsStore } = require("./stores/mongo/mongoAppSettings");
+const { MongoActionStore } = require("./stores/mongo/mongoActionStore");
 
 const { SqliteUserStore } = require("./stores/sqlite/sqliteUserStore");
-const {SqliteSettingsStore} = require("./stores/sqlite/sqliteSettingsStore");
+const { SqliteSettingsStore } = require("./stores/sqlite/sqliteSettingsStore");
 const {
   SqliteSharedFileStore,
 } = require("./stores/sqlite/sqliteSharedFileStore");
 const { SqliteSshKeyStore } = require("./stores/sqlite/sqliteSshKeyStore");
-const {SqliteServerStore} = require("./stores/sqlite/sqliteServerStore");
-const {SqliteActionStore} = require("./stores/sqlite/sqliteActionStore");
-const SqliteTransferJobStore = require("./stores/sqlite/sqliteTransferJobStore");
-const SqliteTransferItemStore = require("./stores/sqlite/sqliteTransferItemStore");
+const { SqliteServerStore } = require("./stores/sqlite/sqliteServerStore");
+const { SqliteActionStore } = require("./stores/sqlite/sqliteActionStore");
+const {
+  SqliteTransferJobStore,
+} = require("./stores/sqlite/sqliteTransferJobStore");
+const {
+  SqliteTransferItemStore,
+} = require("./stores/sqlite/sqliteTransferItemStore");
 
 const createStores = ({ databaseType }) => {
   switch (databaseType) {

@@ -3,7 +3,7 @@ import type { IconType } from "react-icons";
 import { FiChevronRight, FiHome } from "react-icons/fi";
 
 import type { BreadcrumbEntry } from "../types/fileBrowser";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 
 interface BreadcrumbsProps {
   breadcrumb?: BreadcrumbEntry[];

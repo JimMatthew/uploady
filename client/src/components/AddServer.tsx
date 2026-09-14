@@ -21,7 +21,7 @@ import type {
   SaveServerResponse,
   AuthMethod,
 } from "../types/server";
-import { propIfPresent } from "../utils/PropHelper";
+import { propIfPresent } from "../utils/propHelper";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------

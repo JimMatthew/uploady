@@ -9,6 +9,7 @@ import {
 } from "../sshKeyStore";
 
 import { getDatabase } from "../../sqlite/database";
+import { propIfPresent } from "../../../shared/utils/PropHelper";
 
 interface SshKeyRow {
   id: string;
@@ -46,9 +47,7 @@ const toEncryptedField = (
   };
 };
 
-const toSshKey = (
-  row: SshKeyRow | null | undefined,
-): SshKey | null => {
+const toSshKey = (row: SshKeyRow | null | undefined): SshKey | null => {
   if (!row) {
     return null;
   }
@@ -57,35 +56,21 @@ const toSshKey = (
     _id: String(row.id),
     name: row.name,
     scope: row.scope,
-
-    ...(row.server_id != null
-      ? { serverId: row.server_id }
-      : {}),
-
+    ...propIfPresent("serverId", row.server_id),
     privateKey: {
       iv: row.private_key_iv,
       content: row.private_key_content,
       tag: row.private_key_tag,
     },
 
-    ...(row.public_key != null
-      ? { publicKey: row.public_key }
-      : {}),
+    ...propIfPresent("publicKey", row.public_key),
 
-    ...(toEncryptedField(
+    ...propIfPresent("passphrase", toEncryptedField(
       row.passphrase_iv,
       row.passphrase_content,
       row.passphrase_tag,
-    ) !== undefined
-      ? {
-          passphrase: toEncryptedField(
-            row.passphrase_iv,
-            row.passphrase_content,
-            row.passphrase_tag,
-          )!,
-        }
-      : {}),
-
+    )),
+   
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

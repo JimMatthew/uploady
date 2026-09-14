@@ -19,7 +19,6 @@
     "dist",
     "build",
     "coverage",
-    "scripts",
     "public",
     "bin"
   ]

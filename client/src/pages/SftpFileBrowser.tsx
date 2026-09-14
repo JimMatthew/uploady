@@ -7,7 +7,7 @@ import FilePanel from "./FilePanel";
 import type { AppToast } from "../hooks/useAppToast";
 import type { FileUploadProps } from "../types/fileBrowser";
 import { OpenFileOptions, SftpFileSource } from "../types/workspace";
-import {propIfPresent} from "../utils/PropHelper";
+import {propIfPresent} from "../utils/propHelper";
 
 interface SftpFileBrowserProps {
   serverId: string;

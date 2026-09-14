@@ -161,6 +161,7 @@ function initSqlite() {
       job_id TEXT NOT NULL,
       source_server_id TEXT,
       source_type TEXT,
+      archive_path TEXT,
       filename TEXT NOT NULL,
       source_path TEXT,
       destination_path TEXT,
@@ -187,6 +188,19 @@ function initSqlite() {
     CREATE INDEX IF NOT EXISTS idx_transfer_items_job_kind
       ON transfer_items(job_id, kind);
   `);
+
+  const columns = db.all("PRAGMA table_info(transfer_items)");
+
+  const hasArchivePath = columns.some(
+    (column) => column.name === "archive_path",
+  );
+
+  if (!hasArchivePath) {
+    db.exec(`
+    ALTER TABLE transfer_items
+    ADD COLUMN archive_path TEXT;
+  `);
+  }
 }
 
 module.exports = initSqlite;
