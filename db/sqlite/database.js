@@ -16,7 +16,21 @@
  * is called.
  */
 
+
+/**
+ * @typedef {Object} SqliteAdapter
+ * @property {(sql: string) => void} exec
+ * @property {(sql: string, ...params: any[]) => Object|null} get
+ * @property {(sql: string, ...params: any[]) => Object[]} all
+ * @property {(sql: string, ...params: any[]) => {
+ *   changes: number,
+ *   lastInsertRowid: any
+ * }} run
+ * @property {() => void} close
+ */
+
 let rawDb = null;
+/** @type {SqliteAdapter|null} */
 let adapter = null;
 
 /**
@@ -36,16 +50,7 @@ function isBun() {
  *
  * @param {Object} db - Native Bun or Node.js SQLite database instance.
  * @param {"bun"|"node"} runtime - SQLite runtime implementation being wrapped.
- * @returns {{
- *   exec: function(string): void,
- *   get: function(string, ...*): Object|null,
- *   all: function(string, ...*): Object[],
- *   run: function(string, ...*): {
- *     changes: number,
- *     lastInsertRowid: *
- *   },
- *   close: function(): void
- * }} Normalized SQLite adapter.
+ * @returns {SqliteAdapter} Normalized SQLite adapter.
  */
 function createAdapter(db, runtime) {
   const prepare = (sql) => {
@@ -135,7 +140,7 @@ function createAdapter(db, runtime) {
  * DatabaseSync implementation.
  *
  * @param {string} path - Filesystem path to the SQLite database.
- * @returns {Object} Shared SQLite compatibility adapter.
+ * @returns {SqliteAdapter} Shared SQLite compatibility adapter.
  */
 function openDatabase(path) {
   if (adapter) {
@@ -168,7 +173,7 @@ function openDatabase(path) {
  * `openDatabase()` must have been called before this function. SQLite stores
  * should normally use this function rather than opening their own connection.
  *
- * @returns {Object} Shared SQLite compatibility adapter.
+ * @returns {SqliteAdapter} Shared SQLite compatibility adapter.
  * @throws {Error} If the SQLite database has not been initialized.
  */
 function getDatabase() {

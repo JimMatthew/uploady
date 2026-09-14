@@ -1,8 +1,40 @@
-const SshKeyStore = require("../sshKeyStore");
-const { getDatabase } = require("../../sqlite/database");
-const crypto = require("crypto");
+import crypto from "node:crypto";
 
-const toEncryptedField = (iv, content, tag) => {
+import {
+  SshKeyStore,
+  type CreateSshKeyInput,
+  type EncryptedField,
+  type SshKey,
+  type UpdateSshKeyInput,
+} from "../sshKeyStore";
+
+import { getDatabase } from "../../sqlite/database";
+
+interface SshKeyRow {
+  id: string;
+  name: string;
+  scope: "server" | "shared";
+  server_id: string | null;
+
+  private_key_iv: string;
+  private_key_content: string;
+  private_key_tag: string;
+
+  public_key: string | null;
+
+  passphrase_iv: string | null;
+  passphrase_content: string | null;
+  passphrase_tag: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+const toEncryptedField = (
+  iv: string | null,
+  content: string | null,
+  tag: string | null,
+): EncryptedField | undefined => {
   if (!iv || !content || !tag) {
     return undefined;
   }
@@ -14,7 +46,9 @@ const toEncryptedField = (iv, content, tag) => {
   };
 };
 
-const toSshKey = (row) => {
+const toSshKey = (
+  row: SshKeyRow | null | undefined,
+): SshKey | null => {
   if (!row) {
     return null;
   }
@@ -23,7 +57,10 @@ const toSshKey = (row) => {
     _id: String(row.id),
     name: row.name,
     scope: row.scope,
-    serverId: row.server_id ?? undefined,
+
+    ...(row.server_id != null
+      ? { serverId: row.server_id }
+      : {}),
 
     privateKey: {
       iv: row.private_key_iv,
@@ -31,89 +68,96 @@ const toSshKey = (row) => {
       tag: row.private_key_tag,
     },
 
-    publicKey: row.public_key ?? undefined,
+    ...(row.public_key != null
+      ? { publicKey: row.public_key }
+      : {}),
 
-    passphrase: toEncryptedField(
+    ...(toEncryptedField(
       row.passphrase_iv,
       row.passphrase_content,
       row.passphrase_tag,
-    ),
+    ) !== undefined
+      ? {
+          passphrase: toEncryptedField(
+            row.passphrase_iv,
+            row.passphrase_content,
+            row.passphrase_tag,
+          )!,
+        }
+      : {}),
 
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
 };
 
-class SqliteSshKeyStore extends SshKeyStore {
-  async find() {
+export class SqliteSshKeyStore extends SshKeyStore {
+  async find(): Promise<SshKey[]> {
     const db = getDatabase();
 
     return db
       .all(
         `
-        SELECT *
-        FROM ssh_keys
-        ORDER BY created_at ASC
-      `,
+          SELECT *
+          FROM ssh_keys
+          ORDER BY created_at ASC
+        `,
       )
-      .map(toSshKey);
+      .map((row) => toSshKey(row as SshKeyRow))
+      .filter((key): key is SshKey => key !== null);
   }
 
-  async findShared() {
+  async findShared(): Promise<SshKey[]> {
     const db = getDatabase();
 
     return db
       .all(
         `
-        SELECT *
-        FROM ssh_keys
-        WHERE scope = 'shared'
-        ORDER BY created_at ASC
-      `,
+          SELECT *
+          FROM ssh_keys
+          WHERE scope = 'shared'
+          ORDER BY created_at ASC
+        `,
       )
-      .map(toSshKey);
+      .map((row) => toSshKey(row as SshKeyRow))
+      .filter((key): key is SshKey => key !== null);
   }
 
-  async findById(id) {
+  async findById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    const normalizedId = String(id);
-
-    return toSshKey(
-      db.get(
-        `
+    const row = db.get(
+      `
         SELECT *
         FROM ssh_keys
         WHERE id = ?
       `,
-        normalizedId,
-      ),
-    );
+      String(id),
+    ) as SshKeyRow | undefined;
+
+    return toSshKey(row);
   }
 
-  async findSharedById(id) {
+  async findSharedById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    return toSshKey(
-      db.get(
-        `
+    const row = db.get(
+      `
         SELECT *
         FROM ssh_keys
         WHERE id = ?
           AND scope = 'shared'
       `,
-        String(id),
-      ),
-    );
+      String(id),
+    ) as SshKeyRow | undefined;
+
+    return toSshKey(row);
   }
 
-  async create(data) {
+  async create(data: CreateSshKeyInput): Promise<SshKey> {
     const db = getDatabase();
 
-    // Mongo previously generated IDs for you.
-    // Generate an application-side ID for new SQLite records.
     const id = crypto.randomUUID();
-
     const now = new Date().toISOString();
 
     db.run(
@@ -154,10 +198,19 @@ class SqliteSshKeyStore extends SshKeyStore {
       now,
     );
 
-    return this.findById(id);
+    const created = await this.findById(id);
+
+    if (!created) {
+      throw new Error(`Failed to load newly created SSH key ${id}`);
+    }
+
+    return created;
   }
 
-  async findByIdAndUpdate(id, update) {
+  async findByIdAndUpdate(
+    id: string,
+    update: UpdateSshKeyInput,
+  ): Promise<SshKey | null> {
     const db = getDatabase();
 
     const existing = await this.findById(id);
@@ -214,20 +267,18 @@ class SqliteSshKeyStore extends SshKeyStore {
     return this.findById(id);
   }
 
-  async deleteById(id) {
+  async deleteById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    return toSshKey(
-      db.get(
-        `
-          DELETE FROM ssh_keys
-          WHERE id = ?
-          RETURNING *
-        `,
-        id,
-      ),
-    );
+    const row = db.get(
+      `
+        DELETE FROM ssh_keys
+        WHERE id = ?
+        RETURNING *
+      `,
+      id,
+    ) as SshKeyRow | undefined;
+
+    return toSshKey(row);
   }
 }
-
-module.exports = SqliteSshKeyStore;
