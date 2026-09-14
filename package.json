@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node app.js",
-    "typecheck": "node ./node_modules/typescript/lib/tsc.js --noEmit"
+    "typecheck": "node ./node_modules/typescript/lib/tsc.js --noEmit",
+    "build:server": "node ./node_modules/typescript/lib/tsc.js -p tsconfig.build.json"
   },
   "dependencies": {
     "archiver": "^7.0.1",

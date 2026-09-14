@@ -4,11 +4,11 @@ const { MongoSharedFileStore } = require("./stores/mongo/mongoSharedFileStore");
 const MongoTransferJobStore = require("./stores/mongo/mongoTransferJobStore");
 const MongoTransferItemStore = require("./stores/mongo/mongoTransferItemStore");
 const { MongoSshKeyStore } = require("./stores/mongo/mongoSshKeyStore");
-const MongoAppSettings = require("./stores/mongo/mongoAppSettings");
+const {MongoSettingsStore} = require("./stores/mongo/mongoAppSettings");
 const MongoActionStore = require("./stores/mongo/mongoActionStore");
 
 const { SqliteUserStore } = require("./stores/sqlite/sqliteUserStore");
-const SqliteSettingsStore = require("./stores/sqlite/sqliteSettingsStore");
+const {SqliteSettingsStore} = require("./stores/sqlite/sqliteSettingsStore");
 const {
   SqliteSharedFileStore,
 } = require("./stores/sqlite/sqliteSharedFileStore");
@@ -28,7 +28,7 @@ const createStores = ({ databaseType }) => {
         transferJobs: new MongoTransferJobStore(),
         transferItems: new MongoTransferItemStore(),
         sshKeyStore: new MongoSshKeyStore(),
-        settingsStore: new MongoAppSettings(),
+        settingsStore: new MongoSettingsStore(),
         actions: new MongoActionStore(),
       };
     case "sqlite":

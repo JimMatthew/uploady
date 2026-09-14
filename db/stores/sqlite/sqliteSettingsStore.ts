@@ -1,7 +1,17 @@
-const SettingsStore = require("../settingsStore");
-const { getDatabase } = require("../../sqlite/database");
+import {
+  SettingsStore,
+  AppSettings,
+  SessionSettings,
+  AppSettingsUpdate,
+} from "../settingsStore";
 
-const toSettings = (row) => {
+import { getDatabase } from "../../sqlite/database";
+
+interface SettingsRow {
+  jwt_lifetime_minutes: number;
+}
+
+const toSettings = (row: SettingsRow | undefined): AppSettings | null => {
   if (!row) {
     return null;
   }
@@ -13,21 +23,25 @@ const toSettings = (row) => {
   };
 };
 
-class SqliteSettingsStore extends SettingsStore {
-  async get() {
+export class SqliteSettingsStore extends SettingsStore {
+  async get(): Promise<AppSettings | null> {
     const db = getDatabase();
 
-    const row = db.get(`
-      SELECT
-        jwt_lifetime_minutes
-      FROM app_settings
-      WHERE id = 1
-    `);
+    const row = db.get(
+      `
+        SELECT
+          jwt_lifetime_minutes
+        FROM app_settings
+        WHERE id = 1
+      `,
+    ) as SettingsRow | undefined;
 
     return toSettings(row);
   }
 
-  async updateSessionSettings({ jwtLifetimeMinutes }) {
+  async updateSessionSettings({
+    jwtLifetimeMinutes,
+  }: Partial<SessionSettings>): Promise<AppSettings | null> {
     const db = getDatabase();
 
     db.run(
@@ -46,10 +60,10 @@ class SqliteSettingsStore extends SettingsStore {
     return this.get();
   }
 
-  async update(settings) {
+  async update(settings: AppSettingsUpdate): Promise<AppSettings | null> {
     const db = getDatabase();
 
-    if (settings.sessionTimeoutMinutes !== undefined) {
+    if (settings.jwtLifetimeMinutes !== undefined) {
       db.run(
         `
           INSERT INTO app_settings (
@@ -60,12 +74,10 @@ class SqliteSettingsStore extends SettingsStore {
           ON CONFLICT(id) DO UPDATE SET
             jwt_lifetime_minutes = excluded.jwt_lifetime_minutes
         `,
-        settings.sessionTimeoutMinutes,
+        settings.jwtLifetimeMinutes,
       );
     }
 
     return this.get();
   }
 }
-
-module.exports = SqliteSettingsStore;

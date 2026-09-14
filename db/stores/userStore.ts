@@ -20,4 +20,4 @@ export abstract class UserStore {
   abstract findByUsername(username: string): Promise<User | null>;
 }
 
-module.exports = UserStore;
+
