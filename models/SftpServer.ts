@@ -1,6 +1,3 @@
-const mongoose = require("mongoose");
-const encryptedFieldSchema = require("./encryptedField");
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 /**
@@ -13,7 +10,32 @@ const encryptedFieldSchema = require("./encryptedField");
  * Use getServerOptions() in serverService to retrieve decrypted
  * connection options.
  */
-const sftpServerSchema = new mongoose.Schema(
+import mongoose, { Schema } from "mongoose";
+import encryptedFieldSchema from "./encryptedField";
+
+interface EncryptedField {
+  iv: string;
+  content: string;
+  tag: string;
+}
+
+export interface SftpServerDocument {
+  host: string;
+  port: number;
+  username: string;
+  authType: "password" | "key";
+
+  credentials: {
+    password?: EncryptedField;
+  };
+
+  keyId?: mongoose.Types.ObjectId;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const sftpServerSchema = new Schema<SftpServerDocument>(
   {
     host: {
       type: String,
@@ -44,7 +66,7 @@ const sftpServerSchema = new mongoose.Schema(
     },
 
     keyId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "SshKey",
       required: false,
     },
@@ -52,8 +74,9 @@ const sftpServerSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// ─── Model ────────────────────────────────────────────────────────────────────
+const SftpServer = mongoose.model<SftpServerDocument>(
+  "Server",
+  sftpServerSchema,
+);
 
-const SftpServer = mongoose.model("Server", sftpServerSchema);
-
-module.exports = SftpServer;
+export default SftpServer;

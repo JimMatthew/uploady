@@ -1,4 +1,4 @@
-const MongoServerStore = require("./stores/mongo/mongoServerStore");
+const {MongoServerStore} = require("./stores/mongo/mongoServerStore");
 const { MongoUserStore } = require("./stores/mongo/mongoUserStore");
 const { MongoSharedFileStore } = require("./stores/mongo/mongoSharedFileStore");
 const MongoTransferJobStore = require("./stores/mongo/mongoTransferJobStore");
@@ -13,7 +13,7 @@ const {
   SqliteSharedFileStore,
 } = require("./stores/sqlite/sqliteSharedFileStore");
 const { SqliteSshKeyStore } = require("./stores/sqlite/sqliteSshKeyStore");
-const SqliteServerStore = require("./stores/sqlite/sqliteServerStore");
+const {SqliteServerStore} = require("./stores/sqlite/sqliteServerStore");
 const SqliteActionStore = require("./stores/sqlite/sqliteActionStore");
 const SqliteTransferJobStore = require("./stores/sqlite/sqliteTransferJobStore");
 const SqliteTransferItemStore = require("./stores/sqlite/sqliteTransferItemStore");
