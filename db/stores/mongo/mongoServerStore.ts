@@ -59,11 +59,13 @@ export class MongoServerStore extends ServerStore {
     return server ? toServer(server) : null;
   }
 
-  async deleteById(id: string): Promise<Server | null> {
-    const server = await SftpServer.findByIdAndDelete(id).lean();
+  async deleteById(id: string): Promise<boolean> {
+  const result = await SftpServer.findByIdAndDelete(id)
+    .select("_id")
+    .lean();
 
-    return server ? toServer(server) : null;
-  }
+  return result !== null;
+}
 
   async findSummariesByIds(ids: string[]): Promise<ServerSummary[]> {
     if (!ids.length) {

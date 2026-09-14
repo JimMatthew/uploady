@@ -1,6 +1,16 @@
-const mongoose = require("mongoose");
+import mongoose, { Schema } from "mongoose";
 
-const actionSchema = new mongoose.Schema(
+export interface ActionDocument {
+  name: string;
+  description: string;
+  serverId: mongoose.Types.ObjectId;
+  command: string;
+  mode: "capture" | "terminal";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const actionSchema = new Schema<ActionDocument>(
   {
     name: {
       type: String,
@@ -15,7 +25,7 @@ const actionSchema = new mongoose.Schema(
     },
 
     serverId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
     },
 
@@ -36,4 +46,6 @@ const actionSchema = new mongoose.Schema(
   },
 );
 
-module.exports = mongoose.model("Action", actionSchema);
+const ActionModel = mongoose.model<ActionDocument>("Action", actionSchema);
+
+export default ActionModel;

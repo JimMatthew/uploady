@@ -121,7 +121,6 @@ export class SqliteServerStore extends ServerStore {
         id,
         host
       FROM servers
-      ORDER BY host ASC
     `) as ServerSummaryRow[];
 
     return rows.map((row) => ({
@@ -254,20 +253,20 @@ export class SqliteServerStore extends ServerStore {
     return this.findById(id);
   }
 
-  async deleteById(id: string): Promise<Server | null> {
-    const db = getDatabase();
+ async deleteById(id: string): Promise<boolean> {
+  const db = getDatabase();
 
-    const row = db.get(
-      `
-        DELETE FROM servers
-        WHERE id = ?
-        RETURNING *
-      `,
-      id,
-    ) as ServerRow | undefined;
+  const row = db.get(
+    `
+      DELETE FROM servers
+      WHERE id = ?
+      RETURNING id
+    `,
+    id,
+  ) as { id: string } | undefined;
 
-    return toServer(row);
-  }
+  return row !== undefined;
+}
 
   async findSummariesByIds(ids: string[]): Promise<ServerSummary[]> {
     if (!ids.length) {

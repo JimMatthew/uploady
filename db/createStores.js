@@ -5,7 +5,7 @@ const MongoTransferJobStore = require("./stores/mongo/mongoTransferJobStore");
 const MongoTransferItemStore = require("./stores/mongo/mongoTransferItemStore");
 const { MongoSshKeyStore } = require("./stores/mongo/mongoSshKeyStore");
 const {MongoSettingsStore} = require("./stores/mongo/mongoAppSettings");
-const MongoActionStore = require("./stores/mongo/mongoActionStore");
+const {MongoActionStore} = require("./stores/mongo/mongoActionStore");
 
 const { SqliteUserStore } = require("./stores/sqlite/sqliteUserStore");
 const {SqliteSettingsStore} = require("./stores/sqlite/sqliteSettingsStore");
@@ -14,7 +14,7 @@ const {
 } = require("./stores/sqlite/sqliteSharedFileStore");
 const { SqliteSshKeyStore } = require("./stores/sqlite/sqliteSshKeyStore");
 const {SqliteServerStore} = require("./stores/sqlite/sqliteServerStore");
-const SqliteActionStore = require("./stores/sqlite/sqliteActionStore");
+const {SqliteActionStore} = require("./stores/sqlite/sqliteActionStore");
 const SqliteTransferJobStore = require("./stores/sqlite/sqliteTransferJobStore");
 const SqliteTransferItemStore = require("./stores/sqlite/sqliteTransferItemStore");
 

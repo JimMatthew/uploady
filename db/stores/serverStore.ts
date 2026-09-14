@@ -28,9 +28,11 @@ export interface KeyServer extends ServerBase {
   };
   keyId: string;
 }
+
 export interface ServerCredentials {
   password?: EncryptedField;
 }
+
 export type Server = PasswordServer | KeyServer;
 
 export type ServerAuthType = "password" | "key";
@@ -86,7 +88,7 @@ export abstract class ServerStore {
     update: UpdateServerData,
   ): Promise<Server | null>;
 
-  abstract deleteById(id: string): Promise<Server | null>;
+  abstract deleteById(id: string): Promise<boolean>;
 
   abstract findSummariesByIds(
     ids: string[],
