@@ -1,7 +1,14 @@
-const UserStore = require("../userStore");
-const { getDatabase } = require("../../sqlite/database");
+import { UserStore, type CreateUserInput, type User } from "../userStore";
+import { getDatabase } from "../../sqlite/database";
 
-const toUser = (row) => {
+interface UserRow {
+  id: string | number;
+  username: string;
+  password_hash: string;
+  password_salt: string;
+}
+
+const toUser = (row: UserRow | null | undefined): User | null => {
   if (!row) {
     return null;
   }
@@ -14,18 +21,16 @@ const toUser = (row) => {
   };
 };
 
-class SqliteUserStore extends UserStore {
-  async exists() {
+export class SqliteUserStore extends UserStore {
+  async exists(): Promise<boolean> {
     const db = getDatabase();
 
-    const row = db.get(
-      "SELECT 1 FROM users LIMIT 1",
-    );
+    const row = db.get("SELECT 1 FROM users LIMIT 1");
 
     return row !== null;
   }
 
-  async create(data) {
+  async create(data: CreateUserInput): Promise<User> {
     const db = getDatabase();
 
     const result = db.run(
@@ -50,7 +55,7 @@ class SqliteUserStore extends UserStore {
     };
   }
 
-  async findByUsername(username) {
+  async findByUsername(username: string): Promise<User | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -64,10 +69,8 @@ class SqliteUserStore extends UserStore {
         WHERE username = ?
       `,
       username,
-    );
+    ) as UserRow | undefined;
 
     return toUser(row);
   }
 }
-
-module.exports = SqliteUserStore;
