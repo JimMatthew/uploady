@@ -1,26 +1,63 @@
-const SharedFileStore = require("../sharedFileStore");
-const { getDatabase } = require("../../sqlite/database");
+import {
+  SharedFileStore,
+  type CreateSharedFileInput,
+  type SharedFile,
+} from "../sharedFileStore";
 
-const toSharedFile = (row) => {
+import { getDatabase } from "../../sqlite/database";
+
+interface SharedFileRow {
+  id: string;
+  file_name: string;
+  file_path: string;
+  link: string;
+  token: string;
+  is_remote: number;
+  server_id: string | null;
+  server_name: string | null;
+  shared_at: string;
+}
+
+const toSharedFile = (
+  row: SharedFileRow | null | undefined,
+): SharedFile | null => {
   if (!row) {
     return null;
   }
 
-  return {
+  const base = {
     _id: String(row.id),
     fileName: row.file_name,
     filePath: row.file_path,
     link: row.link,
     token: row.token,
-    isRemote: Boolean(row.is_remote),
-    serverId: row.server_id ?? undefined,
-    serverName: row.server_name ?? undefined,
     sharedAt: new Date(row.shared_at),
+  };
+
+  if (Boolean(row.is_remote)) {
+    if (!row.server_id || !row.server_name) {
+      throw new Error(
+        `Remote shared file ${row.id} is missing server information`,
+      );
+    }
+
+    return {
+      ...base,
+      isRemote: true,
+      serverId: row.server_id,
+      serverName: row.server_name,
+    };
+  }
+
+  return {
+    ...base,
+    isRemote: false,
   };
 };
 
-class SqliteSharedFileStore extends SharedFileStore {
-  async create(data) {
+export class SqliteSharedFileStore extends SharedFileStore {
+
+  async create(data: CreateSharedFileInput): Promise<SharedFile> {
     const db = getDatabase();
 
     const row = db.get(
@@ -44,12 +81,18 @@ class SqliteSharedFileStore extends SharedFileStore {
       data.isRemote ? 1 : 0,
       data.serverId ?? null,
       data.serverName ?? null,
-    );
+    ) as SharedFileRow | undefined;
 
-    return toSharedFile(row);
+    const sharedFile = toSharedFile(row);
+
+    if (!sharedFile) {
+      throw new Error("Failed to create shared file");
+    }
+
+    return sharedFile;
   }
 
-  async findByToken(token) {
+  async findByToken(token: string): Promise<SharedFile | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -59,12 +102,12 @@ class SqliteSharedFileStore extends SharedFileStore {
         WHERE token = ?
       `,
       token,
-    );
+    ) as SharedFileRow | undefined;
 
     return toSharedFile(row);
   }
 
-  async deleteByToken(token) {
+  async deleteByToken(token: string): Promise<SharedFile | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -74,12 +117,15 @@ class SqliteSharedFileStore extends SharedFileStore {
         RETURNING *
       `,
       token,
-    );
+    ) as SharedFileRow | undefined;
 
     return toSharedFile(row);
   }
 
-  async deleteByPath(filePath, fileName) {
+  async deleteByPath(
+    filePath: string,
+    fileName: string,
+  ): Promise<SharedFile | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -91,12 +137,15 @@ class SqliteSharedFileStore extends SharedFileStore {
       `,
       filePath,
       fileName,
-    );
+    ) as SharedFileRow | undefined;
 
     return toSharedFile(row);
   }
 
-  async findByFile(fileName, filePath) {
+  async findByFile(
+    fileName: string,
+    filePath: string,
+  ): Promise<SharedFile | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -109,12 +158,12 @@ class SqliteSharedFileStore extends SharedFileStore {
       `,
       fileName,
       filePath,
-    );
+    ) as SharedFileRow | undefined;
 
     return toSharedFile(row);
   }
 
-  async list() {
+  async list(): Promise<SharedFile[]> {
     const db = getDatabase();
 
     const rows = db.all(`
@@ -123,10 +172,16 @@ class SqliteSharedFileStore extends SharedFileStore {
       ORDER BY shared_at DESC
     `);
 
-    return rows.map(toSharedFile);
+    return rows
+      .map((row) => toSharedFile(row as SharedFileRow))
+      .filter((sharedFile): sharedFile is SharedFile => sharedFile !== null);
   }
 
-  async findRemoteShare(fileName, filePath, serverId) {
+  async findRemoteShare(
+    fileName: string,
+    filePath: string,
+    serverId: string,
+  ): Promise<SharedFile | null> {
     const db = getDatabase();
 
     const row = db.get(
@@ -142,10 +197,8 @@ class SqliteSharedFileStore extends SharedFileStore {
       fileName,
       filePath,
       serverId,
-    );
+    ) as SharedFileRow | undefined;
 
     return toSharedFile(row);
   }
 }
-
-module.exports = SqliteSharedFileStore;

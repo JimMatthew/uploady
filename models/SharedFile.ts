@@ -1,12 +1,29 @@
-const mongoose = require("mongoose");
+import mongoose, {
+  Schema,
+  type HydratedDocument,
+  type Types,
+} from "mongoose";
 
+export interface SharedFileDocumentShape {
+  fileName: string;
+  filePath: string;
+  link: string;
+  token: string;
+  isRemote?: boolean;
+  serverId?: string;
+  serverName?: string;
+  sharedAt: Date;
+}
+
+export type SharedFileDocument =
+  HydratedDocument<SharedFileDocumentShape>;
 /**
  * Represents a publicly shareable link to a file.
  * Files can be local (served from disk) or remote (streamed from an SFTP server).
  * Access is controlled by the token — no authentication is required to use a share link.
  * Use token as the lookup key when serving shared files.
  */
-const sharedFileSchema = new mongoose.Schema({
+const sharedFileSchema = new  Schema<SharedFileDocumentShape>({
   fileName:   { type: String, required: true },
   filePath:   { type: String, required: true, index: true },
   link:       { type: String, required: true },
@@ -17,6 +34,10 @@ const sharedFileSchema = new mongoose.Schema({
   sharedAt:   { type: Date, default: Date.now },
 });
 
-const SharedFile = mongoose.model("SharedFiles", sharedFileSchema);
+const SharedFileModel =
+  mongoose.model<SharedFileDocumentShape>(
+    "SharedFiles",
+    sharedFileSchema,
+  );
 
-module.exports = SharedFile;
+export default SharedFileModel;

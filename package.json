@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "typecheck": "node ./node_modules/typescript/lib/tsc.js --noEmit"
   },
   "dependencies": {
     "archiver": "^7.0.1",
