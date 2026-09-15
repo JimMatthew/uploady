@@ -74,7 +74,7 @@ const Setup = () => {
 
       localStorage.setItem("token", data.token);
 
-      navigate("/api/sftp");
+      navigate("/sftp");
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setError(error.message || "Setup failed");
