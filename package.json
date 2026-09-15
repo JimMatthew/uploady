@@ -8,6 +8,7 @@
     "build:server": "node ./node_modules/typescript/lib/tsc.js -p tsconfig.build.json"
   },
   "dependencies": {
+    "@types/ssh2-sftp-client": "^9.0.6",
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.11.1",
     "busboy": "^1.6.0",
