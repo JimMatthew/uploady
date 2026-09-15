@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+
 
 interface BuildConfig {
   HOSTNAME: string;
@@ -25,8 +26,8 @@ const defaults: BuildConfig = {
   DATABASE_TYPE: "sqlite",
   SQLITE_PATH: "./data/uploady.db",
   USE_HTTPS: true,
-  HTTPS_CERT: "/home/james/uploady/server.cert",
-  HTTPS_KEY: "/home/james/uploady/server.key",
+  HTTPS_CERT: "./server.cert",
+  HTTPS_KEY: "./server.key",
   MASTER_KEY: "",
   JWT_SECRET: "",
 };
@@ -215,9 +216,49 @@ function runCommand(
 const rootDir = process.cwd();
 
 const clientDir = resolve(rootDir, "client");
-const serverDir = resolve(rootDir, "server");
+const backendDir = rootDir;
+
+async function createDirectories(
+  config: BuildConfig,
+): Promise<void> {
+  const uploadsDir = resolve(
+    rootDir,
+    config.UPLOADS_DIRECTORY,
+  );
+
+  await mkdir(uploadsDir, {
+    recursive: true,
+  });
+
+  console.log(`Ensured ${uploadsDir}`);
+
+  if (config.DATABASE_TYPE === "sqlite") {
+    const sqliteFile = resolve(
+      rootDir,
+      config.SQLITE_PATH,
+    );
+
+    await mkdir(dirname(sqliteFile), {
+      recursive: true,
+    });
+
+    console.log(
+      `Ensured ${dirname(sqliteFile)}`,
+    );
+  }
+}
 
 async function buildFrontend(): Promise<void> {
+  console.log(
+    "\nInstalling frontend dependencies...\n",
+  );
+
+  await runCommand(
+    "bun",
+    ["install"],
+    clientDir,
+  );
+
   console.log("\nBuilding frontend...\n");
 
   await runCommand(
@@ -227,13 +268,15 @@ async function buildFrontend(): Promise<void> {
   );
 }
 
-async function buildBackend(): Promise<void> {
-  console.log("\nBuilding backend...\n");
+async function installBackend(): Promise<void> {
+  console.log(
+    "\nInstalling backend dependencies...\n",
+  );
 
   await runCommand(
     "bun",
-    ["run", "build"],
-    serverDir,
+    ["install"],
+    rootDir,
   );
 }
 
@@ -242,11 +285,12 @@ async function main(): Promise<void> {
     console.log("Uploady build\n");
 
     const config = await getConfig();
-
+    await createDirectories(config);
     await writeEnv(config);
 
+     await installBackend();
     await buildFrontend();
-    await buildBackend();
+    //await buildBackend();
 
     console.log("\nBuild completed successfully.");
   } catch (error) {
