@@ -389,7 +389,7 @@ async function installBackend(): Promise<void> {
 
   await runCommand(
     "bun",
-    ["install"],
+    ["install --omit=optional"],
     rootDir,
   );
 }
