@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, access } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { join, resolve, dirname } from "node:path";
+import { join, resolve, dirname, isAbsolute } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-
-
+import { hostname as getHostname } from "node:os";
+import { isIP } from "node:net";
 interface BuildConfig {
   HOSTNAME: string;
   UPLOADS_DIRECTORY: string;
@@ -20,7 +20,7 @@ interface BuildConfig {
 }
 
 const defaults: BuildConfig = {
-  HOSTNAME: "uploady.lan:3001",
+  HOSTNAME: "",
   UPLOADS_DIRECTORY: "uploads",
   DATABASE: "",
   DATABASE_TYPE: "sqlite",
@@ -68,6 +68,120 @@ async function promptBoolean(
   return answer === "y" || answer === "yes";
 }
 
+function getDefaultHostname(): string {
+  try {
+    const hostname = getHostname().trim();
+
+    if (hostname) {
+      return `${hostname}:3001`;
+    }
+  } catch {
+    // Fall through.
+  }
+
+  return "localhost:3001";
+}
+
+async function fileExists(
+  path: string,
+): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveConfigPath(path: string): string {
+  return isAbsolute(path)
+    ? path
+    : resolve(rootDir, path);
+}
+
+async function ensureHttpsCertificate(
+  config: BuildConfig,
+): Promise<void> {
+  if (!config.USE_HTTPS) {
+    return;
+  }
+
+  const certPath = resolveConfigPath(
+    config.HTTPS_CERT,
+  );
+
+  const keyPath = resolveConfigPath(
+    config.HTTPS_KEY,
+  );
+
+  const certExists = await fileExists(certPath);
+  const keyExists = await fileExists(keyPath);
+
+  if (certExists && keyExists) {
+    console.log(
+      "HTTPS certificate and key already exist.",
+    );
+    return;
+  }
+
+  console.log(
+    "\nHTTPS certificate or private key is missing.",
+  );
+
+  const generate = await promptBoolean(
+    "Generate a self-signed certificate",
+    true,
+  );
+
+  if (!generate) {
+    return;
+  }
+
+  await mkdir(dirname(certPath), {
+    recursive: true,
+  });
+
+  await mkdir(dirname(keyPath), {
+    recursive: true,
+  });
+
+  const certificateHostname =
+    config.HOSTNAME.replace(/:\d+$/, "");
+
+    const san = isIP(certificateHostname)
+  ? `IP:${certificateHostname}`
+  : `DNS:${certificateHostname}`;
+  console.log(
+    `\nGenerating certificate for ${certificateHostname}...\n`,
+  );
+
+  await runCommand(
+    "openssl",
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "rsa:2048",
+      "-sha256",
+      "-nodes",
+      "-keyout",
+      keyPath,
+      "-out",
+      certPath,
+      "-days",
+      "3650",
+      "-subj",
+      `/CN=${certificateHostname}`,
+      "-addext",
+      `subjectAltName=${san}`,
+    ],
+    rootDir,
+  );
+
+  console.log(`Created ${certPath}`);
+  console.log(`Created ${keyPath}`);
+}
+
 async function getConfig(): Promise<BuildConfig> {
   const databaseType = await prompt(
     "Database type",
@@ -86,7 +200,7 @@ async function getConfig(): Promise<BuildConfig> {
   const config: BuildConfig = {
     HOSTNAME: await prompt(
       "Hostname",
-      defaults.HOSTNAME,
+      getDefaultHostname(),
     ),
 
     UPLOADS_DIRECTORY: await prompt(
@@ -286,6 +400,7 @@ async function main(): Promise<void> {
 
     const config = await getConfig();
     await createDirectories(config);
+    await ensureHttpsCertificate(config);
     await writeEnv(config);
 
      await installBackend();
