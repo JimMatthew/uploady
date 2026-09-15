@@ -1,17 +1,31 @@
 import { spawn } from "node:child_process";
-import { mkdir, writeFile, access } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { join, resolve, dirname, isAbsolute } from "node:path";
-import { createInterface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
-import { hostname as getHostname } from "node:os";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { isIP } from "node:net";
+import { hostname as getHostname } from "node:os";
+import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
-interface BuildConfig {
+// -----------------------------------------------------------------------------
+// Paths
+// -----------------------------------------------------------------------------
+
+const rootDir = process.cwd();
+const clientDir = resolve(rootDir, "client");
+const envPath = join(rootDir, ".env");
+
+// -----------------------------------------------------------------------------
+// Configuration
+// -----------------------------------------------------------------------------
+
+type DatabaseType = "mongo" | "sqlite";
+
+interface SetupConfig {
   HOSTNAME: string;
   UPLOADS_DIRECTORY: string;
   DATABASE: string;
-  DATABASE_TYPE: "mongo" | "sqlite";
+  DATABASE_TYPE: DatabaseType;
   SQLITE_PATH: string;
   USE_HTTPS: boolean;
   HTTPS_CERT: string;
@@ -20,7 +34,7 @@ interface BuildConfig {
   JWT_SECRET: string;
 }
 
-const defaults: BuildConfig = {
+const defaults: SetupConfig = {
   HOSTNAME: "",
   UPLOADS_DIRECTORY: "uploads",
   DATABASE: "",
@@ -33,7 +47,14 @@ const defaults: BuildConfig = {
   JWT_SECRET: "",
 };
 
-const rl = createInterface({ input, output });
+// -----------------------------------------------------------------------------
+// Prompting
+// -----------------------------------------------------------------------------
+
+const rl = createInterface({
+  input,
+  output,
+});
 
 async function prompt(label: string, defaultValue = ""): Promise<string> {
   const suffix = defaultValue ? ` [${defaultValue}]` : "";
@@ -60,18 +81,24 @@ async function promptBoolean(
   return answer === "y" || answer === "yes";
 }
 
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
 function getDefaultHostname(): string {
   try {
     const hostname = getHostname().trim();
-
     if (hostname) {
       return `${hostname}:3001`;
     }
   } catch {
-    // Fall through.
+    // Fall back to localhost.
   }
-
   return "localhost:3001";
+}
+
+function resolveConfigPath(path: string): string {
+  return isAbsolute(path) ? path : resolve(rootDir, path);
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -83,11 +110,144 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-function resolveConfigPath(path: string): string {
-  return isAbsolute(path) ? path : resolve(rootDir, path);
+function runCommand(
+  command: string,
+  args: string[],
+  cwd = rootDir,
+): Promise<void> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+
+    child.on("error", reject);
+
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+
+      reject(
+        new Error(`${command} ${args.join(" ")} failed with exit code ${code}`),
+      );
+    });
+  });
 }
 
-async function ensureHttpsCertificate(config: BuildConfig): Promise<void> {
+// -----------------------------------------------------------------------------
+// Configuration
+// -----------------------------------------------------------------------------
+
+async function getConfig(): Promise<SetupConfig> {
+  const databaseType = await prompt("Database type", defaults.DATABASE_TYPE);
+
+  if (databaseType !== "mongo" && databaseType !== "sqlite") {
+    throw new Error("Database type must be 'mongo' or 'sqlite'");
+  }
+
+  const config: SetupConfig = {
+    HOSTNAME: await prompt("Hostname", getDefaultHostname()),
+
+    UPLOADS_DIRECTORY: await prompt(
+      "Uploads directory",
+      defaults.UPLOADS_DIRECTORY,
+    ),
+
+    DATABASE_TYPE: databaseType,
+
+    DATABASE:
+      databaseType === "mongo" ? await prompt("MongoDB connection string") : "",
+
+    SQLITE_PATH:
+      databaseType === "sqlite"
+        ? await prompt("SQLite database path", defaults.SQLITE_PATH)
+        : "",
+
+    USE_HTTPS: await promptBoolean("Use HTTPS", defaults.USE_HTTPS),
+
+    HTTPS_CERT: "",
+    HTTPS_KEY: "",
+
+    MASTER_KEY: await prompt("Master key (blank to generate)"),
+
+    JWT_SECRET: await prompt("JWT secret (blank to generate)"),
+  };
+
+  if (config.USE_HTTPS) {
+    config.HTTPS_CERT = await prompt("HTTPS certificate", defaults.HTTPS_CERT);
+
+    config.HTTPS_KEY = await prompt("HTTPS private key", defaults.HTTPS_KEY);
+  }
+
+  config.MASTER_KEY ||= randomBytes(32).toString("hex");
+
+  config.JWT_SECRET ||= randomBytes(32).toString("hex");
+
+  return config;
+}
+
+// -----------------------------------------------------------------------------
+// Environment
+// -----------------------------------------------------------------------------
+
+function serializeEnv(config: SetupConfig): string {
+  return [
+    `HOSTNAME=${config.HOSTNAME}`,
+    `UPLOADS_DIRECTORY=${config.UPLOADS_DIRECTORY}`,
+    `DATABASE=${config.DATABASE}`,
+    `DATABASE_TYPE=${config.DATABASE_TYPE}`,
+    `SQLITE_PATH=${config.SQLITE_PATH}`,
+    `USE_HTTPS=${config.USE_HTTPS}`,
+    `HTTPS_CERT=${config.HTTPS_CERT}`,
+    `HTTPS_KEY=${config.HTTPS_KEY}`,
+    `MASTER_KEY=${config.MASTER_KEY}`,
+    `JWT_SECRET=${config.JWT_SECRET}`,
+    "",
+  ].join("\n");
+}
+
+async function writeEnv(config: SetupConfig): Promise<void> {
+  await writeFile(envPath, serializeEnv(config), "utf8");
+
+  console.log(`Wrote ${envPath}`);
+}
+
+// -----------------------------------------------------------------------------
+// Directories
+// -----------------------------------------------------------------------------
+
+async function createDirectories(config: SetupConfig): Promise<void> {
+  const uploadsDir = resolveConfigPath(config.UPLOADS_DIRECTORY);
+
+  await mkdir(uploadsDir, {
+    recursive: true,
+  });
+
+  console.log(`Ensured ${uploadsDir}`);
+
+  if (config.DATABASE_TYPE !== "sqlite") {
+    return;
+  }
+
+  const sqliteFile = resolveConfigPath(config.SQLITE_PATH);
+
+  const sqliteDir = dirname(sqliteFile);
+
+  await mkdir(sqliteDir, {
+    recursive: true,
+  });
+
+  console.log(`Ensured ${sqliteDir}`);
+}
+
+// -----------------------------------------------------------------------------
+// HTTPS
+// -----------------------------------------------------------------------------
+
+async function ensureHttpsCertificate(config: SetupConfig): Promise<void> {
   if (!config.USE_HTTPS) {
     return;
   }
@@ -131,194 +291,80 @@ async function ensureHttpsCertificate(config: BuildConfig): Promise<void> {
 
   console.log(`\nGenerating certificate for ${certificateHostname}...\n`);
 
-  await runCommand(
-    "openssl",
-    [
-      "req",
-      "-x509",
-      "-newkey",
-      "rsa:2048",
-      "-sha256",
-      "-nodes",
-      "-keyout",
-      keyPath,
-      "-out",
-      certPath,
-      "-days",
-      "3650",
-      "-subj",
-      `/CN=${certificateHostname}`,
-      "-addext",
-      `subjectAltName=${san}`,
-    ],
-    rootDir,
-  );
+  await runCommand("openssl", [
+    "req",
+    "-x509",
+    "-newkey",
+    "rsa:2048",
+    "-sha256",
+    "-nodes",
+    "-keyout",
+    keyPath,
+    "-out",
+    certPath,
+    "-days",
+    "3650",
+    "-subj",
+    `/CN=${certificateHostname}`,
+    "-addext",
+    `subjectAltName=${san}`,
+  ]);
 
   console.log(`Created ${certPath}`);
   console.log(`Created ${keyPath}`);
 }
 
-async function getConfig(): Promise<BuildConfig> {
-  const databaseType = await prompt("Database type", defaults.DATABASE_TYPE);
+// -----------------------------------------------------------------------------
+// Dependencies and build
+// -----------------------------------------------------------------------------
 
-  if (databaseType !== "mongo" && databaseType !== "sqlite") {
-    throw new Error("Database type must be 'mongo' or 'sqlite'");
-  }
+async function installBackend(): Promise<void> {
+  console.log("\nInstalling backend dependencies...\n");
 
-  const config: BuildConfig = {
-    HOSTNAME: await prompt("Hostname", getDefaultHostname()),
-
-    UPLOADS_DIRECTORY: await prompt(
-      "Uploads directory",
-      defaults.UPLOADS_DIRECTORY,
-    ),
-
-    DATABASE_TYPE: databaseType,
-
-    DATABASE:
-      databaseType === "mongo" ? await prompt("MongoDB connection string") : "",
-
-    SQLITE_PATH:
-      databaseType === "sqlite"
-        ? await prompt("SQLite database path", defaults.SQLITE_PATH)
-        : "",
-
-    USE_HTTPS: await promptBoolean("Use HTTPS", defaults.USE_HTTPS),
-
-    HTTPS_CERT: "",
-    HTTPS_KEY: "",
-
-    MASTER_KEY: await prompt("Master key (blank to generate)"),
-
-    JWT_SECRET: await prompt("JWT secret (blank to generate)"),
-  };
-
-  if (config.USE_HTTPS) {
-    config.HTTPS_CERT = await prompt("HTTPS certificate", defaults.HTTPS_CERT);
-
-    config.HTTPS_KEY = await prompt("HTTPS private key", defaults.HTTPS_KEY);
-  }
-
-  if (!config.MASTER_KEY) {
-    config.MASTER_KEY = randomBytes(32).toString("hex");
-  }
-
-  if (!config.JWT_SECRET) {
-    config.JWT_SECRET = randomBytes(32).toString("hex");
-  }
-
-  return config;
+  await runCommand("bun", ["install", "--omit=optional"]);
 }
 
-function serializeEnv(config: BuildConfig): string {
-  return [
-    `HOSTNAME=${config.HOSTNAME}`,
-    `UPLOADS_DIRECTORY=${config.UPLOADS_DIRECTORY}`,
-    `DATABASE=${config.DATABASE}`,
-    `DATABASE_TYPE=${config.DATABASE_TYPE}`,
-    `SQLITE_PATH=${config.SQLITE_PATH}`,
-    `USE_HTTPS=${config.USE_HTTPS}`,
-    `HTTPS_CERT=${config.HTTPS_CERT}`,
-    `HTTPS_KEY=${config.HTTPS_KEY}`,
-    `MASTER_KEY=${config.MASTER_KEY}`,
-    `JWT_SECRET=${config.JWT_SECRET}`,
-    "",
-  ].join("\n");
-}
-
-async function writeEnv(config: BuildConfig): Promise<void> {
-  const envPath = join(rootDir, ".env");
-
-  await writeFile(envPath, serializeEnv(config), "utf8");
-
-  console.log(`Wrote ${envPath}`);
-}
-
-function runCommand(
-  command: string,
-  args: string[],
-  cwd: string,
-): Promise<void> {
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
-      cwd,
-      stdio: "inherit",
-      shell: process.platform === "win32",
-    });
-
-    child.on("error", reject);
-
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-
-      reject(
-        new Error(`${command} ${args.join(" ")} failed with exit code ${code}`),
-      );
-    });
-  });
-}
-const rootDir = process.cwd();
-
-const clientDir = resolve(rootDir, "client");
-const backendDir = rootDir;
-
-async function createDirectories(config: BuildConfig): Promise<void> {
-  const uploadsDir = resolve(rootDir, config.UPLOADS_DIRECTORY);
-
-  await mkdir(uploadsDir, {
-    recursive: true,
-  });
-
-  console.log(`Ensured ${uploadsDir}`);
-
-  if (config.DATABASE_TYPE === "sqlite") {
-    const sqliteFile = resolve(rootDir, config.SQLITE_PATH);
-
-    await mkdir(dirname(sqliteFile), {
-      recursive: true,
-    });
-
-    console.log(`Ensured ${dirname(sqliteFile)}`);
-  }
-}
-
-async function buildFrontend(): Promise<void> {
+async function installFrontend(): Promise<void> {
   console.log("\nInstalling frontend dependencies...\n");
 
   await runCommand("bun", ["install"], clientDir);
+}
 
+async function buildFrontend(): Promise<void> {
   console.log("\nBuilding frontend...\n");
 
   await runCommand("bun", ["run", "build"], clientDir);
 }
 
-async function installBackend(): Promise<void> {
-  console.log("\nInstalling backend dependencies...\n");
+async function setupApplication(): Promise<void> {
+  const config = await getConfig();
 
-  await runCommand("bun", ["install --omit=optional"], rootDir);
+  console.log("\nPreparing Uploady...\n");
+
+  await createDirectories(config);
+  await ensureHttpsCertificate(config);
+  await writeEnv(config);
+
+  await installBackend();
+  await installFrontend();
+  await buildFrontend();
 }
+
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   try {
-    console.log("Uploady build\n");
+    console.log("\nUploady Setup\n");
 
-    const config = await getConfig();
-    await createDirectories(config);
-    await ensureHttpsCertificate(config);
-    await writeEnv(config);
+    await setupApplication();
 
-    await installBackend();
-    await buildFrontend();
-    //await buildBackend();
+    console.log("\nUploady setup completed successfully.");
 
-    console.log(
-      "\nBuild completed successfully. \nRun with 'bun --env-file=.env app.js'",
-    );
+    console.log("Run with: bun --env-file=.env app.js\n");
   } catch (error) {
-    console.error("\nBuild failed:");
+    console.error("\nUploady setup failed:");
 
     if (error instanceof Error) {
       console.error(error.message);
