@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@types/ssh2-sftp-client": "^9.0.6",
+    "@types/yauzl": "^3.4.0",
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.11.1",
     "busboy": "^1.6.0",
