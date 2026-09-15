@@ -6,6 +6,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { hostname as getHostname } from "node:os";
 import { isIP } from "node:net";
+
 interface BuildConfig {
   HOSTNAME: string;
   UPLOADS_DIRECTORY: string;
@@ -34,17 +35,10 @@ const defaults: BuildConfig = {
 
 const rl = createInterface({ input, output });
 
-async function prompt(
-  label: string,
-  defaultValue = "",
-): Promise<string> {
-  const suffix = defaultValue
-    ? ` [${defaultValue}]`
-    : "";
+async function prompt(label: string, defaultValue = ""): Promise<string> {
+  const suffix = defaultValue ? ` [${defaultValue}]` : "";
 
-  const answer = await rl.question(
-    `${label}${suffix}: `,
-  );
+  const answer = await rl.question(`${label}${suffix}: `);
 
   return answer.trim() || defaultValue;
 }
@@ -55,9 +49,7 @@ async function promptBoolean(
 ): Promise<boolean> {
   const defaultLabel = defaultValue ? "Y/n" : "y/N";
 
-  const answer = (
-    await rl.question(`${label} [${defaultLabel}]: `)
-  )
+  const answer = (await rl.question(`${label} [${defaultLabel}]: `))
     .trim()
     .toLowerCase();
 
@@ -82,9 +74,7 @@ function getDefaultHostname(): string {
   return "localhost:3001";
 }
 
-async function fileExists(
-  path: string,
-): Promise<boolean> {
+async function fileExists(path: string): Promise<boolean> {
   try {
     await access(path);
     return true;
@@ -94,39 +84,27 @@ async function fileExists(
 }
 
 function resolveConfigPath(path: string): string {
-  return isAbsolute(path)
-    ? path
-    : resolve(rootDir, path);
+  return isAbsolute(path) ? path : resolve(rootDir, path);
 }
 
-async function ensureHttpsCertificate(
-  config: BuildConfig,
-): Promise<void> {
+async function ensureHttpsCertificate(config: BuildConfig): Promise<void> {
   if (!config.USE_HTTPS) {
     return;
   }
 
-  const certPath = resolveConfigPath(
-    config.HTTPS_CERT,
-  );
+  const certPath = resolveConfigPath(config.HTTPS_CERT);
 
-  const keyPath = resolveConfigPath(
-    config.HTTPS_KEY,
-  );
+  const keyPath = resolveConfigPath(config.HTTPS_KEY);
 
   const certExists = await fileExists(certPath);
   const keyExists = await fileExists(keyPath);
 
   if (certExists && keyExists) {
-    console.log(
-      "HTTPS certificate and key already exist.",
-    );
+    console.log("HTTPS certificate and key already exist.");
     return;
   }
 
-  console.log(
-    "\nHTTPS certificate or private key is missing.",
-  );
+  console.log("\nHTTPS certificate or private key is missing.");
 
   const generate = await promptBoolean(
     "Generate a self-signed certificate",
@@ -145,15 +123,13 @@ async function ensureHttpsCertificate(
     recursive: true,
   });
 
-  const certificateHostname =
-    config.HOSTNAME.replace(/:\d+$/, "");
+  const certificateHostname = config.HOSTNAME.replace(/:\d+$/, "");
 
-    const san = isIP(certificateHostname)
-  ? `IP:${certificateHostname}`
-  : `DNS:${certificateHostname}`;
-  console.log(
-    `\nGenerating certificate for ${certificateHostname}...\n`,
-  );
+  const san = isIP(certificateHostname)
+    ? `IP:${certificateHostname}`
+    : `DNS:${certificateHostname}`;
+
+  console.log(`\nGenerating certificate for ${certificateHostname}...\n`);
 
   await runCommand(
     "openssl",
@@ -183,25 +159,14 @@ async function ensureHttpsCertificate(
 }
 
 async function getConfig(): Promise<BuildConfig> {
-  const databaseType = await prompt(
-    "Database type",
-    defaults.DATABASE_TYPE,
-  );
+  const databaseType = await prompt("Database type", defaults.DATABASE_TYPE);
 
-  if (
-    databaseType !== "mongo" &&
-    databaseType !== "sqlite"
-  ) {
-    throw new Error(
-      "Database type must be 'mongo' or 'sqlite'",
-    );
+  if (databaseType !== "mongo" && databaseType !== "sqlite") {
+    throw new Error("Database type must be 'mongo' or 'sqlite'");
   }
 
   const config: BuildConfig = {
-    HOSTNAME: await prompt(
-      "Hostname",
-      getDefaultHostname(),
-    ),
+    HOSTNAME: await prompt("Hostname", getDefaultHostname()),
 
     UPLOADS_DIRECTORY: await prompt(
       "Uploads directory",
@@ -211,63 +176,41 @@ async function getConfig(): Promise<BuildConfig> {
     DATABASE_TYPE: databaseType,
 
     DATABASE:
-      databaseType === "mongo"
-        ? await prompt("MongoDB connection string")
-        : "",
+      databaseType === "mongo" ? await prompt("MongoDB connection string") : "",
 
     SQLITE_PATH:
       databaseType === "sqlite"
-        ? await prompt(
-            "SQLite database path",
-            defaults.SQLITE_PATH,
-          )
+        ? await prompt("SQLite database path", defaults.SQLITE_PATH)
         : "",
 
-    USE_HTTPS: await promptBoolean(
-      "Use HTTPS",
-      defaults.USE_HTTPS,
-    ),
+    USE_HTTPS: await promptBoolean("Use HTTPS", defaults.USE_HTTPS),
 
     HTTPS_CERT: "",
     HTTPS_KEY: "",
 
-    MASTER_KEY: await prompt(
-      "Master key (blank to generate)",
-    ),
+    MASTER_KEY: await prompt("Master key (blank to generate)"),
 
-    JWT_SECRET: await prompt(
-      "JWT secret (blank to generate)",
-    ),
+    JWT_SECRET: await prompt("JWT secret (blank to generate)"),
   };
 
   if (config.USE_HTTPS) {
-    config.HTTPS_CERT = await prompt(
-      "HTTPS certificate",
-      defaults.HTTPS_CERT,
-    );
+    config.HTTPS_CERT = await prompt("HTTPS certificate", defaults.HTTPS_CERT);
 
-    config.HTTPS_KEY = await prompt(
-      "HTTPS private key",
-      defaults.HTTPS_KEY,
-    );
+    config.HTTPS_KEY = await prompt("HTTPS private key", defaults.HTTPS_KEY);
   }
 
   if (!config.MASTER_KEY) {
-    config.MASTER_KEY =
-      randomBytes(32).toString("hex");
+    config.MASTER_KEY = randomBytes(32).toString("hex");
   }
 
   if (!config.JWT_SECRET) {
-    config.JWT_SECRET =
-      randomBytes(32).toString("hex");
+    config.JWT_SECRET = randomBytes(32).toString("hex");
   }
 
   return config;
 }
 
-function serializeEnv(
-  config: BuildConfig,
-): string {
+function serializeEnv(config: BuildConfig): string {
   return [
     `HOSTNAME=${config.HOSTNAME}`,
     `UPLOADS_DIRECTORY=${config.UPLOADS_DIRECTORY}`,
@@ -283,18 +226,10 @@ function serializeEnv(
   ].join("\n");
 }
 
-async function writeEnv(
-  config: BuildConfig,
-): Promise<void> {
-  const envPath =join(rootDir,
-    ".env")
-  ;
+async function writeEnv(config: BuildConfig): Promise<void> {
+  const envPath = join(rootDir, ".env");
 
-  await writeFile(
-    envPath,
-    serializeEnv(config),
-    "utf8",
-  );
+  await writeFile(envPath, serializeEnv(config), "utf8");
 
   console.log(`Wrote ${envPath}`);
 }
@@ -320,9 +255,7 @@ function runCommand(
       }
 
       reject(
-        new Error(
-          `${command} ${args.join(" ")} failed with exit code ${code}`,
-        ),
+        new Error(`${command} ${args.join(" ")} failed with exit code ${code}`),
       );
     });
   });
@@ -332,13 +265,8 @@ const rootDir = process.cwd();
 const clientDir = resolve(rootDir, "client");
 const backendDir = rootDir;
 
-async function createDirectories(
-  config: BuildConfig,
-): Promise<void> {
-  const uploadsDir = resolve(
-    rootDir,
-    config.UPLOADS_DIRECTORY,
-  );
+async function createDirectories(config: BuildConfig): Promise<void> {
+  const uploadsDir = resolve(rootDir, config.UPLOADS_DIRECTORY);
 
   await mkdir(uploadsDir, {
     recursive: true,
@@ -347,51 +275,30 @@ async function createDirectories(
   console.log(`Ensured ${uploadsDir}`);
 
   if (config.DATABASE_TYPE === "sqlite") {
-    const sqliteFile = resolve(
-      rootDir,
-      config.SQLITE_PATH,
-    );
+    const sqliteFile = resolve(rootDir, config.SQLITE_PATH);
 
     await mkdir(dirname(sqliteFile), {
       recursive: true,
     });
 
-    console.log(
-      `Ensured ${dirname(sqliteFile)}`,
-    );
+    console.log(`Ensured ${dirname(sqliteFile)}`);
   }
 }
 
 async function buildFrontend(): Promise<void> {
-  console.log(
-    "\nInstalling frontend dependencies...\n",
-  );
+  console.log("\nInstalling frontend dependencies...\n");
 
-  await runCommand(
-    "bun",
-    ["install"],
-    clientDir,
-  );
+  await runCommand("bun", ["install"], clientDir);
 
   console.log("\nBuilding frontend...\n");
 
-  await runCommand(
-    "bun",
-    ["run", "build"],
-    clientDir,
-  );
+  await runCommand("bun", ["run", "build"], clientDir);
 }
 
 async function installBackend(): Promise<void> {
-  console.log(
-    "\nInstalling backend dependencies...\n",
-  );
+  console.log("\nInstalling backend dependencies...\n");
 
-  await runCommand(
-    "bun",
-    ["install --omit=optional"],
-    rootDir,
-  );
+  await runCommand("bun", ["install --omit=optional"], rootDir);
 }
 
 async function main(): Promise<void> {
@@ -403,11 +310,13 @@ async function main(): Promise<void> {
     await ensureHttpsCertificate(config);
     await writeEnv(config);
 
-     await installBackend();
+    await installBackend();
     await buildFrontend();
     //await buildBackend();
 
-    console.log("\nBuild completed successfully.");
+    console.log(
+      "\nBuild completed successfully. \nRun with 'bun --env-file=.env app.js'",
+    );
   } catch (error) {
     console.error("\nBuild failed:");
 
