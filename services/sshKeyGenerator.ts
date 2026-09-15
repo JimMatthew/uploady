@@ -1,12 +1,19 @@
-const fs = require("fs/promises");
-const os = require("os");
-const path = require("path");
-const { execFile } = require("child_process");
-const { promisify } = require("util");
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
 const execFileAsync = promisify(execFile);
 
-async function generateSshKeyPair() {
+export interface SshKeyPair {
+  privateKey: string;
+  publicKey: string;
+}
+
+export async function generateSshKeyPair(): Promise<SshKeyPair> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "uploady-key-"));
+
   const keyPath = path.join(dir, "id_ed25519");
 
   try {
@@ -21,6 +28,7 @@ async function generateSshKeyPair() {
     ]);
 
     const privateKey = await fs.readFile(keyPath, "utf8");
+
     const publicKey = await fs.readFile(`${keyPath}.pub`, "utf8");
 
     return {
@@ -34,4 +42,3 @@ async function generateSshKeyPair() {
     });
   }
 }
-module.exports = {generateSshKeyPair}

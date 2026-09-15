@@ -12,12 +12,7 @@
  */
 import mongoose, { Schema } from "mongoose";
 import encryptedFieldSchema from "./encryptedField";
-
-interface EncryptedField {
-  iv: string;
-  content: string;
-  tag: string;
-}
+import type { EncryptedField } from "../types/server";
 
 export interface SftpServerDocument {
   host: string;

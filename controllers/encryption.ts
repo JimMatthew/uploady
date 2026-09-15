@@ -1,19 +1,24 @@
-const crypto = require("crypto");
+import crypto from "node:crypto";
+
+import type { EncryptedField } from "../types/server";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const ALGORITHM = "aes-256-gcm";
 
-if (!process.env.MASTER_KEY) {
+const masterKeyHex = process.env.MASTER_KEY;
+
+if (!masterKeyHex) {
   console.error("FATAL: MASTER_KEY environment variable is not set");
   process.exit(1);
 }
 
-const MASTER_KEY = Buffer.from(process.env.MASTER_KEY, "hex");
+const MASTER_KEY = Buffer.from(masterKeyHex, "hex");
 
 if (MASTER_KEY.length !== 32) {
   console.error(
-    `FATAL: MASTER_KEY must be 32 bytes (64 hex characters). Got ${MASTER_KEY.length} bytes.`,
+    `FATAL: MASTER_KEY must be 32 bytes (64 hex characters). ` +
+      `Got ${MASTER_KEY.length} bytes.`,
   );
   process.exit(1);
 }
@@ -22,16 +27,17 @@ if (MASTER_KEY.length !== 32) {
 
 /**
  * Encrypts a plaintext string using AES-256-GCM.
- * Returns the IV, ciphertext, and GCM auth tag as hex strings so the
- * result can be safely stored in the database as a plain object.
- * @param {string} text
- * @returns {{ iv: string, content: string, tag: string }}
+ *
+ * Returns the IV, ciphertext, and GCM authentication tag as hexadecimal
+ * strings so the encrypted value can be stored by the persistence layer.
  */
-function encrypt(text) {
+export function encrypt(text: string): EncryptedField {
   const iv = crypto.randomBytes(16);
+
   const cipher = crypto.createCipheriv(ALGORITHM, MASTER_KEY, iv);
 
-  let encrypted = cipher.update(text, "utf-8", "hex");
+  let encrypted = cipher.update(text, "utf8", "hex");
+
   encrypted += cipher.final("hex");
 
   return {
@@ -43,12 +49,11 @@ function encrypt(text) {
 
 /**
  * Decrypts a value produced by encrypt().
- * The GCM auth tag is verified automatically — if the ciphertext has been
- * tampered with, decipher.final() will throw before any plaintext is returned.
- * @param {{ iv: string, content: string, tag: string }} encrypted
- * @returns {string}
+ *
+ * AES-GCM verifies the authentication tag during decryption. If the encrypted
+ * value has been modified or the wrong key is used, decipher.final() throws.
  */
-function decrypt(encrypted) {
+export function decrypt(encrypted: EncryptedField): string {
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
     MASTER_KEY,
@@ -58,11 +63,8 @@ function decrypt(encrypted) {
   decipher.setAuthTag(Buffer.from(encrypted.tag, "hex"));
 
   let decrypted = decipher.update(encrypted.content, "hex", "utf8");
-  decrypted += decipher.final("utf-8");
+
+  decrypted += decipher.final("utf8");
 
   return decrypted;
 }
-
-// ─── Exports ──────────────────────────────────────────────────────────────────
-
-module.exports = { encrypt, decrypt };

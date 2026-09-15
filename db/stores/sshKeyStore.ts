@@ -1,8 +1,4 @@
-export interface EncryptedField {
-  iv: string;
-  content: string;
-  tag: string;
-}
+import type { EncryptedField } from "../../types/server";
 
 export interface SshKey {
   _id: string;
