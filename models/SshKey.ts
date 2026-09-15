@@ -1,6 +1,6 @@
 import mongoose, { Schema, type HydratedDocument, type Types } from "mongoose";
 
-import type { EncryptedField } from "../db/stores/sshKeyStore";
+import type { EncryptedField } from "../types/server";
 
 export interface SshKeyDocumentShape {
   name: string;

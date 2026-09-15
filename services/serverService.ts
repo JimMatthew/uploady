@@ -1,25 +1,75 @@
-const crypto = require("crypto");
-const net = require("net");
-const { encrypt, decrypt } = require("../controllers/encryption");
-const { servers, shares, sshKeyStore } = require("../db");
+import crypto from "node:crypto";
+import net from "node:net";
+import { encrypt, decrypt } from "../controllers/encryption";
+import { servers, shares, sshKeyStore } from "../db";
+import { generateSshKeyPair } from "./sshKeyGenerator";
+import type { CreateServerData } from "../db/stores/serverStore";
+import type { CreateSshKeyInput } from "../db/stores/sshKeyStore";
+import type { ServerAuthType } from "../db/stores/serverStore";
+// ─── Config ───────────────────────────────────────────────────────────────────
+
 const domain = process.env.HOSTNAME;
-const { generateSshKeyPair } = require("./sshKeyGenerator");
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type KeyMode = "saved" | "generate" | "import";
+
+export interface SaveServerOptions {
+  host: string;
+  username: string;
+  password?: string;
+  authType: ServerAuthType;
+  keyId?: string;
+  key?: string;
+  passphrase?: string;
+  keyMode?: KeyMode;
+}
+
+export interface SavedServerResult {
+  id: string;
+  host: string;
+  username: string;
+  authType: ServerAuthType;
+  keyId: string | null;
+  publicKey: string | null;
+}
+
+export interface ResolvedServerKey {
+  keyId: string;
+  publicKey: string | null;
+}
+
+export interface ServerConnectionOptions {
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
+}
+
+export type ServerStatus = "online" | "offline";
 
 // ─── Share Links ──────────────────────────────────────────────────────────────
 
 /**
  * Creates a shareable link for a file on a remote SFTP server.
+ *
  * When the link is accessed the backend streams the file directly
  * from the SFTP server to the requesting client without storing it locally.
- * @param {string} fileName
- * @param {string} filePath - Remote path on the SFTP server
- * @param {string} serverId
- * @returns {Promise<{ link: string }>}
  */
-async function share_file(fileName, filePath, serverId) {
+export async function share_file(
+  fileName: string,
+  filePath: string,
+  serverId: string,
+): Promise<{ link: string }> {
   const existing = await shares.findRemoteShare(fileName, filePath, serverId);
 
-  if (existing) return { link: existing.link };
+  if (existing) {
+    return {
+      link: existing.link,
+    };
+  }
 
   const server = await servers.findById(serverId);
   const token = crypto.randomBytes(5).toString("hex");
@@ -32,34 +82,24 @@ async function share_file(fileName, filePath, serverId) {
     token,
     isRemote: true,
     serverId,
-    ...(server && { serverName: server.host }),
+    ...(server && {
+      serverName: server.host,
+    }),
   });
-  return { link };
+
+  return {
+    link,
+  };
 }
 
 // ─── Server Management ────────────────────────────────────────────────────────
 
 /**
  * Saves a new SFTP server configuration to the database.
+ *
  * Credentials and private key data are encrypted before storage.
- *
- * Supports password and private key authentication. For key authentication,
- * keyMode determines how the SSH key is obtained:
- * - "saved": Use an existing shared SSH key identified by keyId.
- * - "generate": Generate and store a new server-specific SSH key pair.
- * - "import": Import and store the private key provided in key.
- *
- * @param {string} host
- * @param {string} username
- * @param {string} [password] - Password for password authentication
- * @param {'password'|'key'} authType
- * @param {'saved'|'generate'|'import'} [keyMode] - How the SSH key is obtained for key authentication
- * @param {string} [keyId] - ID of an existing shared SSH key when keyMode is "saved"
- * @param {string} [key] - Private key contents when keyMode is "import"
- * @param {string} [passphrase] - Optional passphrase for an imported private key
- * @throws {Error} If required credentials are missing or authType/keyMode is unsupported
  */
-async function save_server({
+export async function save_server({
   host,
   username,
   password,
@@ -68,7 +108,7 @@ async function save_server({
   key,
   passphrase,
   keyMode,
-}) {
+}: SaveServerOptions): Promise<SavedServerResult> {
   validateServerInput({
     host,
     username,
@@ -79,30 +119,42 @@ async function save_server({
     keyMode,
   });
 
-  const server = {
-    host: host.trim(),
-    username: username.trim(),
-    authType,
-    credentials: {},
-  };
+  let publicKey: string | null = null;
 
-  let publicKey = null;
+  let server: CreateServerData;
 
   if (authType === "password") {
-    server.credentials.password = encrypt(password);
-  }
+    // Validation above guarantees password exists.
+    if (!password) {
+      throw new Error("Password required for password auth");
+    }
 
-  if (authType === "key") {
+    server = {
+      host: host.trim(),
+      username: username.trim(),
+      authType: "password",
+      credentials: {
+        password: encrypt(password),
+      },
+    };
+  } else {
     const keyResult = await resolveServerKey({
-      host: server.host,
-      username: server.username,
+      host: host.trim(),
+      username: username.trim(),
       keyMode,
       keyId,
       key,
       passphrase,
     });
 
-    server.keyId = keyResult.keyId;
+    server = {
+      host: host.trim(),
+      username: username.trim(),
+      authType: "key",
+      credentials: {},
+      keyId: keyResult.keyId,
+    };
+
     publicKey = keyResult.publicKey;
   }
 
@@ -126,7 +178,7 @@ function validateServerInput({
   keyId,
   key,
   keyMode,
-}) {
+}: SaveServerOptions): void {
   if (!host?.trim()) {
     throw new Error("Host is required");
   }
@@ -168,6 +220,8 @@ function validateServerInput({
   }
 }
 
+// ─── Server Keys ──────────────────────────────────────────────────────────────
+
 async function resolveServerKey({
   host,
   username,
@@ -175,15 +229,30 @@ async function resolveServerKey({
   keyId,
   key,
   passphrase,
-}) {
+}: {
+  host: string;
+  username: string;
+  keyMode?: KeyMode;
+  keyId?: string;
+  key?: string;
+  passphrase?: string;
+}): Promise<ResolvedServerKey> {
   switch (keyMode) {
     case "saved":
+      if (!keyId) {
+        throw new Error("SSH key required for saved key auth");
+      }
+
       return useSavedKey(keyId);
 
     case "generate":
       return generateServerKey(username, host);
 
     case "import":
+      if (!key) {
+        throw new Error("Private key required for imported key auth");
+      }
+
       return importServerKey(username, host, key, passphrase);
 
     default:
@@ -193,7 +262,7 @@ async function resolveServerKey({
   }
 }
 
-async function useSavedKey(keyId) {
+async function useSavedKey(keyId: string): Promise<ResolvedServerKey> {
   const sshKey = await sshKeyStore.findSharedById(keyId);
 
   if (!sshKey) {
@@ -206,7 +275,10 @@ async function useSavedKey(keyId) {
   };
 }
 
-async function generateServerKey(username, host) {
+async function generateServerKey(
+  username: string,
+  host: string,
+): Promise<ResolvedServerKey> {
   const generated = await generateSshKeyPair();
 
   const sshKey = await sshKeyStore.create({
@@ -222,8 +294,13 @@ async function generateServerKey(username, host) {
   };
 }
 
-async function importServerKey(username, host, privateKey, passphrase) {
-  const sshKeyData = {
+async function importServerKey(
+  username: string,
+  host: string,
+  privateKey: string,
+  passphrase?: string,
+): Promise<ResolvedServerKey> {
+  const sshKeyData: CreateSshKeyInput = {
     name: `${username}@${host}`,
     scope: "server",
     privateKey: encrypt(normalizePrivateKey(privateKey)),
@@ -241,22 +318,26 @@ async function importServerKey(username, host, privateKey, passphrase) {
   };
 }
 
-function normalizePrivateKey(privateKey) {
+function normalizePrivateKey(privateKey: string): string {
   return privateKey.trim().replace(/\\n/g, "\n");
 }
 
-/**
- * Checks whether a server is reachable by attempting a TCP connection on port 22.
- * Resolves to "online" if the connection succeeds within 5 seconds, "offline" otherwise.
- * @param {string} serverId
- * @param {number} [port=22]
- * @returns {Promise<'online'|'offline'>}
- */
-const checkServerStatus = async (serverId, port = 22) => {
-  const server = await servers.findById(serverId);
-  if (!server) return "offline";
+// ─── Server Status ────────────────────────────────────────────────────────────
 
-  return new Promise((resolve) => {
+/**
+ * Checks whether a server is reachable by attempting a TCP connection.
+ */
+export async function checkServerStatus(
+  serverId: string,
+  port = 22,
+): Promise<ServerStatus> {
+  const server = await servers.findById(serverId);
+
+  if (!server) {
+    return "offline";
+  }
+
+  return new Promise<ServerStatus>((resolve) => {
     const socket = new net.Socket();
 
     socket.setTimeout(5000);
@@ -272,49 +353,30 @@ const checkServerStatus = async (serverId, port = 22) => {
         resolve("offline");
       });
   });
-};
+}
 
 // ─── Connection Options ───────────────────────────────────────────────────────
+
 /**
- * Retrieves the connection options for a saved SFTP server.
- *
- * Password credentials are decrypted directly from the server record.
- * For key authentication, the referenced SSH key is loaded from the
- * key store and its private key and optional passphrase are decrypted.
- *
- * Returns an options object ready to pass directly to
- * ssh2-sftp-client.connect().
- *
- * @param {string} serverId - ID of the saved server.
- * @returns {Promise<{
- *   host: string,
- *   port: number,
- *   username: string,
- *   password?: string,
- *   privateKey?: string,
- *   passphrase?: string
- * }>}
- * @throws {Error} If the server is not found.
- * @throws {Error} If the required password credential is missing.
- * @throws {Error} If the server has no SSH key reference.
- * @throws {Error} If the referenced SSH key is not found.
- * @throws {Error} If the server has an invalid authentication type.
+ * Retrieves connection options for a saved SFTP server.
  */
-const getServerOptions = async (serverId) => {
+export async function getServerOptions(
+  serverId: string,
+): Promise<ServerConnectionOptions> {
   const server = await servers.findById(serverId);
 
   if (!server) {
     throw new Error(`Server not found: ${serverId}`);
   }
 
-  const options = {
+  const options: ServerConnectionOptions = {
     host: server.host,
     port: server.port ?? 22,
     username: server.username,
   };
 
   if (server.authType === "password") {
-    if (!server.credentials?.password) {
+    if (!server.credentials.password) {
       throw new Error(`Password missing for server: ${serverId}`);
     }
 
@@ -343,29 +405,17 @@ const getServerOptions = async (serverId) => {
     if (sshKey.passphrase?.iv) {
       options.passphrase = decrypt(sshKey.passphrase);
     }
-  } else {
-    throw new Error(
-      `Invalid authType on server ${serverId}: ${server.authType}`,
-    );
   }
 
   return options;
-};
+}
 
 /**
  * Returns the public SSH key associated with a saved server.
- *
- * Returns null when the server does not use key authentication or
- * does not have an SSH key reference. The private key and passphrase
- * are never returned by this operation.
- *
- * @param {string} serverId - ID of the saved server.
- * @returns {Promise<string|null>} The server's public SSH key,
- * or null if no public key is associated with the server.
- * @throws {Error} If the server is not found.
- * @throws {Error} If the referenced SSH key is not found.
  */
-const getServerPublicKey = async (serverId) => {
+export async function getServerPublicKey(
+  serverId: string,
+): Promise<string | null> {
   const server = await servers.findById(serverId);
 
   if (!server) {
@@ -387,14 +437,4 @@ const getServerPublicKey = async (serverId) => {
   }
 
   return sshKey.publicKey ?? null;
-};
-
-// ─── Exports ──────────────────────────────────────────────────────────────────
-
-module.exports = {
-  share_file,
-  save_server,
-  checkServerStatus,
-  getServerOptions,
-  getServerPublicKey,
-};
+}
