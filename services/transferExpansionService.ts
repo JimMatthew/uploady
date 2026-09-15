@@ -1,31 +1,48 @@
-const path = require("path");
-const fs = require("fs");
-const { transferJobs, transferItems } = require("../db");
-const { ItemKind } = require("../controllers/jobs/jobConstants");
-const { connectToSftp } = require("./sftpService");
-const localFileService = require("./localFileService");
-const archiveService = require("./archiveService");
-// ─── Remote Walking ───────────────────────────────────────────────────────────
+import fs from "node:fs";
+import path from "node:path";
+import type SftpClient from "ssh2-sftp-client";
+import { transferJobs, transferItems } from "../db";
+import { ItemKind } from "../controllers/jobs/jobConstants";
+
+import type {
+  CreateTransferItemData,
+  TransferItem,
+} from "../db/stores/transferItemStore";
+
+import { connectToSftp } from "./sftpConnection";
+import { listLocalDir } from "./localFileService";
+import { listZip } from "./archiveService";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface WalkedFile {
+  filename: string;
+  sourcePath: string;
+  destinationPath: string;
+  size: number;
+}
+
+// ---------------------------------------------------------------------------
+// Remote Walking
+// ---------------------------------------------------------------------------
 
 /**
  * Recursively walks a remote SFTP directory and returns a flat list of files.
- *
- * @param {import('ssh2-sftp-client')} sftp
- * @param {string} dirPath - Remote directory path
- * @param {string} destBasePath - Destination base path to compute dest per file
- * @returns {Promise<Array<{
- *   filename: string,
- *   sourcePath: string,
- *   destinationPath: string,
- *   size: number
- * }>>}
  */
-const walkSftpDir = async (sftp, dirPath, destBasePath) => {
+async function walkSftpDir(
+  sftp: SftpClient,
+  dirPath: string,
+  destBasePath: string,
+): Promise<WalkedFile[]> {
   const entries = await sftp.list(dirPath);
-  const results = [];
+
+  const results: WalkedFile[] = [];
 
   for (const entry of entries) {
     const srcPath = path.posix.join(dirPath, entry.name);
+
     const dstPath = path.posix.join(destBasePath, entry.name);
 
     if (entry.type === "-") {
@@ -37,34 +54,31 @@ const walkSftpDir = async (sftp, dirPath, destBasePath) => {
       });
     } else if (entry.type === "d") {
       const children = await walkSftpDir(sftp, srcPath, dstPath);
+
       results.push(...children);
     }
   }
 
   return results;
-};
+}
 
-// ─── Local Walking ────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Local Walking
+// ---------------------------------------------------------------------------
 
 /**
  * Recursively walks a local directory and returns a flat list of files.
- *
- * @param {string} dirPath - Absolute local directory path
- * @param {string} destBasePath - Destination base path to compute dest per file
- * @returns {Array<{
- *   filename: string,
- *   sourcePath: string,
- *   destinationPath: string,
- *   size: number
- * }>}
  */
-const walkLocalDir = (dirPath, destBasePath) => {
-  const { files, folders } = localFileService.listLocalDir(dirPath);
-  const results = [];
+function walkLocalDir(dirPath: string, destBasePath: string): WalkedFile[] {
+  const { files, folders } = listLocalDir(dirPath);
+
+  const results: WalkedFile[] = [];
 
   for (const file of files) {
     const srcPath = path.join(dirPath, file.name);
+
     const stat = fs.statSync(srcPath);
+
     results.push({
       filename: file.name,
       sourcePath: srcPath,
@@ -78,18 +92,27 @@ const walkLocalDir = (dirPath, destBasePath) => {
       path.join(dirPath, folder.name),
       path.posix.join(destBasePath, folder.name),
     );
+
     results.push(...children);
   }
 
   return results;
-};
+}
 
-const walkArchiveDir = async (archivePath, dirPath, destBasePath) => {
-  const entries = await archiveService.listZip(archivePath);
+// ---------------------------------------------------------------------------
+// Archive Walking
+// ---------------------------------------------------------------------------
+
+async function walkArchiveDir(
+  archivePath: string,
+  dirPath: string,
+  destBasePath: string,
+): Promise<WalkedFile[]> {
+  const entries = await listZip(archivePath);
 
   const prefix = dirPath.endsWith("/") ? dirPath : `${dirPath}/`;
 
-  const results = [];
+  const results: WalkedFile[] = [];
 
   for (const entry of entries) {
     if (entry.directory) {
@@ -115,52 +138,64 @@ const walkArchiveDir = async (archivePath, dirPath, destBasePath) => {
   }
 
   return results;
-};
+}
 
-// ─── Expansion ────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Expansion
+// ---------------------------------------------------------------------------
 
 /**
  * Expands all directory items in a transfer job into individual file items.
  *
  * Directory placeholders are recursively walked, expanded file items are
- * created, and the original directory placeholder items are removed.
+ * created, and the original placeholder items are removed.
  *
  * When expansion is complete, the job's totalFiles and totalBytes values
  * are recalculated from all file items belonging to the job.
- *
- * @param {string} jobId
  */
-const expandJobItems = async (jobId) => {
+export async function expandJobItems(jobId: string): Promise<void> {
   const items = await transferItems.findByJobId(jobId);
-  
-  // Group all source items by server so each remote source requires
-  // only one SFTP connection while resolving files and directories.
-  const grouped = new Map();
+
+  /*
+   * null represents a local/archive source with no
+   * remote source server.
+   */
+  const grouped = new Map<string | null, TransferItem[]>();
 
   for (const item of items) {
     const sourceServerId = item.sourceServerId ?? null;
 
-    if (!grouped.has(sourceServerId)) {
-      grouped.set(sourceServerId, []);
-    }
+    const group = grouped.get(sourceServerId);
 
-    grouped.get(sourceServerId).push(item);
+    if (group) {
+      group.push(item);
+    } else {
+      grouped.set(sourceServerId, [item]);
+    }
   }
 
-  const newFileItems = [];
+  const newFileItems: CreateTransferItemData[] = [];
 
   for (const [sourceServerId, sourceItems] of grouped) {
     const isLocal = sourceServerId === null;
+
     const sftp = isLocal ? null : await connectToSftp(sourceServerId);
 
     try {
       for (const item of sourceItems) {
-        // ── Direct File ─────────────────────────────────────────────────────
+        // ---------------------------------------------------------------
+        // Direct File
+        // ---------------------------------------------------------------
+
         if (item.kind === ItemKind.FILE) {
-          let size;
+          let size: number;
 
           if (item.sourceType === "archive") {
-            const entries = await archiveService.listZip(item.archivePath);
+            if (!item.archivePath || !item.sourcePath) {
+              throw new Error(`Invalid archive transfer item: ${item._id}`);
+            }
+
+            const entries = await listZip(item.archivePath);
 
             const archiveEntry = entries.find(
               (entry) => entry.name === item.sourcePath,
@@ -172,41 +207,57 @@ const expandJobItems = async (jobId) => {
 
             size = archiveEntry.size;
           } else if (isLocal) {
+            if (!item.sourcePath) {
+              throw new Error(
+                `Missing source path for transfer item: ${item._id}`,
+              );
+            }
+
             size = fs.statSync(item.sourcePath).size;
           } else {
+            if (!sftp || !item.sourcePath) {
+              throw new Error(`Invalid remote transfer item: ${item._id}`);
+            }
+
             size = (await sftp.stat(item.sourcePath)).size;
           }
 
           newFileItems.push({
             jobId,
-
             sourceType: item.sourceType,
             sourceServerId,
-
             archivePath: item.archivePath,
-
             filename: item.filename,
             rootItem: item.rootItem,
             sourcePath: item.sourcePath,
             destinationPath: item.destinationPath,
-
             size,
-
             kind: ItemKind.FILE,
           });
 
-          // Replace the original file placeholder with the fully-resolved
-          // file item containing the actual source size.
-          await transferItems.deleteById(item._id.toString());
+          await transferItems.deleteById(item._id);
 
           continue;
         }
 
-        // ── Directory ───────────────────────────────────────────────────────
+        // ---------------------------------------------------------------
+        // Directory
+        // ---------------------------------------------------------------
+
         if (item.kind === ItemKind.DIRECTORY) {
-          let walked;
+          if (!item.sourcePath || !item.destinationPath) {
+            throw new Error(`Invalid directory transfer item: ${item._id}`);
+          }
+
+          let walked: WalkedFile[];
 
           if (item.sourceType === "archive") {
+            if (!item.archivePath) {
+              throw new Error(
+                `Missing archive path for transfer item: ${item._id}`,
+              );
+            }
+
             walked = await walkArchiveDir(
               item.archivePath,
               item.sourcePath,
@@ -215,6 +266,12 @@ const expandJobItems = async (jobId) => {
           } else if (isLocal) {
             walked = walkLocalDir(item.sourcePath, item.destinationPath);
           } else {
+            if (!sftp) {
+              throw new Error(
+                `Missing SFTP connection for transfer item: ${item._id}`,
+              );
+            }
+
             walked = await walkSftpDir(
               sftp,
               item.sourcePath,
@@ -225,23 +282,19 @@ const expandJobItems = async (jobId) => {
           for (const file of walked) {
             newFileItems.push({
               jobId,
-
               sourceType: item.sourceType,
               sourceServerId,
-
               archivePath: item.archivePath,
-
               filename: file.filename,
               rootItem: item.rootItem,
               sourcePath: file.sourcePath,
               destinationPath: file.destinationPath,
               size: file.size,
-
               kind: ItemKind.FILE,
             });
           }
 
-          await transferItems.deleteById(item._id.toString());
+          await transferItems.deleteById(item._id);
         }
       }
     } finally {
@@ -257,12 +310,7 @@ const expandJobItems = async (jobId) => {
 
   const totalFiles = allFileItems.length;
 
-  const totalBytes = allFileItems.reduce(
-    (sum, item) => sum + (item.size || 0),
-    0,
-  );
+  const totalBytes = allFileItems.reduce((sum, item) => sum + item.size, 0);
 
   await transferJobs.updateTotals(jobId, totalFiles, totalBytes);
-};
-
-module.exports = { expandJobItems };
+}
