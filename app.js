@@ -30,9 +30,7 @@ const USE_HTTPS = process.env.USE_HTTPS === "true";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-  console.error(
-    "FATAL: JWT_SECRET environment variable is not set",
-  );
+  console.error("FATAL: JWT_SECRET environment variable is not set");
 
   process.exit(1);
 }
@@ -51,28 +49,13 @@ app.use(
 );
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
-//
-// Static assets must be available before setup is complete so the setup
-// page can load its JavaScript, CSS, icons, etc.
-//
-// `index: false` is important. Without it, express.static() serves
-// client/dist/index.html for GET / before requireSetupComplete runs,
-// causing a fresh installation to display the login page instead of
-// redirecting to /setup.
+
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
-  express.static(
-    path.join(__dirname, "public"),
-  ),
-);
-
-app.use(
-  express.static(
-    path.join(__dirname, "client/dist"),
-    {
-      index: false,
-    },
-  ),
+  express.static(path.join(__dirname, "client/dist"), {
+    index: false,
+  }),
 );
 
 // ─── Pre-Setup Routes ─────────────────────────────────────────────────────────
@@ -83,9 +66,6 @@ app.post("/apilogin", login_post);
 app.post("/setup", setup_post);
 
 // ─── Setup Guard ──────────────────────────────────────────────────────────────
-//
-// All application requests after this point require initial setup to
-// have been completed.
 
 app.use(requireSetupComplete);
 
@@ -94,25 +74,13 @@ app.use(requireSetupComplete);
 app.use("/", setupRoutes);
 app.use("/", setupJobRoutes);
 
-app.use(
-  "/sftp",
-  setupSftpRoutes,
-);
+app.use("/sftp", setupSftpRoutes);
 
-app.use(
-  "/api/settings",
-  setupSettingsRoutes,
-);
+app.use("/api/settings", setupSettingsRoutes);
 
-app.use(
-  "/api/archive",
-  setupArchiveRoutes,
-);
+app.use("/api/archive", setupArchiveRoutes);
 
-app.use(
-  "/api/actions",
-  setupActionsRoutes,
-);
+app.use("/api/actions", setupActionsRoutes);
 
 // ─── API 404 Guard ────────────────────────────────────────────────────────────
 
@@ -134,18 +102,9 @@ app.use((req, res, next) => {
 });
 
 // ─── SPA Catch-All ────────────────────────────────────────────────────────────
-//
-// Client-side routes such as /, /setup, /sftp, and /about all receive
-// the Vite index.html after backend routing and setup checks have run.
 
 app.get("*", (req, res) => {
-  res.sendFile(
-    path.join(
-      __dirname,
-      "client/dist",
-      "index.html",
-    ),
-  );
+  res.sendFile(path.join(__dirname, "client/dist", "index.html"));
 });
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
@@ -163,12 +122,8 @@ app.use((err, req, res, next) => {
 const server = USE_HTTPS
   ? https.createServer(
       {
-        key: fs.readFileSync(
-          process.env.HTTPS_KEY,
-        ),
-        cert: fs.readFileSync(
-          process.env.HTTPS_CERT,
-        ),
+        key: fs.readFileSync(process.env.HTTPS_KEY),
+        cert: fs.readFileSync(process.env.HTTPS_CERT),
       },
       app,
     )
@@ -178,10 +133,7 @@ const wss = new WebSocket.Server({
   server,
 });
 
-wss.on(
-  "connection",
-  sshSessionHandler,
-);
+wss.on("connection", sshSessionHandler);
 
 // ─── Startup ──────────────────────────────────────────────────────────────────
 
@@ -191,15 +143,11 @@ async function start() {
 
     server.listen(PORT, () => {
       console.log(
-        `Server running on port ${PORT} ` +
-          `(${USE_HTTPS ? "https" : "http"})`,
+        `Server running on port ${PORT} ` + `(${USE_HTTPS ? "https" : "http"})`,
       );
     });
   } catch (err) {
-    console.error(
-      "Failed to initialize database:",
-      err,
-    );
+    console.error("Failed to initialize database:", err);
 
     process.exit(1);
   }

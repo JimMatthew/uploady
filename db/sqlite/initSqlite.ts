@@ -1,8 +1,8 @@
 // db/sqlite/initSqlite.js
 
-const { openDatabase } = require("./database");
+import { openDatabase } from "./database";
 
-function initSqlite() {
+function initSqlite(): void {
   const db = openDatabase(process.env.SQLITE_PATH || "./data/uploady.db");
 
   // Database configuration
@@ -189,18 +189,6 @@ function initSqlite() {
       ON transfer_items(job_id, kind);
   `);
 
-  const columns = db.all("PRAGMA table_info(transfer_items)");
-
-  const hasArchivePath = columns.some(
-    (column) => column.name === "archive_path",
-  );
-
-  if (!hasArchivePath) {
-    db.exec(`
-    ALTER TABLE transfer_items
-    ADD COLUMN archive_path TEXT;
-  `);
-  }
 }
 
-module.exports = initSqlite;
+export default initSqlite;

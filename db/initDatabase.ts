@@ -1,7 +1,9 @@
-const mongoose = require("mongoose");
-const initSqlite = require("./sqlite/initSqlite");
+import mongoose from "mongoose";
 
-async function initMongo() {
+import initSqlite from "./sqlite/initSqlite";
+import type { DatabaseType } from "./createStores";
+
+async function initMongo(): Promise<void> {
   const mongoUri = process.env.DATABASE;
 
   if (!mongoUri) {
@@ -10,7 +12,7 @@ async function initMongo() {
 
   mongoose.set("strictPopulate", false);
 
-  mongoose.connection.on("error", (err) => {
+  mongoose.connection.on("error", (err: Error) => {
     console.error("MongoDB connection error:", err);
   });
 
@@ -29,7 +31,7 @@ async function initMongo() {
   console.log("MongoDB connected");
 }
 
-async function initDatabase(databaseType) {
+async function initDatabase(databaseType: DatabaseType): Promise<void> {
   switch (databaseType) {
     case "mongo":
       await initMongo();
@@ -37,12 +39,11 @@ async function initDatabase(databaseType) {
 
     case "sqlite":
       initSqlite();
-      console.log("SQLite initialized");
-      return;
 
-    default:
-      throw new Error(`Unsupported database type: ${databaseType}`);
+      console.log("SQLite initialized");
+
+      return;
   }
 }
 
-module.exports = initDatabase;
+export default initDatabase;
