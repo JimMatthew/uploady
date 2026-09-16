@@ -1,6 +1,7 @@
 import mongoose, { Schema, type HydratedDocument, type Types } from "mongoose";
 
 import type { EncryptedField } from "../types/server";
+import encryptedFieldSchema from "./encryptedField";
 
 export interface SshKeyDocumentShape {
   name: string;
@@ -15,8 +16,6 @@ export interface SshKeyDocumentShape {
 }
 
 export type SshKeyDocument = HydratedDocument<SshKeyDocumentShape>;
-
-const encryptedFieldSchema = require("./encryptedField");
 
 const sshKeySchema = new Schema<SshKeyDocumentShape>(
   {

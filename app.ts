@@ -1,46 +1,56 @@
-const fs = require("fs");
-const http = require("http");
-const https = require("https");
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const WebSocket = require("ws");
+import fs from "node:fs";
+import http from "node:http";
+import https from "node:https";
+import path from "node:path";
+import cors from "cors";
+import express from "express";
+import type { ErrorRequestHandler, RequestHandler } from "express";
+import { WebSocketServer } from "ws";
 
-const db = require("./db");
+import { init } from "./db";
 
-//const sshSessionHandler = require("./controllers/ssh_session");
-const { default: sshSessionHandler } =
-  require("./controllers/ssh_session");
-const setupRoutes = require("./routes/route");
-const setupSftpRoutes = require("./routes/sftpRouter");
-const setupJobRoutes = require("./routes/jobRouter");
-const setupSettingsRoutes = require("./routes/settingsRouter");
-const setupArchiveRoutes = require("./routes/archiveRouter");
-const setupActionsRoutes = require("./routes/actionRouter");
+import sshSessionHandler from "./controllers/ssh_session";
+import setupRoutes from "./routes/route";
+import setupSftpRoutes from "./routes/sftpRouter";
+import setupJobRoutes from "./routes/jobRouter";
+import setupSettingsRoutes from "./routes/settingsRouter";
+import setupArchiveRoutes from "./routes/archiveRouter";
+import setupActionsRoutes from "./routes/actionRouter";
 
-const {
+import {
   login_post,
   setup_post,
   requireSetupComplete,
-} = require("./controllers/setupController");
+} from "./controllers/setupController";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const PORT = process.env.PORT || 3001;
-const USE_HTTPS = process.env.USE_HTTPS === "true";
-const JWT_SECRET = process.env.JWT_SECRET;
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
 
-if (!JWT_SECRET) {
-  console.error("FATAL: JWT_SECRET environment variable is not set");
+  if (!value) {
+    console.error(`FATAL: ${name} environment variable is not set`);
 
-  process.exit(1);
+    process.exit(1);
+  }
+
+  return value;
 }
+
+const PORT = process.env.PORT ?? "3001";
+
+const USE_HTTPS = process.env.USE_HTTPS === "true";
+
+// Validate this at startup even though JWT handling
+// itself lives in the authentication code.
+getRequiredEnv("JWT_SECRET");
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 
 const app = express();
 
 app.use(cors());
+
 app.use(express.json());
 
 app.use(
@@ -51,10 +61,10 @@ app.use(
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.resolve("public")));
 
 app.use(
-  express.static(path.join(__dirname, "client/dist"), {
+  express.static(path.resolve("client/dist"), {
     index: false,
   }),
 );
@@ -64,6 +74,7 @@ app.use(
 // These routes must remain accessible before a user exists.
 
 app.post("/apilogin", login_post);
+
 app.post("/setup", setup_post);
 
 // ─── Setup Guard ──────────────────────────────────────────────────────────────
@@ -73,6 +84,7 @@ app.use(requireSetupComplete);
 // ─── Application Routes ───────────────────────────────────────────────────────
 
 app.use("/", setupRoutes);
+
 app.use("/", setupJobRoutes);
 
 app.use("/sftp", setupSftpRoutes);
@@ -85,7 +97,7 @@ app.use("/api/actions", setupActionsRoutes);
 
 // ─── API 404 Guard ────────────────────────────────────────────────────────────
 
-app.use((req, res, next) => {
+const api404Handler: RequestHandler = (req, res, next) => {
   const isApiRequest =
     req.path.startsWith("/api/") ||
     req.path.startsWith("/sftp/api/") ||
@@ -94,43 +106,68 @@ app.use((req, res, next) => {
     req.path.startsWith("/settings");
 
   if (!isApiRequest) {
-    return next();
+    next();
+    return;
   }
 
-  return res.status(404).json({
+  res.status(404).json({
     error: "API endpoint not found",
   });
-});
+};
+
+app.use(api404Handler);
 
 // ─── SPA Catch-All ────────────────────────────────────────────────────────────
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client/dist", "index.html"));
+app.get("*", (_req, res) => {
+  res.sendFile(path.resolve("client/dist/index.html"));
 });
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
-app.use((err, req, res, next) => {
-  console.error("Error:", err.message);
+interface AppError extends Error {
+  status?: number;
+}
 
-  res.status(err.status || 500).json({
-    error: err.message,
+const errorHandler: ErrorRequestHandler = (
+  error: AppError,
+  _req,
+  res,
+  _next,
+) => {
+  console.error("Error:", error.message);
+
+  res.status(error.status ?? 500).json({
+    error: error.message,
   });
-});
+};
+
+app.use(errorHandler);
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
-const server = USE_HTTPS
-  ? https.createServer(
-      {
-        key: fs.readFileSync(process.env.HTTPS_KEY),
-        cert: fs.readFileSync(process.env.HTTPS_CERT),
-      },
-      app,
-    )
-  : http.createServer(app);
+function createServer(): http.Server | https.Server {
+  if (!USE_HTTPS) {
+    return http.createServer(app);
+  }
 
-const wss = new WebSocket.Server({
+  const keyPath = getRequiredEnv("HTTPS_KEY");
+
+  const certPath = getRequiredEnv("HTTPS_CERT");
+
+  return https.createServer(
+    {
+      key: fs.readFileSync(keyPath),
+
+      cert: fs.readFileSync(certPath),
+    },
+    app,
+  );
+}
+
+const server = createServer();
+
+const wss = new WebSocketServer({
   server,
 });
 
@@ -138,22 +175,22 @@ wss.on("connection", sshSessionHandler);
 
 // ─── Startup ──────────────────────────────────────────────────────────────────
 
-async function start() {
+async function start(): Promise<void> {
   try {
-    await db.init();
+    await init();
 
     server.listen(PORT, () => {
       console.log(
         `Server running on port ${PORT} ` + `(${USE_HTTPS ? "https" : "http"})`,
       );
     });
-  } catch (err) {
-    console.error("Failed to initialize database:", err);
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
 
     process.exit(1);
   }
 }
 
-start();
+void start();
 
-module.exports = app;
+export default app;
