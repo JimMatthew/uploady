@@ -13,7 +13,6 @@ import { downloadFile } from "../services/sftpService";
 import { transferExecutor } from "../services/transferExecutor";
 import { ItemKind } from "../controllers/jobs/jobConstants";
 import { listLocalDir } from "../services/localFileService";
-import type { TransferSourceType } from "../db/stores/transferItemStore";
 import { LocalPasteRequest, parseTransferRequestFile } from "./transferRequest";
 
 const uploadsDir = path.resolve("uploads");
@@ -638,7 +637,7 @@ function parseLocalPasteRequest(body: unknown): LocalPasteRequest {
     throw new Error("No files provided");
   }
 
-  if (typeof data.newPath !== "string" || !data.newPath) {
+  if (typeof data.newPath !== "string") {
     throw new Error("Destination path is required");
   }
 

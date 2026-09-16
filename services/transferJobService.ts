@@ -1,5 +1,4 @@
 import { transferJobs, transferItems, servers } from "../db";
-//import executor = require("./transferExecutor");
 const {
   transferExecutor,
 } = require("../services/transferExecutor");
@@ -198,13 +197,9 @@ export async function listJobs() {
 
       // Prefer live values while the job exists in the executor.
       completedFiles: liveJob?.completedFiles ?? job.completedFiles,
-
       failedFiles: liveJob?.failedFiles ?? job.failedFiles,
-
       currentFile: liveJob?.currentFile ?? job.currentFile,
-
       destServer: formatServer(job.destServerId, nameMap),
-
       sourceServers,
       durationMs,
     };

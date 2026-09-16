@@ -16,10 +16,8 @@ import {
 } from "../services/sftpService";
 
 import { share_file } from "../services/serverService";
-
 import { transferExecutor } from "../services/transferExecutor";
 import { ItemKind } from "../controllers/jobs/jobConstants";
-import type { TransferSourceType } from "../db/stores/transferItemStore";
 import {
   getErrorMessage,
   getStringParam,
