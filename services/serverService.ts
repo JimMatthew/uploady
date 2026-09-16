@@ -6,24 +6,12 @@ import { generateSshKeyPair } from "./sshKeyGenerator";
 import type { CreateServerData } from "../db/stores/serverStore";
 import type { CreateSshKeyInput } from "../db/stores/sshKeyStore";
 import type { ServerAuthType } from "../db/stores/serverStore";
+import { KeyServerOptions, SaveServerOptions } from "../types/server";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const domain = process.env.HOSTNAME;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type KeyMode = "saved" | "generate" | "import";
-
-export interface SaveServerOptions {
-  host: string;
-  username: string;
-  password?: string;
-  authType: ServerAuthType;
-  keyId?: string;
-  key?: string;
-  passphrase?: string;
-  keyMode?: KeyMode;
-}
 
 export interface SavedServerResult {
   id: string;
@@ -99,57 +87,31 @@ export async function share_file(
  *
  * Credentials and private key data are encrypted before storage.
  */
-export async function save_server({
-  host,
-  username,
-  password,
-  authType,
-  keyId,
-  key,
-  passphrase,
-  keyMode,
-}: SaveServerOptions): Promise<SavedServerResult> {
-  validateServerInput({
-    host,
-    username,
-    password,
-    authType,
-    keyId,
-    key,
-    keyMode,
-  });
-
+export async function save_server(
+  options: SaveServerOptions,
+): Promise<SavedServerResult> {
   let publicKey: string | null = null;
-
   let server: CreateServerData;
 
-  if (authType === "password") {
-    // Validation above guarantees password exists.
-    if (!password) {
-      throw new Error("Password required for password auth");
-    }
-
+  if (options.authType === "password") {
     server = {
-      host: host.trim(),
-      username: username.trim(),
+      host: options.host.trim(),
+      username: options.username.trim(),
       authType: "password",
       credentials: {
-        password: encrypt(password),
+        password: encrypt(options.password),
       },
     };
   } else {
     const keyResult = await resolveServerKey({
-      host: host.trim(),
-      username: username.trim(),
-      keyMode,
-      keyId,
-      key,
-      passphrase,
+      ...options,
+      host: options.host.trim(),
+      username: options.username.trim(),
     });
 
     server = {
-      host: host.trim(),
-      username: username.trim(),
+      host: options.host.trim(),
+      username: options.username.trim(),
       authType: "key",
       credentials: {},
       keyId: keyResult.keyId,
@@ -170,95 +132,25 @@ export async function save_server({
   };
 }
 
-function validateServerInput({
-  host,
-  username,
-  password,
-  authType,
-  keyId,
-  key,
-  keyMode,
-}: SaveServerOptions): void {
-  if (!host?.trim()) {
-    throw new Error("Host is required");
-  }
-
-  if (!username?.trim()) {
-    throw new Error("Username is required");
-  }
-
-  if (authType === "password") {
-    if (!password) {
-      throw new Error("Password required for password auth");
-    }
-
-    return;
-  }
-
-  if (authType !== "key") {
-    throw new Error(`Unsupported authType: ${authType}`);
-  }
-
-  switch (keyMode) {
-    case "saved":
-      if (!keyId) {
-        throw new Error("SSH key required for saved key auth");
-      }
-      break;
-
-    case "generate":
-      break;
-
-    case "import":
-      if (!key?.trim()) {
-        throw new Error("Private key required for imported key auth");
-      }
-      break;
-
-    default:
-      throw new Error(`Unsupported keyMode: ${keyMode}`);
-  }
-}
-
 // ─── Server Keys ──────────────────────────────────────────────────────────────
 
-async function resolveServerKey({
-  host,
-  username,
-  keyMode,
-  keyId,
-  key,
-  passphrase,
-}: {
-  host: string;
-  username: string;
-  keyMode?: KeyMode;
-  keyId?: string;
-  key?: string;
-  passphrase?: string;
-}): Promise<ResolvedServerKey> {
-  switch (keyMode) {
+async function resolveServerKey(
+  options: KeyServerOptions,
+): Promise<ResolvedServerKey> {
+  switch (options.keyMode) {
     case "saved":
-      if (!keyId) {
-        throw new Error("SSH key required for saved key auth");
-      }
-
-      return useSavedKey(keyId);
+      return useSavedKey(options.keyId);
 
     case "generate":
-      return generateServerKey(username, host);
+      return generateServerKey(options.username, options.host);
 
     case "import":
-      if (!key) {
-        throw new Error("Private key required for imported key auth");
-      }
-
-      return importServerKey(username, host, key, passphrase);
-
-    default:
-      // validateServerInput should prevent this,
-      // but keep the invariant protected here too.
-      throw new Error(`Unsupported keyMode: ${keyMode}`);
+      return importServerKey(
+        options.username,
+        options.host,
+        options.key,
+        options.passphrase,
+      );
   }
 }
 

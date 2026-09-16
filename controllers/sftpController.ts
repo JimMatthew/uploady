@@ -15,46 +15,21 @@ import {
   uploadFile,
 } from "../services/sftpService";
 
-import {
-  checkServerStatus,
-  getServerPublicKey,
-  KeyMode,
-  save_server,
-  share_file,
-} from "../services/serverService";
+import { share_file } from "../services/serverService";
 
 import { transferExecutor } from "../services/transferExecutor";
 import { ItemKind } from "../controllers/jobs/jobConstants";
 import type { TransferSourceType } from "../db/stores/transferItemStore";
-import { ServerAuthType } from "../db/stores/serverStore";
+import {
+  getErrorMessage,
+  getStringParam,
+  getWildcardPath,
+  handleError,
+} from "./helpers/requestHelpers";
 
 const uploadsDir = path.resolve("uploads");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function handleError(res: Response, message: string, status = 500): void {
-  console.error(message);
-
-  res.status(status).json({
-    error: message,
-  });
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function getWildcardPath(req: Request): string {
-  const value = req.params[0];
-
-  return typeof value === "string" ? value : "";
-}
-
-function getStringParam(req: Request, name: string): string | null {
-  const value = req.params[name];
-
-  return typeof value === "string" && value ? value : null;
-}
 
 async function pipeStreamToResponse(
   stream: Readable,
@@ -680,205 +655,5 @@ export async function sftp_share_file_post(
     console.error("Share file error:", error);
 
     handleError(res, "Error creating share link");
-  }
-}
-
-// ─── Servers ──────────────────────────────────────────────────────────────────
-
-export async function sftp_get_servers_get(
-  _req: Request,
-  res: Response,
-): Promise<void> {
-  try {
-    const server = await servers.listSummary();
-
-    res.json({
-      servers: server,
-    });
-  } catch (error) {
-    console.error("Get servers error:", error);
-
-    res.json({
-      status: "offline",
-    });
-  }
-}
-
-export async function sftp_server_status_get(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const serverId = getStringParam(req, "serverId");
-
-  if (!serverId) {
-    handleError(res, "Missing serverId", 400);
-    return;
-  }
-
-  try {
-    const status = await checkServerStatus(serverId);
-
-    res.json({
-      status,
-    });
-  } catch (error) {
-    console.error("Server status error:", error);
-
-    res.json({
-      status: "offline",
-    });
-  }
-}
-
-export async function sftp_save_server_post(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const body: unknown = req.body;
-
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
-    return;
-  }
-
-  const data = body as Record<string, unknown>;
-
-  const { host, username } = data;
-
-  const authType = data.authType === undefined ? "password" : data.authType;
-
-  if (
-    typeof host !== "string" ||
-    !host ||
-    typeof username !== "string" ||
-    !username ||
-    typeof authType !== "string" ||
-    !authType
-  ) {
-    handleError(res, "Host, username, and authType are required", 400);
-    return;
-  }
-  function isServerAuthType(value: unknown): value is ServerAuthType {
-    return value === "password" || value === "key";
-  }
-
-  function isKeyMode(value: unknown): value is KeyMode {
-    return value === "stored" || value === "paste";
-  }
-  const optionalStringFields = [
-    "password",
-    "keyId",
-    "key",
-    "passphrase",
-    "keyMode",
-  ] as const;
-
-  for (const field of optionalStringFields) {
-    const value = data[field];
-
-    if (value !== undefined && value !== null && typeof value !== "string") {
-      handleError(res, `Invalid ${field}`, 400);
-
-      return;
-    }
-  }
-
-  try {
-    const authType = data.authType === undefined ? "password" : data.authType;
-
-    if (
-      typeof host !== "string" ||
-      !host ||
-      typeof username !== "string" ||
-      !username ||
-      !isServerAuthType(authType)
-    ) {
-      handleError(res, "Host, username, and valid authType are required", 400);
-      return;
-    }
-
-    if (data.keyMode !== undefined && !isKeyMode(data.keyMode)) {
-      handleError(res, "Invalid keyMode", 400);
-      return;
-    }
-    const server = await save_server({
-      host,
-      username,
-      authType,
-      password: typeof data.password === "string" ? data.password : undefined,
-      keyId: typeof data.keyId === "string" ? data.keyId : undefined,
-      key: typeof data.key === "string" ? data.key : undefined,
-
-      passphrase:
-        typeof data.passphrase === "string" ? data.passphrase : undefined,
-
-      keyMode: isKeyMode(data.keyMode) ? data.keyMode : undefined,
-    });
-
-    res.status(201).json({
-      message: "Server saved",
-      server,
-    });
-  } catch (error) {
-    console.error("Save server error:", error);
-
-    handleError(res, getErrorMessage(error) || "Cannot save server", 400);
-  }
-}
-
-export async function sftp_delete_server_post(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const body: unknown = req.body;
-
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
-    return;
-  }
-
-  const { serverId } = body as Record<string, unknown>;
-
-  if (typeof serverId !== "string" || !serverId) {
-    handleError(res, "Missing serverId", 400);
-    return;
-  }
-
-  try {
-    await servers.deleteById(serverId);
-
-    res.status(200).json({
-      message: "Server deleted",
-    });
-  } catch (error) {
-    console.error("Delete server error:", error);
-
-    handleError(res, "Error deleting server");
-  }
-}
-
-export async function sftp_get_server_public_key(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const serverId = getStringParam(req, "serverId");
-
-  if (!serverId) {
-    handleError(res, "Missing serverId", 400);
-    return;
-  }
-
-  try {
-    const publicKey = await getServerPublicKey(serverId);
-
-    res.json({
-      publicKey,
-    });
-  } catch (error) {
-    console.error("Failed to get server public key:", error);
-
-    res.status(500).json({
-      error: "Failed to get server public key",
-    });
   }
 }

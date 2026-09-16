@@ -3,7 +3,6 @@ import { Router } from "express";
 import authenticateJWT from "../middlewares/jwtAuth";
 
 import {
-  sftp_get_servers_get,
   sftp_list_directory_get,
   sftp_rename_file_post,
   sftp_share_file_post,
@@ -11,17 +10,12 @@ import {
   sftp_archive_folder_get,
   sftp_download_get,
   sftp_create_folder_post,
-  sftp_save_server_post,
-  sftp_delete_server_post,
   sftp_delete_file_post,
   sftp_delete_folder_post,
-  sftp_get_server_public_key,
-  sftp_server_status_get,
   sftp_copy_files_post,
 } from "../controllers/sftpController";
 
 import { getServerStatsHandler } from "../services/serverStatsService";
-
 import { zipDownload } from "../controllers/zipController";
 
 import {
@@ -30,6 +24,13 @@ import {
   stopServerService,
   restartServerService,
 } from "../controllers/serviceManagerController";
+import {
+  sftp_delete_server_post,
+  sftp_get_server_public_key,
+  sftp_get_servers_get,
+  sftp_save_server_post,
+  sftp_server_status_get,
+} from "../controllers/serverController";
 
 const router = Router();
 
