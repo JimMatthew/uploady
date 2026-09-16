@@ -30,7 +30,10 @@
     "@types/archiver": "^7.0.0",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/mime-types": "^3.0.1",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.5.1",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.39.5",
     "prettier": "3.9.0",
     "typescript": "^7.0.2"

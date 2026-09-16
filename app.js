@@ -8,8 +8,9 @@ const WebSocket = require("ws");
 
 const db = require("./db");
 
-const sshSessionHandler = require("./controllers/ssh_session");
-
+//const sshSessionHandler = require("./controllers/ssh_session");
+const { default: sshSessionHandler } =
+  require("./controllers/ssh_session");
 const setupRoutes = require("./routes/route");
 const setupSftpRoutes = require("./routes/sftpRouter");
 const setupJobRoutes = require("./routes/jobRouter");
