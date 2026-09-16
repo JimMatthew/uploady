@@ -1,7 +1,5 @@
 import { transferJobs, transferItems, servers } from "../db";
-const {
-  transferExecutor,
-} = require("../services/transferExecutor");
+const { transferExecutor } = require("../services/transferExecutor");
 import { JobStatus, ItemStatus } from "../controllers/jobs/jobConstants";
 import type { ItemStatus as ItemStatusType } from "../controllers/jobs/jobConstants";
 
@@ -23,27 +21,12 @@ export interface JobItemsChunkOptions {
 // ---------------------------------------------------------------------------
 
 export type RetryJobResult =
-  | {
-      status: "not_found";
-    }
-  | {
-      status: "no_failed_items";
-    }
-  | {
-      status: "created";
-      jobId: string;
-    };
+  | { status: "not_found" }
+  | { status: "no_failed_items" }
+  | { status: "created"; jobId: string };
 
 export type DeleteJobResult =
-  | {
-      status: "not_found";
-    }
-  | {
-      status: "running";
-    }
-  | {
-      status: "deleted";
-    };
+  { status: "not_found" } | { status: "running" } | { status: "deleted" };
 
 export interface ClearCompletedJobsResult {
   deleted: number;
