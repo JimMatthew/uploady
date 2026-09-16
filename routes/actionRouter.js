@@ -13,7 +13,7 @@ router.post("/", authenticateJWT, actionController.create);
 
 router.put("/:id", authenticateJWT, actionController.update);
 
-router.delete("/:id", authenticateJWT, actionController.delete);
+router.delete("/:id", authenticateJWT, actionController.deleteAction);
 
 router.post("/:id/run", authenticateJWT, actionController.run);
 

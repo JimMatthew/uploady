@@ -4,6 +4,7 @@ import archiver, { type Archiver } from "archiver";
 import type { Response } from "express";
 import type SftpClient from "ssh2-sftp-client";
 import { connectToSftp } from "./sftpConnection";
+import { streamZipEntry } from "./archiveService";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -48,11 +49,17 @@ export interface UploadFileResult {
   close: () => Promise<void>;
 }
 
+export type ClipboardSource =
+  | "local"
+  | "sftp"
+  | "archive";
+
 export interface ClipboardFile {
   file: string;
   path: string;
-  source: string;
+  source: ClipboardSource;
   serverId: string | null;
+  archivePath?: string;
   isDirectory: boolean;
 }
 
@@ -377,8 +384,7 @@ export async function uploadFile(
  * response.
  *
  * SFTP files are grouped by server ID so each server uses one connection.
- */
-export async function zipClipboardFiles(
+ */export async function zipClipboardFiles(
   files: ClipboardFile[],
   res: Response,
 ): Promise<void> {
@@ -390,35 +396,53 @@ export async function zipClipboardFiles(
 
   archive.pipe(res);
 
+  const localFiles: ClipboardFile[] = [];
+  const archiveFiles: ClipboardFile[] = [];
   const sftpGroups = new Map<string, ClipboardFile[]>();
 
-  const localFiles: ClipboardFile[] = [];
-
   for (const item of files) {
-    if (item.source === "local") {
-      localFiles.push(item);
+    switch (item.source) {
+      case "local":
+        localFiles.push(item);
+        break;
 
-      continue;
-    }
+      case "archive":
+        if (!item.archivePath) {
+          throw new Error(
+            `Missing archivePath for archive clipboard item: ${item.file}`,
+          );
+        }
 
-    if (!item.serverId) {
-      throw new Error(
-        `Missing serverId for remote clipboard item: ${item.file}`,
-      );
-    }
+        archiveFiles.push(item);
+        break;
 
-    const existing = sftpGroups.get(item.serverId);
+      case "sftp": {
+        if (!item.serverId) {
+          throw new Error(
+            `Missing serverId for remote clipboard item: ${item.file}`,
+          );
+        }
 
-    if (existing) {
-      existing.push(item);
-    } else {
-      sftpGroups.set(item.serverId, [item]);
+        const existing = sftpGroups.get(item.serverId);
+
+        if (existing) {
+          existing.push(item);
+        } else {
+          sftpGroups.set(item.serverId, [item]);
+        }
+
+        break;
+      }
     }
   }
 
   // Local files
   for (const item of localFiles) {
-    const fullPath = path.join(uploadsDir, item.path, item.file);
+    const fullPath = path.join(
+      uploadsDir,
+      item.path,
+      item.file,
+    );
 
     if (item.isDirectory) {
       archive.directory(fullPath, item.file);
@@ -429,20 +453,56 @@ export async function zipClipboardFiles(
     }
   }
 
+  // Files contained inside local ZIP archives
+  for (const item of archiveFiles) {
+    if (item.isDirectory) {
+      throw new Error(
+        `Archive directory clipboard items are not supported: ${item.file}`,
+      );
+    }
+
+    const archivePath = path.join(
+      uploadsDir,
+      item.archivePath!,
+    );
+
+    const entryPath = path.posix.join(
+      item.path,
+      item.file,
+    );
+
+    const { stream } = await streamZipEntry(
+      archivePath,
+      entryPath,
+    );
+
+    archive.append(stream, {
+      name: item.file,
+    });
+  }
+
   // SFTP files — one connection per server.
   for (const [serverId, group] of sftpGroups) {
     const sftp = await connectToSftp(serverId);
 
     try {
       for (const item of group) {
-        const remotePath = path.posix.join(item.path, item.file);
+        const remotePath = path.posix.join(
+          item.path,
+          item.file,
+        );
 
         if (item.isDirectory) {
           archive.append(Buffer.alloc(0), {
             name: `${item.file}/`,
           });
 
-          await addFolderToArchive(sftp, archive, remotePath, item.file);
+          await addFolderToArchive(
+            sftp,
+            archive,
+            remotePath,
+            item.file,
+          );
         } else {
           const stat = await sftp.stat(remotePath);
 
@@ -450,7 +510,8 @@ export async function zipClipboardFiles(
             continue;
           }
 
-          const fileStream = sftp.createReadStream(remotePath);
+          const fileStream =
+            sftp.createReadStream(remotePath);
 
           archive.append(fileStream, {
             name: item.file,
