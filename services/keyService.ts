@@ -65,14 +65,11 @@ export async function getSharedKeys(): Promise<PublicSshKey[]> {
 export async function generateSharedKey({
   name,
 }: GenerateSharedKeyOptions): Promise<PublicSshKey> {
-  if (!name.trim()) {
-    throw new Error("Key name is required");
-  }
-
+  
   const generated = await generateSshKeyPair();
 
   const key = await sshKeyStore.create({
-    name: name.trim(),
+    name: name,
     scope: "shared",
     privateKey: encrypt(generated.privateKey),
     publicKey: generated.publicKey,
@@ -90,16 +87,9 @@ export async function importSharedKey({
   publicKey,
   passphrase,
 }: ImportSharedKeyOptions): Promise<PublicSshKey> {
-  if (!name.trim()) {
-    throw new Error("Key name is required");
-  }
-
-  if (!privateKey) {
-    throw new Error("Private key is required");
-  }
-
+ 
   const key: CreateSshKeyInput = {
-    name: name.trim(),
+    name: name,
     scope: "shared",
     privateKey: encrypt(privateKey),
   };

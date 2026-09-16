@@ -1,9 +1,6 @@
+import { ItemKind, ItemStatus } from "../../controllers/jobs/jobConstants";
+
 export type TransferSourceType = "local" | "sftp" | "archive";
-
-export type TransferItemKind = "file" | "directory";
-
-export type TransferItemStatus =
-  "pending" | "in_progress" | "completed" | "failed";
 
 export interface TransferItem {
   _id: string;
@@ -18,8 +15,8 @@ export interface TransferItem {
   sourcePath?: string;
   destinationPath?: string;
 
-  kind: TransferItemKind;
-  status: TransferItemStatus;
+  kind: ItemKind;
+  status: ItemStatus;
 
   rootItem: string;
 
@@ -44,8 +41,8 @@ export interface CreateTransferItemData {
   sourcePath?: string;
   destinationPath?: string;
 
-  kind?: TransferItemKind;
-  status?: TransferItemStatus;
+  kind?: ItemKind;
+  status?: ItemStatus;
 
   rootItem: string;
 
@@ -59,7 +56,7 @@ export interface TransferSource {
 }
 
 export interface TransferItemPageOptions {
-  status?: TransferItemStatus | "all";
+  status?: ItemStatus;
   page: number;
   limit: number;
 }

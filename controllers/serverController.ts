@@ -15,6 +15,7 @@ import {
   handleError,
 } from "./helpers/requestHelpers";
 import { KeyMode, SaveServerOptions } from "../types/server";
+import { propIfPresent } from "../shared/utils/PropHelper";
 
 export async function sftp_get_servers_get(
   _req: Request,
@@ -157,9 +158,7 @@ function parseSaveServerOptions(body: unknown): SaveServerOptions {
         authType: "key",
         keyMode: "import",
         key,
-        ...(passphrase !== undefined && {
-          passphrase,
-        }),
+        ...propIfPresent("passphrase", passphrase),        
       };
     }
   }

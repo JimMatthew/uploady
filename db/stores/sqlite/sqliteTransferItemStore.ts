@@ -6,8 +6,6 @@ import {
   type TransferItem,
   type TransferItemPage,
   type TransferItemPageOptions,
-  type TransferItemKind,
-  type TransferItemStatus,
   type TransferSource,
   type TransferSourceType,
 } from "../transferItemStore";
@@ -29,8 +27,8 @@ interface TransferItemRow {
   source_path: string | null;
   destination_path: string | null;
 
-  kind: TransferItemKind;
-  status: TransferItemStatus;
+  kind: ItemKind;
+  status: ItemStatus;
 
   root_item: string;
 
@@ -125,10 +123,10 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
         const destinationPath = item.destinationPath ?? null;
 
-        const kind = item.kind ?? (ItemKind.FILE as TransferItemKind);
+        const kind = item.kind ?? (ItemKind.FILE as ItemKind);
 
         const status =
-          item.status ?? (ItemStatus.PENDING as TransferItemStatus);
+          item.status ?? (ItemStatus.PENDING as ItemStatus);
 
         const size = item.size ?? 0;
 
@@ -420,7 +418,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     const params: Array<string | number> = [jobId];
 
-    if (status && status !== "all") {
+    if (status) {
       where += " AND status = ?";
       params.push(status);
     }

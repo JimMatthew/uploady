@@ -5,7 +5,10 @@ import {
   generateSharedKey,
   importSharedKey,
   deleteSharedKey,
+  GenerateSharedKeyOptions,
+  ImportSharedKeyOptions,
 } from "../services/keyService";
+import { propIfPresent } from "../shared/utils/PropHelper";
 
 /**
  * Returns all shared SSH keys available for reuse.
@@ -29,6 +32,55 @@ export async function getSharedKeys(
   }
 }
 
+function parseGenerateSharedKeyOptions(
+  body: unknown,
+): GenerateSharedKeyOptions {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (typeof data.name !== "string" || !data.name.trim()) {
+    throw new Error("Key name is required");
+  }
+
+  return {
+    name: data.name.trim(),
+  };
+}
+
+function parseImportSharedKeyOptions(body: unknown): ImportSharedKeyOptions {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (typeof data.name !== "string" || !data.name.trim()) {
+    throw new Error("Key name is required");
+  }
+
+  if (typeof data.privateKey !== "string" || !data.privateKey.trim()) {
+    throw new Error("Private key is required");
+  }
+
+  if (data.publicKey !== undefined && typeof data.publicKey !== "string") {
+    throw new Error("Invalid public key");
+  }
+
+  if (data.passphrase !== undefined && typeof data.passphrase !== "string") {
+    throw new Error("Invalid passphrase");
+  }
+
+  return {
+    name: data.name.trim(),
+    privateKey: data.privateKey,
+    ...propIfPresent("publicKey", data.publicKey),
+    ...propIfPresent("passphrase", data.passphrase),
+  };
+}
+
 /**
  * Generates and saves a new shared SSH key pair.
  *
@@ -37,17 +89,15 @@ export async function getSharedKeys(
  */
 export async function generateKey(req: Request, res: Response): Promise<void> {
   try {
-    const { name } = req.body;
+    const options = parseGenerateSharedKeyOptions(req.body);
 
-    const key = await generateSharedKey({
-      name,
-    });
+    const key = await generateSharedKey(options);
 
     res.status(201).json(key);
   } catch (error) {
     console.error("Failed to generate SSH key:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       error:
         error instanceof Error ? error.message : "Failed to generate SSH key",
     });
@@ -62,20 +112,15 @@ export async function generateKey(req: Request, res: Response): Promise<void> {
  */
 export async function importKey(req: Request, res: Response): Promise<void> {
   try {
-    const { name, privateKey, publicKey, passphrase } = req.body;
+    const options = parseImportSharedKeyOptions(req.body);
 
-    const key = await importSharedKey({
-      name,
-      privateKey,
-      publicKey,
-      passphrase,
-    });
+    const key = await importSharedKey(options);
 
     res.status(201).json(key);
   } catch (error) {
     console.error("Failed to import SSH key:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       error:
         error instanceof Error ? error.message : "Failed to import SSH key",
     });

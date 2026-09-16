@@ -26,6 +26,7 @@ import {
   getWildcardPath,
   handleError,
 } from "./helpers/requestHelpers";
+import { parseTransferRequestFile, SftpCopyRequest } from "./transferRequest";
 
 const uploadsDir = path.resolve("uploads");
 
@@ -419,23 +420,7 @@ export function sftp_upload_post(req: Request, res: Response): void {
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 
-interface CopyFile {
-  file: string;
-  path: string;
-  source: TransferSourceType;
-  serverId: string | null;
-  archivePath?: string;
-  isDirectory: boolean;
-  size: number;
-}
-
-interface CopyRequest {
-  files: CopyFile[];
-  newPath: string;
-  newServerId: string | null;
-}
-
-function parseCopyRequest(body: unknown): CopyRequest {
+function parseSftpCopyRequest(body: unknown): SftpCopyRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
@@ -450,92 +435,14 @@ function parseCopyRequest(body: unknown): CopyRequest {
     throw new Error("Destination path is required");
   }
 
-  if (
-    data.newServerId !== undefined &&
-    data.newServerId !== null &&
-    typeof data.newServerId !== "string"
-  ) {
-    throw new Error("Invalid destination server ID");
+  if (typeof data.newServerId !== "string" || !data.newServerId) {
+    throw new Error("Destination server ID is required");
   }
 
-  const files = data.files.map((item, index): CopyFile => {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) {
-      throw new Error(`Invalid file at index ${index}`);
-    }
-
-    const file = item as Record<string, unknown>;
-
-    if (typeof file.file !== "string" || !file.file) {
-      throw new Error(`Invalid file name at index ${index}`);
-    }
-
-    if (typeof file.path !== "string") {
-      throw new Error(`Invalid path at index ${index}`);
-    }
-
-    if (
-      file.source !== "local" &&
-      file.source !== "sftp" &&
-      file.source !== "archive"
-    ) {
-      throw new Error(`Invalid source at index ${index}`);
-    }
-
-    if (
-      file.serverId !== undefined &&
-      file.serverId !== null &&
-      typeof file.serverId !== "string"
-    ) {
-      throw new Error(`Invalid serverId at index ${index}`);
-    }
-
-    if (typeof file.isDirectory !== "boolean") {
-      throw new Error(`Invalid isDirectory at index ${index}`);
-    }
-
-    if (
-      file.size !== undefined &&
-      (typeof file.size !== "number" ||
-        !Number.isFinite(file.size) ||
-        file.size < 0)
-    ) {
-      throw new Error(`Invalid size at index ${index}`);
-    }
-
-    if (
-      file.source === "sftp" &&
-      (typeof file.serverId !== "string" || !file.serverId)
-    ) {
-      throw new Error(`Missing serverId at index ${index}`);
-    }
-
-    if (
-      file.source === "archive" &&
-      (typeof file.archivePath !== "string" || !file.archivePath)
-    ) {
-      throw new Error(`Missing archivePath at index ${index}`);
-    }
-
-    const result: CopyFile = {
-      file: file.file,
-      path: file.path,
-      source: file.source,
-      serverId: typeof file.serverId === "string" ? file.serverId : null,
-      isDirectory: file.isDirectory,
-      size: typeof file.size === "number" ? file.size : 0,
-    };
-
-    if (file.source === "archive" && typeof file.archivePath === "string") {
-      result.archivePath = file.archivePath;
-    }
-
-    return result;
-  });
-
   return {
-    files,
+    files: data.files.map(parseTransferRequestFile),
     newPath: data.newPath,
-    newServerId: typeof data.newServerId === "string" ? data.newServerId : null,
+    newServerId: data.newServerId,
   };
 }
 
@@ -543,13 +450,12 @@ export async function sftp_copy_files_post(
   req: Request,
   res: Response,
 ): Promise<void> {
-  let request: CopyRequest;
+  let request: SftpCopyRequest;
 
   try {
-    request = parseCopyRequest(req.body);
+    request = parseSftpCopyRequest(req.body);
   } catch (error) {
     handleError(res, getErrorMessage(error), 400);
-
     return;
   }
 
@@ -558,7 +464,6 @@ export async function sftp_copy_files_post(
   try {
     const job = await transferJobs.create({
       destServerId: newServerId,
-
       destPath: newPath,
     });
 
@@ -569,10 +474,6 @@ export async function sftp_copy_files_post(
 
         switch (file.source) {
           case "archive":
-            if (!file.archivePath) {
-              throw new Error(`Missing archivePath for ${file.file}`);
-            }
-
             sourcePath = path.posix.join(file.path, file.file);
             archivePath = path.join(uploadsDir, file.archivePath);
             break;

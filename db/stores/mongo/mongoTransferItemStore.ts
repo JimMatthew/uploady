@@ -6,8 +6,6 @@ import {
   type TransferItem,
   type TransferItemPage,
   type TransferItemPageOptions,
-  type TransferItemKind,
-  type TransferItemStatus,
   type TransferSource,
   type TransferSourceType,
 } from "../transferItemStore";
@@ -30,8 +28,8 @@ interface MongoTransferItem {
   sourcePath?: string | null;
   destinationPath?: string | null;
 
-  kind: TransferItemKind;
-  status: TransferItemStatus;
+  kind: ItemKind;
+  status: ItemStatus;
 
   rootItem: string;
 
@@ -64,7 +62,7 @@ function toTransferItem(item: MongoTransferItem | null): TransferItem | null {
     ...(item.sourcePath != null ? { sourcePath: item.sourcePath } : {}),
 
     ...propIfPresent("destinationPath", item.destinationPath),
-   
+
     kind: item.kind,
     status: item.status,
 
@@ -250,12 +248,12 @@ export class MongoTransferItemStore extends TransferItemStore {
   ): Promise<TransferItemPage> {
     const filter: {
       jobId: string;
-      status?: TransferItemStatus;
+      status?: ItemStatus;
     } = {
       jobId,
     };
 
-    if (status && status !== "all") {
+    if (status) {
       filter.status = status;
     }
 

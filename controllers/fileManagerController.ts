@@ -14,6 +14,7 @@ import { transferExecutor } from "../services/transferExecutor";
 import { ItemKind } from "../controllers/jobs/jobConstants";
 import { listLocalDir } from "../services/localFileService";
 import type { TransferSourceType } from "../db/stores/transferItemStore";
+import { LocalPasteRequest, parseTransferRequestFile } from "./transferRequest";
 
 const uploadsDir = path.resolve("uploads");
 const domain = process.env.HOSTNAME;
@@ -626,23 +627,7 @@ export async function cut_file_post(
 }
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
-
-interface PasteFile {
-  file: string;
-  path: string;
-  source: TransferSourceType;
-  serverId: string | null;
-  isDirectory: boolean;
-  size: number;
-  archivePath?: string;
-}
-
-interface PasteRequest {
-  files: PasteFile[];
-  newPath: string;
-}
-
-function parsePasteRequest(body: unknown): PasteRequest {
+function parseLocalPasteRequest(body: unknown): LocalPasteRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
@@ -657,85 +642,8 @@ function parsePasteRequest(body: unknown): PasteRequest {
     throw new Error("Destination path is required");
   }
 
-  const files = data.files.map((item, index): PasteFile => {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) {
-      throw new Error(`Invalid file at index ${index}`);
-    }
-
-    const file = item as Record<string, unknown>;
-
-    if (typeof file.file !== "string" || !file.file) {
-      throw new Error(`Invalid file name at index ${index}`);
-    }
-
-    if (typeof file.path !== "string") {
-      throw new Error(`Invalid path at index ${index}`);
-    }
-
-    if (
-      file.source !== "local" &&
-      file.source !== "sftp" &&
-      file.source !== "archive"
-    ) {
-      throw new Error(`Invalid source at index ${index}`);
-    }
-
-    if (
-      file.serverId !== null &&
-      file.serverId !== undefined &&
-      typeof file.serverId !== "string"
-    ) {
-      throw new Error(`Invalid serverId at index ${index}`);
-    }
-
-    if (typeof file.isDirectory !== "boolean") {
-      throw new Error(`Invalid isDirectory at index ${index}`);
-    }
-
-    if (
-      file.size !== undefined &&
-      (typeof file.size !== "number" ||
-        !Number.isFinite(file.size) ||
-        file.size < 0)
-    ) {
-      throw new Error(`Invalid size at index ${index}`);
-    }
-
-    if (
-      file.source === "sftp" &&
-      (typeof file.serverId !== "string" || !file.serverId)
-    ) {
-      throw new Error(`Missing serverId at index ${index}`);
-    }
-
-    if (
-      file.source === "archive" &&
-      (typeof file.archivePath !== "string" || !file.archivePath)
-    ) {
-      throw new Error(`Missing archivePath at index ${index}`);
-    }
-
-    const result: PasteFile = {
-      file: file.file,
-      path: file.path,
-      source: file.source,
-
-      serverId: typeof file.serverId === "string" ? file.serverId : null,
-
-      isDirectory: file.isDirectory,
-
-      size: typeof file.size === "number" ? file.size : 0,
-    };
-
-    if (file.source === "archive" && typeof file.archivePath === "string") {
-      result.archivePath = file.archivePath;
-    }
-
-    return result;
-  });
-
   return {
-    files,
+    files: data.files.map(parseTransferRequestFile),
     newPath: data.newPath,
   };
 }
@@ -749,13 +657,12 @@ export async function paste_files_post(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  let request: PasteRequest;
+  let request: LocalPasteRequest;
 
   try {
-    request = parsePasteRequest(req.body);
+    request = parseLocalPasteRequest(req.body);
   } catch (error) {
     nextError(next, getErrorMessage(error), 400);
-
     return;
   }
 
@@ -772,14 +679,20 @@ export async function paste_files_post(
         let sourcePath: string;
         let archivePath: string | undefined;
 
-        if (file.source === "archive") {
-          sourcePath = path.posix.join(file.path, file.file);
+        switch (file.source) {
+          case "archive":
+            sourcePath = path.posix.join(file.path, file.file);
 
-          archivePath = path.join(uploadsDir, file.archivePath!);
-        } else if (file.source === "sftp") {
-          sourcePath = path.posix.join(file.path, file.file);
-        } else {
-          sourcePath = path.join(uploadsDir, file.path, file.file);
+            archivePath = path.join(uploadsDir, file.archivePath);
+            break;
+
+          case "sftp":
+            sourcePath = path.posix.join(file.path, file.file);
+            break;
+
+          case "local":
+            sourcePath = path.join(uploadsDir, file.path, file.file);
+            break;
         }
 
         return {

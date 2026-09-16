@@ -34,7 +34,7 @@ function parsePositiveInteger(
 }
 
 function parseStatus(value: unknown): TransferItemPageOptions["status"] {
-  if (value === undefined) {
+  if (value === undefined || value === "all") {
     return undefined;
   }
 
@@ -42,7 +42,8 @@ function parseStatus(value: unknown): TransferItemPageOptions["status"] {
     value === "pending" ||
     value === "in_progress" ||
     value === "completed" ||
-    value === "failed"
+    value === "failed" ||
+    value === "skipped"
   ) {
     return value;
   }

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import {
   getSettings as getSettingsService,
+  UpdateSessionSettingsOptions,
   updateSessionSettings as updateSessionSettingsService,
 } from "../services/settingsService";
 
@@ -19,14 +20,32 @@ export async function getSettings(_req: Request, res: Response): Promise<void> {
   }
 }
 
+function parseUpdateSessionSettingsOptions(
+  body: unknown,
+): UpdateSessionSettingsOptions {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+  const value = data.jwtLifetimeMinutes;
+
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error("JWT lifetime must be a number greater than 0");
+  }
+
+  return {
+    jwtLifetimeMinutes: value,
+  };
+}
+
 export async function updateSessionSettings(
   req: Request,
   res: Response,
 ): Promise<void> {
   try {
-    const settings = await updateSessionSettingsService({
-      jwtLifetimeMinutes: req.body.jwtLifetimeMinutes,
-    });
+    const options = parseUpdateSessionSettingsOptions(req.body);
+    const settings = await updateSessionSettingsService(options);
 
     res.json(settings);
   } catch (error) {
