@@ -109,25 +109,20 @@ export class MongoTransferItemStore extends TransferItemStore {
       .filter((item): item is TransferItem => item !== null);
   }
 
-  async deleteById(id: string): Promise<TransferItem | null> {
+  async deleteById(id: string): Promise<void> {
     const row = await TransferItemModel.findByIdAndDelete(id).lean();
-
-    return toTransferItem(row as MongoTransferItem | null);
   }
 
-  async markStarted(id: string): Promise<TransferItem | null> {
-    const row = await TransferItemModel.findByIdAndUpdate(
-      id,
+  async markStarted(id: string): Promise<void> {
+    await TransferItemModel.updateOne(
+      { _id: id },
       {
-        status: ItemStatus.IN_PROGRESS,
-        startedAt: new Date(),
+        $set: {
+          status: ItemStatus.IN_PROGRESS,
+          startedAt: new Date(),
+        },
       },
-      {
-        new: true,
-      },
-    ).lean();
-
-    return toTransferItem(row as MongoTransferItem | null);
+    );
   }
 
   async markCompleted(id: string, size: number): Promise<TransferItem | null> {
@@ -146,7 +141,7 @@ export class MongoTransferItemStore extends TransferItemStore {
     return toTransferItem(row as MongoTransferItem | null);
   }
 
-  async markFailed(id: string, error: string): Promise<TransferItem | null> {
+  async markFailed(id: string, error: string): Promise<void> {
     const row = await TransferItemModel.findByIdAndUpdate(
       id,
       {
@@ -158,8 +153,6 @@ export class MongoTransferItemStore extends TransferItemStore {
         new: true,
       },
     ).lean();
-
-    return toTransferItem(row as MongoTransferItem | null);
   }
   async updateSize(id: string, size: number): Promise<void> {
     await TransferItemModel.findByIdAndUpdate(id, {

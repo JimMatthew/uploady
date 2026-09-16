@@ -73,16 +73,16 @@ export abstract class TransferItemStore {
 
   abstract findFilesByJobId(jobId: string): Promise<TransferItem[]>;
 
-  abstract deleteById(id: string): Promise<TransferItem | null>;
+  abstract deleteById(id: string): Promise<void>;
 
-  abstract markStarted(id: string): Promise<TransferItem | null>;
+  abstract markStarted(id: string): Promise<void>;
 
   abstract markCompleted(
     id: string,
     size: number,
   ): Promise<TransferItem | null>;
 
-  abstract markFailed(id: string, error: string): Promise<TransferItem | null>;
+  abstract markFailed(id: string, error: string): Promise<void>;
 
   abstract getSourceServerIdsByJobIds(
     jobIds: string[],

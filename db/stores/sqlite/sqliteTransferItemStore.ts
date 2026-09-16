@@ -260,38 +260,32 @@ export class SqliteTransferItemStore extends TransferItemStore {
       .filter((item): item is TransferItem => item !== null);
   }
 
-  async deleteById(id: string): Promise<TransferItem | null> {
+  async deleteById(id: string): Promise<void> {
     const db = getDatabase();
-
-    return toTransferItem(
-      db.get(
-        `
+    db.run(
+      `
           DELETE FROM transfer_items
           WHERE id = ?
-          RETURNING *
         `,
-        id,
-      ) as TransferItemRow | null,
-    );
+      id,
+    )
   }
 
-  async markStarted(id: string): Promise<TransferItem | null> {
+  async markStarted(id: string): Promise<void> {
     const db = getDatabase();
 
     db.run(
       `
-        UPDATE transfer_items
-        SET
-          status = ?,
-          started_at = ?
-        WHERE id = ?
-      `,
+      UPDATE transfer_items
+      SET
+        status = ?,
+        started_at = ?
+      WHERE id = ?
+    `,
       ItemStatus.IN_PROGRESS,
       new Date().toISOString(),
       id,
     );
-
-    return this.findById(id);
   }
 
   async markCompleted(id: string, size: number): Promise<TransferItem | null> {
@@ -315,7 +309,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
     return this.findById(id);
   }
 
-  async markFailed(id: string, error: string): Promise<TransferItem | null> {
+  async markFailed(id: string, error: string): Promise<void> {
     const db = getDatabase();
 
     db.run(
@@ -332,23 +326,21 @@ export class SqliteTransferItemStore extends TransferItemStore {
       new Date().toISOString(),
       id,
     );
-
-    return this.findById(id);
   }
 
   async updateSize(id: string, size: number): Promise<void> {
-  const db = getDatabase();
+    const db = getDatabase();
 
-  db.run(
-    `
+    db.run(
+      `
       UPDATE transfer_items
       SET size = ?
       WHERE id = ?
     `,
-    size,
-    id,
-  );
-}
+      size,
+      id,
+    );
+  }
 
   async getSourceServerIdsByJobIds(
     jobIds: string[],
