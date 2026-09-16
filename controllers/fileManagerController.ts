@@ -3,10 +3,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 import { execSync } from "node:child_process";
-
 import archiver, { type Archiver } from "archiver";
 import mime from "mime-types";
-
 import type { NextFunction, Request, Response } from "express";
 import { shares, transferJobs, transferItems } from "../db";
 import { downloadFile } from "../services/sftpService";
@@ -129,7 +127,6 @@ export function get_performance_stats(_req: Request, res: Response): void {
   if (databaseType === "mongo" && process.env.DATABASE) {
     try {
       const mongoUrl = new URL(process.env.DATABASE);
-
       stats.databaseServer = mongoUrl.hostname;
     } catch (error) {
       console.warn("Failed to parse MongoDB server:", getErrorMessage(error));
@@ -170,7 +167,6 @@ export function list_directory_get(
 ): void {
   try {
     const relativePath = getWildcardPath(req);
-
     const data = getDirectoryData(relativePath);
 
     res.json({
@@ -223,7 +219,6 @@ export async function download_file_get(
     const stat = await fs.promises.stat(filePath);
 
     res.setHeader("Content-Length", stat.size);
-
     res.setHeader("Cache-Control", "no-store");
 
     res.download(filePath, (error) => {
@@ -257,19 +252,14 @@ export async function download_file_stream(
 
   try {
     const filePath = path.join(uploadsDir, relativePath);
-
     const contentType = mime.lookup(filePath) || "application/octet-stream";
-
     const stat = await fs.promises.stat(filePath);
-
     const fileSize = stat.size;
     const range = req.headers.range;
 
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
-
       const start = Number.parseInt(parts[0], 10);
-
       const end = parts[1] ? Number.parseInt(parts[1], 10) : fileSize - 1;
 
       if (
@@ -289,7 +279,6 @@ export async function download_file_stream(
 
       res.writeHead(206, {
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
         "Content-Type": contentType,
@@ -333,7 +322,6 @@ async function addFolderToArchive(
 
   for (const file of files) {
     const itemPath = path.join(folderPath, file.name);
-
     const zipPath = path.posix.join(zipFolderPath, file.name);
 
     archive.append(fs.createReadStream(itemPath), {
@@ -343,7 +331,6 @@ async function addFolderToArchive(
 
   for (const folder of folders) {
     const itemPath = path.join(folderPath, folder.name);
-
     const zipPath = path.posix.join(zipFolderPath, folder.name);
 
     archive.append(Buffer.alloc(0), {
@@ -362,12 +349,10 @@ export async function get_archive_folder(
   res: Response,
 ): Promise<void> {
   const relativePath = getWildcardPath(req);
-
   const folderPath = path.join(uploadsDir, relativePath || "/");
 
   try {
     res.setHeader("Content-Disposition", 'attachment; filename="folder.zip"');
-
     res.setHeader("Content-Type", "application/zip");
 
     const archive = archiver("zip", {
@@ -595,9 +580,7 @@ export async function cut_file_post(
 
   try {
     const srcPath = path.join(uploadsDir, currentPath, filename);
-
     const destPath = path.join(uploadsDir, newPath, filename);
-
     await fs.promises.copyFile(srcPath, destPath);
 
     const [srcStat, destStat] = await Promise.all([
@@ -607,9 +590,7 @@ export async function cut_file_post(
 
     if (srcStat.size !== destStat.size) {
       await fs.promises.unlink(destPath);
-
       nextError(next, "File move failed — size mismatch", 500);
-
       return;
     }
 
@@ -681,7 +662,6 @@ export async function paste_files_post(
         switch (file.source) {
           case "archive":
             sourcePath = path.posix.join(file.path, file.file);
-
             archivePath = path.join(uploadsDir, file.archivePath);
             break;
 
@@ -773,7 +753,6 @@ export async function generate_share_link_post(
   }
 
   const relativeFilePath = filePath ?? "";
-
   const absoluteFilePath = path.join(uploadsDir, relativeFilePath, fileName);
 
   if (!fs.existsSync(absoluteFilePath)) {
@@ -782,7 +761,6 @@ export async function generate_share_link_post(
   }
 
   const relPathName = path.join(relativeFilePath, fileName);
-
   const token = crypto.randomBytes(5).toString("hex");
 
   const shareLink =
@@ -832,7 +810,6 @@ export async function serve_shared_file_get(
 
   if (!sharedFile) {
     res.status(404).send("File not found by token");
-
     return;
   }
 
@@ -841,7 +818,6 @@ export async function serve_shared_file_get(
 
     if (!serverId || !remotePath) {
       res.status(404).send("File not found");
-
       return;
     }
 
@@ -859,7 +835,6 @@ export async function serve_shared_file_get(
       );
 
       res.setHeader("Content-Type", "application/octet-stream");
-
       res.setHeader("Cache-Control", "no-store");
 
       if (size) {
@@ -874,7 +849,6 @@ export async function serve_shared_file_get(
         }
 
         cleanedUp = true;
-
         await cleanup();
       };
 
@@ -884,7 +858,6 @@ export async function serve_shared_file_get(
       });
 
       res.on("finish", safeCleanup);
-
       res.on("close", safeCleanup);
 
       stream.pipe(res);
@@ -900,7 +873,6 @@ export async function serve_shared_file_get(
   }
 
   const filePath = path.join(uploadsDir, sharedFile.filePath);
-
   const absoluteFilePath = path.join(path.dirname(filePath), filename);
 
   if (!fs.existsSync(absoluteFilePath)) {
@@ -912,7 +884,6 @@ export async function serve_shared_file_get(
   res.download(absoluteFilePath, filename, (error) => {
     if (error && !res.headersSent) {
       console.error("Share download error:", error);
-
       res.status(500).send("Error downloading file");
     }
   });
