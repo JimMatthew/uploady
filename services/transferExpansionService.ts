@@ -222,20 +222,7 @@ export async function expandJobItems(jobId: string): Promise<void> {
             size = (await sftp.stat(item.sourcePath)).size;
           }
 
-          newFileItems.push({
-            jobId,
-            sourceType: item.sourceType,
-            sourceServerId,
-            archivePath: item.archivePath,
-            filename: item.filename,
-            rootItem: item.rootItem,
-            sourcePath: item.sourcePath,
-            destinationPath: item.destinationPath,
-            size,
-            kind: ItemKind.FILE,
-          });
-
-          await transferItems.deleteById(item._id);
+          await transferItems.updateSize(item._id, size);
 
           continue;
         }

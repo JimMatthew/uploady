@@ -102,4 +102,6 @@ export abstract class TransferItemStore {
   abstract deleteByJobId(jobId: string): Promise<number>;
 
   abstract deleteByJobIds(jobIds: string[]): Promise<number>;
+
+  abstract updateSize(id: string, size: number): Promise<void>;
 }

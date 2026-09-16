@@ -336,6 +336,20 @@ export class SqliteTransferItemStore extends TransferItemStore {
     return this.findById(id);
   }
 
+  async updateSize(id: string, size: number): Promise<void> {
+  const db = getDatabase();
+
+  db.run(
+    `
+      UPDATE transfer_items
+      SET size = ?
+      WHERE id = ?
+    `,
+    size,
+    id,
+  );
+}
+
   async getSourceServerIdsByJobIds(
     jobIds: string[],
   ): Promise<Record<string, Array<string | null>>> {

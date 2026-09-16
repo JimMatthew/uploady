@@ -161,6 +161,11 @@ export class MongoTransferItemStore extends TransferItemStore {
 
     return toTransferItem(row as MongoTransferItem | null);
   }
+  async updateSize(id: string, size: number): Promise<void> {
+    await TransferItemModel.findByIdAndUpdate(id, {
+      $set: { size },
+    });
+  }
 
   async getSourceServerIdsByJobIds(
     jobIds: string[],
