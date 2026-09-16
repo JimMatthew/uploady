@@ -61,3 +61,17 @@ export interface TransferExecutionCallbacks {
 
   onFileFail(item: InMemoryTransferItem, error: Error): Promise<void>;
 }
+
+import type SftpClient from "ssh2-sftp-client";
+
+export interface TransferContext {
+  destDirs: Set<string>;
+}
+
+export interface TransferConnections {
+  sourceServerId: string | null;
+  destServerId: string | null;
+  sftpSource: SftpClient | null;
+  sftpDest: SftpClient | null;
+  context: TransferContext;
+}

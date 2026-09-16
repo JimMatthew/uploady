@@ -1,27 +1,19 @@
-const { EventEmitter } = require("node:events");
+import { EventEmitter } from "node:events";
+import { transferJobs, transferItems } from "../db";
 
-const {
-  transferJobs,
-  transferItems,
-}: {
-  transferJobs: TransferJobStore;
-  transferItems: TransferItemStore;
-} = require("../db");
+import {
+  JobStatus,
+  ItemStatus,
+} from "../controllers/jobs/jobConstants";
 
-const { JobStatus, ItemStatus } = require("../controllers/jobs/jobConstants");
-const { expandJobItems } = require("./transferExpansionService");
-
-import type { JobStatus as JobStatusType } from "../controllers/jobs/jobConstants";
-import { TransferItemStore } from "../db/stores/transferItemStore";
-import { TransferJobStore } from "../db/stores/transferJobStore";
+import { expandJobItems } from "./transferExpansionService";
+import { executeTransferJob } from "./transferExecutionService";
 
 import type {
   InMemoryTransferItem,
   InMemoryTransferJob,
-  TransferExecutionCallbacks,
   TransferRoot,
 } from "../types/transferTypes";
-
 // ---------------------------------------------------------------------------
 // Transfer Executor
 // ---------------------------------------------------------------------------
@@ -242,7 +234,7 @@ class TransferExecutor extends EventEmitter {
     // Phase 4: finalize
     // -----------------------------------------------------------------------
 
-    const finalStatus: JobStatusType = job.stopRequested
+    const finalStatus: JobStatus = job.stopRequested
       ? JobStatus.CANCELLED
       : job.failedFiles > 0 && job.completedFiles === 0
         ? JobStatus.FAILED
@@ -271,12 +263,6 @@ class TransferExecutor extends EventEmitter {
      * participates in the transfer implementation. We can remove this
      * once that module is converted and its dependency direction is clear.
      */
-    const { executeTransferJob } = require("./sftpService") as {
-      executeTransferJob(
-        job: InMemoryTransferJob,
-        callbacks: TransferExecutionCallbacks,
-      ): Promise<void>;
-    };
 
     await executeTransferJob(job, {
       shouldStop: () => job.stopRequested,
@@ -406,6 +392,4 @@ function requireString(value: string | undefined, message: string): string {
 // Singleton
 // ---------------------------------------------------------------------------
 
-const transferExecutor = new TransferExecutor();
-
-export = transferExecutor;
+export const transferExecutor = new TransferExecutor();

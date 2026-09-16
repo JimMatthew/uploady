@@ -1,5 +1,8 @@
 import { transferJobs, transferItems, servers } from "../db";
-import executor = require("./transferExecutor");
+//import executor = require("./transferExecutor");
+const {
+  transferExecutor,
+} = require("../services/transferExecutor");
 import { JobStatus, ItemStatus } from "../controllers/jobs/jobConstants";
 import type { ItemStatus as ItemStatusType } from "../controllers/jobs/jobConstants";
 
@@ -165,7 +168,7 @@ export async function listJobs() {
 
     // The executor contains more current information for actively running
     // jobs than the persistent job record.
-    const liveJob = executor.getJob(jobId);
+    const liveJob = transferExecutor.getJob(jobId);
 
     const sources = sourceMap[jobId] ?? [];
 
@@ -248,7 +251,7 @@ export async function getJobItemsChunk(
 
   const nameMap = await resolveServerNames(serverIds);
 
-  const liveJob = executor.getJob(jobId);
+  const liveJob = transferExecutor.getJob(jobId);
 
   const liveItems = liveJob?.items;
 
@@ -332,7 +335,7 @@ export async function getJob(jobId: string) {
 
   const nameMap = await resolveServerNames(serverIds);
 
-  const liveJob = executor.getJob(jobId);
+  const liveJob = transferExecutor.getJob(jobId);
 
   const liveItems = liveJob?.items;
 
@@ -437,7 +440,7 @@ export async function retryJob(jobId: string): Promise<RetryJobResult> {
 
   const newJobId = newJob._id;
 
-  executor.enqueue(newJobId);
+  transferExecutor.enqueue(newJobId);
 
   return {
     status: "created",

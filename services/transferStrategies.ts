@@ -523,6 +523,13 @@ export function selectStrategy(
 // Dispatch
 // ---------------------------------------------------------------------------
 
+function requiredConnection<T>(value: T | null, name: string): T {
+  if (value === null) {
+    throw new Error(`Missing ${name} SFTP connection`);
+  }
+
+  return value;
+}
 /**
  * Dispatches a file to the transfer strategy matching its source and
  * destination endpoints.
@@ -532,6 +539,18 @@ export async function dispatch({
   connections,
   onProgress,
 }: DispatchOptions): Promise<number> {
+
+  const run = <TConnections>(
+    strategy: (
+      item: InMemoryTransferItem,
+      connections: TConnections,
+      onProgress: ProgressCallback,
+    ) => Promise<number>,
+    strategyConnections: TConnections,
+  ): Promise<number> => {
+    return strategy(item, strategyConnections, onProgress);
+  };
+
   const key = selectStrategy(
     item.sourceType,
     item.sourceServerId,
@@ -540,100 +559,44 @@ export async function dispatch({
 
   switch (key) {
     case "localToLocal":
-      return localToLocal(
-        item,
-        {
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(localToLocal, {
+        context: connections.context,
+      });
 
     case "localToSftp":
-      if (!connections.sftpDest) {
-        throw new Error(
-          "Missing destination SFTP connection for local-to-SFTP transfer",
-        );
-      }
-
-      return localToSftp(
-        item,
-        {
-          sftpDest: connections.sftpDest,
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(localToSftp, {
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+        context: connections.context,
+      });
 
     case "sftpToLocal":
-      if (!connections.sftpSource) {
-        throw new Error(
-          "Missing source SFTP connection for SFTP-to-local transfer",
-        );
-      }
-
-      return sftpToLocal(
-        item,
-        {
-          sftpSource: connections.sftpSource,
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(sftpToLocal, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+        context: connections.context,
+      });
 
     case "sftpSameServer":
-      if (!connections.sftpSource) {
-        throw new Error(
-          "Missing source SFTP connection for same-server transfer",
-        );
-      }
-
-      return sftpSameServer(
-        item,
-        {
-          sftpSource: connections.sftpSource,
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(sftpSameServer, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+        context: connections.context,
+      });
 
     case "sftpCrossServer":
-      if (!connections.sftpSource || !connections.sftpDest) {
-        throw new Error("Missing SFTP connection for cross-server transfer");
-      }
-
-      return sftpCrossServer(
-        item,
-        {
-          sftpSource: connections.sftpSource,
-          sftpDest: connections.sftpDest,
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(sftpCrossServer, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+        context: connections.context,
+      });
 
     case "archiveToLocal":
-      return archiveToLocal(
-        item,
-        {
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(archiveToLocal, {
+        context: connections.context,
+      });
 
     case "archiveToSftp":
-      if (!connections.sftpDest) {
-        throw new Error(
-          "Missing destination SFTP connection for archive-to-SFTP transfer",
-        );
-      }
-
-      return archiveToSftp(
-        item,
-        {
-          sftpDest: connections.sftpDest,
-          context: connections.context,
-        },
-        onProgress,
-      );
+      return run(archiveToSftp, {
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+        context: connections.context,
+      });
   }
 }
