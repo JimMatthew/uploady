@@ -47,3 +47,4 @@ data/uploady.db-shm
 *.db-shm
 *.db-wal
 data/uploady.db-shm
+.env
