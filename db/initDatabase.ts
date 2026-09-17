@@ -38,7 +38,7 @@ async function initDatabase(databaseType: DatabaseType): Promise<void> {
       return;
 
     case "sqlite":
-      initSqlite();
+      await initSqlite();
 
       console.log("SQLite initialized");
 

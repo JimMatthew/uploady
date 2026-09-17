@@ -7,6 +7,7 @@ import type {
   SqliteWorkerResponse,
 } from "./sqliteWorkerProtocol";
 export type { SqliteTransactionStatement } from "./sqliteWorkerProtocol";
+
 export interface SqliteRunResult {
   changes: number;
   lastInsertRowid: number | bigint;
@@ -47,9 +48,7 @@ function request<T>(
   const currentWorker = worker;
 
   if (!currentWorker) {
-    return Promise.reject(
-      new Error("SQLite worker has not been initialized"),
-    );
+    return Promise.reject(new Error("SQLite worker has not been initialized"));
   }
 
   const id = nextRequestId++;
@@ -59,9 +58,7 @@ function request<T>(
   switch (type) {
     case "exec":
       if (sql === undefined) {
-        return Promise.reject(
-          new Error("SQLite exec request requires SQL"),
-        );
+        return Promise.reject(new Error("SQLite exec request requires SQL"));
       }
 
       message = {
@@ -75,9 +72,7 @@ function request<T>(
     case "all":
     case "run":
       if (sql === undefined) {
-        return Promise.reject(
-          new Error(`SQLite ${type} request requires SQL`),
-        );
+        return Promise.reject(new Error(`SQLite ${type} request requires SQL`));
       }
 
       message = {
@@ -158,29 +153,16 @@ function createAdapter(): SqliteAdapter {
       return request<T | null>("get", sql, params);
     },
 
-    async all<T = unknown>(
-      sql: string,
-      ...params: unknown[]
-    ): Promise<T[]> {
+    async all<T = unknown>(sql: string, ...params: unknown[]): Promise<T[]> {
       return request<T[]>("all", sql, params);
     },
 
-    async run(
-      sql: string,
-      ...params: unknown[]
-    ): Promise<SqliteRunResult> {
+    async run(sql: string, ...params: unknown[]): Promise<SqliteRunResult> {
       return request<SqliteRunResult>("run", sql, params);
     },
 
-    async transaction(
-      statements: SqliteTransactionStatement[],
-    ): Promise<void> {
-      await request<void>(
-        "transaction",
-        undefined,
-        undefined,
-        statements,
-      );
+    async transaction(statements: SqliteTransactionStatement[]): Promise<void> {
+      await request<void>("transaction", undefined, undefined, statements);
     },
 
     async close(): Promise<void> {
@@ -194,31 +176,24 @@ export function openDatabase(dbPath: string): SqliteAdapter {
     return adapter;
   }
 
-  worker = new Worker(
-    path.join(__dirname, "sqliteWorker.js"),
-    {
-      workerData: {
-        path: dbPath,
-      },
+  worker = new Worker(path.join(__dirname, "sqliteWorker.js"), {
+    workerData: {
+      path: dbPath,
     },
-  );
+  });
 
   worker.on("message", handleResponse);
 
   worker.on("error", (error: unknown) => {
     const workerError =
-      error instanceof Error
-        ? error
-        : new Error(String(error));
+      error instanceof Error ? error : new Error(String(error));
 
     rejectPending(workerError);
   });
 
   worker.on("exit", (code) => {
     if (code !== 0) {
-      rejectPending(
-        new Error(`SQLite worker exited with code ${code}`),
-      );
+      rejectPending(new Error(`SQLite worker exited with code ${code}`));
     }
 
     worker = null;

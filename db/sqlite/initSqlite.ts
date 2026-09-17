@@ -1,18 +1,16 @@
-// db/sqlite/initSqlite.js
-
 import { openDatabase } from "./database";
 
-function initSqlite(): void {
+async function initSqlite(): Promise<void> {
   const db = openDatabase(process.env.SQLITE_PATH || "./data/uploady.db");
 
   // Database configuration
-  db.exec(`
+  await db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
   `);
 
   // Users
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
@@ -22,7 +20,7 @@ function initSqlite(): void {
   `);
 
   // Application settings
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS app_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       jwt_lifetime_minutes INTEGER NOT NULL DEFAULT 60
@@ -30,7 +28,7 @@ function initSqlite(): void {
   `);
 
   // Shared files
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS shared_files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       file_name TEXT NOT NULL,
@@ -56,7 +54,7 @@ function initSqlite(): void {
   `);
 
   // SSH keys
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS ssh_keys (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -86,7 +84,7 @@ function initSqlite(): void {
   `);
 
   // Servers
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS servers (
       id TEXT PRIMARY KEY,
       host TEXT NOT NULL,
@@ -113,7 +111,7 @@ function initSqlite(): void {
   `);
 
   // Actions
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS actions (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -131,7 +129,7 @@ function initSqlite(): void {
   `);
 
   // Transfer jobs and items
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS transfer_jobs (
       id TEXT PRIMARY KEY,
       status TEXT NOT NULL,
@@ -188,7 +186,6 @@ function initSqlite(): void {
     CREATE INDEX IF NOT EXISTS idx_transfer_items_job_kind
       ON transfer_items(job_id, kind);
   `);
-
 }
 
 export default initSqlite;

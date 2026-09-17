@@ -44,7 +44,7 @@ export type SqliteWorkerResponse =
       error: string;
     };
 
-    export interface SqliteTransactionStatement {
+export interface SqliteTransactionStatement {
   sql: string;
   params: unknown[];
 }
