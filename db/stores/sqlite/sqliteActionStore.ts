@@ -21,7 +21,7 @@ interface ActionRow {
   updated_at: string;
 }
 
-const toAction = (row: ActionRow | undefined): Action | null => {
+const toAction = (row: ActionRow | null): Action | null => {
   if (!row) {
     return null;
   }
@@ -42,11 +42,13 @@ export class SqliteActionStore extends ActionStore {
   async getAll(): Promise<Action[]> {
     const db = getDatabase();
 
-    const rows = db.all(`
-      SELECT *
-      FROM actions
-      ORDER BY created_at ASC
-    `) as ActionRow[];
+    const rows = await db.all<ActionRow>(
+      `
+        SELECT *
+        FROM actions
+        ORDER BY created_at ASC
+      `,
+    );
 
     return rows.map((row) => {
       const action = toAction(row);
@@ -62,14 +64,14 @@ export class SqliteActionStore extends ActionStore {
   async getById(id: string): Promise<Action | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<ActionRow>(
       `
         SELECT *
         FROM actions
         WHERE id = ?
       `,
       id,
-    ) as ActionRow | undefined;
+    );
 
     return toAction(row);
   }
@@ -80,7 +82,7 @@ export class SqliteActionStore extends ActionStore {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    db.run(
+    await db.run(
       `
         INSERT INTO actions (
           id,
@@ -127,7 +129,7 @@ export class SqliteActionStore extends ActionStore {
 
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE actions
         SET
@@ -154,14 +156,14 @@ export class SqliteActionStore extends ActionStore {
   async delete(id: string): Promise<Action | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<ActionRow>(
       `
         DELETE FROM actions
         WHERE id = ?
         RETURNING *
       `,
       id,
-    ) as ActionRow | undefined;
+    );
 
     return toAction(row);
   }

@@ -18,9 +18,7 @@ interface SharedFileRow {
   shared_at: string;
 }
 
-const toSharedFile = (
-  row: SharedFileRow | null | undefined,
-): SharedFile | null => {
+const toSharedFile = (row: SharedFileRow | null): SharedFile | null => {
   if (!row) {
     return null;
   }
@@ -56,11 +54,10 @@ const toSharedFile = (
 };
 
 export class SqliteSharedFileStore extends SharedFileStore {
-
   async create(data: CreateSharedFileInput): Promise<SharedFile> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         INSERT INTO shared_files (
           file_name,
@@ -81,7 +78,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
       data.isRemote ? 1 : 0,
       data.serverId ?? null,
       data.serverName ?? null,
-    ) as SharedFileRow | undefined;
+    );
 
     const sharedFile = toSharedFile(row);
 
@@ -95,14 +92,14 @@ export class SqliteSharedFileStore extends SharedFileStore {
   async findByToken(token: string): Promise<SharedFile | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         SELECT *
         FROM shared_files
         WHERE token = ?
       `,
       token,
-    ) as SharedFileRow | undefined;
+    );
 
     return toSharedFile(row);
   }
@@ -110,14 +107,14 @@ export class SqliteSharedFileStore extends SharedFileStore {
   async deleteByToken(token: string): Promise<SharedFile | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         DELETE FROM shared_files
         WHERE token = ?
         RETURNING *
       `,
       token,
-    ) as SharedFileRow | undefined;
+    );
 
     return toSharedFile(row);
   }
@@ -128,7 +125,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
   ): Promise<SharedFile | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         DELETE FROM shared_files
         WHERE file_path = ?
@@ -137,7 +134,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
       `,
       filePath,
       fileName,
-    ) as SharedFileRow | undefined;
+    );
 
     return toSharedFile(row);
   }
@@ -148,7 +145,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
   ): Promise<SharedFile | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         SELECT *
         FROM shared_files
@@ -158,7 +155,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
       `,
       fileName,
       filePath,
-    ) as SharedFileRow | undefined;
+    );
 
     return toSharedFile(row);
   }
@@ -166,15 +163,21 @@ export class SqliteSharedFileStore extends SharedFileStore {
   async list(): Promise<SharedFile[]> {
     const db = getDatabase();
 
-    const rows = db.all(`
+    const rows = await db.all<SharedFileRow>(`
       SELECT *
       FROM shared_files
       ORDER BY shared_at DESC
     `);
 
-    return rows
-      .map((row) => toSharedFile(row as SharedFileRow))
-      .filter((sharedFile): sharedFile is SharedFile => sharedFile !== null);
+    return rows.map((row) => {
+      const sharedFile = toSharedFile(row);
+
+      if (!sharedFile) {
+        throw new Error(`Failed to map shared file row ${row.id}`);
+      }
+
+      return sharedFile;
+    });
   }
 
   async findRemoteShare(
@@ -184,7 +187,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
   ): Promise<SharedFile | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SharedFileRow>(
       `
         SELECT *
         FROM shared_files
@@ -197,7 +200,7 @@ export class SqliteSharedFileStore extends SharedFileStore {
       fileName,
       filePath,
       serverId,
-    ) as SharedFileRow | undefined;
+    );
 
     return toSharedFile(row);
   }

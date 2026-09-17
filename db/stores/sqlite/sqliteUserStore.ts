@@ -8,7 +8,7 @@ interface UserRow {
   password_salt: string;
 }
 
-const toUser = (row: UserRow | null | undefined): User | null => {
+const toUser = (row: UserRow | null): User | null => {
   if (!row) {
     return null;
   }
@@ -25,7 +25,7 @@ export class SqliteUserStore extends UserStore {
   async exists(): Promise<boolean> {
     const db = getDatabase();
 
-    const row = db.get("SELECT 1 FROM users LIMIT 1");
+    const row = await db.get("SELECT 1 FROM users LIMIT 1");
 
     return row !== null;
   }
@@ -33,7 +33,7 @@ export class SqliteUserStore extends UserStore {
   async create(data: CreateUserInput): Promise<User> {
     const db = getDatabase();
 
-    const result = db.run(
+    const result = await db.run(
       `
         INSERT INTO users (
           username,
@@ -58,7 +58,7 @@ export class SqliteUserStore extends UserStore {
   async findByUsername(username: string): Promise<User | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<UserRow>(
       `
         SELECT
           id,
@@ -69,7 +69,7 @@ export class SqliteUserStore extends UserStore {
         WHERE username = ?
       `,
       username,
-    ) as UserRow | undefined;
+    );
 
     return toUser(row);
   }

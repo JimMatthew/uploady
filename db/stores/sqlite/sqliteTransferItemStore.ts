@@ -10,7 +10,10 @@ import {
   type TransferSourceType,
 } from "../transferItemStore";
 
-import { getDatabase } from "../../sqlite/database";
+import {
+  getDatabase,
+  type SqliteTransactionStatement,
+} from "../../sqlite/database";
 
 import { ItemStatus, ItemKind } from "../../../controllers/jobs/jobConstants";
 
@@ -102,61 +105,60 @@ export class SqliteTransferItemStore extends TransferItemStore {
     }
 
     const db = getDatabase();
+
     const created: TransferItem[] = [];
+    const statements: SqliteTransactionStatement[] = [];
 
-    db.exec("BEGIN");
+    for (const item of items) {
+      const id = crypto.randomUUID();
 
-    try {
-      for (const item of items) {
-        const id = crypto.randomUUID();
+      const jobId = String(item.jobId);
 
-        const jobId = String(item.jobId);
+      const sourceServerId =
+        item.sourceServerId != null ? String(item.sourceServerId) : null;
 
-        const sourceServerId =
-          item.sourceServerId != null ? String(item.sourceServerId) : null;
+      const sourceType = item.sourceType ?? "local";
 
-        const sourceType = item.sourceType ?? "local";
+      const archivePath = item.archivePath ?? null;
 
-        const archivePath = item.archivePath ?? null;
+      const sourcePath = item.sourcePath ?? null;
 
-        const sourcePath = item.sourcePath ?? null;
+      const destinationPath = item.destinationPath ?? null;
 
-        const destinationPath = item.destinationPath ?? null;
+      const kind = item.kind ?? ItemKind.FILE;
 
-        const kind = item.kind ?? (ItemKind.FILE as ItemKind);
+      const status = item.status ?? ItemStatus.PENDING;
 
-        const status =
-          item.status ?? (ItemStatus.PENDING as ItemStatus);
+      const size = item.size ?? 0;
 
-        const size = item.size ?? 0;
+      const bytesTransferred = item.bytesTransferred ?? 0;
 
-        const bytesTransferred = item.bytesTransferred ?? 0;
-
-        db.run(
-          `
-            INSERT INTO transfer_items (
-              id,
-              job_id,
-              source_server_id,
-              source_type,
-              archive_path,
-              filename,
-              source_path,
-              destination_path,
-              kind,
-              status,
-              root_item,
-              size,
-              bytes_transferred,
-              started_at,
-              completed_at,
-              error
-            )
-            VALUES (
-              ?, ?, ?, ?, ?, ?, ?, ?, ?,
-              ?, ?, ?, ?, ?, ?, ?
-            )
-          `,
+      statements.push({
+        sql: `
+          INSERT INTO transfer_items (
+            id,
+            job_id,
+            source_server_id,
+            source_type,
+            archive_path,
+            filename,
+            source_path,
+            destination_path,
+            kind,
+            status,
+            root_item,
+            size,
+            bytes_transferred,
+            started_at,
+            completed_at,
+            error
+          )
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?
+          )
+        `,
+        params: [
           id,
           jobId,
           sourceServerId,
@@ -173,70 +175,67 @@ export class SqliteTransferItemStore extends TransferItemStore {
           null,
           null,
           null,
-        );
+        ],
+      });
 
-        created.push({
-          _id: id,
-          jobId,
+      created.push({
+        _id: id,
+        jobId,
 
-          sourceServerId,
-          sourceType,
+        sourceServerId,
+        sourceType,
 
-          ...(archivePath != null ? { archivePath } : {}),
+        ...(archivePath != null ? { archivePath } : {}),
 
-          filename: item.filename,
+        filename: item.filename,
 
-          ...(sourcePath != null ? { sourcePath } : {}),
+        ...(sourcePath != null ? { sourcePath } : {}),
 
-          ...(destinationPath != null ? { destinationPath } : {}),
+        ...(destinationPath != null ? { destinationPath } : {}),
 
-          kind,
-          status,
+        kind,
+        status,
 
-          rootItem: item.rootItem,
+        rootItem: item.rootItem,
 
-          size,
-          bytesTransferred,
-        });
-      }
-
-      db.exec("COMMIT");
-
-      return created;
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
+        size,
+        bytesTransferred,
+      });
     }
+
+    await db.transaction(statements);
+
+    return created;
   }
 
   private async findById(id: string): Promise<TransferItem | null> {
     const db = getDatabase();
 
-    return toTransferItem(
-      db.get(
-        `
-          SELECT *
-          FROM transfer_items
-          WHERE id = ?
-        `,
-        id,
-      ) as TransferItemRow | null,
+    const row = await db.get<TransferItemRow>(
+      `
+        SELECT *
+        FROM transfer_items
+        WHERE id = ?
+      `,
+      id,
     );
+
+    return toTransferItem(row);
   }
 
   async findByJobId(jobId: string): Promise<TransferItem[]> {
     const db = getDatabase();
 
-    return (
-      db.all(
-        `
-          SELECT *
-          FROM transfer_items
-          WHERE job_id = ?
-        `,
-        jobId,
-      ) as TransferItemRow[]
-    )
+    const rows = await db.all<TransferItemRow>(
+      `
+        SELECT *
+        FROM transfer_items
+        WHERE job_id = ?
+      `,
+      jobId,
+    );
+
+    return rows
       .map(toTransferItem)
       .filter((item): item is TransferItem => item !== null);
   }
@@ -244,54 +243,58 @@ export class SqliteTransferItemStore extends TransferItemStore {
   async findFilesByJobId(jobId: string): Promise<TransferItem[]> {
     const db = getDatabase();
 
-    return (
-      db.all(
-        `
-          SELECT *
-          FROM transfer_items
-          WHERE job_id = ?
-            AND kind = ?
-        `,
-        jobId,
-        ItemKind.FILE,
-      ) as TransferItemRow[]
-    )
+    const rows = await db.all<TransferItemRow>(
+      `
+        SELECT *
+        FROM transfer_items
+        WHERE job_id = ?
+          AND kind = ?
+      `,
+      jobId,
+      ItemKind.FILE,
+    );
+
+    return rows
       .map(toTransferItem)
       .filter((item): item is TransferItem => item !== null);
   }
 
   async deleteById(id: string): Promise<void> {
     const db = getDatabase();
-    db.run(
+
+    await db.run(
       `
-          DELETE FROM transfer_items
-          WHERE id = ?
-        `,
+        DELETE FROM transfer_items
+        WHERE id = ?
+      `,
       id,
-    )
+    );
   }
 
   async markStarted(id: string): Promise<void> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
-      UPDATE transfer_items
-      SET
-        status = ?,
-        started_at = ?
-      WHERE id = ?
-    `,
+        UPDATE transfer_items
+        SET
+          status = ?,
+          started_at = ?
+        WHERE id = ?
+      `,
       ItemStatus.IN_PROGRESS,
       new Date().toISOString(),
       id,
     );
   }
 
-  async markCompleted(id: string, size: number): Promise<TransferItem | null> {
+  async markCompleted(
+    id: string,
+    size: number,
+  ): Promise<TransferItem | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_items
         SET
@@ -312,7 +315,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
   async markFailed(id: string, error: string): Promise<void> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_items
         SET
@@ -331,12 +334,12 @@ export class SqliteTransferItemStore extends TransferItemStore {
   async updateSize(id: string, size: number): Promise<void> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
-      UPDATE transfer_items
-      SET size = ?
-      WHERE id = ?
-    `,
+        UPDATE transfer_items
+        SET size = ?
+        WHERE id = ?
+      `,
       size,
       id,
     );
@@ -353,7 +356,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     const placeholders = jobIds.map(() => "?").join(", ");
 
-    const rows = db.all(
+    const rows = await db.all<SourceServerRow>(
       `
         SELECT DISTINCT
           job_id,
@@ -362,13 +365,12 @@ export class SqliteTransferItemStore extends TransferItemStore {
         WHERE job_id IN (${placeholders})
       `,
       ...jobIds,
-    ) as SourceServerRow[];
+    );
 
     const result: Record<string, Array<string | null>> = {};
 
     for (const row of rows) {
       result[row.job_id] ??= [];
-
       result[row.job_id].push(row.source_server_id ?? null);
     }
 
@@ -386,7 +388,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     const placeholders = jobIds.map(() => "?").join(", ");
 
-    const rows = db.all(
+    const rows = await db.all<SourceRow>(
       `
         SELECT DISTINCT
           job_id,
@@ -396,7 +398,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
         WHERE job_id IN (${placeholders})
       `,
       ...jobIds,
-    ) as SourceRow[];
+    );
 
     const result: Record<string, TransferSource[]> = {};
 
@@ -429,31 +431,35 @@ export class SqliteTransferItemStore extends TransferItemStore {
       params.push(status);
     }
 
-    const items = (
-      db.all(
-        `
-          SELECT *
-          FROM transfer_items
-          WHERE ${where}
-          LIMIT ?
-          OFFSET ?
-        `,
-        ...params,
-        limit,
-        offset,
-      ) as TransferItemRow[]
-    )
+    const rows = await db.all<TransferItemRow>(
+      `
+        SELECT *
+        FROM transfer_items
+        WHERE ${where}
+        LIMIT ?
+        OFFSET ?
+      `,
+      ...params,
+      limit,
+      offset,
+    );
+
+    const items = rows
       .map(toTransferItem)
       .filter((item): item is TransferItem => item !== null);
 
-    const count = db.get(
+    const count = await db.get<CountRow>(
       `
         SELECT COUNT(*) AS total
         FROM transfer_items
         WHERE ${where}
       `,
       ...params,
-    ) as CountRow;
+    );
+
+    if (!count) {
+      throw new Error(`Failed to count transfer items for job ${jobId}`);
+    }
 
     return {
       items,
@@ -464,18 +470,18 @@ export class SqliteTransferItemStore extends TransferItemStore {
   async findFailedByJobId(jobId: string): Promise<TransferItem[]> {
     const db = getDatabase();
 
-    return (
-      db.all(
-        `
-          SELECT *
-          FROM transfer_items
-          WHERE job_id = ?
-            AND status = ?
-        `,
-        jobId,
-        ItemStatus.FAILED,
-      ) as TransferItemRow[]
-    )
+    const rows = await db.all<TransferItemRow>(
+      `
+        SELECT *
+        FROM transfer_items
+        WHERE job_id = ?
+          AND status = ?
+      `,
+      jobId,
+      ItemStatus.FAILED,
+    );
+
+    return rows
       .map(toTransferItem)
       .filter((item): item is TransferItem => item !== null);
   }
@@ -483,13 +489,15 @@ export class SqliteTransferItemStore extends TransferItemStore {
   async deleteByJobId(jobId: string): Promise<number> {
     const db = getDatabase();
 
-    return db.run(
+    const result = await db.run(
       `
         DELETE FROM transfer_items
         WHERE job_id = ?
       `,
       jobId,
-    ).changes;
+    );
+
+    return result.changes;
   }
 
   async deleteByJobIds(jobIds: string[]): Promise<number> {
@@ -501,12 +509,14 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     const placeholders = jobIds.map(() => "?").join(", ");
 
-    return db.run(
+    const result = await db.run(
       `
         DELETE FROM transfer_items
         WHERE job_id IN (${placeholders})
       `,
       ...jobIds,
-    ).changes;
+    );
+
+    return result.changes;
   }
 }

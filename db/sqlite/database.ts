@@ -1,135 +1,230 @@
-/**
- * SQLite runtime compatibility layer.
- *
- * Uploady supports running under both Bun and Node.js. Each runtime provides
- * a native SQLite implementation with a slightly different API:
- *
- * - Bun uses `bun:sqlite`
- * - Node.js uses `node:sqlite`
- *
- * This module hides those differences behind a small common interface used by
- * the SQLite stores.
- */
+import { Worker } from "node:worker_threads";
+import path from "node:path";
 
+import type {
+  SqliteTransactionStatement,
+  SqliteWorkerRequest,
+  SqliteWorkerResponse,
+} from "./sqliteWorkerProtocol";
+export type { SqliteTransactionStatement } from "./sqliteWorkerProtocol";
 export interface SqliteRunResult {
   changes: number;
   lastInsertRowid: number | bigint;
 }
 
 export interface SqliteAdapter {
-  exec(sql: string): void;
+  exec(sql: string): Promise<void>;
 
-  get<T = unknown>(sql: string, ...params: unknown[]): T | null;
+  get<T = unknown>(sql: string, ...params: unknown[]): Promise<T | null>;
 
-  all<T = unknown>(sql: string, ...params: unknown[]): T[];
+  all<T = unknown>(sql: string, ...params: unknown[]): Promise<T[]>;
 
-  run(sql: string, ...params: unknown[]): SqliteRunResult;
+  run(sql: string, ...params: unknown[]): Promise<SqliteRunResult>;
 
-  close(): void;
+  transaction(statements: SqliteTransactionStatement[]): Promise<void>;
+
+  close(): Promise<void>;
 }
 
-type SqliteRuntime = "bun" | "node";
-
-interface PreparedStatement {
-  get(...params: unknown[]): unknown;
-  all(...params: unknown[]): unknown[];
-  run(...params: unknown[]): {
-    changes: number | bigint;
-    lastInsertRowid: number | bigint;
-  };
+interface PendingRequest {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
 }
 
-interface NativeDatabase {
-  exec(sql: string): unknown;
-  query?(sql: string): PreparedStatement;
-  prepare?(sql: string): PreparedStatement;
-  close(): void;
-}
-
-let rawDb: NativeDatabase | null = null;
+let worker: Worker | null = null;
 let adapter: SqliteAdapter | null = null;
 
-function isBun(): boolean {
-  return Boolean(
-    (
-      process.versions as typeof process.versions & {
-        bun?: string;
+let nextRequestId = 1;
+
+const pending = new Map<number, PendingRequest>();
+
+function request<T>(
+  type: SqliteWorkerRequest["type"],
+  sql?: string,
+  params?: unknown[],
+  statements?: SqliteTransactionStatement[],
+): Promise<T> {
+  const currentWorker = worker;
+
+  if (!currentWorker) {
+    return Promise.reject(
+      new Error("SQLite worker has not been initialized"),
+    );
+  }
+
+  const id = nextRequestId++;
+
+  let message: SqliteWorkerRequest;
+
+  switch (type) {
+    case "exec":
+      if (sql === undefined) {
+        return Promise.reject(
+          new Error("SQLite exec request requires SQL"),
+        );
       }
-    ).bun,
-  );
-}
 
-function createAdapter(
-  db: NativeDatabase,
-  runtime: SqliteRuntime,
-): SqliteAdapter {
-  const prepare = (sql: string): PreparedStatement => {
-    if (runtime === "bun") {
-      if (!db.query) {
-        throw new Error("Bun SQLite database does not support query()");
-      }
-
-      return db.query(sql);
-    }
-
-    if (!db.prepare) {
-      throw new Error("Node SQLite database does not support prepare()");
-    }
-
-    return db.prepare(sql);
-  };
-
-  return {
-    exec(sql) {
-      db.exec(sql);
-    },
-
-    get<T = unknown>(sql: string, ...params: unknown[]): T | null {
-      const row = prepare(sql).get(...params);
-
-      return (row ?? null) as T | null;
-    },
-
-    all<T = unknown>(sql: string, ...params: unknown[]): T[] {
-      return prepare(sql).all(...params) as T[];
-    },
-
-    run(sql: string, ...params: unknown[]): SqliteRunResult {
-      const result = prepare(sql).run(...params);
-
-      return {
-        changes: Number(result.changes),
-        lastInsertRowid: result.lastInsertRowid,
+      message = {
+        id,
+        type,
+        sql,
       };
+      break;
+
+    case "get":
+    case "all":
+    case "run":
+      if (sql === undefined) {
+        return Promise.reject(
+          new Error(`SQLite ${type} request requires SQL`),
+        );
+      }
+
+      message = {
+        id,
+        type,
+        sql,
+        params: params ?? [],
+      };
+      break;
+
+    case "transaction":
+      if (statements === undefined) {
+        return Promise.reject(
+          new Error("SQLite transaction request requires statements"),
+        );
+      }
+
+      message = {
+        id,
+        type,
+        statements,
+      };
+      break;
+
+    case "close":
+      message = {
+        id,
+        type,
+      };
+      break;
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    pending.set(id, {
+      resolve: (value) => resolve(value as T),
+      reject,
+    });
+
+    currentWorker.postMessage(message);
+  });
+}
+
+function handleResponse(response: SqliteWorkerResponse): void {
+  const request = pending.get(response.id);
+
+  if (!request) {
+    return;
+  }
+
+  pending.delete(response.id);
+
+  if (!response.success) {
+    request.reject(new Error(response.error));
+    return;
+  }
+
+  request.resolve(response.result);
+}
+
+function rejectPending(error: Error): void {
+  for (const request of pending.values()) {
+    request.reject(error);
+  }
+
+  pending.clear();
+}
+
+function createAdapter(): SqliteAdapter {
+  return {
+    async exec(sql): Promise<void> {
+      await request<void>("exec", sql);
     },
 
-    close() {
-      db.close();
+    async get<T = unknown>(
+      sql: string,
+      ...params: unknown[]
+    ): Promise<T | null> {
+      return request<T | null>("get", sql, params);
+    },
+
+    async all<T = unknown>(
+      sql: string,
+      ...params: unknown[]
+    ): Promise<T[]> {
+      return request<T[]>("all", sql, params);
+    },
+
+    async run(
+      sql: string,
+      ...params: unknown[]
+    ): Promise<SqliteRunResult> {
+      return request<SqliteRunResult>("run", sql, params);
+    },
+
+    async transaction(
+      statements: SqliteTransactionStatement[],
+    ): Promise<void> {
+      await request<void>(
+        "transaction",
+        undefined,
+        undefined,
+        statements,
+      );
+    },
+
+    async close(): Promise<void> {
+      await request<void>("close");
     },
   };
 }
 
-export function openDatabase(path: string): SqliteAdapter {
+export function openDatabase(dbPath: string): SqliteAdapter {
   if (adapter) {
     return adapter;
   }
 
-  if (isBun()) {
-    const { Database } = require("bun:sqlite");
+  worker = new Worker(
+    path.join(__dirname, "sqliteWorker.js"),
+    {
+      workerData: {
+        path: dbPath,
+      },
+    },
+  );
 
-    rawDb = new Database(path, {
-      create: true,
-      strict: true,
-    }) as NativeDatabase;
+  worker.on("message", handleResponse);
 
-    adapter = createAdapter(rawDb, "bun");
-  } else {
-    const { DatabaseSync } = require("node:sqlite");
+  worker.on("error", (error: unknown) => {
+    const workerError =
+      error instanceof Error
+        ? error
+        : new Error(String(error));
 
-    rawDb = new DatabaseSync(path) as NativeDatabase;
+    rejectPending(workerError);
+  });
 
-    adapter = createAdapter(rawDb, "node");
-  }
+  worker.on("exit", (code) => {
+    if (code !== 0) {
+      rejectPending(
+        new Error(`SQLite worker exited with code ${code}`),
+      );
+    }
+
+    worker = null;
+  });
+
+  adapter = createAdapter();
 
   return adapter;
 }
@@ -142,13 +237,17 @@ export function getDatabase(): SqliteAdapter {
   return adapter;
 }
 
-export function closeDatabase(): void {
+export async function closeDatabase(): Promise<void> {
   if (!adapter) {
     return;
   }
 
-  adapter.close();
+  await adapter.close();
 
   adapter = null;
-  rawDb = null;
+
+  if (worker) {
+    await worker.terminate();
+    worker = null;
+  }
 }

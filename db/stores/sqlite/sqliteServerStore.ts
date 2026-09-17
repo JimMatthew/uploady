@@ -31,6 +31,10 @@ interface ServerSummaryRow {
   host: string;
 }
 
+interface ServerIdRow {
+  id: string;
+}
+
 function getEncryptedPassword(row: ServerRow): EncryptedField | undefined {
   if (!row.password_iv || !row.password_content || !row.password_tag) {
     return undefined;
@@ -43,7 +47,7 @@ function getEncryptedPassword(row: ServerRow): EncryptedField | undefined {
   };
 }
 
-function toServer(row: ServerRow | undefined): Server | null {
+function toServer(row: ServerRow | null): Server | null {
   if (!row) {
     return null;
   }
@@ -96,11 +100,11 @@ export class SqliteServerStore extends ServerStore {
   async find(): Promise<Server[]> {
     const db = getDatabase();
 
-    const rows = db.all(`
+    const rows = await db.all<ServerRow>(`
       SELECT *
       FROM servers
       ORDER BY host ASC
-    `) as ServerRow[];
+    `);
 
     return rows.map((row) => {
       const server = toServer(row);
@@ -116,12 +120,12 @@ export class SqliteServerStore extends ServerStore {
   async listSummary(): Promise<ServerSummary[]> {
     const db = getDatabase();
 
-    const rows = db.all(`
+    const rows = await db.all<ServerSummaryRow>(`
       SELECT
         id,
         host
       FROM servers
-    `) as ServerSummaryRow[];
+    `);
 
     return rows.map((row) => ({
       _id: String(row.id),
@@ -132,14 +136,14 @@ export class SqliteServerStore extends ServerStore {
   async findById(id: string): Promise<Server | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<ServerRow>(
       `
         SELECT *
         FROM servers
         WHERE id = ?
       `,
       id,
-    ) as ServerRow | undefined;
+    );
 
     return toServer(row);
   }
@@ -161,7 +165,7 @@ export class SqliteServerStore extends ServerStore {
       keyId = data.keyId;
     }
 
-    db.run(
+    await db.run(
       `
         INSERT INTO servers (
           id,
@@ -216,14 +220,12 @@ export class SqliteServerStore extends ServerStore {
     const authType = update.authType ?? existing.authType;
 
     const existingPassword = existing.credentials.password;
-
     const password = update.credentials?.password ?? existingPassword;
-
     const keyId = update.keyId ?? existing.keyId;
 
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE servers
         SET
@@ -253,20 +255,20 @@ export class SqliteServerStore extends ServerStore {
     return this.findById(id);
   }
 
- async deleteById(id: string): Promise<boolean> {
-  const db = getDatabase();
+  async deleteById(id: string): Promise<boolean> {
+    const db = getDatabase();
 
-  const row = db.get(
-    `
-      DELETE FROM servers
-      WHERE id = ?
-      RETURNING id
-    `,
-    id,
-  ) as { id: string } | undefined;
+    const row = await db.get<ServerIdRow>(
+      `
+        DELETE FROM servers
+        WHERE id = ?
+        RETURNING id
+      `,
+      id,
+    );
 
-  return row !== undefined;
-}
+    return row !== null;
+  }
 
   async findSummariesByIds(ids: string[]): Promise<ServerSummary[]> {
     if (!ids.length) {
@@ -277,7 +279,7 @@ export class SqliteServerStore extends ServerStore {
 
     const placeholders = ids.map(() => "?").join(", ");
 
-    const rows = db.all(
+    const rows = await db.all<ServerSummaryRow>(
       `
         SELECT
           id,
@@ -286,7 +288,7 @@ export class SqliteServerStore extends ServerStore {
         WHERE id IN (${placeholders})
       `,
       ...ids,
-    ) as ServerSummaryRow[];
+    );
 
     return rows.map((row) => ({
       _id: String(row.id),

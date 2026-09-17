@@ -3,10 +3,11 @@ import crypto from "node:crypto";
 import {
   SshKeyStore,
   type CreateSshKeyInput,
-  type EncryptedField,
   type SshKey,
   type UpdateSshKeyInput,
 } from "../sshKeyStore";
+
+import type { EncryptedField } from "../../../types/server";
 
 import { getDatabase } from "../../sqlite/database";
 import { propIfPresent } from "../../../shared/utils/PropHelper";
@@ -47,7 +48,7 @@ const toEncryptedField = (
   };
 };
 
-const toSshKey = (row: SshKeyRow | null | undefined): SshKey | null => {
+const toSshKey = (row: SshKeyRow | null): SshKey | null => {
   if (!row) {
     return null;
   }
@@ -57,6 +58,7 @@ const toSshKey = (row: SshKeyRow | null | undefined): SshKey | null => {
     name: row.name,
     scope: row.scope,
     ...propIfPresent("serverId", row.server_id),
+
     privateKey: {
       iv: row.private_key_iv,
       content: row.private_key_content,
@@ -65,12 +67,15 @@ const toSshKey = (row: SshKeyRow | null | undefined): SshKey | null => {
 
     ...propIfPresent("publicKey", row.public_key),
 
-    ...propIfPresent("passphrase", toEncryptedField(
-      row.passphrase_iv,
-      row.passphrase_content,
-      row.passphrase_tag,
-    )),
-   
+    ...propIfPresent(
+      "passphrase",
+      toEncryptedField(
+        row.passphrase_iv,
+        row.passphrase_content,
+        row.passphrase_tag,
+      ),
+    ),
+
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -80,45 +85,59 @@ export class SqliteSshKeyStore extends SshKeyStore {
   async find(): Promise<SshKey[]> {
     const db = getDatabase();
 
-    return db
-      .all(
-        `
-          SELECT *
-          FROM ssh_keys
-          ORDER BY created_at ASC
-        `,
-      )
-      .map((row) => toSshKey(row as SshKeyRow))
-      .filter((key): key is SshKey => key !== null);
+    const rows = await db.all<SshKeyRow>(
+      `
+        SELECT *
+        FROM ssh_keys
+        ORDER BY created_at ASC
+      `,
+    );
+
+    return rows.map((row) => {
+      const key = toSshKey(row);
+
+      if (!key) {
+        throw new Error(`Failed to map SSH key row ${row.id}`);
+      }
+
+      return key;
+    });
   }
 
   async findShared(): Promise<SshKey[]> {
     const db = getDatabase();
 
-    return db
-      .all(
-        `
-          SELECT *
-          FROM ssh_keys
-          WHERE scope = 'shared'
-          ORDER BY created_at ASC
-        `,
-      )
-      .map((row) => toSshKey(row as SshKeyRow))
-      .filter((key): key is SshKey => key !== null);
+    const rows = await db.all<SshKeyRow>(
+      `
+        SELECT *
+        FROM ssh_keys
+        WHERE scope = 'shared'
+        ORDER BY created_at ASC
+      `,
+    );
+
+    return rows.map((row) => {
+      const key = toSshKey(row);
+
+      if (!key) {
+        throw new Error(`Failed to map SSH key row ${row.id}`);
+      }
+
+      return key;
+    });
   }
 
   async findById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SshKeyRow>(
       `
         SELECT *
         FROM ssh_keys
         WHERE id = ?
       `,
       String(id),
-    ) as SshKeyRow | undefined;
+    );
 
     return toSshKey(row);
   }
@@ -126,7 +145,7 @@ export class SqliteSshKeyStore extends SshKeyStore {
   async findSharedById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SshKeyRow>(
       `
         SELECT *
         FROM ssh_keys
@@ -134,7 +153,7 @@ export class SqliteSshKeyStore extends SshKeyStore {
           AND scope = 'shared'
       `,
       String(id),
-    ) as SshKeyRow | undefined;
+    );
 
     return toSshKey(row);
   }
@@ -145,7 +164,7 @@ export class SqliteSshKeyStore extends SshKeyStore {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    db.run(
+    await db.run(
       `
         INSERT INTO ssh_keys (
           id,
@@ -214,7 +233,7 @@ export class SqliteSshKeyStore extends SshKeyStore {
           : existing.passphrase,
     };
 
-    db.run(
+    await db.run(
       `
         UPDATE ssh_keys
         SET
@@ -255,14 +274,14 @@ export class SqliteSshKeyStore extends SshKeyStore {
   async deleteById(id: string): Promise<SshKey | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SshKeyRow>(
       `
         DELETE FROM ssh_keys
         WHERE id = ?
         RETURNING *
       `,
       id,
-    ) as SshKeyRow | undefined;
+    );
 
     return toSshKey(row);
   }

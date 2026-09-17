@@ -90,10 +90,11 @@ function toTransferJob(row: TransferJobRow | null): TransferJob | null {
 export class SqliteTransferJobStore extends TransferJobStore {
   async create(data: CreateTransferJobData): Promise<TransferJob> {
     const db = getDatabase();
+
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    db.run(
+    await db.run(
       `
         INSERT INTO transfer_jobs (
           id,
@@ -151,22 +152,22 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async findById(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    return toTransferJob(
-      db.get(
-        `
-          SELECT *
-          FROM transfer_jobs
-          WHERE id = ?
-        `,
-        id,
-      ) as TransferJobRow | null,
+    const row = await db.get<TransferJobRow>(
+      `
+        SELECT *
+        FROM transfer_jobs
+        WHERE id = ?
+      `,
+      id,
     );
+
+    return toTransferJob(row);
   }
 
   async markExpanding(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -188,7 +189,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   ): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -207,7 +208,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async markFailed(id: string, error: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -231,7 +232,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   ): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET current_file = ?
@@ -250,7 +251,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   ): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -270,7 +271,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async incrementFailed(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET failed_files =
@@ -290,7 +291,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   ): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -309,7 +310,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async finish(id: string, status: JobStatusType): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         UPDATE transfer_jobs
         SET
@@ -329,15 +330,15 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async listNewest(): Promise<TransferJob[]> {
     const db = getDatabase();
 
-    return (
-      db.all(
-        `
-          SELECT *
-          FROM transfer_jobs
-          ORDER BY created_at DESC
-        `,
-      ) as TransferJobRow[]
-    )
+    const rows = await db.all<TransferJobRow>(
+      `
+        SELECT *
+        FROM transfer_jobs
+        ORDER BY created_at DESC
+      `,
+    );
+
+    return rows
       .map(toTransferJob)
       .filter((job): job is TransferJob => job !== null);
   }
@@ -345,29 +346,29 @@ export class SqliteTransferJobStore extends TransferJobStore {
   async deleteById(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
-    return toTransferJob(
-      db.get(
-        `
-          DELETE FROM transfer_jobs
-          WHERE id = ?
-          RETURNING *
-        `,
-        id,
-      ) as TransferJobRow | null,
+    const row = await db.get<TransferJobRow>(
+      `
+        DELETE FROM transfer_jobs
+        WHERE id = ?
+        RETURNING *
+      `,
+      id,
     );
+
+    return toTransferJob(row);
   }
 
   async findCompletedIds(): Promise<string[]> {
     const db = getDatabase();
 
-    const rows = db.all(
+    const rows = await db.all<IdRow>(
       `
         SELECT id
         FROM transfer_jobs
         WHERE status = ?
       `,
       JobStatus.COMPLETED,
-    ) as IdRow[];
+    );
 
     return rows.map((row) => String(row.id));
   }
@@ -383,12 +384,14 @@ export class SqliteTransferJobStore extends TransferJobStore {
 
     const placeholders = normalizedIds.map(() => "?").join(", ");
 
-    return db.run(
+    const result = await db.run(
       `
         DELETE FROM transfer_jobs
         WHERE id IN (${placeholders})
       `,
       ...normalizedIds,
-    ).changes;
+    );
+
+    return result.changes;
   }
 }

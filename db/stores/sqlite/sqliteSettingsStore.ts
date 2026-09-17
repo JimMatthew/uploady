@@ -11,7 +11,7 @@ interface SettingsRow {
   jwt_lifetime_minutes: number;
 }
 
-const toSettings = (row: SettingsRow | undefined): AppSettings | null => {
+const toSettings = (row: SettingsRow | null): AppSettings | null => {
   if (!row) {
     return null;
   }
@@ -27,14 +27,14 @@ export class SqliteSettingsStore extends SettingsStore {
   async get(): Promise<AppSettings | null> {
     const db = getDatabase();
 
-    const row = db.get(
+    const row = await db.get<SettingsRow>(
       `
         SELECT
           jwt_lifetime_minutes
         FROM app_settings
         WHERE id = 1
       `,
-    ) as SettingsRow | undefined;
+    );
 
     return toSettings(row);
   }
@@ -44,7 +44,7 @@ export class SqliteSettingsStore extends SettingsStore {
   }: Partial<SessionSettings>): Promise<AppSettings | null> {
     const db = getDatabase();
 
-    db.run(
+    await db.run(
       `
         INSERT INTO app_settings (
           id,
@@ -64,7 +64,7 @@ export class SqliteSettingsStore extends SettingsStore {
     const db = getDatabase();
 
     if (settings.jwtLifetimeMinutes !== undefined) {
-      db.run(
+      await db.run(
         `
           INSERT INTO app_settings (
             id,
