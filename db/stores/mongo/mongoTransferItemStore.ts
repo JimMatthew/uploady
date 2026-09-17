@@ -55,12 +55,11 @@ function toTransferItem(item: MongoTransferItem | null): TransferItem | null {
 
     sourceType: item.sourceType ?? "local",
 
-    ...(item.archivePath != null ? { archivePath: item.archivePath } : {}),
+    ...propIfPresent("archivePath", item.archivePath),
 
     filename: item.filename,
 
-    ...(item.sourcePath != null ? { sourcePath: item.sourcePath } : {}),
-
+    ...propIfPresent("sourcePath", item.sourcePath),
     ...propIfPresent("destinationPath", item.destinationPath),
 
     kind: item.kind,
@@ -71,11 +70,9 @@ function toTransferItem(item: MongoTransferItem | null): TransferItem | null {
     size: item.size,
     bytesTransferred: item.bytesTransferred,
 
-    ...(item.startedAt ? { startedAt: item.startedAt } : {}),
-
-    ...(item.completedAt ? { completedAt: item.completedAt } : {}),
-
-    ...(item.error != null ? { error: item.error } : {}),
+    ...propIfPresent("startedAt", item.startedAt),
+    ...propIfPresent("completedAt", item.completedAt),
+    ...propIfPresent("error", item.error),
   };
 }
 
@@ -154,6 +151,7 @@ export class MongoTransferItemStore extends TransferItemStore {
       },
     ).lean();
   }
+  
   async updateSize(id: string, size: number): Promise<void> {
     await TransferItemModel.findByIdAndUpdate(id, {
       $set: { size },
