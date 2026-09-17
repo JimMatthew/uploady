@@ -288,10 +288,7 @@ export class SqliteTransferItemStore extends TransferItemStore {
     );
   }
 
-  async markCompleted(
-    id: string,
-    size: number,
-  ): Promise<TransferItem | null> {
+  async markCompleted(id: string, size: number): Promise<TransferItem | null> {
     const db = getDatabase();
 
     await db.run(

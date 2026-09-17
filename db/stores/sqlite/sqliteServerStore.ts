@@ -100,11 +100,13 @@ export class SqliteServerStore extends ServerStore {
   async find(): Promise<Server[]> {
     const db = getDatabase();
 
-    const rows = await db.all<ServerRow>(`
+    const rows = await db.all<ServerRow>(
+      `
       SELECT *
       FROM servers
       ORDER BY host ASC
-    `);
+    `,
+    );
 
     return rows.map((row) => {
       const server = toServer(row);
@@ -120,12 +122,14 @@ export class SqliteServerStore extends ServerStore {
   async listSummary(): Promise<ServerSummary[]> {
     const db = getDatabase();
 
-    const rows = await db.all<ServerSummaryRow>(`
+    const rows = await db.all<ServerSummaryRow>(
+      `
       SELECT
         id,
         host
       FROM servers
-    `);
+    `,
+    );
 
     return rows.map((row) => ({
       _id: String(row.id),
