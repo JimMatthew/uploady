@@ -1,10 +1,8 @@
 import { EventEmitter } from "node:events";
 import { transferJobs, transferItems } from "../db";
-
-import {
-  JobStatus,
-  ItemStatus,
-} from "../controllers/jobs/jobConstants";
+import { TransferPersistenceQueue } from "./transferPersistenceQueue";
+import { TransferPersistenceService } from "./transferPersistenceService";
+import { JobStatus, ItemStatus } from "../controllers/jobs/jobConstants";
 
 import { expandJobItems } from "./transferExpansionService";
 import { executeTransferJob } from "./transferExecutionService";
@@ -201,6 +199,14 @@ class TransferExecutor extends EventEmitter {
 
     await transferJobs.markRunning(jobId, items.size);
 
+    const persistenceService = new TransferPersistenceService(
+      transferItems,
+      transferJobs,
+    );
+
+    const persistenceQueue = new TransferPersistenceQueue(
+      persistenceService.handle,
+    );
     this.emit(`jobStart:${jobId}`, {
       roots: [...job.roots.values()],
     });
@@ -210,7 +216,8 @@ class TransferExecutor extends EventEmitter {
     // -----------------------------------------------------------------------
 
     try {
-      await this.executeJob(job);
+      await this.executeJob(job, persistenceQueue);
+      await persistenceQueue.flush();
     } catch (err) {
       const message = getErrorMessage(err);
 
@@ -257,7 +264,10 @@ class TransferExecutor extends EventEmitter {
   // Execution Loop
   // -------------------------------------------------------------------------
 
-  private async executeJob(job: InMemoryTransferJob): Promise<void> {
+  private async executeJob(
+    job: InMemoryTransferJob,
+    persistenceQueue: TransferPersistenceQueue,
+  ): Promise<void> {
     /*
      * Kept as a runtime require for now because sftpService currently
      * participates in the transfer implementation. We can remove this
@@ -271,15 +281,18 @@ class TransferExecutor extends EventEmitter {
       // File Start
       // -------------------------------------------------------------------
 
-      onFileStart: async (item) => {
+      onFileStart: (item) => {
         item.status = ItemStatus.IN_PROGRESS;
 
         job.currentFile = item.filename;
 
-        await Promise.all([
-          transferItems.markStarted(item.itemId),
-          transferJobs.setCurrentFile(job.jobId, item.filename),
-        ]);
+        persistenceQueue.enqueue({
+          type: "file_started",
+          jobId: job.jobId,
+          itemId: item.itemId,
+          filename: item.filename,
+          startedAt: new Date(),
+        });
 
         this.emit(`fileStart:${job.jobId}`, {
           file: item.filename,
@@ -314,7 +327,7 @@ class TransferExecutor extends EventEmitter {
       // File Completed
       // -------------------------------------------------------------------
 
-      onFileDone: async (item) => {
+      onFileDone: (item) => {
         item.status = ItemStatus.COMPLETED;
 
         item.percent = 100;
@@ -329,10 +342,14 @@ class TransferExecutor extends EventEmitter {
 
         root.completedFiles++;
 
-        await Promise.all([
-          transferItems.markCompleted(item.itemId, item.size),
-          transferJobs.incrementCompleted(job.jobId, item.size),
-        ]);
+        
+        persistenceQueue.enqueue({
+          type: "file_completed",
+          jobId: job.jobId,
+          itemId: item.itemId,
+          size: item.size,
+          completedAt: new Date(),
+        });
 
         this.emit(`rootProgress:${job.jobId}`, {
           ...root,
@@ -359,10 +376,13 @@ class TransferExecutor extends EventEmitter {
         root.failedFiles++;
         root.error = err.message;
 
-        await Promise.all([
-          transferItems.markFailed(item.itemId, err.message),
-          transferJobs.incrementFailed(job.jobId),
-        ]);
+        persistenceQueue.enqueue({
+          type: "file_failed",
+          jobId: job.jobId,
+          itemId: item.itemId,
+          error: err.message,
+          failedAt: new Date(),
+        });
 
         this.emit(`rootProgress:${job.jobId}`, {
           ...root,

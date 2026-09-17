@@ -54,11 +54,11 @@ export interface InMemoryTransferJob {
 export interface TransferExecutionCallbacks {
   shouldStop(): boolean;
 
-  onFileStart(item: InMemoryTransferItem): Promise<void>;
+  onFileStart(item: InMemoryTransferItem): void | Promise<void>;
 
   onFileProgress(item: InMemoryTransferItem, percent: number): void;
 
-  onFileDone(item: InMemoryTransferItem): Promise<void>;
+  onFileDone(item: InMemoryTransferItem): void | Promise<void>;
 
   onFileFail(item: InMemoryTransferItem, error: Error): Promise<void>;
 }
