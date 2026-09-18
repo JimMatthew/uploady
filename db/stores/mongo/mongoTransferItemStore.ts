@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import {
+  TransferItemPersistenceBatch,
   TransferItemStore,
   type CreateTransferItemData,
   type TransferItem,
@@ -80,6 +81,59 @@ function toTransferItem(item: MongoTransferItem | null): TransferItem | null {
 }
 
 export class MongoTransferItemStore extends TransferItemStore {
+  async persistBatch(batch: TransferItemPersistenceBatch): Promise<void> {
+    const operations = [];
+
+    for (const item of batch.started) {
+      operations.push({
+        updateOne: {
+          filter: { _id: item.id },
+          update: {
+            $set: {
+              status: ItemStatus.IN_PROGRESS,
+              startedAt: item.startedAt,
+            },
+          },
+        },
+      });
+    }
+
+    for (const item of batch.completed) {
+      operations.push({
+        updateOne: {
+          filter: { _id: item.id },
+          update: {
+            $set: {
+              status: ItemStatus.COMPLETED,
+              completedAt: item.completedAt,
+              size: item.size,
+            },
+          },
+        },
+      });
+    }
+
+    for (const item of batch.failed) {
+      operations.push({
+        updateOne: {
+          filter: { _id: item.id },
+          update: {
+            $set: {
+              status: ItemStatus.FAILED,
+              error: item.error,
+              completedAt: item.failedAt,
+            },
+          },
+        },
+      });
+    }
+
+    if (operations.length === 0) {
+      return;
+    }
+
+    await TransferItemModel.bulkWrite(operations);
+  }
   async createMany(items: CreateTransferItemData[]): Promise<TransferItem[]> {
     const docs = await TransferItemModel.insertMany(items);
 

@@ -58,11 +58,31 @@ export class TransferPersistenceQueue {
     }
 
     if (!this.processing && !this.scheduled && this.queue.length === 0) {
+      console.log("[TransferPersistence] flush immediate");
       return Promise.resolve();
     }
 
+    const flushStartedAt = performance.now();
+
+    console.log(
+      `[TransferPersistence] flush waiting` +
+        ` queued=${this.queue.length}` +
+        ` processing=${this.processing}` +
+        ` scheduled=${this.scheduled}`,
+    );
+
     return new Promise<void>((resolve, reject) => {
-      this.flushWaiters.push({ resolve, reject });
+      this.flushWaiters.push({
+        resolve: () => {
+          console.log(
+            `[TransferPersistence] flush complete` +
+              ` duration=${(performance.now() - flushStartedAt).toFixed(2)}ms`,
+          );
+
+          resolve();
+        },
+        reject,
+      });
     });
   }
 
@@ -90,7 +110,25 @@ export class TransferPersistenceQueue {
       while (this.queue.length > 0) {
         const batch = this.queue.splice(0, this.queue.length);
 
+        const batchStartedAt = performance.now();
+        const startedAt = new Date();
+        console.log(
+          `[TransferPersistence] batch start` +
+            ` events=${batch.length}` +
+            ` queued=${this.queue.length}` +
+            ` time=${startedAt.toISOString()}`,
+        );
+
         await this.handler(batch);
+
+        const durationMs = performance.now() - batchStartedAt;
+
+        console.log(
+          `[TransferPersistence] batch done` +
+            ` events=${batch.length}` +
+            ` duration=${durationMs.toFixed(2)}ms` +
+            ` queued=${this.queue.length}`,
+        );
       }
 
       this.resolveFlushWaiters();

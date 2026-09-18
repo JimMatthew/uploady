@@ -1,4 +1,5 @@
 import {
+  TransferJobPersistenceBatch,
   TransferJobStore,
   type CreateTransferJobData,
   type TransferJob,
@@ -75,6 +76,27 @@ function toTransferJob(job: MongoTransferJob | null): TransferJob | null {
 }
 
 export class MongoTransferJobStore extends TransferJobStore {
+  async persistBatch(batch: TransferJobPersistenceBatch): Promise<void> {
+    await TransferJobModel.updateOne(
+      {
+        _id: batch.jobId,
+      },
+      {
+        ...(batch.currentFile !== undefined
+          ? {
+              $set: {
+                currentFile: batch.currentFile,
+              },
+            }
+          : {}),
+        $inc: {
+          completedFiles: batch.completedFiles,
+          transferredBytes: batch.transferredBytes,
+          failedFiles: batch.failedFiles,
+        },
+      },
+    );
+  }
   async create(data: CreateTransferJobData): Promise<TransferJob> {
     const job = await TransferJobModel.create(data);
 
