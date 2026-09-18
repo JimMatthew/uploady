@@ -1,3 +1,14 @@
+/**
+ * Buffers transfer persistence events and persists the currently available
+ * backlog as a batch.
+ *
+ * During transfer execution, in-memory state is authoritative. Persistence
+ * follows asynchronously through this queue. `flush()` is the durability
+ * barrier used before final job completion.
+ *
+ * See: docs/transfer-persistence.md
+ */
+
 export type TransferPersistenceEvent =
   | {
       type: "file_started";
