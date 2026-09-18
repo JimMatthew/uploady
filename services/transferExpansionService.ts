@@ -7,6 +7,7 @@ import { ItemKind } from "../controllers/jobs/jobConstants";
 import type {
   CreateTransferItemData,
   TransferItem,
+  TransferItemExpansionBatch,
 } from "../db/stores/transferItemStore";
 
 import { connectToSftp } from "./sftpConnection";
@@ -42,7 +43,6 @@ async function walkSftpDir(
 
   for (const entry of entries) {
     const srcPath = path.posix.join(dirPath, entry.name);
-
     const dstPath = path.posix.join(destBasePath, entry.name);
 
     if (entry.type === "-") {
@@ -76,7 +76,6 @@ function walkLocalDir(dirPath: string, destBasePath: string): WalkedFile[] {
 
   for (const file of files) {
     const srcPath = path.join(dirPath, file.name);
-
     const stat = fs.statSync(srcPath);
 
     results.push({
@@ -147,15 +146,23 @@ async function walkArchiveDir(
 /**
  * Expands all directory items in a transfer job into individual file items.
  *
- * Directory placeholders are recursively walked, expanded file items are
- * created, and the original placeholder items are removed.
+ * Expansion is performed in two phases:
  *
- * When expansion is complete, the job's totalFiles and totalBytes values
- * are recalculated from all file items belonging to the job.
+ * 1. Discover the complete expansion result in memory.
+ * 2. Persist all size updates, new file items, and removed directory
+ *    placeholders as a single store-level expansion batch.
+ *
+ * Execution must not begin until this function completes. Unlike transfer
+ * execution persistence, expansion is not eventually consistent: the complete
+ * canonical execution plan is persisted before returning.
+ *
+ * When expansion is complete, totalFiles and totalBytes are recalculated from
+ * the resulting file items stored in the database.
  */
 export async function expandJobItems(jobId: string): Promise<void> {
+  const startedAt = performance.now();
   const items = await transferItems.findByJobId(jobId);
-
+  const loadDoneAt = performance.now();
   /*
    * null represents a local/archive source with no
    * remote source server.
@@ -174,7 +181,11 @@ export async function expandJobItems(jobId: string): Promise<void> {
     }
   }
 
-  const newFileItems: CreateTransferItemData[] = [];
+  const expansionBatch: TransferItemExpansionBatch = {
+    sizeUpdates: [],
+    newItems: [],
+    deleteIds: [],
+  };
 
   for (const [sourceServerId, sourceItems] of grouped) {
     const isLocal = sourceServerId === null;
@@ -222,7 +233,10 @@ export async function expandJobItems(jobId: string): Promise<void> {
             size = (await sftp.stat(item.sourcePath)).size;
           }
 
-          await transferItems.updateSize(item._id, size);
+          expansionBatch.sizeUpdates.push({
+            id: item._id,
+            size,
+          });
 
           continue;
         }
@@ -267,7 +281,7 @@ export async function expandJobItems(jobId: string): Promise<void> {
           }
 
           for (const file of walked) {
-            newFileItems.push({
+            expansionBatch.newItems.push({
               jobId,
               sourceType: item.sourceType,
               sourceServerId,
@@ -281,23 +295,34 @@ export async function expandJobItems(jobId: string): Promise<void> {
             });
           }
 
-          await transferItems.deleteById(item._id);
+          expansionBatch.deleteIds.push(item._id);
         }
       }
     } finally {
       await sftp?.end();
     }
   }
-
-  if (newFileItems.length > 0) {
-    await transferItems.createMany(newFileItems);
-  }
+  const discoveryDoneAt = performance.now();
+  await transferItems.persistExpansion(expansionBatch);
 
   const allFileItems = await transferItems.findFilesByJobId(jobId);
-
+  const persistDoneAt = performance.now();
   const totalFiles = allFileItems.length;
-
+  const reloadDoneAt = performance.now();
   const totalBytes = allFileItems.reduce((sum, item) => sum + item.size, 0);
 
   await transferJobs.updateTotals(jobId, totalFiles, totalBytes);
+  const finishedAt = performance.now();
+  console.log(
+    `[TransferExpansion] complete` +
+      ` total=${(finishedAt - startedAt).toFixed(2)}ms` +
+      ` load=${(loadDoneAt - startedAt).toFixed(2)}ms` +
+      ` discovery=${(discoveryDoneAt - loadDoneAt).toFixed(2)}ms` +
+      ` persist=${(persistDoneAt - discoveryDoneAt).toFixed(2)}ms` +
+      ` reload=${(reloadDoneAt - persistDoneAt).toFixed(2)}ms` +
+      ` totals=${(finishedAt - reloadDoneAt).toFixed(2)}ms` +
+      ` sizeUpdates=${expansionBatch.sizeUpdates.length}` +
+      ` newItems=${expansionBatch.newItems.length}` +
+      ` deletedPlaceholders=${expansionBatch.deleteIds.length}`,
+  );
 }

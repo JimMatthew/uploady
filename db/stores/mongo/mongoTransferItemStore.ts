@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import {
+  TransferItemExpansionBatch,
   TransferItemPersistenceBatch,
   TransferItemStore,
   type CreateTransferItemData,
@@ -81,6 +82,49 @@ function toTransferItem(item: MongoTransferItem | null): TransferItem | null {
 }
 
 export class MongoTransferItemStore extends TransferItemStore {
+ async persistExpansion(
+  batch: TransferItemExpansionBatch,
+): Promise<void> {
+  const operations = [];
+
+  // Update sizes for direct file items that already exist.
+  for (const item of batch.sizeUpdates) {
+    operations.push({
+      updateOne: {
+        filter: { _id: item.id },
+        update: {
+          $set: {
+            size: item.size,
+          },
+        },
+      },
+    });
+  }
+
+  // Insert file items discovered while expanding directory placeholders.
+  for (const item of batch.newItems) {
+    operations.push({
+      insertOne: {
+        document: item,
+      },
+    });
+  }
+
+  // Remove directory placeholders after their expanded files have been added.
+  for (const id of batch.deleteIds) {
+    operations.push({
+      deleteOne: {
+        filter: { _id: id },
+      },
+    });
+  }
+
+  if (operations.length === 0) {
+    return;
+  }
+
+  await TransferItemModel.bulkWrite(operations);
+}
   async persistBatch(batch: TransferItemPersistenceBatch): Promise<void> {
     const operations = [];
 

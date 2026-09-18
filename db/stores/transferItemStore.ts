@@ -89,6 +89,16 @@ export interface TransferItemPersistenceBatch {
   failed: TransferItemFailedUpdate[];
 }
 
+export interface TransferItemExpansionBatch {
+  sizeUpdates: Array<{
+    id: string;
+    size: number;
+  }>;
+
+  newItems: CreateTransferItemData[];
+
+  deleteIds: string[];
+}
 
 export abstract class TransferItemStore {
   abstract createMany(items: CreateTransferItemData[]): Promise<TransferItem[]>;
@@ -129,7 +139,7 @@ export abstract class TransferItemStore {
 
   abstract updateSize(id: string, size: number): Promise<void>;
 
-  abstract persistBatch(
-  batch: TransferItemPersistenceBatch,
-): Promise<void>;
+  abstract persistBatch(batch: TransferItemPersistenceBatch): Promise<void>;
+
+  abstract persistExpansion(batch: TransferItemExpansionBatch): Promise<void>;
 }

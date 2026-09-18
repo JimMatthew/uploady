@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import {
+  TransferItemExpansionBatch,
   TransferItemPersistenceBatch,
   TransferItemStore,
   type CreateTransferItemData,
@@ -100,6 +101,107 @@ function toTransferItem(row: TransferItemRow | null): TransferItem | null {
 }
 
 export class SqliteTransferItemStore extends TransferItemStore {
+ async persistExpansion(
+  batch: TransferItemExpansionBatch,
+): Promise<void> {
+  const statements: SqliteTransactionStatement[] = [];
+
+  // Update the discovered sizes of direct file items that already exist.
+  for (const item of batch.sizeUpdates) {
+    statements.push({
+      sql: `
+        UPDATE transfer_items
+        SET size = ?
+        WHERE id = ?
+      `,
+      params: [
+        item.size,
+        item.id,
+      ],
+    });
+  }
+
+  // Insert file items discovered while expanding directory placeholders.
+  for (const item of batch.newItems) {
+    const id = crypto.randomUUID();
+
+    const jobId = String(item.jobId);
+    const sourceServerId =
+      item.sourceServerId != null ? String(item.sourceServerId) : null;
+    const sourceType = item.sourceType ?? "local";
+    const archivePath = item.archivePath ?? null;
+    const sourcePath = item.sourcePath ?? null;
+    const destinationPath = item.destinationPath ?? null;
+    const kind = item.kind ?? ItemKind.FILE;
+    const status = item.status ?? ItemStatus.PENDING;
+    const size = item.size ?? 0;
+    const bytesTransferred = item.bytesTransferred ?? 0;
+
+    statements.push({
+      sql: `
+        INSERT INTO transfer_items (
+          id,
+          job_id,
+          source_server_id,
+          source_type,
+          archive_path,
+          filename,
+          source_path,
+          destination_path,
+          kind,
+          status,
+          root_item,
+          size,
+          bytes_transferred,
+          started_at,
+          completed_at,
+          error
+        )
+        VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?
+        )
+      `,
+      params: [
+        id,
+        jobId,
+        sourceServerId,
+        sourceType,
+        archivePath,
+        item.filename,
+        sourcePath,
+        destinationPath,
+        kind,
+        status,
+        item.rootItem,
+        size,
+        bytesTransferred,
+        null,
+        null,
+        null,
+      ],
+    });
+  }
+
+  // Remove directory placeholders after their file items have been created.
+  for (const id of batch.deleteIds) {
+    statements.push({
+      sql: `
+        DELETE FROM transfer_items
+        WHERE id = ?
+      `,
+      params: [id],
+    });
+  }
+
+  if (!statements.length) {
+    return;
+  }
+
+  const db = getDatabase();
+
+  await db.transaction(statements);
+}
   async persistBatch(batch: TransferItemPersistenceBatch): Promise<void> {
     const statements: SqliteTransactionStatement[] = [];
 
