@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { shares } from "../db";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,12 @@ export interface LocalFolder {
 export interface LocalDirectoryListing {
   files: LocalFile[];
   folders: LocalFolder[];
+}
+
+export interface DeleteFileResult {
+  path: string;
+  success: boolean;
+  error?: string;
 }
 
 // ─── Directory Listing ────────────────────────────────────────────────────────
@@ -93,4 +100,42 @@ export function resolveLocalPath(relativePath: string): string {
   }
 
   return resolved;
+}
+
+export async function deleteFiles(
+  relativeFilePaths: string[],
+): Promise<DeleteFileResult[]> {
+  const results: DeleteFileResult[] = [];
+
+  for (const relativeFilePath of relativeFilePaths) {
+    try {
+      const absoluteFilePath = path.join(
+        uploadsDir,
+        relativeFilePath,
+      );
+
+      await fs.promises.unlink(absoluteFilePath);
+
+      await shares.deleteByPath(
+        relativeFilePath,
+        path.basename(relativeFilePath),
+      );
+
+      results.push({
+        path: relativeFilePath,
+        success: true,
+      });
+    } catch (error) {
+      results.push({
+        path: relativeFilePath,
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Delete failed",
+      });
+    }
+  }
+
+  return results;
 }

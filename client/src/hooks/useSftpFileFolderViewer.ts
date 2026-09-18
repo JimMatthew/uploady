@@ -239,6 +239,19 @@ export function useSftpFileFolderViewer({
     [serverId],
   );
 
+  const deleteFilesRequest = useCallback(
+  async (
+    filenames: string[],
+    directory: string,
+  ): Promise<void> => {
+    await apiClient.post("/sftp/api/delete-files", {
+      currentDirectory: directory,
+      serverId,
+      fileNames: filenames,
+    });
+  },
+  [serverId],
+);
   const deleteFile = useCallback(
     async (filename: string): Promise<void> => {
       const deleteDirectory = currentDirectory;
@@ -259,34 +272,35 @@ export function useSftpFileFolderViewer({
   );
 
   const deleteFiles = useCallback(
-    async (filenames: string[]): Promise<void> => {
-      if (filenames.length === 0) {
-        return;
+  async (filenames: string[]): Promise<void> => {
+    if (filenames.length === 0) {
+      return;
+    }
+
+    const deleteDirectory = currentDirectory;
+
+    try {
+      await deleteFilesRequest(filenames, deleteDirectory);
+
+      if (currentDirectoryRef.current === deleteDirectory) {
+        await changeDirectory(deleteDirectory);
       }
 
-      const deleteDirectory = currentDirectory;
-
-      try {
-        await Promise.all(
-          filenames.map((filename) =>
-            deleteFileRequest(filename, deleteDirectory),
-          ),
-        );
-
-        if (currentDirectoryRef.current === deleteDirectory) {
-          await changeDirectory(deleteDirectory);
-        }
-
-        showToast(
-          filenames.length === 1 ? "File deleted" : "Files deleted",
-          "success",
-        );
-      } catch {
-        showToast("Error deleting files", "error");
-      }
-    },
-    [currentDirectory, deleteFileRequest, changeDirectory, showToast],
-  );
+      showToast(
+        filenames.length === 1 ? "File deleted" : "Files deleted",
+        "success",
+      );
+    } catch {
+      showToast("Error deleting files", "error");
+    }
+  },
+  [
+    currentDirectory,
+    deleteFileRequest,
+    changeDirectory,
+    showToast,
+  ],
+);
 
   const renameFile = useCallback(
     async (filename: string, newFilename: string): Promise<void> => {

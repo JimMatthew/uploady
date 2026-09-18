@@ -8,6 +8,7 @@ import {
   archiveFolder,
   createFolder,
   deleteFile,
+  deleteFiles,
   deleteFolder,
   downloadFile,
   listDirectory,
@@ -208,6 +209,55 @@ export async function sftp_delete_file_post(
     console.error("Delete file error:", error);
 
     handleError(res, "Error deleting file");
+  }
+}
+
+export async function sftp_delete_files_post(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const body: unknown = req.body;
+
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    handleError(res, "Invalid request body", 400);
+    return;
+  }
+
+  const { serverId, currentDirectory, fileNames } = body as Record<
+    string,
+    unknown
+  >;
+
+  if (
+    typeof serverId !== "string" ||
+    !serverId ||
+    typeof currentDirectory !== "string" ||
+    !currentDirectory ||
+    !Array.isArray(fileNames) ||
+    fileNames.length === 0 ||
+    !fileNames.every(
+      (fileName): fileName is string =>
+        typeof fileName === "string" && fileName.length > 0,
+    )
+  ) {
+    handleError(res, "Missing or invalid required fields", 400);
+    return;
+  }
+
+  const filePaths = fileNames.map((fileName) =>
+    path.posix.join(currentDirectory, fileName),
+  );
+
+  try {
+    const results = await deleteFiles(serverId, filePaths);
+
+    res.status(200).json({
+      results,
+    });
+  } catch (error) {
+    console.error("Delete files error:", error);
+
+    handleError(res, "Error deleting files");
   }
 }
 

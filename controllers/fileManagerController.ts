@@ -10,7 +10,7 @@ import { shares, transferJobs, transferItems } from "../db";
 import { downloadFile } from "../services/sftpService";
 import { transferExecutor } from "../services/transferExecutor";
 import { ItemKind } from "../controllers/jobs/jobConstants";
-import { listLocalDir } from "../services/localFileService";
+import { deleteFiles, listLocalDir } from "../services/localFileService";
 import { LocalPasteRequest, parseTransferRequestFile } from "./transferRequest";
 
 const uploadsDir = path.resolve("uploads");
@@ -505,6 +505,50 @@ export async function delete_file_post(
     console.error("Delete file error:", error);
 
     nextError(next, "Error deleting file", 400);
+  }
+}
+
+export async function delete_files_post(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const body: unknown = req.body;
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Array.isArray(body)
+  ) {
+    nextError(next, "Invalid request body", 400);
+    return;
+  }
+
+  const { filePaths } = body as Record<string, unknown>;
+
+  if (
+    !Array.isArray(filePaths) ||
+    filePaths.length === 0 ||
+    !filePaths.every(
+      (filePath): filePath is string =>
+        typeof filePath === "string" &&
+        filePath.length > 0,
+    )
+  ) {
+    nextError(next, "Missing or invalid file paths", 400);
+    return;
+  }
+
+  try {
+    const results = await deleteFiles(filePaths);
+
+    res.status(200).json({
+      results,
+    });
+  } catch (error) {
+    console.error("Delete files error:", error);
+
+    nextError(next, "Error deleting files", 400);
   }
 }
 

@@ -21,6 +21,7 @@ import {
   rename_file_post,
   get_archive_folder,
   paste_files_post,
+  delete_files_post,
 } from "../controllers/fileManagerController";
 
 import {
@@ -49,6 +50,8 @@ router.post("/api/share", authenticateJWT, generate_share_link_post);
 router.post("/api/stop-sharing", authenticateJWT, stop_sharing_post);
 
 router.post("/api/delete/*", authenticateJWT, delete_file_post);
+
+router.post("/api/delete-files", authenticateJWT, delete_files_post);
 
 router.get("/api/download/*", authenticateJWT, download_file_get);
 

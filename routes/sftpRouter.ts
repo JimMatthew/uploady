@@ -13,6 +13,7 @@ import {
   sftp_delete_file_post,
   sftp_delete_folder_post,
   sftp_copy_files_post,
+  sftp_delete_files_post,
 } from "../controllers/sftpController";
 
 import { getServerStatsHandler } from "../services/serverStatsService";
@@ -64,6 +65,11 @@ router.post("/api/delete-server", authenticateJWT, sftp_delete_server_post);
 
 router.post("/api/delete-file", authenticateJWT, sftp_delete_file_post);
 
+router.post(
+  "/api/delete-files",
+  authenticateJWT,
+  sftp_delete_files_post,
+);
 router.post("/api/delete-folder", authenticateJWT, sftp_delete_folder_post);
 
 router.get("/api/servers/:serverId/public-key", sftp_get_server_public_key);

@@ -68,6 +68,11 @@ interface ErrorLike {
   message?: string;
 }
 
+export interface DeleteFileResult {
+  path: string;
+  success: boolean;
+  error?: string;
+}
 // ---------------------------------------------------------------------------
 // Error
 // ---------------------------------------------------------------------------
@@ -260,6 +265,34 @@ export async function deleteFile(
 ): Promise<void> {
   await withSftp(serverId, async (sftp) => {
     await sftp.delete(filePath);
+  });
+}
+
+export async function deleteFiles(
+  serverId: string,
+  filePaths: string[],
+): Promise<DeleteFileResult[]> {
+  return withSftp(serverId, async (sftp) => {
+    const results: DeleteFileResult[] = [];
+
+    for (const filePath of filePaths) {
+      try {
+        await sftp.delete(filePath);
+
+        results.push({
+          path: filePath,
+          success: true,
+        });
+      } catch (error) {
+        results.push({
+          path: filePath,
+          success: false,
+          error: error instanceof Error ? error.message : "Delete failed",
+        });
+      }
+    }
+
+    return results;
   });
 }
 
