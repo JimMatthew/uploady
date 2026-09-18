@@ -13,6 +13,7 @@ import {
   JobStatus,
   type JobStatus as JobStatusType,
 } from "../../../controllers/jobs/jobConstants";
+import { propIfPresent } from "../../../shared/utils/PropHelper";
 
 interface TransferJobRow {
   id: string;
@@ -55,36 +56,25 @@ function toTransferJob(row: TransferJobRow | null): TransferJob | null {
     type: row.type,
 
     destServerId: row.dest_server_id ?? null,
-
     destPath: row.dest_path,
 
     currentFile: row.current_file ?? null,
-
     totalFiles: row.total_files,
-
     completedFiles: row.completed_files,
-
     failedFiles: row.failed_files,
-
     totalBytes: row.total_bytes,
-
     transferredBytes: row.transferred_bytes,
-
     error: row.error ?? null,
-
     createdAt: new Date(row.created_at),
+    ...propIfPresent(
+      "startedAt",
+      row.started_at ? new Date(row.started_at) : undefined,
+    ),
 
-    ...(row.started_at
-      ? {
-          startedAt: new Date(row.started_at),
-        }
-      : {}),
-
-    ...(row.finished_at
-      ? {
-          finishedAt: new Date(row.finished_at),
-        }
-      : {}),
+    ...propIfPresent(
+      "finishedAt",
+      row.finished_at ? new Date(row.finished_at) : undefined,
+    ),
   };
 }
 
@@ -121,11 +111,8 @@ export class SqliteTransferJobStore extends TransferJobStore {
       `,
       id,
       data.status ?? JobStatus.QUEUED,
-
       data.type ?? "copy",
-
       data.destServerId != null ? String(data.destServerId) : null,
-
       data.destPath,
 
       null,
@@ -397,9 +384,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
     }
 
     const db = getDatabase();
-
     const normalizedIds = ids.map(String);
-
     const placeholders = normalizedIds.map(() => "?").join(", ");
 
     const result = await db.run(

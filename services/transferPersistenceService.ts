@@ -13,6 +13,14 @@ import type {
   TransferJobStore,
 } from "../db/stores/transferJobStore";
 
+/**
+ * Converts queued transfer events into batched persistence operations.
+ *
+ * Transfer execution updates its in-memory state immediately and emits
+ * persistence events without waiting on the database. This service groups
+ * those events into item and job updates so each store can persist them
+ * efficiently using its database-specific implementation.
+ */
 export class TransferPersistenceService {
   constructor(
     private readonly transferItems: TransferItemStore,

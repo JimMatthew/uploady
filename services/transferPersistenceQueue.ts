@@ -54,6 +54,11 @@ export class TransferPersistenceQueue {
     this.handler = handler;
   }
 
+  /**
+   * Adds a persistence event to the queue and schedules processing.
+   *
+   * Execution does not wait for the event to be persisted.
+   */
   enqueue(event: TransferPersistenceEvent): void {
     if (this.failure) {
       throw this.failure;
@@ -63,6 +68,12 @@ export class TransferPersistenceQueue {
     this.schedule();
   }
 
+  /**
+   * Waits until all queued persistence work has completed.
+   *
+   * Used as a durability barrier before a transfer job is finalized. If
+   * persistence has failed, the failure is propagated to the caller.
+   */
   flush(): Promise<void> {
     if (this.failure) {
       return Promise.reject(this.failure);
@@ -97,6 +108,11 @@ export class TransferPersistenceQueue {
     });
   }
 
+  /**
+   * Schedules queue processing for the next event-loop turn.
+   *
+   * Multiple enqueues before processing begins share the same scheduled run.
+   */
   private schedule(): void {
     if (this.processing || this.scheduled) {
       return;
@@ -110,6 +126,12 @@ export class TransferPersistenceQueue {
     });
   }
 
+  /**
+   * Persists queued events in batches until the queue is empty.
+   *
+   * Each batch contains every event currently waiting. Events that arrive
+   * while a batch is being persisted accumulate for the next batch.
+   */
   private async process(): Promise<void> {
     if (this.processing) {
       return;
@@ -123,6 +145,7 @@ export class TransferPersistenceQueue {
 
         const batchStartedAt = performance.now();
         const startedAt = new Date();
+
         console.log(
           `[TransferPersistence] batch start` +
             ` events=${batch.length}` +
@@ -160,6 +183,9 @@ export class TransferPersistenceQueue {
     }
   }
 
+  /**
+   * Resolves all callers currently waiting for the queue to flush.
+   */
   private resolveFlushWaiters(): void {
     const waiters = this.flushWaiters;
     this.flushWaiters = [];
@@ -169,6 +195,9 @@ export class TransferPersistenceQueue {
     }
   }
 
+  /**
+   * Rejects all pending flush callers when persistence fails.
+   */
   private rejectFlushWaiters(error: Error): void {
     const waiters = this.flushWaiters;
     this.flushWaiters = [];

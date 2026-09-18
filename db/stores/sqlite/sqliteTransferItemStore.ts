@@ -18,6 +18,7 @@ import {
 } from "../../sqlite/database";
 
 import { ItemStatus, ItemKind } from "../../../controllers/jobs/jobConstants";
+import { propIfPresent } from "../../../shared/utils/PropHelper";
 
 interface TransferItemRow {
   id: string;
@@ -61,6 +62,10 @@ interface CountRow {
   total: number;
 }
 
+/**
+ * Converts the SQLite row representation into the canonical TransferItem
+ * domain shape, including nullable fields and persisted date strings.
+ */
 function toTransferItem(row: TransferItemRow | null): TransferItem | null {
   if (!row) {
     return null;
@@ -71,18 +76,14 @@ function toTransferItem(row: TransferItemRow | null): TransferItem | null {
     jobId: String(row.job_id),
 
     sourceServerId: row.source_server_id ?? null,
-
     sourceType: row.source_type ?? "local",
 
-    ...(row.archive_path != null ? { archivePath: row.archive_path } : {}),
+    ...propIfPresent("archivePath", row.archive_path),
 
     filename: row.filename,
 
-    ...(row.source_path != null ? { sourcePath: row.source_path } : {}),
-
-    ...(row.destination_path != null
-      ? { destinationPath: row.destination_path }
-      : {}),
+    ...propIfPresent("sourcePath", row.source_path),
+    ...propIfPresent("destinationPath", row.destination_path),
 
     kind: row.kind,
     status: row.status,
@@ -92,15 +93,30 @@ function toTransferItem(row: TransferItemRow | null): TransferItem | null {
     size: row.size,
     bytesTransferred: row.bytes_transferred,
 
-    ...(row.started_at ? { startedAt: new Date(row.started_at) } : {}),
+    ...propIfPresent(
+      "startedAt",
+      row.started_at ? new Date(row.started_at) : null,
+    ),
 
-    ...(row.completed_at ? { completedAt: new Date(row.completed_at) } : {}),
+    ...propIfPresent(
+      "completedAt",
+      row.completed_at ? new Date(row.completed_at) : null,
+    ),
 
-    ...(row.error != null ? { error: row.error } : {}),
+    ...propIfPresent("error", row.error),
   };
 }
 
 export class SqliteTransferItemStore extends TransferItemStore {
+  /**
+   * Persists the complete result of transfer expansion in one transaction.
+   *
+   * This includes discovered file sizes, files created from directory
+   * expansion, removal of successful directory placeholders, and source
+   * items that failed during discovery.
+   *
+   * Expansion is fully durable before transfer execution begins.
+   */
   async persistExpansion(batch: TransferItemExpansionBatch): Promise<void> {
     const statements: SqliteTransactionStatement[] = [];
 
@@ -217,6 +233,14 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     await db.transaction(statements);
   }
+
+  /**
+   * Persists a batch of transfer execution state changes in one transaction.
+   *
+   * These updates originate from the transfer persistence queue, allowing
+   * multiple file start/completion/failure events to share one database
+   * transaction instead of performing a write for every event.
+   */
   async persistBatch(batch: TransferItemPersistenceBatch): Promise<void> {
     const statements: SqliteTransactionStatement[] = [];
 
@@ -280,6 +304,12 @@ export class SqliteTransferItemStore extends TransferItemStore {
     await db.transaction(statements);
   }
 
+  /**
+   * Creates multiple transfer items in a single transaction.
+   *
+   * IDs and default persistence values are assigned here so the returned
+   * TransferItems match the records written to SQLite.
+   */
   async createMany(items: CreateTransferItemData[]): Promise<TransferItem[]> {
     if (!items.length) {
       return [];
@@ -292,26 +322,18 @@ export class SqliteTransferItemStore extends TransferItemStore {
 
     for (const item of items) {
       const id = crypto.randomUUID();
-
       const jobId = String(item.jobId);
 
       const sourceServerId =
         item.sourceServerId != null ? String(item.sourceServerId) : null;
 
       const sourceType = item.sourceType ?? "local";
-
       const archivePath = item.archivePath ?? null;
-
       const sourcePath = item.sourcePath ?? null;
-
       const destinationPath = item.destinationPath ?? null;
-
       const kind = item.kind ?? ItemKind.FILE;
-
       const status = item.status ?? ItemStatus.PENDING;
-
       const size = item.size ?? 0;
-
       const bytesTransferred = item.bytesTransferred ?? 0;
 
       statements.push({
@@ -371,7 +393,6 @@ export class SqliteTransferItemStore extends TransferItemStore {
         filename: item.filename,
 
         ...(sourcePath != null ? { sourcePath } : {}),
-
         ...(destinationPath != null ? { destinationPath } : {}),
 
         kind,
@@ -523,6 +544,11 @@ export class SqliteTransferItemStore extends TransferItemStore {
     );
   }
 
+  /**
+   * Returns the distinct source server IDs used by each requested job.
+   *
+   * Local/archive sources are represented by a null server ID.
+   */
   async getSourceServerIdsByJobIds(
     jobIds: string[],
   ): Promise<Record<string, Array<string | null>>> {
@@ -555,6 +581,12 @@ export class SqliteTransferItemStore extends TransferItemStore {
     return result;
   }
 
+  /**
+   * Returns the distinct source type/server combinations used by each job.
+   *
+   * This preserves enough source information for callers to distinguish
+   * local, archive, and remote transfer sources.
+   */
   async getSourcesByJobIds(
     jobIds: string[],
   ): Promise<Record<string, TransferSource[]>> {
@@ -592,6 +624,10 @@ export class SqliteTransferItemStore extends TransferItemStore {
     return result;
   }
 
+  /**
+   * Returns one page of transfer items for a job with an optional status
+   * filter, along with the total number of items matching that filter.
+   */
   async findPageByJobId(
     jobId: string,
     { status, page, limit }: TransferItemPageOptions,
