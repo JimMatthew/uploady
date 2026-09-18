@@ -507,7 +507,6 @@ export async function delete_file_post(
     nextError(next, "Error deleting file", 400);
   }
 }
-
 export async function delete_files_post(
   req: Request,
   res: Response,
@@ -524,23 +523,30 @@ export async function delete_files_post(
     return;
   }
 
-  const { filePaths } = body as Record<string, unknown>;
+  const { currentDirectory, fileNames } = body as Record<
+    string,
+    unknown
+  >;
 
   if (
-    !Array.isArray(filePaths) ||
-    filePaths.length === 0 ||
-    !filePaths.every(
-      (filePath): filePath is string =>
-        typeof filePath === "string" &&
-        filePath.length > 0,
+    typeof currentDirectory !== "string" ||
+    !Array.isArray(fileNames) ||
+    fileNames.length === 0 ||
+    !fileNames.every(
+      (fileName): fileName is string =>
+        typeof fileName === "string" &&
+        fileName.length > 0,
     )
   ) {
-    nextError(next, "Missing or invalid file paths", 400);
+    nextError(next, "Missing or invalid required fields", 400);
     return;
   }
 
   try {
-    const results = await deleteFiles(filePaths);
+    const results = await deleteFiles(
+      currentDirectory,
+      fileNames,
+    );
 
     res.status(200).json({
       results,

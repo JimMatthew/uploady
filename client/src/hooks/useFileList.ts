@@ -42,21 +42,17 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // ---------------------------------------------------------------------------
   // Notifications
   // ---------------------------------------------------------------------------
-const showToast = useCallback(
-  (
-    title: string,
-    status: AppToastStatus,
-    description?: string,
-  ): void => {
-    toast({
-      title,
-      status,
-      duration: 3000,
-      ...(description !== undefined ? { description } : {}),
-    });
-  },
-  [toast],
-);
+  const showToast = useCallback(
+    (title: string, status: AppToastStatus, description?: string): void => {
+      toast({
+        title,
+        status,
+        duration: 3000,
+        ...(description !== undefined ? { description } : {}),
+      });
+    },
+    [toast],
+  );
 
   // ---------------------------------------------------------------------------
   // Transfer tracking
@@ -222,69 +218,101 @@ const showToast = useCallback(
   // ---------------------------------------------------------------------------
   // File operations
   // ---------------------------------------------------------------------------
- const deleteFilesRequest = useCallback(
-  async (names: string[], directory: string): Promise<void> => {
-    const filePaths = names.map((name) =>
-      directory ? `${directory}/${name}` : name,
-    );
 
-    await apiClient.post("/api/delete-files", {
-      filePaths,
-    });
-  },
-  [],
-);
+  interface DeleteFileResult {
+    path: string;
+    success: boolean;
+    error?: string;
+  }
+  interface DeleteFilesResponse {
+    results: DeleteFileResult[];
+  }
 
-const deleteFile = useCallback(
-  async (name: string): Promise<void> => {
-    if (relativePath == null) {
-      return;
-    }
-
-    const deleteDirectory = relativePath;
-
-    try {
-      await deleteFilesRequest([name], deleteDirectory);
-
-      if (relativePath === deleteDirectory) {
-        await reload();
-      }
-
-      showToast("File deleted", "success");
-    } catch (error: unknown) {
-      console.error("Error deleting file:", error);
-      showToast("Error deleting file", "error");
-    }
-  },
-  [relativePath, deleteFilesRequest, reload, showToast],
-);
-
-const deleteFiles = useCallback(
-  async (names: string[]): Promise<void> => {
-    if (relativePath == null || names.length === 0) {
-      return;
-    }
-
-    const deleteDirectory = relativePath;
-
-    try {
-      await deleteFilesRequest(names, deleteDirectory);
-
-      if (relativePath === deleteDirectory) {
-        await reload();
-      }
-
-      showToast(
-        names.length === 1 ? "File deleted" : "Files deleted",
-        "success",
+  const deleteFilesRequest = useCallback(
+    async (
+      names: string[],
+      directory: string,
+    ): Promise<DeleteFilesResponse> => {
+      const response = await apiClient.post<DeleteFilesResponse>(
+        "/api/delete-files",
+        {
+          currentDirectory: directory,
+          fileNames: names,
+        },
       );
-    } catch (error: unknown) {
-      console.error("Error deleting files:", error);
-      showToast("Error deleting files", "error");
-    }
-  },
-  [relativePath, deleteFilesRequest, reload, showToast],
-);
+
+      return response;
+    },
+    [],
+  );
+
+  const deleteFile = useCallback(
+    async (name: string): Promise<void> => {
+      if (relativePath == null) {
+        return;
+      }
+
+      const deleteDirectory = relativePath;
+
+      try {
+        await deleteFilesRequest([name], deleteDirectory);
+
+        if (relativePath === deleteDirectory) {
+          await reload();
+        }
+
+        showToast("File deleted", "success");
+      } catch (error: unknown) {
+        console.error("Error deleting file:", error);
+        showToast("Error deleting file", "error");
+      }
+    },
+    [relativePath, deleteFilesRequest, reload, showToast],
+  );
+  const deleteFiles = useCallback(
+    async (names: string[]): Promise<void> => {
+      if (relativePath == null || names.length === 0) {
+        return;
+      }
+
+      const deleteDirectory = relativePath;
+
+      try {
+        const { results } = await deleteFilesRequest(names, deleteDirectory);
+
+        if (relativePath === deleteDirectory) {
+          await reload();
+        }
+
+        const succeeded = results.filter((result) => result.success).length;
+
+        const failed = results.length - succeeded;
+
+        if (failed === 0) {
+          showToast(
+            names.length === 1 ? "File deleted" : `${succeeded} files deleted`,
+            "success",
+          );
+        } else if (succeeded === 0) {
+          showToast(
+            "Error deleting files",
+            "error",
+            `Failed to delete ${failed} ${failed === 1 ? "file" : "files"}`,
+          );
+        } else {
+          showToast(
+            "Some files could not be deleted",
+            "warning",
+            `${succeeded} deleted, ${failed} failed`,
+          );
+        }
+      } catch (error: unknown) {
+        console.error("Error deleting files:", error);
+        showToast("Error deleting files", "error");
+      }
+    },
+    [relativePath, deleteFilesRequest, reload, showToast],
+  );
 
   const renameFile = useCallback(
     async (name: string, newName: string): Promise<void> => {

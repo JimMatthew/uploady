@@ -102,15 +102,31 @@ export function resolveLocalPath(relativePath: string): string {
   return resolved;
 }
 
+function resolveUploadPath(relativePath: string): string {
+  const root = path.resolve(uploadsDir);
+  const resolved = path.resolve(root, relativePath);
+
+  if (!resolved.startsWith(root + path.sep)) {
+    throw new Error("Invalid file path");
+  }
+
+  return resolved;
+}
+
 export async function deleteFiles(
-  relativeFilePaths: string[],
+  currentDirectory: string,
+  fileNames: string[],
 ): Promise<DeleteFileResult[]> {
   const results: DeleteFileResult[] = [];
 
-  for (const relativeFilePath of relativeFilePaths) {
+  for (const fileName of fileNames) {
+    const relativeFilePath = path.join(
+      currentDirectory,
+      fileName,
+    );
+
     try {
-      const absoluteFilePath = path.join(
-        uploadsDir,
+      const absoluteFilePath = resolveUploadPath(
         relativeFilePath,
       );
 
