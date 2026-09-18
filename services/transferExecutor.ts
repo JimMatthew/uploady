@@ -12,6 +12,7 @@ import type {
   InMemoryTransferJob,
   TransferRoot,
 } from "../types/transferTypes";
+
 // ---------------------------------------------------------------------------
 // Transfer Executor
 // ---------------------------------------------------------------------------
@@ -129,8 +130,24 @@ class TransferExecutor extends EventEmitter {
       return;
     }
 
+    /*
+     * Expansion may already have placed some items into a terminal FAILED
+     * state. Those items remain part of the job history/accounting, but they
+     * must not be executed again.
+     */
+    const executableDocs = itemDocs.filter(
+      (item) => item.status === ItemStatus.PENDING,
+    );
+
+    const expansionFailedDocs = itemDocs.filter(
+      (item) => item.status === ItemStatus.FAILED,
+    );
+
+    /*
+     * The execution map contains only items that are actually eligible to run.
+     */
     const items = new Map<string, InMemoryTransferItem>(
-      itemDocs.map((doc) => [
+      executableDocs.map((doc) => [
         doc._id,
         {
           itemId: doc._id,
@@ -160,14 +177,19 @@ class TransferExecutor extends EventEmitter {
       ]),
     );
 
+    /*
+     * Roots are built from every concrete file produced by expansion, not
+     * just the executable files. This preserves failures discovered during
+     * expansion in the root totals and failure counts.
+     */
     const roots = new Map<string, TransferRoot>();
 
-    for (const item of items.values()) {
-      let root = roots.get(item.rootItem);
+    for (const doc of itemDocs) {
+      let root = roots.get(doc.rootItem);
 
       if (!root) {
         root = {
-          rootItem: item.rootItem,
+          rootItem: doc.rootItem,
           totalFiles: 0,
           completedFiles: 0,
           failedFiles: 0,
@@ -175,20 +197,37 @@ class TransferExecutor extends EventEmitter {
           error: null,
         };
 
-        roots.set(item.rootItem, root);
+        roots.set(doc.rootItem, root);
       }
 
       root.totalFiles++;
+
+      if (doc.status === ItemStatus.FAILED) {
+        root.failedFiles++;
+
+        if (doc.error) {
+          root.error = doc.error;
+        }
+      }
     }
 
+    const expansionFailedFiles = expansionFailedDocs.length;
+
+    /*
+     * Expansion owns totalFiles/totalBytes. At this point jobDoc contains the
+     * canonical totals persisted by expansion.
+     *
+     * Execution owns the live counters from here forward. Failures already
+     * discovered during expansion become the initial failed count.
+     */
     const job: InMemoryTransferJob = {
       jobId,
       status: JobStatus.RUNNING,
       destServerId: jobDoc.destServerId,
       destPath: jobDoc.destPath,
-      totalFiles: items.size,
+      totalFiles: jobDoc.totalFiles,
       completedFiles: 0,
-      failedFiles: 0,
+      failedFiles: expansionFailedFiles,
       currentFile: null,
       stopRequested: false,
       roots,
@@ -197,7 +236,13 @@ class TransferExecutor extends EventEmitter {
 
     this.activeJobs.set(jobId, job);
 
-    await transferJobs.markRunning(jobId, items.size);
+    /*
+     * Do not replace totalFiles here with items.size.
+     *
+     * items.size is only the number of executable files. Expansion has already
+     * calculated and persisted the canonical job total.
+     */
+    await transferJobs.markRunning(jobId);
 
     const persistenceService = new TransferPersistenceService(
       transferItems,
@@ -207,6 +252,7 @@ class TransferExecutor extends EventEmitter {
     const persistenceQueue = new TransferPersistenceQueue(
       persistenceService.handle,
     );
+
     this.emit(`jobStart:${jobId}`, {
       roots: [...job.roots.values()],
     });
@@ -342,7 +388,6 @@ class TransferExecutor extends EventEmitter {
 
         root.completedFiles++;
 
-        
         persistenceQueue.enqueue({
           type: "file_completed",
           jobId: job.jobId,

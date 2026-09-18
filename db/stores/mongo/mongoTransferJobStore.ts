@@ -131,23 +131,18 @@ export class MongoTransferJobStore extends TransferJobStore {
     return toTransferJob(job as MongoTransferJob | null);
   }
 
-  async markRunning(
-    id: string,
-    totalFiles: number,
-  ): Promise<TransferJob | null> {
+  async markRunning(id: string): Promise<TransferJob | null> {
     const job = await TransferJobModel.findByIdAndUpdate(
       id,
       {
-        status: JobStatus.RUNNING,
-
-        totalFiles,
+        $set: {
+          status: JobStatus.RUNNING,
+        },
       },
-      {
-        new: true,
-      },
-    ).lean();
+      { new: true },
+    );
 
-    return toTransferJob(job as MongoTransferJob | null);
+    return job ? toTransferJob(job) : null;
   }
 
   async markFailed(id: string, error: string): Promise<TransferJob | null> {
@@ -225,12 +220,14 @@ export class MongoTransferJobStore extends TransferJobStore {
     id: string,
     totalFiles: number,
     totalBytes: number,
+    totalFailed: number,
   ): Promise<TransferJob | null> {
     const job = await TransferJobModel.findByIdAndUpdate(
       id,
       {
         totalFiles,
         totalBytes,
+        totalFailed,
       },
       {
         new: true,

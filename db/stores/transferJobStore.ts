@@ -49,10 +49,7 @@ export abstract class TransferJobStore {
 
   abstract markExpanding(id: string): Promise<TransferJob | null>;
 
-  abstract markRunning(
-    id: string,
-    totalFiles: number,
-  ): Promise<TransferJob | null>;
+  abstract markRunning(id: string): Promise<TransferJob | null>;
 
   abstract markFailed(id: string, error: string): Promise<TransferJob | null>;
 
@@ -72,6 +69,7 @@ export abstract class TransferJobStore {
     id: string,
     totalFiles: number,
     totalBytes: number,
+    totalFailed: number,
   ): Promise<TransferJob | null>;
 
   abstract finish(id: string, status: JobStatus): Promise<TransferJob | null>;
@@ -84,7 +82,5 @@ export abstract class TransferJobStore {
 
   abstract deleteByIds(ids: string[]): Promise<number>;
 
-  abstract persistBatch(
-  batch: TransferJobPersistenceBatch,
-): Promise<void>;
+  abstract persistBatch(batch: TransferJobPersistenceBatch): Promise<void>;
 }

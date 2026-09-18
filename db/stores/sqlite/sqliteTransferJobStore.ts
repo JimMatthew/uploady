@@ -4,7 +4,7 @@ import {
   TransferJobStore,
   type CreateTransferJobData,
   type TransferJob,
-  TransferJobPersistenceBatch
+  TransferJobPersistenceBatch,
 } from "../transferJobStore";
 
 import { getDatabase } from "../../sqlite/database";
@@ -165,13 +165,11 @@ export class SqliteTransferJobStore extends TransferJobStore {
     return toTransferJob(row);
   }
 
-  async persistBatch(
-  batch: TransferJobPersistenceBatch,
-): Promise<void> {
-  const db = getDatabase();
+  async persistBatch(batch: TransferJobPersistenceBatch): Promise<void> {
+    const db = getDatabase();
 
-  await db.run(
-    `
+    await db.run(
+      `
       UPDATE transfer_jobs
       SET
         current_file = COALESCE(?, current_file),
@@ -180,13 +178,13 @@ export class SqliteTransferJobStore extends TransferJobStore {
         failed_files = failed_files + ?
       WHERE id = ?
     `,
-    batch.currentFile ?? null,
-    batch.completedFiles,
-    batch.transferredBytes,
-    batch.failedFiles,
-    batch.jobId,
-  );
-}
+      batch.currentFile ?? null,
+      batch.completedFiles,
+      batch.transferredBytes,
+      batch.failedFiles,
+      batch.jobId,
+    );
+  }
   async markExpanding(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
@@ -206,22 +204,16 @@ export class SqliteTransferJobStore extends TransferJobStore {
     return this.findById(id);
   }
 
-  async markRunning(
-    id: string,
-    totalFiles: number,
-  ): Promise<TransferJob | null> {
+  async markRunning(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
     await db.run(
       `
-        UPDATE transfer_jobs
-        SET
-          status = ?,
-          total_files = ?
-        WHERE id = ?
-      `,
+      UPDATE transfer_jobs
+      SET status = ?
+      WHERE id = ?
+    `,
       JobStatus.RUNNING,
-      totalFiles,
       id,
     );
 
@@ -311,6 +303,7 @@ export class SqliteTransferJobStore extends TransferJobStore {
     id: string,
     totalFiles: number,
     totalBytes: number,
+    totalFailed: number,
   ): Promise<TransferJob | null> {
     const db = getDatabase();
 
@@ -319,11 +312,13 @@ export class SqliteTransferJobStore extends TransferJobStore {
         UPDATE transfer_jobs
         SET
           total_files = ?,
-          total_bytes = ?
+          total_bytes = ?,
+          failed_files = ?
         WHERE id = ?
       `,
       totalFiles,
       totalBytes,
+      totalFailed,
       id,
     );
 

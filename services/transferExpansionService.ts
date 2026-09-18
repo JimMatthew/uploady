@@ -25,6 +25,40 @@ interface WalkedFile {
   size: number;
 }
 
+interface ErrorWithCode extends Error {
+  code?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Error Handling
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when an error represents an expected source-access failure
+ * that should fail only the affected transfer item.
+ *
+ * Unexpected application/programming errors are allowed to escape and abort
+ * expansion.
+ */
+function isSourceAccessError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const code = (error as ErrorWithCode).code;
+
+  return (
+    code === "ENOENT" ||
+    code === "EACCES" ||
+    code === "EPERM" ||
+    code === "ENOTDIR"
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown source access error";
+}
+
 // ---------------------------------------------------------------------------
 // Remote Walking
 // ---------------------------------------------------------------------------
@@ -149,20 +183,25 @@ async function walkArchiveDir(
  * Expansion is performed in two phases:
  *
  * 1. Discover the complete expansion result in memory.
- * 2. Persist all size updates, new file items, and removed directory
- *    placeholders as a single store-level expansion batch.
+ * 2. Persist all size updates, new file items, removed directory
+ *    placeholders, and expected source failures as a single store-level
+ *    expansion batch.
+ *
+ * Source-access failures affect only the item that could not be expanded.
+ * Other items continue through planning normally.
+ *
+ * Unexpected application or infrastructure failures abort expansion.
  *
  * Execution must not begin until this function completes. Unlike transfer
  * execution persistence, expansion is not eventually consistent: the complete
- * canonical execution plan is persisted before returning.
- *
- * When expansion is complete, totalFiles and totalBytes are recalculated from
- * the resulting file items stored in the database.
+ * execution plan is persisted before returning.
  */
 export async function expandJobItems(jobId: string): Promise<void> {
-  const startedAt = performance.now();
   const items = await transferItems.findByJobId(jobId);
-  const loadDoneAt = performance.now();
+
+  let totalFiles = 0;
+  let totalBytes = 0;
+
   /*
    * null represents a local/archive source with no
    * remote source server.
@@ -185,6 +224,7 @@ export async function expandJobItems(jobId: string): Promise<void> {
     sizeUpdates: [],
     newItems: [],
     deleteIds: [],
+    failures: [],
   };
 
   for (const [sourceServerId, sourceItems] of grouped) {
@@ -194,135 +234,149 @@ export async function expandJobItems(jobId: string): Promise<void> {
 
     try {
       for (const item of sourceItems) {
-        // ---------------------------------------------------------------
-        // Direct File
-        // ---------------------------------------------------------------
+        try {
+          // -------------------------------------------------------------
+          // Direct File
+          // -------------------------------------------------------------
 
-        if (item.kind === ItemKind.FILE) {
-          let size: number;
+          if (item.kind === ItemKind.FILE) {
+            let size: number;
 
-          if (item.sourceType === "archive") {
-            if (!item.archivePath || !item.sourcePath) {
-              throw new Error(`Invalid archive transfer item: ${item._id}`);
+            if (item.sourceType === "archive") {
+              if (!item.archivePath || !item.sourcePath) {
+                throw new Error(`Invalid archive transfer item: ${item._id}`);
+              }
+
+              const entries = await listZip(item.archivePath);
+
+              const archiveEntry = entries.find(
+                (entry) => entry.name === item.sourcePath,
+              );
+
+              if (!archiveEntry) {
+                const error = new Error(
+                  `Archive entry not found: ${item.sourcePath}`,
+                ) as ErrorWithCode;
+
+                error.code = "ENOENT";
+
+                throw error;
+              }
+
+              size = archiveEntry.size;
+            } else if (isLocal) {
+              if (!item.sourcePath) {
+                throw new Error(
+                  `Missing source path for transfer item: ${item._id}`,
+                );
+              }
+
+              size = fs.statSync(item.sourcePath).size;
+            } else {
+              if (!sftp || !item.sourcePath) {
+                throw new Error(`Invalid remote transfer item: ${item._id}`);
+              }
+
+              size = (await sftp.stat(item.sourcePath)).size;
             }
 
-            const entries = await listZip(item.archivePath);
+            expansionBatch.sizeUpdates.push({
+              id: item._id,
+              size,
+            });
 
-            const archiveEntry = entries.find(
-              (entry) => entry.name === item.sourcePath,
-            );
+            totalFiles += 1;
+            totalBytes += size;
 
-            if (!archiveEntry) {
-              throw new Error(`Archive entry not found: ${item.sourcePath}`);
+            continue;
+          }
+
+          // -------------------------------------------------------------
+          // Directory
+          // -------------------------------------------------------------
+
+          if (item.kind === ItemKind.DIRECTORY) {
+            if (!item.sourcePath || !item.destinationPath) {
+              throw new Error(`Invalid directory transfer item: ${item._id}`);
             }
 
-            size = archiveEntry.size;
-          } else if (isLocal) {
-            if (!item.sourcePath) {
-              throw new Error(
-                `Missing source path for transfer item: ${item._id}`,
+            let walked: WalkedFile[];
+
+            if (item.sourceType === "archive") {
+              if (!item.archivePath) {
+                throw new Error(
+                  `Missing archive path for transfer item: ${item._id}`,
+                );
+              }
+
+              walked = await walkArchiveDir(
+                item.archivePath,
+                item.sourcePath,
+                item.destinationPath,
+              );
+            } else if (isLocal) {
+              walked = walkLocalDir(item.sourcePath, item.destinationPath);
+            } else {
+              if (!sftp) {
+                throw new Error(
+                  `Missing SFTP connection for transfer item: ${item._id}`,
+                );
+              }
+
+              walked = await walkSftpDir(
+                sftp,
+                item.sourcePath,
+                item.destinationPath,
               );
             }
 
-            size = fs.statSync(item.sourcePath).size;
-          } else {
-            if (!sftp || !item.sourcePath) {
-              throw new Error(`Invalid remote transfer item: ${item._id}`);
+            for (const file of walked) {
+              expansionBatch.newItems.push({
+                jobId,
+                sourceType: item.sourceType,
+                sourceServerId,
+                archivePath: item.archivePath,
+                filename: file.filename,
+                rootItem: item.rootItem,
+                sourcePath: file.sourcePath,
+                destinationPath: file.destinationPath,
+                size: file.size,
+                kind: ItemKind.FILE,
+              });
+
+              totalFiles += 1;
+              totalBytes += file.size;
             }
 
-            size = (await sftp.stat(item.sourcePath)).size;
+            expansionBatch.deleteIds.push(item._id);
+          }
+        } catch (error) {
+          if (!isSourceAccessError(error)) {
+            throw error;
           }
 
-          expansionBatch.sizeUpdates.push({
+          expansionBatch.failures.push({
             id: item._id,
-            size,
+            error: getErrorMessage(error),
+            failedAt: new Date(),
           });
 
-          continue;
-        }
-
-        // ---------------------------------------------------------------
-        // Directory
-        // ---------------------------------------------------------------
-
-        if (item.kind === ItemKind.DIRECTORY) {
-          if (!item.sourcePath || !item.destinationPath) {
-            throw new Error(`Invalid directory transfer item: ${item._id}`);
+          if (item.kind === ItemKind.FILE) {
+            totalFiles += 1;
           }
-
-          let walked: WalkedFile[];
-
-          if (item.sourceType === "archive") {
-            if (!item.archivePath) {
-              throw new Error(
-                `Missing archive path for transfer item: ${item._id}`,
-              );
-            }
-
-            walked = await walkArchiveDir(
-              item.archivePath,
-              item.sourcePath,
-              item.destinationPath,
-            );
-          } else if (isLocal) {
-            walked = walkLocalDir(item.sourcePath, item.destinationPath);
-          } else {
-            if (!sftp) {
-              throw new Error(
-                `Missing SFTP connection for transfer item: ${item._id}`,
-              );
-            }
-
-            walked = await walkSftpDir(
-              sftp,
-              item.sourcePath,
-              item.destinationPath,
-            );
-          }
-
-          for (const file of walked) {
-            expansionBatch.newItems.push({
-              jobId,
-              sourceType: item.sourceType,
-              sourceServerId,
-              archivePath: item.archivePath,
-              filename: file.filename,
-              rootItem: item.rootItem,
-              sourcePath: file.sourcePath,
-              destinationPath: file.destinationPath,
-              size: file.size,
-              kind: ItemKind.FILE,
-            });
-          }
-
-          expansionBatch.deleteIds.push(item._id);
         }
       }
     } finally {
       await sftp?.end();
     }
   }
-  const discoveryDoneAt = performance.now();
+
   await transferItems.persistExpansion(expansionBatch);
 
-  const allFileItems = await transferItems.findFilesByJobId(jobId);
-  const persistDoneAt = performance.now();
-  const totalFiles = allFileItems.length;
-  const reloadDoneAt = performance.now();
-  const totalBytes = allFileItems.reduce((sum, item) => sum + item.size, 0);
-
-  await transferJobs.updateTotals(jobId, totalFiles, totalBytes);
-  const finishedAt = performance.now();
-  console.log(
-    `[TransferExpansion] complete` +
-      ` total=${(finishedAt - startedAt).toFixed(2)}ms` +
-      ` load=${(loadDoneAt - startedAt).toFixed(2)}ms` +
-      ` discovery=${(discoveryDoneAt - loadDoneAt).toFixed(2)}ms` +
-      ` persist=${(persistDoneAt - discoveryDoneAt).toFixed(2)}ms` +
-      ` reload=${(reloadDoneAt - persistDoneAt).toFixed(2)}ms` +
-      ` totals=${(finishedAt - reloadDoneAt).toFixed(2)}ms` +
-      ` sizeUpdates=${expansionBatch.sizeUpdates.length}` +
-      ` newItems=${expansionBatch.newItems.length}` +
-      ` deletedPlaceholders=${expansionBatch.deleteIds.length}`,
+  await transferJobs.updateTotals(
+    jobId,
+    totalFiles,
+    totalBytes,
+    expansionBatch.failures.length,
   );
 }

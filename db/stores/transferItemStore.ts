@@ -98,6 +98,12 @@ export interface TransferItemExpansionBatch {
   newItems: CreateTransferItemData[];
 
   deleteIds: string[];
+
+  failures: Array<{
+    id: string;
+    error: string;
+    failedAt: Date;
+  }>;
 }
 
 export abstract class TransferItemStore {
