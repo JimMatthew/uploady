@@ -4,7 +4,7 @@ import { joinPath } from "../utils/path";
 import apiClient, { ApiError } from "../services/apiClient";
 import { useClipboard } from "../contexts/ClipboardContext";
 import { useTransferJob } from "../hooks/useTransferJob";
-import type { AppToast, AppToastStatus } from "./useAppToast";
+import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
 
 import type {
   BreadcrumbEntry,
@@ -42,13 +42,27 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // ---------------------------------------------------------------------------
   // Notifications
   // ---------------------------------------------------------------------------
+  interface ShowToastOptions {
+    persistent?: boolean;
+    details?: AppToastDetail[];
+  }
+
   const showToast = useCallback(
-    (title: string, status: AppToastStatus, description?: string): void => {
+    (
+      title: string,
+      status: AppToastStatus,
+      description?: string,
+      options?: ShowToastOptions,
+    ): void => {
       toast({
         title,
         status,
         duration: 3000,
         ...(description !== undefined ? { description } : {}),
+        ...(options?.persistent !== undefined
+          ? { persistent: options.persistent }
+          : {}),
+        ...(options?.details !== undefined ? { details: options.details } : {}),
       });
     },
     [toast],
@@ -269,6 +283,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [relativePath, deleteFilesRequest, reload, showToast],
   );
+
   const deleteFiles = useCallback(
     async (names: string[]): Promise<void> => {
       if (relativePath == null || names.length === 0) {
@@ -286,7 +301,9 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
         const succeeded = results.filter((result) => result.success).length;
 
-        const failed = results.length - succeeded;
+        const failedResults = results.filter((result) => !result.success);
+
+        const failed = failedResults.length;
 
         if (failed === 0) {
           showToast(
@@ -298,22 +315,43 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
             "Error deleting files",
             "error",
             `Failed to delete ${failed} ${failed === 1 ? "file" : "files"}`,
+            {
+              persistent: true,
+              details: failedResults.map((result) => ({
+                label: result.path,
+                message: result.error ?? "Delete failed",
+              })),
+            },
           );
         } else {
           showToast(
             "Some files could not be deleted",
             "warning",
             `${succeeded} deleted, ${failed} failed`,
+            {
+              persistent: true,
+              details: failedResults.map((result) => ({
+                label: result.path,
+                message: result.error ?? "Delete failed",
+              })),
+            },
           );
         }
       } catch (error: unknown) {
         console.error("Error deleting files:", error);
-        showToast("Error deleting files", "error");
+
+        showToast(
+          "Error deleting files",
+          "error",
+          error instanceof Error ? error.message : "Delete request failed",
+          {
+            persistent: true,
+          },
+        );
       }
     },
     [relativePath, deleteFilesRequest, reload, showToast],
   );
-
   const renameFile = useCallback(
     async (name: string, newName: string): Promise<void> => {
       if (!name || !newName || relativePath == null) {

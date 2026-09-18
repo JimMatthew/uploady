@@ -10,7 +10,7 @@ import type {
   FileListing,
 } from "../types/fileBrowser";
 
-import type { AppToast, AppToastStatus } from "./useAppToast";
+import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
 import { propIfPresent } from "../utils/propHelper";
 
 interface SftpDirectoryResponse extends FileListing {
@@ -31,7 +31,10 @@ const EMPTY_DIRECTORY: SftpDirectoryResponse = {
   files: [],
   folders: [],
 };
-
+interface ShowToastOptions {
+  persistent?: boolean;
+  details?: AppToastDetail[];
+}
 export function useSftpFileFolderViewer({
   serverId,
   toast,
@@ -41,12 +44,19 @@ export function useSftpFileFolderViewer({
   const currentDirectoryRef = useRef("/");
   const [error, setError] = useState<string | null>(null);
   const showToast = useCallback(
-    (title: string, status: AppToastStatus, description?: string): void => {
+    (
+      title: string,
+      status: AppToastStatus,
+      description?: string,
+      options?: ShowToastOptions,
+    ): void => {
       toast({
         title,
         ...propIfPresent("description", description),
         status,
         duration: 3000,
+        ...propIfPresent("persistent", options?.persistent),
+        ...propIfPresent("details", options?.details),
       });
     },
     [toast],
@@ -258,6 +268,7 @@ export function useSftpFileFolderViewer({
     },
     [serverId],
   );
+  
   const deleteFile = useCallback(
     async (filename: string): Promise<void> => {
       const deleteDirectory = currentDirectory;
@@ -286,6 +297,7 @@ export function useSftpFileFolderViewer({
     },
     [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
   );
+
   const deleteFiles = useCallback(
     async (filenames: string[]): Promise<void> => {
       if (filenames.length === 0) {
@@ -306,7 +318,9 @@ export function useSftpFileFolderViewer({
 
         const succeeded = results.filter((result) => result.success).length;
 
-        const failed = results.length - succeeded;
+        const failedResults = results.filter((result) => !result.success);
+
+        const failed = failedResults.length;
 
         if (failed === 0) {
           showToast(
@@ -320,17 +334,39 @@ export function useSftpFileFolderViewer({
             "Error deleting files",
             "error",
             `Failed to delete ${failed} ${failed === 1 ? "file" : "files"}`,
+            {
+              persistent: true,
+              details: failedResults.map((result) => ({
+                label: result.path,
+                message: result.error ?? "Delete failed",
+              })),
+            },
           );
         } else {
           showToast(
             "Some files could not be deleted",
             "warning",
             `${succeeded} deleted, ${failed} failed`,
+            {
+              persistent: true,
+              details: failedResults.map((result) => ({
+                label: result.path,
+                message: result.error ?? "Delete failed",
+              })),
+            },
           );
         }
       } catch (error: unknown) {
         console.error("Error deleting files:", error);
-        showToast("Error deleting files", "error");
+
+        showToast(
+          "Error deleting files",
+          "error",
+          error instanceof Error ? error.message : "Delete request failed",
+          {
+            persistent: true,
+          },
+        );
       }
     },
     [currentDirectory, deleteFilesRequest, changeDirectory, showToast],

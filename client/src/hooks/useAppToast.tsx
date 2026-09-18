@@ -1,7 +1,22 @@
-import { useCallback } from "react";
-import { Box, Text, useToast } from "@chakra-ui/react";
+import { useCallback, useState } from "react";
+import {
+  Box,
+  Button,
+  CloseButton,
+  Text,
+  useToast,
+} from "@chakra-ui/react";
 
-export type AppToastStatus = "error" | "success" | "warning" | "info";
+export type AppToastStatus =
+  | "error"
+  | "success"
+  | "warning"
+  | "info";
+
+export interface AppToastDetail {
+  label: string;
+  message: string;
+}
 
 interface StatusStyle {
   border: string;
@@ -14,6 +29,16 @@ interface AppToastOptions {
   description?: string;
   status?: AppToastStatus;
   duration?: number;
+  persistent?: boolean;
+  details?: AppToastDetail[];
+}
+
+interface AppToastContentProps {
+  title?: string | undefined;
+  description?: string | undefined;
+  status: AppToastStatus;
+  details?: AppToastDetail[] | undefined;
+  onClose: () => void;
 }
 
 const STATUS_STYLES: Record<AppToastStatus, StatusStyle> = {
@@ -40,6 +65,145 @@ const STATUS_STYLES: Record<AppToastStatus, StatusStyle> = {
 };
 
 const DEFAULT_STATUS: AppToastStatus = "info";
+const DEFAULT_DURATION = 2500;
+
+function AppToastContent({
+  title,
+  description,
+  status,
+  details,
+  onClose,
+}: AppToastContentProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const style = STATUS_STYLES[status];
+  const hasDetails = details != null && details.length > 0;
+
+  return (
+    <Box
+      px={4}
+      py={3}
+      bg="rgba(22,26,38,0.98)"
+      backdropFilter="blur(20px)"
+      border="1px solid"
+      borderColor={style.border}
+      borderRadius="10px"
+      boxShadow="0 8px 32px rgba(0,0,0,0.4)"
+      minW="260px"
+      maxW="420px"
+    >
+      <Box
+        display="flex"
+        alignItems="flex-start"
+        gap={3}
+      >
+        <Box
+          w="8px"
+          h="8px"
+          mt="5px"
+          flexShrink={0}
+          borderRadius="full"
+          bg={style.dot}
+          boxShadow={`0 0 10px ${style.glow}`}
+        />
+
+        <Box flex={1} minW={0}>
+          {title && (
+            <Text
+              fontSize="13px"
+              fontWeight={600}
+              color="rgba(255,255,255,0.88)"
+              letterSpacing="-0.01em"
+              fontFamily="'JetBrains Mono', monospace"
+              noOfLines={1}
+            >
+              {title}
+            </Text>
+          )}
+
+          {description && (
+            <Text
+              mt="2px"
+              fontSize="12px"
+              color="rgba(255,255,255,0.45)"
+               {...(!expanded && { noOfLines: 2 })}
+            >
+              {description}
+            </Text>
+          )}
+
+          {hasDetails && (
+            <Button
+              mt={2}
+              p={0}
+              h="auto"
+              minW={0}
+              variant="link"
+              fontSize="11px"
+              fontWeight={500}
+              color="rgba(255,255,255,0.55)"
+              _hover={{
+                color: "rgba(255,255,255,0.85)",
+                textDecoration: "none",
+              }}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? "Hide details" : "Show details"}
+            </Button>
+          )}
+        </Box>
+
+        <CloseButton
+          size="sm"
+          flexShrink={0}
+          color="rgba(255,255,255,0.4)"
+          _hover={{
+            color: "rgba(255,255,255,0.85)",
+            bg: "rgba(255,255,255,0.08)",
+          }}
+          onClick={onClose}
+        />
+      </Box>
+
+      {hasDetails && expanded && (
+        <Box
+          mt={3}
+          pt={3}
+          borderTop="1px solid"
+          borderColor="rgba(255,255,255,0.08)"
+          maxH="220px"
+          overflowY="auto"
+        >
+          {details.map((detail, index) => (
+            <Box
+              key={`${detail.label}-${index}`}
+              mb={index < details.length - 1 ? 3 : 0}
+            >
+              <Text
+                fontSize="11px"
+                fontWeight={600}
+                color="rgba(255,255,255,0.75)"
+                fontFamily="'JetBrains Mono', monospace"
+                wordBreak="break-word"
+              >
+                {detail.label}
+              </Text>
+
+              <Text
+                mt="2px"
+                fontSize="11px"
+                color="rgba(255,255,255,0.45)"
+                wordBreak="break-word"
+              >
+                {detail.message}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+}
 
 export type AppToast = (
   options: AppToastOptions,
@@ -53,73 +217,28 @@ const useAppToast = (): AppToast => {
       title,
       description,
       status = DEFAULT_STATUS,
-      duration = 2500,
+      duration = DEFAULT_DURATION,
+      persistent = false,
+      details,
     }: AppToastOptions) => {
-      const style = STATUS_STYLES[status];
-
       return toast({
         title,
         description,
         status,
-        duration,
-        isClosable: true,
+        duration: persistent ? null : duration,
         position: "bottom",
         containerStyle: {
           marginBottom: "44px",
           marginRight: "12px",
         },
-        render: () => (
-          <Box
-            px={4}
-            py={3}
-            bg="rgba(22,26,38,0.98)"
-            backdropFilter="blur(20px)"
-            border="1px solid"
-            borderColor={style.border}
-            borderRadius="10px"
-            boxShadow="0 8px 32px rgba(0,0,0,0.4)"
-            display="flex"
-            alignItems="flex-start"
-            gap={3}
-            minW="260px"
-            maxW="360px"
-          >
-            <Box
-              w="8px"
-              h="8px"
-              mt="3px"
-              flexShrink={0}
-              borderRadius="full"
-              bg={style.dot}
-              boxShadow={`0 0 10px ${style.glow}`}
-            />
-
-            <Box flex={1} minW={0}>
-              {title && (
-                <Text
-                  fontSize="13px"
-                  fontWeight={600}
-                  color="rgba(255,255,255,0.88)"
-                  letterSpacing="-0.01em"
-                  fontFamily="'JetBrains Mono', monospace"
-                  noOfLines={1}
-                >
-                  {title}
-                </Text>
-              )}
-
-              {description && (
-                <Text
-                  mt="2px"
-                  fontSize="12px"
-                  color="rgba(255,255,255,0.45)"
-                  noOfLines={2}
-                >
-                  {description}
-                </Text>
-              )}
-            </Box>
-          </Box>
+        render: ({ onClose }) => (
+          <AppToastContent
+            title={title}
+            description={description}
+            status={status}
+            details={details}
+            onClose={onClose}
+          />
         ),
       });
     },

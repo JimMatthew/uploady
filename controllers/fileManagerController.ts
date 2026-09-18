@@ -514,19 +514,12 @@ export async function delete_files_post(
 ): Promise<void> {
   const body: unknown = req.body;
 
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Array.isArray(body)
-  ) {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     nextError(next, "Invalid request body", 400);
     return;
   }
 
-  const { currentDirectory, fileNames } = body as Record<
-    string,
-    unknown
-  >;
+  const { currentDirectory, fileNames } = body as Record<string, unknown>;
 
   if (
     typeof currentDirectory !== "string" ||
@@ -534,8 +527,7 @@ export async function delete_files_post(
     fileNames.length === 0 ||
     !fileNames.every(
       (fileName): fileName is string =>
-        typeof fileName === "string" &&
-        fileName.length > 0,
+        typeof fileName === "string" && fileName.length > 0,
     )
   ) {
     nextError(next, "Missing or invalid required fields", 400);
@@ -543,10 +535,7 @@ export async function delete_files_post(
   }
 
   try {
-    const results = await deleteFiles(
-      currentDirectory,
-      fileNames,
-    );
+    const results = await deleteFiles(currentDirectory, fileNames);
 
     res.status(200).json({
       results,

@@ -120,15 +120,10 @@ export async function deleteFiles(
   const results: DeleteFileResult[] = [];
 
   for (const fileName of fileNames) {
-    const relativeFilePath = path.join(
-      currentDirectory,
-      fileName,
-    );
+    const relativeFilePath = path.join(currentDirectory, fileName);
 
     try {
-      const absoluteFilePath = resolveUploadPath(
-        relativeFilePath,
-      );
+      const absoluteFilePath = resolveUploadPath(relativeFilePath);
 
       await fs.promises.unlink(absoluteFilePath);
 
@@ -145,10 +140,7 @@ export async function deleteFiles(
       results.push({
         path: relativeFilePath,
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Delete failed",
+        error: error instanceof Error ? error.message : "Delete failed",
       });
     }
   }
