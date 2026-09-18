@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import {
+  TransferItemPersistenceBatch,
   TransferItemStore,
   type CreateTransferItemData,
   type TransferItem,
@@ -99,6 +100,69 @@ function toTransferItem(row: TransferItemRow | null): TransferItem | null {
 }
 
 export class SqliteTransferItemStore extends TransferItemStore {
+  async persistBatch(batch: TransferItemPersistenceBatch): Promise<void> {
+    const statements: SqliteTransactionStatement[] = [];
+
+    for (const item of batch.started) {
+      statements.push({
+        sql: `
+        UPDATE transfer_items
+        SET
+          status = ?,
+          started_at = ?
+        WHERE id = ?
+      `,
+        params: [ItemStatus.IN_PROGRESS, item.startedAt.toISOString(), item.id],
+      });
+    }
+
+    for (const item of batch.completed) {
+      statements.push({
+        sql: `
+        UPDATE transfer_items
+        SET
+          status = ?,
+          completed_at = ?,
+          size = ?
+        WHERE id = ?
+      `,
+        params: [
+          ItemStatus.COMPLETED,
+          item.completedAt.toISOString(),
+          item.size,
+          item.id,
+        ],
+      });
+    }
+
+    for (const item of batch.failed) {
+      statements.push({
+        sql: `
+        UPDATE transfer_items
+        SET
+          status = ?,
+          error = ?,
+          completed_at = ?
+        WHERE id = ?
+      `,
+        params: [
+          ItemStatus.FAILED,
+          item.error,
+          item.failedAt.toISOString(),
+          item.id,
+        ],
+      });
+    }
+
+    if (!statements.length) {
+      return;
+    }
+
+    const db = getDatabase();
+
+    await db.transaction(statements);
+  }
+
   async createMany(items: CreateTransferItemData[]): Promise<TransferItem[]> {
     if (!items.length) {
       return [];

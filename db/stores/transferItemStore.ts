@@ -66,6 +66,30 @@ export interface TransferItemPage {
   total: number;
 }
 
+export interface TransferItemStartedUpdate {
+  id: string;
+  startedAt: Date;
+}
+
+export interface TransferItemCompletedUpdate {
+  id: string;
+  size: number;
+  completedAt: Date;
+}
+
+export interface TransferItemFailedUpdate {
+  id: string;
+  error: string;
+  failedAt: Date;
+}
+
+export interface TransferItemPersistenceBatch {
+  started: TransferItemStartedUpdate[];
+  completed: TransferItemCompletedUpdate[];
+  failed: TransferItemFailedUpdate[];
+}
+
+
 export abstract class TransferItemStore {
   abstract createMany(items: CreateTransferItemData[]): Promise<TransferItem[]>;
 
@@ -104,4 +128,8 @@ export abstract class TransferItemStore {
   abstract deleteByJobIds(jobIds: string[]): Promise<number>;
 
   abstract updateSize(id: string, size: number): Promise<void>;
+
+  abstract persistBatch(
+  batch: TransferItemPersistenceBatch,
+): Promise<void>;
 }

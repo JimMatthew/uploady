@@ -34,6 +34,14 @@ export interface CreateTransferJobData {
   status?: JobStatus;
 }
 
+export interface TransferJobPersistenceBatch {
+  jobId: string;
+  currentFile?: string;
+  completedFiles: number;
+  transferredBytes: number;
+  failedFiles: number;
+}
+
 export abstract class TransferJobStore {
   abstract create(data: CreateTransferJobData): Promise<TransferJob>;
 
@@ -75,4 +83,8 @@ export abstract class TransferJobStore {
   abstract findCompletedIds(): Promise<string[]>;
 
   abstract deleteByIds(ids: string[]): Promise<number>;
+
+  abstract persistBatch(
+  batch: TransferJobPersistenceBatch,
+): Promise<void>;
 }

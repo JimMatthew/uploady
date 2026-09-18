@@ -1,30 +1,29 @@
 export type TransferPersistenceEvent =
   | {
-    type: "file_started";
-    jobId: string;
-    itemId: string;
-    filename: string;
-    startedAt: Date;
-  }
+      type: "file_started";
+      jobId: string;
+      itemId: string;
+      filename: string;
+      startedAt: Date;
+    }
   | {
-    type: "file_completed";
-    jobId: string;
-    itemId: string;
-    size: number;
-    completedAt: Date;
-  }
+      type: "file_completed";
+      jobId: string;
+      itemId: string;
+      size: number;
+      completedAt: Date;
+    }
   | {
-    type: "file_failed";
-    jobId: string;
-    itemId: string;
-    error: string;
-    failedAt: Date;
-  };
+      type: "file_failed";
+      jobId: string;
+      itemId: string;
+      error: string;
+      failedAt: Date;
+    };
 
 export type TransferPersistenceHandler = (
-  event: TransferPersistenceEvent,
+  events: TransferPersistenceEvent[],
 ) => Promise<void>;
-
 
 export class TransferPersistenceQueue {
   private readonly queue: TransferPersistenceEvent[] = [];
@@ -89,17 +88,9 @@ export class TransferPersistenceQueue {
 
     try {
       while (this.queue.length > 0) {
-        const event = this.queue.shift();
+        const batch = this.queue.splice(0, this.queue.length);
 
-        if (!event) {
-          continue;
-        }
-
-        await this.handler(event);
-
-        if (this.queue.length > 0) {
-          await this.yieldToEventLoop();
-        }
+        await this.handler(batch);
       }
 
       this.resolveFlushWaiters();
@@ -118,12 +109,6 @@ export class TransferPersistenceQueue {
         this.schedule();
       }
     }
-  }
-
-  private yieldToEventLoop(): Promise<void> {
-    return new Promise((resolve) => {
-      setImmediate(resolve);
-    });
   }
 
   private resolveFlushWaiters(): void {

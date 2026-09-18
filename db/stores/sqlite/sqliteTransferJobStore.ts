@@ -4,6 +4,7 @@ import {
   TransferJobStore,
   type CreateTransferJobData,
   type TransferJob,
+  TransferJobPersistenceBatch
 } from "../transferJobStore";
 
 import { getDatabase } from "../../sqlite/database";
@@ -164,6 +165,28 @@ export class SqliteTransferJobStore extends TransferJobStore {
     return toTransferJob(row);
   }
 
+  async persistBatch(
+  batch: TransferJobPersistenceBatch,
+): Promise<void> {
+  const db = getDatabase();
+
+  await db.run(
+    `
+      UPDATE transfer_jobs
+      SET
+        current_file = COALESCE(?, current_file),
+        completed_files = completed_files + ?,
+        transferred_bytes = transferred_bytes + ?,
+        failed_files = failed_files + ?
+      WHERE id = ?
+    `,
+    batch.currentFile ?? null,
+    batch.completedFiles,
+    batch.transferredBytes,
+    batch.failedFiles,
+    batch.jobId,
+  );
+}
   async markExpanding(id: string): Promise<TransferJob | null> {
     const db = getDatabase();
 
