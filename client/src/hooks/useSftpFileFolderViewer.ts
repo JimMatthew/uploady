@@ -12,6 +12,7 @@ import type {
 } from "../types/fileBrowser";
 
 import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
+import { buildBreadcrumbs } from "../utils/breadcrumb";
 
 interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;
@@ -577,30 +578,10 @@ export function useSftpFileFolderViewer({
   // Breadcrumbs
   // ---------------------------------------------------------------------------
 
-  const breadcrumbs = useMemo<BreadcrumbEntry[]>(() => {
-    const result: BreadcrumbEntry[] = [
-      {
-        name: "Home",
-        path: "/",
-      },
-    ];
-
-    let breadcrumbPath = "";
-
-    currentDirectory
-      .split("/")
-      .filter(Boolean)
-      .forEach((part) => {
-        breadcrumbPath = joinPath(breadcrumbPath, part);
-
-        result.push({
-          name: part,
-          path: breadcrumbPath,
-        });
-      });
-
-    return result;
-  }, [currentDirectory]);
+ const breadcrumbs = useMemo(
+  () => buildBreadcrumbs(currentDirectory, "/"),
+  [currentDirectory],
+);
 
   // ---------------------------------------------------------------------------
   // Public interface

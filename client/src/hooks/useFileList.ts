@@ -12,6 +12,7 @@ import type {
   FileBrowser,
   FileListing,
 } from "../types/fileBrowser";
+import { buildBreadcrumbs } from "../utils/breadcrumb";
 
 interface UseFileListOptions {
   toast: AppToast;
@@ -565,34 +566,10 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // Breadcrumbs
   // ---------------------------------------------------------------------------
 
-  const breadcrumbs = useMemo<BreadcrumbEntry[]>(() => {
-    const result: BreadcrumbEntry[] = [
-      {
-        name: "Home",
-        path: "",
-      },
-    ];
-
-    if (!currentDirectory) {
-      return result;
-    }
-
-    let breadcrumbPath = "";
-
-    currentDirectory
-      .split("/")
-      .filter(Boolean)
-      .forEach((part) => {
-        breadcrumbPath = joinPath(breadcrumbPath, part);
-
-        result.push({
-          name: part,
-          path: breadcrumbPath,
-        });
-      });
-
-    return result;
-  }, [currentDirectory]);
+  const breadcrumbs = useMemo(
+  () => buildBreadcrumbs(currentDirectory, ""),
+  [currentDirectory],
+);
 
   // ---------------------------------------------------------------------------
   // Public interface

@@ -29,3 +29,4 @@ export const getParentDirectory = (path: string): string => {
 export const getPathName = (path: string): string => {
   return path.replace(/\/+$/, "").split("/").pop() ?? "";
 };
+
