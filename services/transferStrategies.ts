@@ -539,16 +539,24 @@ export async function dispatch({
   connections,
   onProgress,
 }: DispatchOptions): Promise<number> {
-
-  const run = <TConnections>(
+  const run = <TConnections extends object>(
     strategy: (
       item: InMemoryTransferItem,
-      connections: TConnections,
+      connections: TConnections & {
+        context: TransferContext;
+      },
       onProgress: ProgressCallback,
     ) => Promise<number>,
     strategyConnections: TConnections,
   ): Promise<number> => {
-    return strategy(item, strategyConnections, onProgress);
+    return strategy(
+      item,
+      {
+        ...strategyConnections,
+        context: connections.context,
+      },
+      onProgress,
+    );
   };
 
   const key = selectStrategy(
@@ -559,44 +567,35 @@ export async function dispatch({
 
   switch (key) {
     case "localToLocal":
-      return run(localToLocal, {
-        context: connections.context,
-      });
+      return run(localToLocal, {});
 
     case "localToSftp":
       return run(localToSftp, {
         sftpDest: requiredConnection(connections.sftpDest, "destination"),
-        context: connections.context,
       });
 
     case "sftpToLocal":
       return run(sftpToLocal, {
         sftpSource: requiredConnection(connections.sftpSource, "source"),
-        context: connections.context,
       });
 
     case "sftpSameServer":
       return run(sftpSameServer, {
         sftpSource: requiredConnection(connections.sftpSource, "source"),
-        context: connections.context,
       });
 
     case "sftpCrossServer":
       return run(sftpCrossServer, {
         sftpSource: requiredConnection(connections.sftpSource, "source"),
         sftpDest: requiredConnection(connections.sftpDest, "destination"),
-        context: connections.context,
       });
 
     case "archiveToLocal":
-      return run(archiveToLocal, {
-        context: connections.context,
-      });
+      return run(archiveToLocal, {});
 
     case "archiveToSftp":
       return run(archiveToSftp, {
         sftpDest: requiredConnection(connections.sftpDest, "destination"),
-        context: connections.context,
       });
   }
 }
