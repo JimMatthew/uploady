@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
 
-const uploadsDir = path.resolve("uploads");
+const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
+const uploadsDir = path.resolve(uploadsDirectory);
 
 const storage = multer.diskStorage({
   destination(req, _file, cb) {

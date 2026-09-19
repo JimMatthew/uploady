@@ -1,34 +1,17 @@
 import { Router } from "express";
-
 import authenticateJWT from "../middlewares/jwtAuth";
-
 import { uploadMiddleware } from "../controllers/storageController";
-
-import {
-  list_directory_get,
-  cut_file_post,
-  serve_shared_file_get,
-  get_share_links_get,
-  generate_share_link_post,
-  stop_sharing_post,
-  delete_file_post,
-  download_file_get,
-  download_file_stream,
-  upload_files_post,
-  create_folder_post,
-  delete_folder_post,
-  get_performance_stats,
-  rename_file_post,
-  get_archive_folder,
-  paste_files_post,
-  delete_files_post,
-} from "../controllers/fileManagerController";
 
 import {
   getSharedKeys,
   generateKey,
   deleteKey,
 } from "../controllers/keyController";
+import { download_file_get, download_file_stream, get_archive_folder } from "../controllers/files/downloadController";
+import { paste_files_post } from "../controllers/files/transferController";
+import { generate_share_link_post, get_share_links_get, serve_shared_file_get, stop_sharing_post } from "../controllers/files/shareController";
+import { get_performance_stats } from "../controllers/files/statsController";
+import { create_folder_post, cut_file_post, delete_file_post, delete_files_post, delete_folder_post, list_directory_get, rename_file_post, upload_files_post } from "../controllers/files/fileController";
 
 const router = Router();
 

@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 
 export function handleError(res: Response, message: string, status = 500): void {
   console.error(message);
@@ -22,4 +22,16 @@ export function getStringParam(req: Request, name: string): string | null {
   const value = req.params[name];
 
   return typeof value === "string" && value ? value : null;
+}
+interface RequestError {
+  message: string;
+  status: number;
+}
+export function nextError(next: NextFunction, message: string, status: number): void {
+  const error: RequestError = {
+    message,
+    status,
+  };
+
+  next(error);
 }
