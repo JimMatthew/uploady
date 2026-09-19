@@ -13,7 +13,8 @@ import { ItemKind } from "../controllers/jobs/jobConstants";
 import { deleteFiles, listLocalDir } from "../services/localFileService";
 import { LocalPasteRequest, parseTransferRequestFile } from "./transferRequest";
 
-const uploadsDir = path.resolve("uploads");
+const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
+const uploadsDir = path.resolve(uploadsDirectory);
 const domain = process.env.HOSTNAME;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -144,19 +145,6 @@ export function get_performance_stats(_req: Request, res: Response): void {
 
 // ─── Directory ────────────────────────────────────────────────────────────────
 
-function getDirectoryData(relativePath: string) {
-  const currentPath = relativePath ? `/files/${relativePath}` : "/files";
-
-  const { files, folders } = listLocalDir(path.join(uploadsDir, relativePath));
-
-  return {
-    files,
-    folders,
-    currentPath,
-    relativePath,
-  };
-}
-
 /**
  * Lists files and folders at the given local directory path.
  */
@@ -166,8 +154,8 @@ export function list_directory_get(
   next: NextFunction,
 ): void {
   try {
-    const relativePath = getWildcardPath(req);
-    const data = getDirectoryData(relativePath);
+    const currentDirectory = getWildcardPath(req);
+    const data = getDirectoryData(currentDirectory);
 
     res.json({
       ...data,
@@ -176,6 +164,18 @@ export function list_directory_get(
   } catch {
     nextError(next, "Failed to list directory", 500);
   }
+}
+
+function getDirectoryData(currentDirectory: string) {
+  const { files, folders } = listLocalDir(
+    path.join(uploadsDir, currentDirectory),
+  );
+
+  return {
+    files,
+    folders,
+    currentDirectory,
+  };
 }
 
 // ─── Upload ───────────────────────────────────────────────────────────────────

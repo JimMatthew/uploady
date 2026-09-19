@@ -37,7 +37,9 @@ export interface DeleteFileResult {
  *
  * Returns files with size (KB) and last modified date.
  */
-export function listLocalDir(dirPath: string): LocalDirectoryListing {
+export function listLocalDir(
+  dirPath: string,
+): LocalDirectoryListing {
   const contents = fs.readdirSync(dirPath);
 
   const files: LocalFile[] = [];
@@ -45,7 +47,6 @@ export function listLocalDir(dirPath: string): LocalDirectoryListing {
 
   for (const item of contents) {
     const itemPath = path.join(dirPath, item);
-
     const stats = fs.lstatSync(itemPath);
 
     if (stats.isDirectory()) {

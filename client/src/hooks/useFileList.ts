@@ -22,7 +22,7 @@ interface PasteResponse {
 }
 
 interface LocalDirectoryResponse extends FileListing {
-  relativePath?: string | null;
+  currentDirectory: string;
 }
 
 interface DeleteFileResult {
@@ -40,11 +40,18 @@ interface ShowToastOptions {
   details?: AppToastDetail[];
 }
 
+const EMPTY_DIRECTORY: LocalDirectoryResponse = {
+  currentDirectory: "",
+  files: [],
+  folders: [],
+};
+
 export function useFileList({ toast }: UseFileListOptions): FileBrowser {
-  const [files, setFiles] = useState<LocalDirectoryResponse | null>(null);
-  const [directoryRoute, setDirectoryRoute] = useState("files");
+  const [files, setFiles] = useState<LocalDirectoryResponse>(EMPTY_DIRECTORY);
+
   const [loading, setLoading] = useState(true);
 
+  const currentDirectoryRef = useRef("");
   const requestIdRef = useRef(0);
 
   const navigate = useNavigate();
@@ -56,7 +63,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     clearClipboard,
   } = useClipboard();
 
-  const currentDirectory = files?.relativePath ?? null;
+  const currentDirectory = files.currentDirectory;
 
   // ---------------------------------------------------------------------------
   // Notifications
@@ -92,6 +99,14 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   });
 
   // ---------------------------------------------------------------------------
+  // Current directory tracking
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    currentDirectoryRef.current = currentDirectory;
+  }, [currentDirectory]);
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -118,36 +133,42 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // Directory loading
   // ---------------------------------------------------------------------------
 
-  const fetchDirectory = useCallback(
-    async (directory: string): Promise<void> => {
+  const changeDirectory = useCallback(
+    async (directory: string): Promise<LocalDirectoryResponse | null> => {
       const requestId = ++requestIdRef.current;
 
       try {
+        const encodedDirectory = encodePath(directory);
+
         const data = await apiClient.get<LocalDirectoryResponse>(
-          `/api/${encodePath(directory)}/`,
+          encodedDirectory ? `/api/files/${encodedDirectory}/` : "/api/files/",
         );
 
         // Ignore responses belonging to an older navigation request.
         if (requestId !== requestIdRef.current) {
-          return;
+          return null;
         }
 
         setFiles(data);
+
+        return data;
       } catch (error: unknown) {
         if (requestId !== requestIdRef.current) {
-          return;
+          return null;
         }
 
         const status = error instanceof ApiError ? error.status : undefined;
 
         if (status === 401 || status === 403) {
           navigate("/");
-          return;
+          return null;
         }
 
-        console.error("Error fetching files:", error);
+        console.error("Error listing directory:", error);
 
-        showToast("Error loading files", "error");
+        showToast("Error listing directory", "error");
+
+        return null;
       } finally {
         if (requestId === requestIdRef.current) {
           setLoading(false);
@@ -157,12 +178,12 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     [encodePath, navigate, showToast],
   );
 
-  const reload = useCallback((): Promise<void> => {
-    return fetchDirectory(directoryRoute);
-  }, [fetchDirectory, directoryRoute]);
+  const reload = useCallback((): Promise<LocalDirectoryResponse | null> => {
+    return changeDirectory(currentDirectory);
+  }, [changeDirectory, currentDirectory]);
 
   // ---------------------------------------------------------------------------
-  // Authentication + initial directory loading
+  // Initial directory loading
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
@@ -173,22 +194,21 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
       return;
     }
 
-    void fetchDirectory(directoryRoute);
-  }, [directoryRoute, fetchDirectory, navigate]);
+    setLoading(true);
+
+    void changeDirectory("");
+  }, [changeDirectory, navigate]);
 
   // ---------------------------------------------------------------------------
   // Directory navigation
   // ---------------------------------------------------------------------------
 
-  const openFolder = useCallback((folderName: string): void => {
-    setDirectoryRoute((previousDirectory) =>
-      joinPath(previousDirectory, folderName),
-    );
-  }, []);
-
-  const changeDirectory = useCallback((directory: string): void => {
-    setDirectoryRoute(directory);
-  }, []);
+  const openFolder = useCallback(
+    (folderName: string): Promise<LocalDirectoryResponse | null> => {
+      return changeDirectory(joinPath(currentDirectory, folderName));
+    },
+    [changeDirectory, currentDirectory],
+  );
 
   // ---------------------------------------------------------------------------
   // Downloads
@@ -196,10 +216,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const downloadFile = useCallback(
     async (fileName: string): Promise<void> => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       try {
         const directory = encodePath(currentDirectory);
         const encodedFileName = encodeURIComponent(fileName);
@@ -220,10 +236,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const downloadFolder = useCallback(
     async (folderName: string): Promise<void> => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       try {
         const directory = encodePath(currentDirectory);
         const encodedFolderName = encodeURIComponent(folderName);
@@ -261,10 +273,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const deleteFile = useCallback(
     async (fileName: string): Promise<void> => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       const deleteDirectory = currentDirectory;
 
       try {
@@ -273,8 +281,8 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           deleteDirectory,
         );
 
-        if (currentDirectory === deleteDirectory) {
-          await reload();
+        if (currentDirectoryRef.current === deleteDirectory) {
+          await changeDirectory(deleteDirectory);
         }
 
         const result = results[0];
@@ -290,12 +298,12 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         showToast("Error deleting file", "error");
       }
     },
-    [currentDirectory, deleteFilesRequest, reload, showToast],
+    [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
   );
 
   const deleteFiles = useCallback(
     async (fileNames: string[]): Promise<void> => {
-      if (currentDirectory == null || fileNames.length === 0) {
+      if (fileNames.length === 0) {
         return;
       }
 
@@ -307,8 +315,8 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           deleteDirectory,
         );
 
-        if (currentDirectory === deleteDirectory) {
-          await reload();
+        if (currentDirectoryRef.current === deleteDirectory) {
+          await changeDirectory(deleteDirectory);
         }
 
         const succeeded = results.filter((result) => result.success).length;
@@ -364,12 +372,12 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         );
       }
     },
-    [currentDirectory, deleteFilesRequest, reload, showToast],
+    [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
   );
 
   const renameFile = useCallback(
     async (fileName: string, newFileName: string): Promise<void> => {
-      if (!fileName || !newFileName || currentDirectory == null) {
+      if (!fileName || !newFileName) {
         showToast("Missing required fields", "error");
         return;
       }
@@ -381,7 +389,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           currentPath: currentDirectory || "/",
         });
 
-        await reload();
+        await changeDirectory(currentDirectory);
 
         showToast("File renamed", "success");
       } catch (error: unknown) {
@@ -390,15 +398,11 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         showToast("Error renaming file", "error");
       }
     },
-    [currentDirectory, reload, showToast],
+    [currentDirectory, changeDirectory, showToast],
   );
 
   const shareFile = useCallback(
     async (fileName: string): Promise<void> => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       try {
         await apiClient.post("/api/share", {
           fileName,
@@ -429,7 +433,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const createFolder = useCallback(
     async (folderName: string): Promise<void> => {
-      if (!folderName || currentDirectory == null) {
+      if (!folderName) {
         return;
       }
 
@@ -439,7 +443,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           currentPath: currentDirectory,
         });
 
-        await reload();
+        await changeDirectory(currentDirectory);
 
         showToast("Folder created", "success");
       } catch (error: unknown) {
@@ -448,12 +452,12 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         showToast("Error creating folder", "error");
       }
     },
-    [currentDirectory, reload, showToast],
+    [currentDirectory, changeDirectory, showToast],
   );
 
   const deleteFolder = useCallback(
     async (folderName: string): Promise<void> => {
-      if (!folderName || currentDirectory == null) {
+      if (!folderName) {
         return;
       }
 
@@ -463,7 +467,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           folderPath: currentDirectory || "/",
         });
 
-        await reload();
+        await changeDirectory(currentDirectory);
 
         showToast("Folder deleted", "success");
       } catch (error: unknown) {
@@ -472,7 +476,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         showToast("Error deleting folder", "error");
       }
     },
-    [currentDirectory, reload, showToast],
+    [currentDirectory, changeDirectory, showToast],
   );
 
   // ---------------------------------------------------------------------------
@@ -481,10 +485,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const copyFile = useCallback(
     (fileName: string): void => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       copyToClipboard({
         file: fileName,
         path: currentDirectory,
@@ -496,10 +496,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const copyFolder = useCallback(
     (folderName: string): void => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       copyToClipboard({
         file: folderName,
         path: currentDirectory,
@@ -512,10 +508,6 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   const cutFile = useCallback(
     (fileName: string): void => {
-      if (currentDirectory == null) {
-        return;
-      }
-
       cutToClipboard({
         file: fileName,
         path: currentDirectory,
@@ -527,7 +519,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   );
 
   const paste = useCallback(async (): Promise<void> => {
-    if (!clipboard.length || currentDirectory == null) {
+    if (!clipboard.length) {
       return;
     }
 
@@ -548,8 +540,11 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
       trackJob({
         jobId,
         items,
+
         onDone: () => {
-          void reload();
+          if (currentDirectoryRef.current === destinationDirectory) {
+            void changeDirectory(destinationDirectory);
+          }
         },
       });
     } catch (error: unknown) {
@@ -562,7 +557,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     currentDirectory,
     clearClipboard,
     trackJob,
-    reload,
+    changeDirectory,
     showToast,
   ]);
 
@@ -574,7 +569,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     const result: BreadcrumbEntry[] = [
       {
         name: "Home",
-        path: "files",
+        path: "",
       },
     ];
 
@@ -582,7 +577,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
       return result;
     }
 
-    let breadcrumbPath = "files";
+    let breadcrumbPath = "";
 
     currentDirectory
       .split("/")
@@ -605,13 +600,13 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
 
   return {
     files: {
-      files: files?.files ?? [],
-      folders: files?.folders ?? [],
+      files: files.files,
+      folders: files.folders,
     },
 
     loading,
 
-    currentPath: currentDirectory ?? "",
+    currentPath: currentDirectory,
 
     openFolder,
     changeDirectory,
