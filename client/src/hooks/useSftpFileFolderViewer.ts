@@ -13,6 +13,7 @@ import type {
 
 import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
 import { buildBreadcrumbs } from "../utils/breadcrumb";
+import { handleDeleteResults } from "../utils/deleteResults";
 
 interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;
@@ -340,46 +341,11 @@ export function useSftpFileFolderViewer({
           await changeDirectory(deleteDirectory);
         }
 
-        const succeeded = results.filter((result) => result.success).length;
-
-        const failedResults = results.filter((result) => !result.success);
-
-        const failed = failedResults.length;
-
-        if (failed === 0) {
-          showToast(
-            fileNames.length === 1
-              ? "File deleted"
-              : `${succeeded} files deleted`,
-            "success",
-          );
-        } else if (succeeded === 0) {
-          showToast(
-            "Error deleting files",
-            "error",
-            `Failed to delete ${failed} ${failed === 1 ? "file" : "files"}`,
-            {
-              persistent: true,
-              details: failedResults.map((result) => ({
-                label: result.path,
-                message: result.error ?? "Delete failed",
-              })),
-            },
-          );
-        } else {
-          showToast(
-            "Some files could not be deleted",
-            "warning",
-            `${succeeded} deleted, ${failed} failed`,
-            {
-              persistent: true,
-              details: failedResults.map((result) => ({
-                label: result.path,
-                message: result.error ?? "Delete failed",
-              })),
-            },
-          );
-        }
+        handleDeleteResults({
+          results,
+          requestedCount: fileNames.length,
+          showToast: toast,
+        });
       } catch (error: unknown) {
         console.error("Error deleting files:", error);
 
@@ -393,7 +359,7 @@ export function useSftpFileFolderViewer({
         );
       }
     },
-    [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
+    [currentDirectory, deleteFilesRequest, changeDirectory, showToast, toast],
   );
 
   const renameFile = useCallback(
@@ -578,10 +544,10 @@ export function useSftpFileFolderViewer({
   // Breadcrumbs
   // ---------------------------------------------------------------------------
 
- const breadcrumbs = useMemo(
-  () => buildBreadcrumbs(currentDirectory, "/"),
-  [currentDirectory],
-);
+  const breadcrumbs = useMemo(
+    () => buildBreadcrumbs(currentDirectory, "/"),
+    [currentDirectory],
+  );
 
   // ---------------------------------------------------------------------------
   // Public interface

@@ -13,6 +13,7 @@ import type {
   FileListing,
 } from "../types/fileBrowser";
 import { buildBreadcrumbs } from "../utils/breadcrumb";
+import { handleDeleteResults } from "../utils/deleteResults";
 
 interface UseFileListOptions {
   toast: AppToast;
@@ -301,7 +302,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
   );
-
+  
   const deleteFiles = useCallback(
     async (fileNames: string[]): Promise<void> => {
       if (fileNames.length === 0) {
@@ -320,46 +321,11 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
           await changeDirectory(deleteDirectory);
         }
 
-        const succeeded = results.filter((result) => result.success).length;
-
-        const failedResults = results.filter((result) => !result.success);
-
-        const failed = failedResults.length;
-
-        if (failed === 0) {
-          showToast(
-            fileNames.length === 1
-              ? "File deleted"
-              : `${succeeded} files deleted`,
-            "success",
-          );
-        } else if (succeeded === 0) {
-          showToast(
-            "Error deleting files",
-            "error",
-            `Failed to delete ${failed} ${failed === 1 ? "file" : "files"}`,
-            {
-              persistent: true,
-              details: failedResults.map((result) => ({
-                label: result.path,
-                message: result.error ?? "Delete failed",
-              })),
-            },
-          );
-        } else {
-          showToast(
-            "Some files could not be deleted",
-            "warning",
-            `${succeeded} deleted, ${failed} failed`,
-            {
-              persistent: true,
-              details: failedResults.map((result) => ({
-                label: result.path,
-                message: result.error ?? "Delete failed",
-              })),
-            },
-          );
-        }
+        handleDeleteResults({
+          results,
+          requestedCount: fileNames.length,
+          showToast: toast,
+        });
       } catch (error: unknown) {
         console.error("Error deleting files:", error);
 
@@ -373,7 +339,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         );
       }
     },
-    [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
+    [currentDirectory, deleteFilesRequest, changeDirectory, showToast, toast],
   );
 
   const renameFile = useCallback(
@@ -567,9 +533,9 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
   // ---------------------------------------------------------------------------
 
   const breadcrumbs = useMemo(
-  () => buildBreadcrumbs(currentDirectory, ""),
-  [currentDirectory],
-);
+    () => buildBreadcrumbs(currentDirectory, ""),
+    [currentDirectory],
+  );
 
   // ---------------------------------------------------------------------------
   // Public interface

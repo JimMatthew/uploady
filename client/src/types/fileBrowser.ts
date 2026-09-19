@@ -70,6 +70,12 @@ export interface ContextMenuState {
   visible: boolean;
 }
 
+export interface DeleteFileResult {
+  path: string;
+  success: boolean;
+  error?: string;
+}
+
 export interface FileBrowser {
   currentPath: string,
   files: FileListing;
