@@ -3,31 +3,26 @@ import apiClient, { ApiError } from "../services/apiClient";
 import type { AppToast } from "../hooks/useAppToast";
 
 import type {
-  SaveServerPayload,
+  DeleteServerRequest,
+  DeleteServerResponse,
+  ListServersResponse,
+  SaveServerRequest,
   SaveServerResponse,
-  ServerStatuses,
-  ServerStatus,
-  ServerSummary
-} from "../types/server";
+  ServerStatusResponse,
+} from "../../../shared/api/server";
+
+import type { ServerStatuses } from "../types/server";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-export type SaveServerParams = SaveServerPayload & {
+export type SaveServerParams = SaveServerRequest & {
   toast: AppToast;
 };
 
-interface ServerListData {
-  servers: ServerSummary[];
-}
-
-interface ServerStatusResponse {
-  status: ServerStatus;
-}
-
 interface FetchServerStatusesParams {
-  data: ServerListData;
+  data: ListServersResponse;
   setServerStatuses: Dispatch<SetStateAction<ServerStatuses>>;
 }
 
@@ -59,12 +54,12 @@ const showToast = (
 export const SaveServer = async (
   params: SaveServerParams,
 ): Promise<SaveServerResponse | null> => {
-  const { toast, ...payload } = params;
+  const { toast, ...request } = params;
 
   try {
     const data = await apiClient.post<SaveServerResponse>(
       "/sftp/api/save-server",
-      payload,
+      request,
     );
 
     showToast(toast, "Server created", "success");
@@ -92,10 +87,15 @@ export const DeleteServer = async ({
   serverId,
   toast,
 }: DeleteServerParams): Promise<boolean> => {
+  const request: DeleteServerRequest = {
+    serverId,
+  };
+
   try {
-    await apiClient.post("/sftp/api/delete-server", {
-      serverId,
-    });
+    await apiClient.post<DeleteServerResponse>(
+      "/sftp/api/delete-server",
+      request,
+    );
 
     showToast(toast, "Server deleted", "success");
 

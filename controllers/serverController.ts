@@ -16,17 +16,29 @@ import {
 } from "./helpers/requestHelpers";
 import { KeyMode, SaveServerOptions } from "../types/server";
 import { propIfPresent } from "../shared/utils/PropHelper";
+import {
+  DeleteServerRequest,
+  DeleteServerResponse,
+  ListServersResponse,
+  SavedServerResponse,
+  SaveServerRequest,
+  SaveServerResponse,
+  ServerPublicKeyResponse,
+  ServerStatusResponse,
+} from "../shared/api/server";
 
 export async function sftp_get_servers_get(
   _req: Request,
   res: Response,
 ): Promise<void> {
   try {
-    const server = await servers.listSummary();
+    const serverList = await servers.listSummary();
 
-    res.json({
-      servers: server,
-    });
+    const response: ListServersResponse = {
+      servers: serverList,
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("Get servers error:", error);
 
@@ -50,9 +62,11 @@ export async function sftp_server_status_get(
   try {
     const status = await checkServerStatus(serverId);
 
-    res.json({
+    const response: ServerStatusResponse = {
       status,
-    });
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("Server status error:", error);
 
@@ -68,8 +82,7 @@ function isServerAuthType(value: unknown): value is ServerAuthType {
 function isKeyMode(value: unknown): value is KeyMode {
   return value === "saved" || value === "generate" || value === "import";
 }
-
-function parseSaveServerOptions(body: unknown): SaveServerOptions {
+function parseSaveServerRequest(body: unknown): SaveServerRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
@@ -158,7 +171,7 @@ function parseSaveServerOptions(body: unknown): SaveServerOptions {
         authType: "key",
         keyMode: "import",
         key,
-        ...propIfPresent("passphrase", passphrase),        
+        ...propIfPresent("passphrase", passphrase),
       };
     }
   }
@@ -169,19 +182,45 @@ export async function sftp_save_server_post(
   res: Response,
 ): Promise<void> {
   try {
-    const options = parseSaveServerOptions(req.body);
+    const request = parseSaveServerRequest(req.body);
 
-    const server = await save_server(options);
+    const server = await save_server(request);
 
-    res.status(201).json({
+    const savedServer: SavedServerResponse = {
+      id: server.id,
+      host: server.host,
+      username: server.username,
+      authType: server.authType,
+      keyId: server.keyId,
+      publicKey: server.publicKey,
+    };
+
+    const response: SaveServerResponse = {
       message: "Server saved",
-      server,
-    });
+      server: savedServer,
+    };
+
+    res.status(201).json(response);
   } catch (error) {
     console.error("Save server error:", error);
 
     handleError(res, getErrorMessage(error) || "Cannot save server", 400);
   }
+}
+function parseDeleteServerRequest(body: unknown): DeleteServerRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (typeof data.serverId !== "string" || !data.serverId) {
+    throw new Error("Missing serverId");
+  }
+
+  return {
+    serverId: data.serverId,
+  };
 }
 
 export async function sftp_delete_server_post(
@@ -190,24 +229,16 @@ export async function sftp_delete_server_post(
 ): Promise<void> {
   const body: unknown = req.body;
 
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
-    return;
-  }
-
-  const { serverId } = body as Record<string, unknown>;
-
-  if (typeof serverId !== "string" || !serverId) {
-    handleError(res, "Missing serverId", 400);
-    return;
-  }
-
   try {
+    const { serverId } = parseDeleteServerRequest(req.body);
+
     await servers.deleteById(serverId);
 
-    res.status(200).json({
+    const response: DeleteServerResponse = {
       message: "Server deleted",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete server error:", error);
 
@@ -229,9 +260,11 @@ export async function sftp_get_server_public_key(
   try {
     const publicKey = await getServerPublicKey(serverId);
 
-    res.json({
-      publicKey,
-    });
+    const response: ServerPublicKeyResponse = {
+      publicKey: publicKey ? publicKey : "",
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("Failed to get server public key:", error);
 
