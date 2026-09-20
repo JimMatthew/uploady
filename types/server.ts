@@ -6,7 +6,6 @@ export interface EncryptedField {
   tag: string;
 }
 
-
 export type KeyMode = "saved" | "generate" | "import";
 
 interface SaveServerBase {

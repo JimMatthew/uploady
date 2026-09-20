@@ -4,7 +4,6 @@ import type {
   ItemStatus as ItemStatusType,
 } from "../controllers/jobs/jobConstants";
 
-
 export interface InMemoryTransferItem {
   itemId: string;
   filename: string;
