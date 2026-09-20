@@ -1,13 +1,17 @@
-
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
-import {  transferJobs, transferItems } from "../../db";
 
+import { transferJobs, transferItems } from "../../db";
 import { transferExecutor } from "../../services/transferExecutor";
 import { ItemKind } from "../../controllers/jobs/jobConstants";
 
-import { LocalPasteRequest, parseTransferRequestFile } from "../transferRequest";
+import { parseTransferRequestFile } from "../transferRequest";
 import { getErrorMessage, nextError } from "../helpers/requestHelpers";
+
+import type {
+  LocalPasteRequest,
+  LocalPasteResponse,
+} from "../../shared/api/transfers";
 
 const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
 const uploadsDir = path.resolve(uploadsDirectory);
@@ -96,13 +100,14 @@ export async function paste_files_post(
 
     transferExecutor.enqueue(job._id);
 
-    res.status(201).json({
+    const response: LocalPasteResponse = {
       jobId: job._id,
-    });
+    };
+
+    res.status(201).json(response);
   } catch (error) {
     console.error("Failed to create paste job:", error);
 
     nextError(next, "Error pasting files", 500);
   }
 }
-

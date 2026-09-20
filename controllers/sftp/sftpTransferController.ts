@@ -1,13 +1,18 @@
 import path from "node:path";
 import type { Request, Response } from "express";
+
 import { transferJobs, transferItems } from "../../db";
 import { transferExecutor } from "../../services/transferExecutor";
 import { ItemKind } from "../../controllers/jobs/jobConstants";
-import {
-  getErrorMessage,
-  handleError,
-} from "../helpers/requestHelpers";
-import { parseTransferRequestFile, SftpCopyRequest } from "../transferRequest";
+
+import { getErrorMessage, handleError } from "../helpers/requestHelpers";
+
+import { parseTransferRequestFile } from "../transferRequest";
+
+import type {
+  SftpCopyRequest,
+  SftpCopyResponse,
+} from "../../shared/api/transfers";
 
 const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
 const uploadsDir = path.resolve(uploadsDirectory);
@@ -96,9 +101,11 @@ export async function sftp_copy_files_post(
 
     transferExecutor.enqueue(job._id);
 
-    res.status(201).json({
+    const response: SftpCopyResponse = {
       jobId: job._id,
-    });
+    };
+
+    res.status(201).json(response);
   } catch (error) {
     console.error("Failed to create transfer job:", error);
 

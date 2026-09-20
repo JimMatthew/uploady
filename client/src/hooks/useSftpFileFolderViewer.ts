@@ -4,11 +4,8 @@ import { useTransferJob } from "./useTransferJob";
 import apiClient from "../services/apiClient";
 import { joinPath } from "../utils/path";
 import { propIfPresent } from "../utils/propHelper";
-
-import type {
-  FileBrowser,
-  FileListing,
-} from "../types/fileBrowser";
+import { SftpCopyRequest, SftpCopyResponse } from "../../../shared/api/transfers"
+import type { FileBrowser, FileListing } from "../types/fileBrowser";
 
 import type {
   SftpListDirectoryResponse,
@@ -29,10 +26,6 @@ import { handleDeleteResults } from "../utils/deleteResults";
 
 interface SftpDirectoryResponse extends FileListing {
   currentDirectory: string;
-}
-
-interface CopyFilesResponse {
-  jobId: string;
 }
 
 interface UseSftpFileFolderViewerOptions {
@@ -399,29 +392,29 @@ export function useSftpFileFolderViewer({
   );
 
   const shareFile = useCallback(
-  async (fileName: string): Promise<void> => {
-    const remotePath = joinPath(currentDirectory, fileName);
+    async (fileName: string): Promise<void> => {
+      const remotePath = joinPath(currentDirectory, fileName);
 
-    const request: SftpShareFileRequest = {
-      serverId,
-      remotePath,
-    };
+      const request: SftpShareFileRequest = {
+        serverId,
+        remotePath,
+      };
 
-    try {
-      await apiClient.post<SftpShareFileResponse>(
-        "/sftp/api/sharefile",
-        request,
-      );
+      try {
+        await apiClient.post<SftpShareFileResponse>(
+          "/sftp/api/sharefile",
+          request,
+        );
 
-      showToast("File shared", "success");
-    } catch (error: unknown) {
-      console.error("Error sharing file:", error);
+        showToast("File shared", "success");
+      } catch (error: unknown) {
+        console.error("Error sharing file:", error);
 
-      showToast("Error sharing file", "error");
-    }
-  },
-  [serverId, currentDirectory, showToast],
-);
+        showToast("Error sharing file", "error");
+      }
+    },
+    [serverId, currentDirectory, showToast],
+  );
 
   // ---------------------------------------------------------------------------
   // Folder operations
@@ -530,14 +523,16 @@ export function useSftpFileFolderViewer({
     const destinationDirectory = currentDirectory;
     const items: ClipboardItem[] = [...clipboard];
 
+    const request: SftpCopyRequest = {
+      files: items,
+      newPath: destinationDirectory,
+      newServerId: serverId,
+    };
+
     try {
-      const { jobId } = await apiClient.post<CopyFilesResponse>(
+      const { jobId } = await apiClient.post<SftpCopyResponse>(
         "/sftp/api/copy-files",
-        {
-          files: items,
-          newPath: destinationDirectory,
-          newServerId: serverId,
-        },
+        request,
       );
 
       clearClipboard();
@@ -547,8 +542,6 @@ export function useSftpFileFolderViewer({
         items,
 
         onDone: () => {
-          // Don't pull the user back to the directory
-          // where the transfer originally started.
           if (currentDirectoryRef.current === destinationDirectory) {
             void changeDirectory(destinationDirectory);
           }

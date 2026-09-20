@@ -1,51 +1,10 @@
-interface TransferRequestFileBase {
-  file: string;
-  path: string;
-  isDirectory: boolean;
-  size: number;
-}
-
-interface LocalTransferRequestFile extends TransferRequestFileBase {
-  source: "local";
-  serverId: null;
-}
-
-interface SftpTransferRequestFile extends TransferRequestFileBase {
-  source: "sftp";
-  serverId: string;
-}
-
-interface ArchiveTransferRequestFile extends TransferRequestFileBase {
-  source: "archive";
-  serverId: null;
-  archivePath: string;
-}
-
-type TransferRequestFile =
-  | LocalTransferRequestFile
-  | SftpTransferRequestFile
-  | ArchiveTransferRequestFile;
-
-export interface LocalPasteRequest {
-  files: TransferRequestFile[];
-  newPath: string;
-}
-
-export interface SftpCopyRequest {
-  files: TransferRequestFile[];
-  newPath: string;
-  newServerId: string;
-}
+import type { TransferRequestFile } from "../shared/api/transfers";
 
 export function parseTransferRequestFile(
   value: unknown,
   index: number,
 ): TransferRequestFile {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    Array.isArray(value)
-  ) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`Invalid file at index ${index}`);
   }
 
@@ -88,10 +47,7 @@ export function parseTransferRequestFile(
       };
 
     case "sftp":
-      if (
-        typeof file.serverId !== "string" ||
-        !file.serverId
-      ) {
+      if (typeof file.serverId !== "string" || !file.serverId) {
         throw new Error(`Missing serverId at index ${index}`);
       }
 
@@ -102,10 +58,7 @@ export function parseTransferRequestFile(
       };
 
     case "archive":
-      if (
-        typeof file.archivePath !== "string" ||
-        !file.archivePath
-      ) {
+      if (typeof file.archivePath !== "string" || !file.archivePath) {
         throw new Error(`Missing archivePath at index ${index}`);
       }
 

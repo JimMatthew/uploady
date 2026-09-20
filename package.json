@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node app.js",
     "typecheck": "node ./node_modules/typescript/lib/tsc.js --noEmit",
-    "build:server": "node ./node_modules/typescript/lib/tsc.js -p tsconfig.build.json"
+    "build:server": "node ./node_modules/typescript/lib/tsc.js -p tsconfig.build.json",
+    "build:client": "cd client && bun run build",
+    "bc": "bun run build:client"
   },
   "dependencies": {
     "@types/ssh2-sftp-client": "^9.0.6",

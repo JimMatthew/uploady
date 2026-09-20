@@ -20,6 +20,11 @@ import type {
   FileBrowser,
   FileListing,
 } from "../types/fileBrowser";
+
+import type {
+  LocalPasteRequest,
+  LocalPasteResponse,
+} from "../../../shared/api/transfers";
 import { buildBreadcrumbs } from "../utils/breadcrumb";
 import { handleDeleteResults } from "../utils/deleteResults";
 
@@ -515,13 +520,15 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     const destinationDirectory = currentDirectory;
     const items = [...clipboard];
 
+    const request: LocalPasteRequest = {
+      files: items,
+      newPath: destinationDirectory,
+    };
+
     try {
-      const { jobId } = await apiClient.post<PasteResponse>(
+      const { jobId } = await apiClient.post<LocalPasteResponse>(
         "/api/paste-files",
-        {
-          files: items,
-          newPath: destinationDirectory,
-        },
+        request,
       );
 
       clearClipboard();

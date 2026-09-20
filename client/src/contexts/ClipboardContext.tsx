@@ -2,29 +2,65 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 
 export type ClipboardAction = "copy" | "cut";
 
+interface ClipboardSourceItemBase {
+  file: string;
+  path: string;
+  isDirectory?: boolean;
+}
+
+interface LocalClipboardSourceItem extends ClipboardSourceItemBase {
+  source: "local";
+  serverId?: null;
+}
+
+interface SftpClipboardSourceItem extends ClipboardSourceItemBase {
+  source: "sftp";
+  serverId: string;
+}
+
+interface ArchiveClipboardSourceItem extends ClipboardSourceItemBase {
+  source: "archive";
+  serverId?: null;
+  archivePath: string;
+}
+
+export type ClipboardSourceItem =
+  | LocalClipboardSourceItem
+  | SftpClipboardSourceItem
+  | ArchiveClipboardSourceItem;
+
+interface ClipboardItemBase {
+  file: string;
+  path: string;
+  isDirectory: boolean;
+  action: ClipboardAction;
+}
+
+interface LocalClipboardItem extends ClipboardItemBase {
+  source: "local";
+  serverId: null;
+}
+
+interface SftpClipboardItem extends ClipboardItemBase {
+  source: "sftp";
+  serverId: string;
+}
+
+interface ArchiveClipboardItem extends ClipboardItemBase {
+  source: "archive";
+  serverId: null;
+  archivePath: string;
+}
+
+export type ClipboardItem =
+  | LocalClipboardItem
+  | SftpClipboardItem
+  | ArchiveClipboardItem;
+
 export type ClipboardSource =
   | "local"
   | "sftp"
   | "archive";
-
-export interface ClipboardSourceItem {
-  file: string;
-  path: string;
-  source: ClipboardSource;
-  serverId?: string | null;
-  archivePath?: string;
-  isDirectory?: boolean;
-}
-
-export interface ClipboardItem {
-  file: string;
-  path: string;
-  source: ClipboardSource;
-  serverId: string | null;
-  archivePath?: string;
-  isDirectory: boolean;
-  action: ClipboardAction;
-}
 
 interface ClipboardContextValue {
   clipboard: ClipboardItem[];
@@ -62,34 +98,28 @@ export const ClipboardProvider = ({ children }: ClipboardProviderProps) => {
   };
 
   const copyFile = (
-    files: ClipboardSourceItem | ClipboardSourceItem[],
-  ): void => {
-    const sourceFiles = Array.isArray(files) ? files : [files];
+  files: ClipboardSourceItem | ClipboardSourceItem[],
+): void => {
+  const sourceFiles = Array.isArray(files) ? files : [files];
 
-    const items: ClipboardItem[] = sourceFiles.map((file) => ({
-      ...file,
-      action: "copy",
-      isDirectory: file.isDirectory ?? false,
-      serverId: file.serverId ?? null,
-    }));
+  const items = sourceFiles.map((file) =>
+    toClipboardItem(file, "copy"),
+  );
 
-    addToClipboard(items);
-  };
+  addToClipboard(items);
+};
 
-  const cutFile = (
-    files: ClipboardSourceItem | ClipboardSourceItem[],
-  ): void => {
-    const sourceFiles = Array.isArray(files) ? files : [files];
+ const cutFile = (
+  files: ClipboardSourceItem | ClipboardSourceItem[],
+): void => {
+  const sourceFiles = Array.isArray(files) ? files : [files];
 
-    const items: ClipboardItem[] = sourceFiles.map((file) => ({
-      ...file,
-      action: "cut",
-      isDirectory: file.isDirectory ?? false,
-      serverId: file.serverId ?? null,
-    }));
+  const items = sourceFiles.map((file) =>
+    toClipboardItem(file, "cut"),
+  );
 
-    addToClipboard(items);
-  };
+  addToClipboard(items);
+};
 
   /**
    * Removes a single item from the clipboard by file + path.
@@ -105,6 +135,42 @@ export const ClipboardProvider = ({ children }: ClipboardProviderProps) => {
   const clearClipboard = (): void => {
     setClipboard([]);
   };
+
+  const toClipboardItem = (
+  file: ClipboardSourceItem,
+  action: ClipboardAction,
+): ClipboardItem => {
+  const base = {
+    file: file.file,
+    path: file.path,
+    isDirectory: file.isDirectory ?? false,
+    action,
+  };
+
+  switch (file.source) {
+    case "local":
+      return {
+        ...base,
+        source: "local",
+        serverId: null,
+      };
+
+    case "sftp":
+      return {
+        ...base,
+        source: "sftp",
+        serverId: file.serverId,
+      };
+
+    case "archive":
+      return {
+        ...base,
+        source: "archive",
+        serverId: null,
+        archivePath: file.archivePath,
+      };
+  }
+};
 
   return (
     <ClipboardContext.Provider
