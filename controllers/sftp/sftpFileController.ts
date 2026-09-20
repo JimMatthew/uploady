@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { Request, Response } from "express";
+
 import { servers } from "../../db";
 
 import {
@@ -18,6 +19,22 @@ import {
   handleError,
 } from "../helpers/requestHelpers";
 
+import type {
+  SftpListDirectoryResponse,
+  SftpRenameFileRequest,
+  SftpRenameFileResponse,
+  SftpDeleteFileRequest,
+  SftpDeleteFileResponse,
+  SftpDeleteFilesRequest,
+  SftpDeleteFilesResponse,
+  SftpDeleteFolderRequest,
+  SftpDeleteFolderResponse,
+  SftpCreateFolderRequest,
+  SftpCreateFolderResponse,
+} from "../../shared/api/sftpFiles";
+
+// ─── Directory Listing ────────────────────────────────────────────────────────
+
 export async function sftp_list_directory_get(
   req: Request,
   res: Response,
@@ -31,7 +48,7 @@ export async function sftp_list_directory_get(
 
   const relativePath = getWildcardPath(req);
 
-  const currentDirectory = "/" + (relativePath || "/");
+  const currentDirectory = relativePath ? `/${relativePath}` : "/";
 
   try {
     const server = await servers.findById(serverId);
@@ -43,13 +60,15 @@ export async function sftp_list_directory_get(
 
     const { files, folders } = await listDirectory(serverId, currentDirectory);
 
-    res.json({
+    const response: SftpListDirectoryResponse = {
       files,
       folders,
       currentDirectory,
       serverId,
       host: server.host,
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("List directory error:", error);
 
@@ -89,12 +108,26 @@ export async function sftp_rename_file_post(
     return;
   }
 
-  try {
-    await renameFile(serverId, currentPath, fileName, newFileName);
+  const request: SftpRenameFileRequest = {
+    currentPath,
+    fileName,
+    newFileName,
+    serverId,
+  };
 
-    res.status(200).json({
+  try {
+    await renameFile(
+      request.serverId,
+      request.currentPath,
+      request.fileName,
+      request.newFileName,
+    );
+
+    const response: SftpRenameFileResponse = {
       message: "File renamed",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     handleError(res, `Error renaming file: ${getErrorMessage(error)}`);
   }
@@ -128,12 +161,23 @@ export async function sftp_delete_file_post(
     return;
   }
 
-  try {
-    await deleteFile(serverId, path.posix.join(currentDirectory, fileName));
+  const request: SftpDeleteFileRequest = {
+    serverId,
+    currentDirectory,
+    fileName,
+  };
 
-    res.status(200).json({
+  try {
+    await deleteFile(
+      request.serverId,
+      path.posix.join(request.currentDirectory, request.fileName),
+    );
+
+    const response: SftpDeleteFileResponse = {
       message: "File deleted",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete file error:", error);
 
@@ -173,16 +217,24 @@ export async function sftp_delete_files_post(
     return;
   }
 
-  const filePaths = fileNames.map((fileName) =>
-    path.posix.join(currentDirectory, fileName),
+  const request: SftpDeleteFilesRequest = {
+    serverId,
+    currentDirectory,
+    fileNames,
+  };
+
+  const filePaths = request.fileNames.map((fileName) =>
+    path.posix.join(request.currentDirectory, fileName),
   );
 
   try {
-    const results = await deleteFiles(serverId, filePaths);
+    const results = await deleteFiles(request.serverId, filePaths);
 
-    res.status(200).json({
+    const response: SftpDeleteFilesResponse = {
       results,
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete files error:", error);
 
@@ -218,12 +270,23 @@ export async function sftp_delete_folder_post(
     return;
   }
 
-  try {
-    await deleteFolder(serverId, path.posix.join(currentDirectory, deleteDir));
+  const request: SftpDeleteFolderRequest = {
+    serverId,
+    currentDirectory,
+    deleteDir,
+  };
 
-    res.status(200).json({
+  try {
+    await deleteFolder(
+      request.serverId,
+      path.posix.join(request.currentDirectory, request.deleteDir),
+    );
+
+    const response: SftpDeleteFolderResponse = {
       message: "Folder deleted",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete folder error:", error);
 
@@ -256,13 +319,25 @@ export async function sftp_create_folder_post(
     return;
   }
 
-  try {
-    const result = await createFolder(currentPath, folderName, serverId);
+  const request: SftpCreateFolderRequest = {
+    currentPath,
+    folderName,
+    serverId,
+  };
 
-    res.status(200).json({
+  try {
+    const result = await createFolder(
+      request.currentPath,
+      request.folderName,
+      request.serverId,
+    );
+
+    const response: SftpCreateFolderResponse = {
       message: "Folder created",
       path: result.path,
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     handleError(res, `Error creating folder: ${getErrorMessage(error)}`);
   }

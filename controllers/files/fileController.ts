@@ -4,7 +4,16 @@ import type { NextFunction, Request, Response } from "express";
 import { shares } from "../../db";
 import { deleteFiles, listLocalDir } from "../../services/localFileService";
 import { getWildcardPath, nextError } from "../helpers/requestHelpers";
-import { CreateFolderRequest, CreateFolderResponse, DeleteFilesRequest, DeleteFilesResponse, DeleteFolderRequest, DeleteFolderResponse, RenameFileRequest, RenameFileResponse } from "../../shared/api/files";
+import {
+  CreateFolderRequest,
+  CreateFolderResponse,
+  DeleteFilesRequest,
+  DeleteFilesResponse,
+  DeleteFolderRequest,
+  DeleteFolderResponse,
+  RenameFileRequest,
+  RenameFileResponse,
+} from "../../shared/api/files";
 
 const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
 const uploadsDir = path.resolve(uploadsDirectory);
@@ -61,42 +70,29 @@ export function upload_files_post(
   });
 }
 
-
 // ─── Folder Operations ────────────────────────────────────────────────────────
 
-function parseCreateFolderRequest(
-  body: unknown,
-): CreateFolderRequest {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Array.isArray(body)
-  ) {
+function parseCreateFolderRequest(body: unknown): CreateFolderRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
 
   const data = body as Record<string, unknown>;
 
-  if (
-    typeof data.folderName !== "string" ||
-    !data.folderName
-  ) {
+  if (typeof data.folderName !== "string" || !data.folderName) {
     throw new Error("Missing folder name");
   }
 
-  if (
-    data.currentPath !== undefined &&
-    typeof data.currentPath !== "string"
-  ) {
+  if (data.currentPath !== undefined && typeof data.currentPath !== "string") {
     throw new Error("Invalid current path");
   }
 
- return {
-  folderName: data.folderName,
-  ...(data.currentPath !== undefined && {
-    currentPath: data.currentPath,
-  }),
-};
+  return {
+    folderName: data.folderName,
+    ...(data.currentPath !== undefined && {
+      currentPath: data.currentPath,
+    }),
+  };
 }
 
 export async function create_folder_post(
@@ -143,14 +139,8 @@ export async function create_folder_post(
   }
 }
 
-function parseDeleteFolderRequest(
-  body: unknown,
-): DeleteFolderRequest {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Array.isArray(body)
-  ) {
+function parseDeleteFolderRequest(body: unknown): DeleteFolderRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
 
@@ -190,11 +180,7 @@ export async function delete_folder_post(
 
   try {
     await fs.promises.rmdir(
-      path.join(
-        uploadsDir,
-        request.folderPath,
-        request.folderName,
-      ),
+      path.join(uploadsDir, request.folderPath, request.folderName),
     );
 
     const response: DeleteFolderResponse = {
@@ -241,14 +227,8 @@ export async function delete_file_post(
   }
 }
 
-function parseDeleteFilesRequest(
-  body: unknown,
-): DeleteFilesRequest {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Array.isArray(body)
-  ) {
+function parseDeleteFilesRequest(body: unknown): DeleteFilesRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
 
@@ -308,14 +288,8 @@ export async function delete_files_post(
   }
 }
 
-function parseRenameFileRequest(
-  body: unknown,
-): RenameFileRequest {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Array.isArray(body)
-  ) {
+function parseRenameFileRequest(body: unknown): RenameFileRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
   }
 

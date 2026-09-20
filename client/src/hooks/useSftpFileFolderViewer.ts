@@ -6,11 +6,23 @@ import { joinPath } from "../utils/path";
 import { propIfPresent } from "../utils/propHelper";
 
 import type {
-  BreadcrumbEntry,
   FileBrowser,
   FileListing,
 } from "../types/fileBrowser";
 
+import type {
+  SftpListDirectoryResponse,
+  SftpDeleteFilesRequest,
+  SftpDeleteFilesResponse,
+  SftpRenameFileRequest,
+  SftpRenameFileResponse,
+  SftpCreateFolderRequest,
+  SftpCreateFolderResponse,
+  SftpDeleteFolderRequest,
+  SftpDeleteFolderResponse,
+  SftpShareFileRequest,
+  SftpShareFileResponse,
+} from "../../../shared/api/sftpFiles";
 import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
 import { buildBreadcrumbs } from "../utils/breadcrumb";
 import { handleDeleteResults } from "../utils/deleteResults";
@@ -28,23 +40,15 @@ interface UseSftpFileFolderViewerOptions {
   toast: AppToast;
 }
 
-interface DeleteFileResult {
-  path: string;
-  success: boolean;
-  error?: string;
-}
-
-interface DeleteFilesResponse {
-  results: DeleteFileResult[];
-}
-
 interface ShowToastOptions {
   persistent?: boolean;
   details?: AppToastDetail[];
 }
 
-const EMPTY_DIRECTORY: SftpDirectoryResponse = {
+const EMPTY_DIRECTORY: SftpListDirectoryResponse = {
   currentDirectory: "/",
+  serverId: "",
+  host: "",
   files: [],
   folders: [],
 };
@@ -115,8 +119,8 @@ export function useSftpFileFolderViewer({
   // ---------------------------------------------------------------------------
 
   const connectToServer = useCallback(
-    async (signal: AbortSignal): Promise<SftpDirectoryResponse> => {
-      const data = await apiClient.get<SftpDirectoryResponse>(
+    async (signal: AbortSignal): Promise<SftpListDirectoryResponse> => {
+      const data = await apiClient.get<SftpListDirectoryResponse>(
         `/sftp/api/connect/${serverId}/`,
         {
           signal,
@@ -131,9 +135,9 @@ export function useSftpFileFolderViewer({
   );
 
   const changeDirectory = useCallback(
-    async (directory: string): Promise<SftpDirectoryResponse | null> => {
+    async (directory: string): Promise<SftpListDirectoryResponse | null> => {
       try {
-        const data = await apiClient.get<SftpDirectoryResponse>(
+        const data = await apiClient.get<SftpListDirectoryResponse>(
           `/sftp/api/connect/${serverId}/${directory}/`,
         );
 
@@ -151,7 +155,7 @@ export function useSftpFileFolderViewer({
     [serverId, showToast],
   );
 
-  const reload = useCallback((): Promise<SftpDirectoryResponse | null> => {
+  const reload = useCallback((): Promise<SftpListDirectoryResponse | null> => {
     return changeDirectory(currentDirectory);
   }, [changeDirectory, currentDirectory]);
 
@@ -283,12 +287,17 @@ export function useSftpFileFolderViewer({
     async (
       fileNames: string[],
       directory: string,
-    ): Promise<DeleteFilesResponse> => {
-      return apiClient.post<DeleteFilesResponse>("/sftp/api/delete-files", {
+    ): Promise<SftpDeleteFilesResponse> => {
+      const request: SftpDeleteFilesRequest = {
         currentDirectory: directory,
         serverId,
         fileNames,
-      });
+      };
+
+      return apiClient.post<SftpDeleteFilesResponse>(
+        "/sftp/api/delete-files",
+        request,
+      );
     },
     [serverId],
   );
@@ -364,13 +373,18 @@ export function useSftpFileFolderViewer({
 
   const renameFile = useCallback(
     async (fileName: string, newFileName: string): Promise<void> => {
+      const request: SftpRenameFileRequest = {
+        currentPath: currentDirectory,
+        fileName,
+        newFileName,
+        serverId,
+      };
+
       try {
-        await apiClient.post("/sftp/api/renameFile", {
-          currentPath: currentDirectory,
-          fileName,
-          newFileName,
-          serverId,
-        });
+        await apiClient.post<SftpRenameFileResponse>(
+          "/sftp/api/renameFile",
+          request,
+        );
 
         await changeDirectory(currentDirectory);
 
@@ -385,24 +399,29 @@ export function useSftpFileFolderViewer({
   );
 
   const shareFile = useCallback(
-    async (fileName: string): Promise<void> => {
-      const remotePath = joinPath(currentDirectory, fileName);
+  async (fileName: string): Promise<void> => {
+    const remotePath = joinPath(currentDirectory, fileName);
 
-      try {
-        await apiClient.post("/sftp/api/sharefile", {
-          serverId,
-          remotePath,
-        });
+    const request: SftpShareFileRequest = {
+      serverId,
+      remotePath,
+    };
 
-        showToast("File shared", "success");
-      } catch (error: unknown) {
-        console.error("Error sharing file:", error);
+    try {
+      await apiClient.post<SftpShareFileResponse>(
+        "/sftp/api/sharefile",
+        request,
+      );
 
-        showToast("Error sharing file", "error");
-      }
-    },
-    [serverId, currentDirectory, showToast],
-  );
+      showToast("File shared", "success");
+    } catch (error: unknown) {
+      console.error("Error sharing file:", error);
+
+      showToast("Error sharing file", "error");
+    }
+  },
+  [serverId, currentDirectory, showToast],
+);
 
   // ---------------------------------------------------------------------------
   // Folder operations
@@ -410,12 +429,17 @@ export function useSftpFileFolderViewer({
 
   const createFolder = useCallback(
     async (folderName: string): Promise<void> => {
+      const request: SftpCreateFolderRequest = {
+        currentPath: currentDirectory,
+        serverId,
+        folderName,
+      };
+
       try {
-        await apiClient.post("/sftp/api/create-folder", {
-          currentPath: currentDirectory,
-          serverId,
-          folderName,
-        });
+        await apiClient.post<SftpCreateFolderResponse>(
+          "/sftp/api/create-folder",
+          request,
+        );
 
         await changeDirectory(currentDirectory);
 
@@ -431,12 +455,17 @@ export function useSftpFileFolderViewer({
 
   const deleteFolder = useCallback(
     async (folderName: string): Promise<void> => {
+      const request: SftpDeleteFolderRequest = {
+        currentDirectory,
+        serverId,
+        deleteDir: folderName,
+      };
+
       try {
-        await apiClient.post("/sftp/api/delete-folder", {
-          currentDirectory,
-          serverId,
-          deleteDir: folderName,
-        });
+        await apiClient.post<SftpDeleteFolderResponse>(
+          "/sftp/api/delete-folder",
+          request,
+        );
 
         await changeDirectory(currentDirectory);
 

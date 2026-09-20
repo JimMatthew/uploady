@@ -1,6 +1,12 @@
+import type { Request, Response } from "express";
+
 import { share_file } from "../../services/serverService";
 import { handleError } from "../helpers/requestHelpers";
-import type { Request, Response } from "express";
+
+import type {
+  SftpShareFileRequest,
+  SftpShareFileResponse,
+} from "../../shared/api/sftpFiles";
 
 export async function sftp_share_file_post(
   req: Request,
@@ -25,19 +31,30 @@ export async function sftp_share_file_post(
     return;
   }
 
+  const request: SftpShareFileRequest = {
+    serverId,
+    remotePath,
+  };
+
   try {
-    const fileName = remotePath.split("/").pop();
+    const fileName = request.remotePath.split("/").pop();
 
     if (!fileName) {
       handleError(res, "Invalid remote path", 400);
       return;
     }
 
-    const { link } = await share_file(fileName, remotePath, serverId);
+    const { link } = await share_file(
+      fileName,
+      request.remotePath,
+      request.serverId,
+    );
 
-    res.json({
+    const response: SftpShareFileResponse = {
       link,
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Share file error:", error);
 
