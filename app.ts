@@ -16,7 +16,7 @@ import setupJobRoutes from "./routes/jobRouter";
 import setupSettingsRoutes from "./routes/settingsRouter";
 import setupArchiveRoutes from "./routes/archiveRouter";
 import setupActionsRoutes from "./routes/actionRouter";
-
+import setupNoteRoutes from "./routes/noteRouter";
 import {
   login_post,
   setup_post,
@@ -94,7 +94,7 @@ app.use("/api/settings", setupSettingsRoutes);
 app.use("/api/archive", setupArchiveRoutes);
 
 app.use("/api/actions", setupActionsRoutes);
-
+app.use("/api/notes", setupNoteRoutes);
 // ─── API 404 Guard ────────────────────────────────────────────────────────────
 
 const api404Handler: RequestHandler = (req, res, next) => {

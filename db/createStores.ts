@@ -24,6 +24,9 @@ import { TransferItemStore } from "./stores/transferItemStore";
 import { SshKeyStore } from "./stores/sshKeyStore";
 import { SettingsStore } from "./stores/settingsStore";
 import { ActionStore } from "./stores/actionStore";
+import { NoteStore } from "./stores/noteStore";
+import { MongoNoteStore } from "./stores/mongo/mongoNoteStore";
+import { SqliteNoteStore } from "./stores/sqlite/sqliteNoteStore";
 
 export type DatabaseType = "mongo" | "sqlite";
 
@@ -36,6 +39,7 @@ export interface Stores {
   sshKeyStore: SshKeyStore;
   settingsStore: SettingsStore;
   actions: ActionStore;
+  notes: NoteStore;
 }
 
 interface CreateStoresOptions {
@@ -54,6 +58,7 @@ const createStores = ({ databaseType }: CreateStoresOptions): Stores => {
         sshKeyStore: new MongoSshKeyStore(),
         settingsStore: new MongoSettingsStore(),
         actions: new MongoActionStore(),
+        notes: new MongoNoteStore(),
       };
 
     case "sqlite":
@@ -66,6 +71,7 @@ const createStores = ({ databaseType }: CreateStoresOptions): Stores => {
         sshKeyStore: new SqliteSshKeyStore(),
         settingsStore: new SqliteSettingsStore(),
         actions: new SqliteActionStore(),
+        notes: new SqliteNoteStore()
       };
   }
 };

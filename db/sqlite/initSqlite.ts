@@ -185,6 +185,14 @@ async function initSqlite(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_transfer_items_job_kind
       ON transfer_items(job_id, kind);
+
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 }
 

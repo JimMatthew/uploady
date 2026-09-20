@@ -40,6 +40,7 @@ const Workspace = ({ toast }: WorkspaceProps) => {
     openTransfers,
     openSettings,
     openActions,
+    openNotes,
     deleteServer,
   } = useWorkspace({ toast });
 
@@ -184,6 +185,7 @@ const Workspace = ({ toast }: WorkspaceProps) => {
               serverStatuses={serverStatuses}
               onSettings={openSettings}
               onActions={openActions}
+              onNotes={openNotes}
             />
           </Box>
         )}

@@ -37,6 +37,7 @@ export const {
   sshKeyStore,
   settingsStore,
   actions,
+  notes
 } = stores;
 
 export const init = (): Promise<void> =>

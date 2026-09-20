@@ -38,7 +38,7 @@ const TransfersPage = lazy(() => import("../pages/Transfers"));
 const Settings = lazy(() => import("../pages/Settings"));
 const ArchiveViewer = lazy(() => import("../pages/ArchiveViewer"));
 const Actions = lazy(() => import("../pages/ActionsTab"));
-
+const Notes = lazy(() => import("../pages/Notes"));
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -88,6 +88,7 @@ interface UseWorkspaceResult {
   openTransfers: () => void;
   openSettings: () => void;
   openActions: () => void;
+  openNotes: () => void;
 
   deleteServer: (serverId: string) => Promise<boolean>;
 }
@@ -364,6 +365,17 @@ const openFile = useCallback(
     });
   }, [openTab, saveServer]);
 
+  const openNotes = useCallback((): void => {
+  openTab({
+    label: "Notes",
+    content: (
+      <Suspense fallback={<div>Loading notes...</div>}>
+        <Notes toast={toast} />
+      </Suspense>
+    ),
+  });
+}, [openTab, toast]);
+
   // ---------------------------------------------------------------------------
   // Utility tabs
   // ---------------------------------------------------------------------------
@@ -419,6 +431,7 @@ const openFile = useCallback(
     openTransfers,
     openSettings,
     openActions,
+    openNotes,
 
     deleteServer,
   };

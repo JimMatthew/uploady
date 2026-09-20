@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from "express";
 import { shares } from "../../db";
 import { deleteFiles, listLocalDir } from "../../services/localFileService";
 import { getWildcardPath, nextError } from "../helpers/requestHelpers";
+import { CreateFolderRequest, CreateFolderResponse, DeleteFilesRequest, DeleteFilesResponse, DeleteFolderRequest, DeleteFolderResponse, RenameFileRequest, RenameFileResponse } from "../../shared/api/files";
 
 const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
 const uploadsDir = path.resolve(uploadsDirectory);
@@ -63,32 +64,65 @@ export function upload_files_post(
 
 // ─── Folder Operations ────────────────────────────────────────────────────────
 
+function parseCreateFolderRequest(
+  body: unknown,
+): CreateFolderRequest {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Array.isArray(body)
+  ) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (
+    typeof data.folderName !== "string" ||
+    !data.folderName
+  ) {
+    throw new Error("Missing folder name");
+  }
+
+  if (
+    data.currentPath !== undefined &&
+    typeof data.currentPath !== "string"
+  ) {
+    throw new Error("Invalid current path");
+  }
+
+ return {
+  folderName: data.folderName,
+  ...(data.currentPath !== undefined && {
+    currentPath: data.currentPath,
+  }),
+};
+}
+
 export async function create_folder_post(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const body: unknown = req.body;
+  let request: CreateFolderRequest;
 
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    nextError(next, "Invalid request body", 400);
-    return;
-  }
-
-  const { folderName, currentPath } = body as Record<string, unknown>;
-
-  if (typeof folderName !== "string" || !folderName) {
-    nextError(next, "Missing folder name", 400);
-    return;
-  }
-
-  if (currentPath !== undefined && typeof currentPath !== "string") {
-    nextError(next, "Invalid current path", 400);
+  try {
+    request = parseCreateFolderRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      error instanceof Error ? error.message : "Invalid request body",
+      400,
+    );
     return;
   }
 
   try {
-    const fullPath = path.join(uploadsDir, currentPath ?? "", folderName);
+    const fullPath = path.join(
+      uploadsDir,
+      request.currentPath ?? "",
+      request.folderName,
+    );
 
     if (fs.existsSync(fullPath)) {
       nextError(next, "Folder already exists", 409);
@@ -97,9 +131,11 @@ export async function create_folder_post(
 
     await fs.promises.mkdir(fullPath);
 
-    res.status(200).json({
+    const response: CreateFolderResponse = {
       message: "Folder created",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Create folder error:", error);
 
@@ -107,36 +143,65 @@ export async function create_folder_post(
   }
 }
 
+function parseDeleteFolderRequest(
+  body: unknown,
+): DeleteFolderRequest {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Array.isArray(body)
+  ) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (
+    typeof data.folderPath !== "string" ||
+    !data.folderPath ||
+    typeof data.folderName !== "string" ||
+    !data.folderName
+  ) {
+    throw new Error("Missing required fields");
+  }
+
+  return {
+    folderPath: data.folderPath,
+    folderName: data.folderName,
+  };
+}
 export async function delete_folder_post(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const body: unknown = req.body;
+  let request: DeleteFolderRequest;
 
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    nextError(next, "Invalid request body", 400);
-    return;
-  }
-
-  const { folderPath, folderName } = body as Record<string, unknown>;
-
-  if (
-    typeof folderPath !== "string" ||
-    !folderPath ||
-    typeof folderName !== "string" ||
-    !folderName
-  ) {
-    nextError(next, "Missing required fields", 400);
+  try {
+    request = parseDeleteFolderRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      error instanceof Error ? error.message : "Invalid request body",
+      400,
+    );
     return;
   }
 
   try {
-    await fs.promises.rmdir(path.join(uploadsDir, folderPath, folderName));
+    await fs.promises.rmdir(
+      path.join(
+        uploadsDir,
+        request.folderPath,
+        request.folderName,
+      ),
+    );
 
-    res.status(200).json({
+    const response: DeleteFolderResponse = {
       message: "Folder deleted",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete folder error:", error);
 
@@ -176,39 +241,66 @@ export async function delete_file_post(
   }
 }
 
+function parseDeleteFilesRequest(
+  body: unknown,
+): DeleteFilesRequest {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Array.isArray(body)
+  ) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (
+    typeof data.currentDirectory !== "string" ||
+    !Array.isArray(data.fileNames) ||
+    data.fileNames.length === 0 ||
+    !data.fileNames.every(
+      (fileName): fileName is string =>
+        typeof fileName === "string" && fileName.length > 0,
+    )
+  ) {
+    throw new Error("Missing or invalid required fields");
+  }
+
+  return {
+    currentDirectory: data.currentDirectory,
+    fileNames: data.fileNames,
+  };
+}
+
 export async function delete_files_post(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const body: unknown = req.body;
+  let request: DeleteFilesRequest;
 
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    nextError(next, "Invalid request body", 400);
-    return;
-  }
-
-  const { currentDirectory, fileNames } = body as Record<string, unknown>;
-
-  if (
-    typeof currentDirectory !== "string" ||
-    !Array.isArray(fileNames) ||
-    fileNames.length === 0 ||
-    !fileNames.every(
-      (fileName): fileName is string =>
-        typeof fileName === "string" && fileName.length > 0,
-    )
-  ) {
-    nextError(next, "Missing or invalid required fields", 400);
+  try {
+    request = parseDeleteFilesRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      error instanceof Error ? error.message : "Invalid request body",
+      400,
+    );
     return;
   }
 
   try {
-    const results = await deleteFiles(currentDirectory, fileNames);
+    const results = await deleteFiles(
+      request.currentDirectory,
+      request.fileNames,
+    );
 
-    res.status(200).json({
+    const response: DeleteFilesResponse = {
       results,
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Delete files error:", error);
 
@@ -216,43 +308,75 @@ export async function delete_files_post(
   }
 }
 
+function parseRenameFileRequest(
+  body: unknown,
+): RenameFileRequest {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Array.isArray(body)
+  ) {
+    throw new Error("Invalid request body");
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (
+    typeof data.filename !== "string" ||
+    !data.filename ||
+    typeof data.newFilename !== "string" ||
+    !data.newFilename ||
+    typeof data.currentPath !== "string" ||
+    !data.currentPath
+  ) {
+    throw new Error("Missing required fields");
+  }
+
+  return {
+    filename: data.filename,
+    newFilename: data.newFilename,
+    currentPath: data.currentPath,
+  };
+}
+
 export async function rename_file_post(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const body: unknown = req.body;
+  let request: RenameFileRequest;
 
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    nextError(next, "Invalid request body", 400);
-    return;
-  }
-
-  const { filename, newFilename, currentPath } = body as Record<
-    string,
-    unknown
-  >;
-
-  if (
-    typeof filename !== "string" ||
-    !filename ||
-    typeof newFilename !== "string" ||
-    !newFilename ||
-    typeof currentPath !== "string" ||
-    !currentPath
-  ) {
-    nextError(next, "Missing required fields", 400);
+  try {
+    request = parseRenameFileRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      error instanceof Error ? error.message : "Invalid request body",
+      400,
+    );
     return;
   }
 
   try {
-    const srcPath = path.join(uploadsDir, currentPath, filename);
-    const destPath = path.join(uploadsDir, currentPath, newFilename);
+    const srcPath = path.join(
+      uploadsDir,
+      request.currentPath,
+      request.filename,
+    );
+
+    const destPath = path.join(
+      uploadsDir,
+      request.currentPath,
+      request.newFilename,
+    );
+
     await fs.promises.rename(srcPath, destPath);
 
-    res.status(200).json({
+    const response: RenameFileResponse = {
       message: "File renamed",
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Rename file error:", error);
 

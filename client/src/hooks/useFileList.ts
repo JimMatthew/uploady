@@ -6,7 +6,15 @@ import { useClipboard } from "../contexts/ClipboardContext";
 import { useTransferJob } from "../hooks/useTransferJob";
 import type { AppToast, AppToastDetail, AppToastStatus } from "./useAppToast";
 import { propIfPresent } from "../utils/propHelper";
-
+import {
+  CreateFolderRequest,
+  CreateFolderResponse,
+  DeleteFilesRequest,
+  DeleteFolderRequest,
+  DeleteFolderResponse,
+  RenameFileRequest,
+  RenameFileResponse,
+} from "../../../shared/api/files";
 import type {
   BreadcrumbEntry,
   FileBrowser,
@@ -265,10 +273,12 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
       fileNames: string[],
       directory: string,
     ): Promise<DeleteFilesResponse> => {
-      return apiClient.post<DeleteFilesResponse>("/api/delete-files", {
+      const request: DeleteFilesRequest = {
         currentDirectory: directory,
         fileNames,
-      });
+      };
+
+      return apiClient.post<DeleteFilesResponse>("/api/delete-files", request);
     },
     [],
   );
@@ -302,7 +312,7 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
     },
     [currentDirectory, deleteFilesRequest, changeDirectory, showToast],
   );
-  
+
   const deleteFiles = useCallback(
     async (fileNames: string[]): Promise<void> => {
       if (fileNames.length === 0) {
@@ -349,12 +359,14 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         return;
       }
 
+      const request: RenameFileRequest = {
+        filename: fileName,
+        newFilename: newFileName,
+        currentPath: currentDirectory || "/",
+      };
+
       try {
-        await apiClient.post("/api/rename-file", {
-          filename: fileName,
-          newFilename: newFileName,
-          currentPath: currentDirectory || "/",
-        });
+        await apiClient.post<RenameFileResponse>("/api/rename-file", request);
 
         await changeDirectory(currentDirectory);
 
@@ -404,11 +416,16 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         return;
       }
 
+      const request: CreateFolderRequest = {
+        folderName,
+        currentPath: currentDirectory,
+      };
+
       try {
-        await apiClient.post("/api/create-folder", {
-          folderName,
-          currentPath: currentDirectory,
-        });
+        await apiClient.post<CreateFolderResponse>(
+          "/api/create-folder",
+          request,
+        );
 
         await changeDirectory(currentDirectory);
 
@@ -428,11 +445,16 @@ export function useFileList({ toast }: UseFileListOptions): FileBrowser {
         return;
       }
 
+      const request: DeleteFolderRequest = {
+        folderName,
+        folderPath: currentDirectory || "/",
+      };
+
       try {
-        await apiClient.post("/api/delete-folder", {
-          folderName,
-          folderPath: currentDirectory || "/",
-        });
+        await apiClient.post<DeleteFolderResponse>(
+          "/api/delete-folder",
+          request,
+        );
 
         await changeDirectory(currentDirectory);
 

@@ -52,6 +52,7 @@ interface SidebarProps {
   serverStatuses: ServerStatuses;
   onSettings: () => void;
   onActions: () => void;
+  onNotes: () => void;
 }
 
 // -----------------------------------------------------------------------------
@@ -187,6 +188,7 @@ const Sidebar = memo(function Sidebar({
   serverStatuses,
   onSettings,
   onActions,
+  onNotes,
 }: SidebarProps) {
   const servers = sftpServers ?? [];
   console.log(servers)
@@ -249,6 +251,12 @@ const Sidebar = memo(function Sidebar({
           icon={FiSettings}
           label="Settings"
           onClick={onSettings}
+        />
+
+         <NavButton
+          icon={FiSettings}
+          label="Notes"
+          onClick={onNotes}
         />
 
         <AddServerButton onClick={onNewServer} />
