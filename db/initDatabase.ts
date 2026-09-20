@@ -3,11 +3,20 @@ import mongoose from "mongoose";
 import initSqlite from "./sqlite/initSqlite";
 import type { DatabaseType } from "./createStores";
 
+/**
+ * Initializes the MongoDB connection used by Mongo-backed stores.
+ *
+ * The DATABASE environment variable must contain the MongoDB connection URI.
+ * Connection lifecycle events are logged so disconnects and reconnects are
+ * visible after the initial connection succeeds.
+ */
 async function initMongo(): Promise<void> {
   const mongoUri = process.env.DATABASE;
 
   if (!mongoUri) {
-    throw new Error("DATABASE environment variable is not set");
+    throw new Error(
+      "DATABASE environment variable is not set",
+    );
   }
 
   mongoose.set("strictPopulate", false);
@@ -31,7 +40,17 @@ async function initMongo(): Promise<void> {
   console.log("MongoDB connected");
 }
 
-async function initDatabase(databaseType: DatabaseType): Promise<void> {
+/**
+ * Initializes infrastructure required by the selected database backend.
+ *
+ * MongoDB establishes the Mongoose connection. SQLite performs its local
+ * database/schema initialization.
+ *
+ * @param databaseType - Database backend selected during application startup.
+ */
+async function initDatabase(
+  databaseType: DatabaseType,
+): Promise<void> {
   switch (databaseType) {
     case "mongo":
       await initMongo();

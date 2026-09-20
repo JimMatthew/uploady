@@ -479,18 +479,6 @@ async function archiveToSftp(
 // Strategy Selection
 // ---------------------------------------------------------------------------
 
-export const STRATEGIES = {
-  localToLocal,
-  localToSftp,
-  sftpToLocal,
-  sftpSameServer,
-  sftpCrossServer,
-  archiveToLocal,
-  archiveToSftp,
-} as const;
-
-export type TransferStrategyName = keyof typeof STRATEGIES;
-
 /**
  * Determines which transfer strategy applies for a given source and
  * destination.
@@ -530,6 +518,15 @@ function requiredConnection<T>(value: T | null, name: string): T {
 
   return value;
 }
+
+export type TransferStrategyName =
+  | "localToLocal"
+  | "localToSftp"
+  | "sftpToLocal"
+  | "sftpSameServer"
+  | "sftpCrossServer"
+  | "archiveToLocal"
+  | "archiveToSftp";
 /**
  * Dispatches a file to the transfer strategy matching its source and
  * destination endpoints.
@@ -559,43 +556,43 @@ export async function dispatch({
     );
   };
 
+  const strategies = {
+    localToLocal: () => run(localToLocal, {}),
+
+    localToSftp: () =>
+      run(localToSftp, {
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+      }),
+
+    sftpToLocal: () =>
+      run(sftpToLocal, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+      }),
+
+    sftpSameServer: () =>
+      run(sftpSameServer, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+      }),
+
+    sftpCrossServer: () =>
+      run(sftpCrossServer, {
+        sftpSource: requiredConnection(connections.sftpSource, "source"),
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+      }),
+
+    archiveToLocal: () => run(archiveToLocal, {}),
+
+    archiveToSftp: () =>
+      run(archiveToSftp, {
+        sftpDest: requiredConnection(connections.sftpDest, "destination"),
+      }),
+  } satisfies Record<TransferStrategyName, () => Promise<number>>;
+
   const key = selectStrategy(
     item.sourceType,
     item.sourceServerId,
     connections.destServerId,
   );
 
-  switch (key) {
-    case "localToLocal":
-      return run(localToLocal, {});
-
-    case "localToSftp":
-      return run(localToSftp, {
-        sftpDest: requiredConnection(connections.sftpDest, "destination"),
-      });
-
-    case "sftpToLocal":
-      return run(sftpToLocal, {
-        sftpSource: requiredConnection(connections.sftpSource, "source"),
-      });
-
-    case "sftpSameServer":
-      return run(sftpSameServer, {
-        sftpSource: requiredConnection(connections.sftpSource, "source"),
-      });
-
-    case "sftpCrossServer":
-      return run(sftpCrossServer, {
-        sftpSource: requiredConnection(connections.sftpSource, "source"),
-        sftpDest: requiredConnection(connections.sftpDest, "destination"),
-      });
-
-    case "archiveToLocal":
-      return run(archiveToLocal, {});
-
-    case "archiveToSftp":
-      return run(archiveToSftp, {
-        sftpDest: requiredConnection(connections.sftpDest, "destination"),
-      });
-  }
+  return strategies[key]();
 }

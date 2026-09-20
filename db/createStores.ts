@@ -16,15 +16,15 @@ import { SqliteActionStore } from "./stores/sqlite/sqliteActionStore";
 import { SqliteTransferJobStore } from "./stores/sqlite/sqliteTransferJobStore";
 import { SqliteTransferItemStore } from "./stores/sqlite/sqliteTransferItemStore";
 
-import { ServerStore } from "./stores/serverStore";
-import { UserStore } from "./stores/userStore";
-import { SharedFileStore } from "./stores/sharedFileStore";
-import { TransferJobStore } from "./stores/transferJobStore";
-import { TransferItemStore } from "./stores/transferItemStore";
-import { SshKeyStore } from "./stores/sshKeyStore";
-import { SettingsStore } from "./stores/settingsStore";
-import { ActionStore } from "./stores/actionStore";
-import { NoteStore } from "./stores/noteStore";
+import type { ServerStore } from "./stores/serverStore";
+import type { UserStore } from "./stores/userStore";
+import type { SharedFileStore } from "./stores/sharedFileStore";
+import type { TransferJobStore } from "./stores/transferJobStore";
+import type { TransferItemStore } from "./stores/transferItemStore";
+import type { SshKeyStore } from "./stores/sshKeyStore";
+import type { SettingsStore } from "./stores/settingsStore";
+import type { ActionStore } from "./stores/actionStore";
+import type { NoteStore } from "./stores/noteStore";
 import { MongoNoteStore } from "./stores/mongo/mongoNoteStore";
 import { SqliteNoteStore } from "./stores/sqlite/sqliteNoteStore";
 
@@ -46,6 +46,15 @@ interface CreateStoresOptions {
   databaseType: DatabaseType;
 }
 
+/**
+ * Creates the complete store set for a database backend.
+ *
+ * This is the composition point where common store contracts are mapped
+ * to their concrete MongoDB or SQLite implementations.
+ *
+ * @param options - Store creation options, including the selected backend.
+ * @returns Store implementations for the selected database backend.
+ */
 const createStores = ({ databaseType }: CreateStoresOptions): Stores => {
   switch (databaseType) {
     case "mongo":

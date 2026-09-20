@@ -1,20 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
-import os from "node:os";
-import { execSync } from "node:child_process";
 import archiver, { type Archiver } from "archiver";
 import mime from "mime-types";
 import type { NextFunction, Request, Response } from "express";
-
-import { deleteFiles, listLocalDir } from "../../services/localFileService";
+import { listLocalDir } from "../../services/localFileService";
 import { getWildcardPath, nextError } from "../helpers/requestHelpers";
-
 
 const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
 const uploadsDir = path.resolve(uploadsDirectory);
-const domain = process.env.HOSTNAME;
-
 
 /**
  * Triggers a file download using Express's res.download helper.
