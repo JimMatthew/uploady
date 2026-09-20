@@ -1,3 +1,7 @@
+// -----------------------------------------------------------------------------
+// Create folder
+// -----------------------------------------------------------------------------
+
 export interface CreateFolderRequest {
   folderName: string;
   currentPath?: string;
@@ -7,6 +11,10 @@ export interface CreateFolderResponse {
   message: string;
 }
 
+// -----------------------------------------------------------------------------
+// Delete folder
+// -----------------------------------------------------------------------------
+
 export interface DeleteFolderRequest {
   folderPath: string;
   folderName: string;
@@ -15,6 +23,18 @@ export interface DeleteFolderRequest {
 export interface DeleteFolderResponse {
   message: string;
 }
+
+// -----------------------------------------------------------------------------
+// Delete file
+// -----------------------------------------------------------------------------
+
+export interface DeleteFileResponse {
+  message: string;
+}
+
+// -----------------------------------------------------------------------------
+// Delete files
+// -----------------------------------------------------------------------------
 
 export interface DeleteFilesRequest {
   currentDirectory: string;
@@ -31,6 +51,10 @@ export interface DeleteFilesResponse {
   results: DeleteFileResult[];
 }
 
+// -----------------------------------------------------------------------------
+// Rename file
+// -----------------------------------------------------------------------------
+
 export interface RenameFileRequest {
   filename: string;
   newFilename: string;
@@ -38,9 +62,5 @@ export interface RenameFileRequest {
 }
 
 export interface RenameFileResponse {
-  message: string;
-}
-
-export interface DeleteFileResponse {
   message: string;
 }

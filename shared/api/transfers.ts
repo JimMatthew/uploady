@@ -1,3 +1,7 @@
+// -----------------------------------------------------------------------------
+// Transfer files
+// -----------------------------------------------------------------------------
+
 export interface TransferRequestFileBase {
   file: string;
   path: string;
@@ -26,10 +30,22 @@ export type TransferRequestFile =
   | SftpTransferRequestFile
   | ArchiveTransferRequestFile;
 
+// -----------------------------------------------------------------------------
+// Local paste
+// -----------------------------------------------------------------------------
+
 export interface LocalPasteRequest {
   files: TransferRequestFile[];
   newPath: string;
 }
+
+export interface LocalPasteResponse {
+  jobId: string;
+}
+
+// -----------------------------------------------------------------------------
+// SFTP copy
+// -----------------------------------------------------------------------------
 
 export interface SftpCopyRequest {
   files: TransferRequestFile[];
@@ -38,14 +54,5 @@ export interface SftpCopyRequest {
 }
 
 export interface SftpCopyResponse {
-  jobId: string;
-}
-
-export interface LocalPasteRequest {
-  files: TransferRequestFile[];
-  newPath: string;
-}
-
-export interface LocalPasteResponse {
   jobId: string;
 }
