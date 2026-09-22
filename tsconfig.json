@@ -26,6 +26,7 @@
     "build",
     "coverage",
     "public",
-    "bin"
+    "bin",
+    "uploads"
   ]
 }

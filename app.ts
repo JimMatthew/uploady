@@ -6,7 +6,7 @@ import cors from "cors";
 import express from "express";
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { WebSocketServer } from "ws";
-
+import { logger } from "./logging";
 import { init } from "./db";
 
 import sshSessionHandler from "./controllers/ssh_session";
@@ -22,14 +22,16 @@ import {
   setup_post,
   requireSetupComplete,
 } from "./controllers/setupController";
-
+const log = logger.child("APP");
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
 
   if (!value) {
-    console.error(`FATAL: ${name} environment variable is not set`);
+    log.error("Required environment variable is not set", {
+      variable: name,
+    });
 
     process.exit(1);
   }
@@ -40,10 +42,6 @@ function getRequiredEnv(name: string): string {
 const PORT = process.env.PORT ?? "3001";
 
 const USE_HTTPS = process.env.USE_HTTPS === "true";
-
-// Validate this at startup even though JWT handling
-// itself lives in the authentication code.
-getRequiredEnv("JWT_SECRET");
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 
@@ -131,11 +129,16 @@ interface AppError extends Error {
 
 const errorHandler: ErrorRequestHandler = (
   error: AppError,
-  _req,
+  req,
   res,
   _next,
 ) => {
-  console.error("Error:", error.message);
+  log.error("Request failed", {
+    method: req.method,
+    path: req.path,
+    status: error.status ?? 500,
+    error,
+  });
 
   res.status(error.status ?? 500).json({
     error: error.message,
@@ -180,12 +183,15 @@ async function start(): Promise<void> {
     await init();
 
     server.listen(PORT, () => {
-      console.log(
-        `Server running on port ${PORT} ` + `(${USE_HTTPS ? "https" : "http"})`,
-      );
+      log.info("Server started", {
+        port: PORT,
+        protocol: USE_HTTPS ? "https" : "http",
+      });
     });
   } catch (error) {
-    console.error("Failed to initialize database:", error);
+    log.error("Database initialization failed", {
+      error,
+    });
 
     process.exit(1);
   }

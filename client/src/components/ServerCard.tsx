@@ -110,7 +110,22 @@ const ActionButton = ({
   hoverBorderColor,
   onClick,
 }: ActionButtonProps) => (
-  <Tooltip label={label} hasArrow openDelay={400}>
+  <Tooltip
+    label={label}
+    hasArrow
+    openDelay={400}
+    bg="#1A1D23"
+    color="rgba(255,255,255,0.82)"
+    border="1px solid"
+    borderColor="rgba(255,255,255,0.10)"
+    borderRadius="6px"
+    px={2}
+    py="5px"
+    fontSize="12px"
+    fontWeight={500}
+    fontFamily="'JetBrains Mono', monospace"
+    boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+  >
     <Flex
       w="30px"
       h="30px"

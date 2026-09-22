@@ -417,7 +417,8 @@ export async function uploadFile(
  * response.
  *
  * SFTP files are grouped by server ID so each server uses one connection.
- */export async function zipClipboardFiles(
+ */
+export async function zipClipboardFiles(
   files: ClipboardFile[],
   res: Response,
 ): Promise<void> {
