@@ -6,8 +6,10 @@ import cors from "cors";
 import express from "express";
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { WebSocketServer } from "ws";
+
 import { logger } from "./logging";
 import { init } from "./db";
+import { loadConfig, type AppConfig } from "./config/config";
 
 import sshSessionHandler from "./controllers/ssh_session";
 import setupRoutes from "./routes/route";
@@ -17,31 +19,14 @@ import setupSettingsRoutes from "./routes/settingsRouter";
 import setupArchiveRoutes from "./routes/archiveRouter";
 import setupActionsRoutes from "./routes/actionRouter";
 import setupNoteRoutes from "./routes/noteRouter";
+
 import {
   login_post,
   setup_post,
   requireSetupComplete,
 } from "./controllers/setupController";
+
 const log = logger.child("APP");
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    log.error("Required environment variable is not set", {
-      variable: name,
-    });
-
-    process.exit(1);
-  }
-
-  return value;
-}
-
-const PORT = process.env.PORT ?? "3001";
-
-const USE_HTTPS = process.env.USE_HTTPS === "true";
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 
@@ -92,7 +77,9 @@ app.use("/api/settings", setupSettingsRoutes);
 app.use("/api/archive", setupArchiveRoutes);
 
 app.use("/api/actions", setupActionsRoutes);
+
 app.use("/api/notes", setupNoteRoutes);
+
 // ─── API 404 Guard ────────────────────────────────────────────────────────────
 
 const api404Handler: RequestHandler = (req, res, next) => {
@@ -149,47 +136,44 @@ app.use(errorHandler);
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
-function createServer(): http.Server | https.Server {
-  if (!USE_HTTPS) {
+function createServer(config: AppConfig): http.Server | https.Server {
+  if (!config.server.https.enabled) {
     return http.createServer(app);
   }
 
-  const keyPath = getRequiredEnv("HTTPS_KEY");
-
-  const certPath = getRequiredEnv("HTTPS_CERT");
-
   return https.createServer(
     {
-      key: fs.readFileSync(keyPath),
-
-      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(config.server.https.keyPath),
+      cert: fs.readFileSync(config.server.https.certPath),
     },
     app,
   );
 }
 
-const server = createServer();
-
-const wss = new WebSocketServer({
-  server,
-});
-
-wss.on("connection", sshSessionHandler);
-
 // ─── Startup ──────────────────────────────────────────────────────────────────
 
 async function start(): Promise<void> {
   try {
+    const config = loadConfig();
+
     await init();
 
-    server.listen(PORT, () => {
+    const server = createServer(config);
+
+    const wss = new WebSocketServer({
+      server,
+    });
+
+    wss.on("connection", sshSessionHandler);
+
+    server.listen(config.server.port, () => {
       log.info("Server started", {
-        port: PORT,
-        protocol: USE_HTTPS ? "https" : "http",
+        port: config.server.port,
+        protocol: config.server.https.enabled ? "https" : "http",
       });
     });
   } catch (error) {
-    log.error("Database initialization failed", {
+    log.fatal("Application startup failed", {
       error,
     });
 

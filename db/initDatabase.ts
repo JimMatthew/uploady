@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 import initSqlite from "./sqlite/initSqlite";
 import type { DatabaseType } from "./createStores";
+import { logger } from "../logging"; // adjust path
+
+const log = logger.child("database");
 
 /**
  * Initializes the MongoDB connection used by Mongo-backed stores.
@@ -21,23 +24,23 @@ async function initMongo(): Promise<void> {
 
   mongoose.set("strictPopulate", false);
 
-  mongoose.connection.on("error", (err: Error) => {
-    console.error("MongoDB connection error:", err);
+  mongoose.connection.on("error", (error: Error) => {
+    log.error("MongoDB connection error", { error });
   });
 
   mongoose.connection.on("disconnected", () => {
-    console.warn("MongoDB disconnected");
+    log.warn("MongoDB disconnected");
   });
 
   mongoose.connection.on("reconnected", () => {
-    console.log("MongoDB reconnected");
+    log.info("MongoDB reconnected");
   });
 
   await mongoose.connect(mongoUri, {
     serverSelectionTimeoutMS: 5000,
   });
 
-  console.log("MongoDB connected");
+  log.info("MongoDB connected");
 }
 
 /**
@@ -59,8 +62,7 @@ async function initDatabase(
     case "sqlite":
       await initSqlite();
 
-      console.log("SQLite initialized");
-
+      log.info("SQLite initialized");
       return;
   }
 }

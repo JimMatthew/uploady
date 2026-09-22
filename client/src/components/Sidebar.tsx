@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 import { Box, Flex, Icon, Text, VStack } from "@chakra-ui/react";
 import { memo, useState } from "react";
@@ -17,10 +16,7 @@ import {
 import type { IconType } from "react-icons";
 import ServerCard from "../components/ServerCard";
 
-import type {
-  ServerStatuses,
-  ServerSummary
-} from "../types/server";
+import type { ServerStatuses, ServerSummary } from "../types/server";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -136,11 +132,7 @@ const AddServerButton = ({ onClick }: AddServerButtonProps) => (
 // Section label
 // -----------------------------------------------------------------------------
 
-const SectionLabel = ({
-  children,
-  count,
-  action,
-}: SectionLabelProps) => (
+const SectionLabel = ({ children, count, action }: SectionLabelProps) => (
   <Flex align="center" justify="space-between" px={3} pb="5px">
     <Text
       fontSize="10px"
@@ -257,20 +249,14 @@ const Sidebar = memo(function Sidebar({
                 color: "rgba(255,255,255,0.8)",
               }}
               onClick={() => setNavigationPinned((pinned) => !pinned)}
-              title={
-                navigationPinned
-                  ? "Unpin navigation"
-                  : "Pin navigation"
-              }
+              title={navigationPinned ? "Unpin navigation" : "Pin navigation"}
             >
-              <Icon
-                as={navigationPinned ? FiLock : FiUnlock}
-                boxSize="11px"
-              />
+              <Icon as={navigationPinned ? FiLock : FiUnlock} boxSize="11px" />
             </Box>
           }
-
-        >Navigation</SectionLabel>
+        >
+          Navigation
+        </SectionLabel>
 
         <NavButton
           icon={FiHardDrive}
@@ -278,35 +264,15 @@ const Sidebar = memo(function Sidebar({
           onClick={onLocalFiles}
         />
 
-        <NavButton
-          icon={FiZap}
-          label="Actions"
-          onClick={onActions}
-        />
+        <NavButton icon={FiZap} label="Actions" onClick={onActions} />
 
-        <NavButton
-          icon={FiRepeat}
-          label="Transfers"
-          onClick={onTransfers}
-        />
+        <NavButton icon={FiRepeat} label="Transfers" onClick={onTransfers} />
 
-        <NavButton
-          icon={FiLink}
-          label="Shared Links"
-          onClick={onSharedLinks}
-        />
+        <NavButton icon={FiLink} label="Shared Links" onClick={onSharedLinks} />
 
-        <NavButton
-          icon={FiSettings}
-          label="Settings"
-          onClick={onSettings}
-        />
+        <NavButton icon={FiSettings} label="Settings" onClick={onSettings} />
 
-        <NavButton
-          icon={FiSettings}
-          label="Notes"
-          onClick={onNotes}
-        />
+        <NavButton icon={FiSettings} label="Notes" onClick={onNotes} />
 
         <AddServerButton onClick={onNewServer} />
       </VStack>
@@ -328,9 +294,7 @@ const Sidebar = memo(function Sidebar({
           scrollbarWidth: "none",
         }}
       >
-        <SectionLabel count={servers.length}>
-          Servers
-        </SectionLabel>
+        <SectionLabel count={servers.length}>Servers</SectionLabel>
 
         {servers.length > 0 ? (
           servers.map((server) => (
@@ -364,10 +328,7 @@ const Sidebar = memo(function Sidebar({
               color="rgba(255,255,255,0.16)"
             />
 
-            <Text
-              fontSize="11px"
-              color="rgba(255,255,255,0.25)"
-            >
+            <Text fontSize="11px" color="rgba(255,255,255,0.25)">
               No servers yet
             </Text>
           </Flex>
