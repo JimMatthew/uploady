@@ -18,9 +18,4 @@ function getLogLevel(): LogLevel {
 
 export const logger = new AppLogger(getLogLevel());
 
-export type {
-  Logger,
-  LogContext,
-  LogLevel,
-  LogRecord,
-} from "./types";
+export type { Logger, LogContext, LogLevel, LogRecord } from "./types";
