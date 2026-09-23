@@ -14,9 +14,9 @@ import {
   RenameFileRequest,
   RenameFileResponse,
 } from "../../shared/api/files";
+import { config } from "../../config/config";
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 // ─── Directory ────────────────────────────────────────────────────────────────
 

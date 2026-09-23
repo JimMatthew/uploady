@@ -6,9 +6,10 @@ import { shares } from "../../db";
 import { downloadFile } from "../../services/sftpService";
 import { nextError } from "../helpers/requestHelpers";
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
-const domain = process.env.HOSTNAME;
+import { config } from "../../config/config";
+
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
+const domain = config.server.hostname;
 
 async function storeLinkInfo(
   fileName: string,

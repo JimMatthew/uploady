@@ -10,9 +10,9 @@ import { streamZipEntry } from "./archiveService";
 // Configuration
 // ---------------------------------------------------------------------------
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
+import { config } from "../config/config";
 
-const uploadsDir = path.resolve(uploadsDirectory);
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 // ---------------------------------------------------------------------------
 // Types

@@ -2,11 +2,12 @@ import jwt from "jsonwebtoken";
 
 import type { NextFunction, Request, Response } from "express";
 import { logger } from "../logging";
+import { config } from "../config/config";
 
 const log = logger.child("auth");
 
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = config.auth.jwtSecret;
 
   if (!secret) {
     log.fatal("Required environment variable is not set", {

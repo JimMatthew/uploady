@@ -2,6 +2,7 @@ import os from "node:os";
 import { execSync } from "node:child_process";
 import type { Request, Response } from "express";
 import { getErrorMessage } from "../helpers/requestHelpers";
+import { config } from "../../config/config";
 
 interface PerformanceStats {
   runtime: string;
@@ -34,7 +35,7 @@ interface PerformanceStats {
 export function get_performance_stats(_req: Request, res: Response): void {
   const isBun = typeof process.versions.bun === "string";
 
-  const databaseType = process.env.DATABASE_TYPE || "mongo";
+  const databaseType = config.database.type;
 
   const stats: PerformanceStats = {
     runtime: isBun ? "Bun" : "Node.js",

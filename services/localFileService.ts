@@ -4,8 +4,9 @@ import { shares } from "../db";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
+import { config } from "../config/config";
+
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -9,7 +9,9 @@ import type { ServerAuthType } from "../db/stores/serverStore";
 import { KeyServerOptions, SaveServerOptions } from "../types/server";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const domain = process.env.HOSTNAME;
+import { config } from "../config/config";
+
+const domain = config.server.hostname;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

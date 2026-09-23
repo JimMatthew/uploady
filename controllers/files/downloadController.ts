@@ -6,8 +6,9 @@ import type { NextFunction, Request, Response } from "express";
 import { listLocalDir } from "../../services/localFileService";
 import { getWildcardPath, nextError } from "../helpers/requestHelpers";
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
+import { config } from "../../config/config";
+
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 /**
  * Triggers a file download using Express's res.download helper.

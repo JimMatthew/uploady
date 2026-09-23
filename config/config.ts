@@ -5,10 +5,18 @@ export interface AppConfig {
     hostname: string;
     port: number;
     https:
-      { enabled: false } | { enabled: true; certPath: string; keyPath: string };
+      | {
+          enabled: false;
+        }
+      | {
+          enabled: true;
+          certPath: string;
+          keyPath: string;
+        };
   };
+
   storage: {
-    uploadsDirectory: String;
+    uploadsDirectory: string;
   };
 
   database:
@@ -66,7 +74,7 @@ function parsePort(value: string | undefined, defaultValue = 3001): number {
   const port = Number(value);
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`PORT must be an integer between 1 and 65535`);
+    throw new Error("PORT must be an integer between 1 and 65535");
   }
 
   return port;
@@ -109,7 +117,7 @@ function loadHttpsConfig(): AppConfig["server"]["https"] {
   };
 }
 
-export function loadConfig(): AppConfig {
+function loadConfig(): AppConfig {
   return {
     server: {
       hostname: requireEnv("HOSTNAME"),
@@ -118,7 +126,7 @@ export function loadConfig(): AppConfig {
     },
 
     storage: {
-      uploadsDirectory: requireEnv("UPLOADS_DIRECTORY"),
+      uploadsDirectory: process.env.UPLOADS_DIRECTORY ?? "./uploads",
     },
 
     database: loadDatabaseConfig(),
@@ -129,3 +137,16 @@ export function loadConfig(): AppConfig {
     },
   };
 }
+
+function initializeConfig(): AppConfig {
+  try {
+    return loadConfig();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    console.error(`FATAL [CONFIG] ${message}`);
+    process.exit(1);
+  }
+}
+
+export const config = initializeConfig();

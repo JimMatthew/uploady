@@ -14,8 +14,9 @@ import type {
   SftpCopyResponse,
 } from "../../shared/api/transfers";
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
+import { config } from "../../config/config";
+
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 function parseSftpCopyRequest(body: unknown): SftpCopyRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {

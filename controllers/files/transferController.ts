@@ -13,8 +13,9 @@ import type {
   LocalPasteResponse,
 } from "../../shared/api/transfers";
 
-const uploadsDirectory = process.env.UPLOADS_DIRECTORY ?? "./uploads";
-const uploadsDir = path.resolve(uploadsDirectory);
+import { config } from "../../config/config";
+
+const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 function parseLocalPasteRequest(body: unknown): LocalPasteRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {

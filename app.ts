@@ -9,7 +9,10 @@ import { WebSocketServer } from "ws";
 
 import { logger } from "./logging";
 import { init } from "./db";
-import { loadConfig, type AppConfig } from "./config/config";
+import {
+  config,
+  type AppConfig,
+} from "./config/config";
 
 import sshSessionHandler from "./controllers/ssh_session";
 import setupRoutes from "./routes/route";
@@ -154,8 +157,7 @@ function createServer(config: AppConfig): http.Server | https.Server {
 
 async function start(): Promise<void> {
   try {
-    const config = loadConfig();
-
+    
     await init();
 
     const server = createServer(config);
@@ -168,6 +170,7 @@ async function start(): Promise<void> {
 
     server.listen(config.server.port, () => {
       log.info("Server started", {
+        hostname: config.server.hostname,
         port: config.server.port,
         protocol: config.server.https.enabled ? "https" : "http",
       });
