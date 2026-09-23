@@ -4,21 +4,13 @@ import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
 import { users } from "../db";
 import { getSettings } from "../services/settingsService";
-
+import { config } from "../config/config";
 interface Credentials {
   username: string;
   password: string;
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
 
-  if (!secret) {
-    throw new Error("JWT_SECRET is not configured");
-  }
-
-  return secret;
-}
 
 function parseCredentials(body: unknown): Credentials {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -134,7 +126,7 @@ export async function setup_post(req: Request, res: Response): Promise<void> {
         id: user._id,
         username: user.username,
       },
-      getJwtSecret(),
+      config.auth.jwtSecret,
       {
         expiresIn: settings.session.jwtLifetimeMinutes * 60,
       },
@@ -188,7 +180,7 @@ export async function login_post(req: Request, res: Response): Promise<void> {
         id: user._id,
         username: user.username,
       },
-      getJwtSecret(),
+      config.auth.jwtSecret,
       {
         expiresIn: settings.session.jwtLifetimeMinutes * 60,
       },

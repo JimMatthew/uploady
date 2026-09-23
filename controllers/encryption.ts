@@ -1,27 +1,15 @@
 import crypto from "node:crypto";
 
 import type { EncryptedField } from "../types/server";
+import { config } from "../config/config";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const ALGORITHM = "aes-256-gcm";
 
-const masterKeyHex = process.env.MASTER_KEY;
-
-if (!masterKeyHex) {
-  console.error("FATAL: MASTER_KEY environment variable is not set");
-  process.exit(1);
-}
+const masterKeyHex = config.auth.masterKey;
 
 const MASTER_KEY = Buffer.from(masterKeyHex, "hex");
-
-if (MASTER_KEY.length !== 32) {
-  console.error(
-    `FATAL: MASTER_KEY must be 32 bytes (64 hex characters). ` +
-      `Got ${MASTER_KEY.length} bytes.`,
-  );
-  process.exit(1);
-}
 
 // ─── Encryption ───────────────────────────────────────────────────────────────
 

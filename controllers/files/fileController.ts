@@ -15,9 +15,10 @@ import {
   RenameFileResponse,
 } from "../../shared/api/files";
 import { config } from "../../config/config";
+import { logger } from "../../logging";
 
 const uploadsDir = path.resolve(config.storage.uploadsDirectory);
-
+const log = logger.child("FILES");
 // ─── Directory ────────────────────────────────────────────────────────────────
 
 /**
@@ -133,8 +134,7 @@ export async function create_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Create folder error:", error);
-
+    log.error("Failed to create folder",{ error })
     nextError(next, "Error creating folder", 500);
   }
 }
@@ -160,6 +160,7 @@ function parseDeleteFolderRequest(body: unknown): DeleteFolderRequest {
     folderName: data.folderName,
   };
 }
+
 export async function delete_folder_post(
   req: Request,
   res: Response,
@@ -189,8 +190,7 @@ export async function delete_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete folder error:", error);
-
+    log.error("Failed to delete Folder", { error });
     nextError(next, "Error deleting folder", 400);
   }
 }
@@ -221,8 +221,7 @@ export async function delete_file_post(
       message: "File deleted",
     });
   } catch (error) {
-    console.error("Delete file error:", error);
-
+    log.error("Failed to delete file", { error })
     nextError(next, "Error deleting file", 400);
   }
 }
@@ -282,8 +281,7 @@ export async function delete_files_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete files error:", error);
-
+    log.error("Failed to delete files", { error });
     nextError(next, "Error deleting files", 400);
   }
 }
@@ -352,8 +350,7 @@ export async function rename_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Rename file error:", error);
-
+    log.error("Failed to rename file", { error });
     nextError(next, "Error renaming file", 500);
   }
 }
@@ -406,8 +403,7 @@ export async function cut_file_post(
       message: "File moved",
     });
   } catch (error) {
-    console.error("Move file error:", error);
-
+    log.error("Failed to move file", { error });
     nextError(next, "Error moving file", 500);
   }
 }

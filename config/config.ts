@@ -80,6 +80,16 @@ function parsePort(value: string | undefined, defaultValue = 3001): number {
   return port;
 }
 
+function parseMasterKey(value: string): string {
+  if (!/^[0-9a-fA-F]{64}$/.test(value)) {
+    throw new Error(
+      "MASTER_KEY must be exactly 64 hexadecimal characters",
+    );
+  }
+
+  return value;
+}
+
 function loadDatabaseConfig(): AppConfig["database"] {
   const type = requireEnv("DATABASE_TYPE");
 
@@ -132,7 +142,7 @@ function loadConfig(): AppConfig {
     database: loadDatabaseConfig(),
 
     auth: {
-      masterKey: requireEnv("MASTER_KEY"),
+      masterKey: parseMasterKey(requireEnv("MASTER_KEY")),
       jwtSecret: requireEnv("JWT_SECRET"),
     },
   };
