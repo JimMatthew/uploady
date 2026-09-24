@@ -5,13 +5,10 @@ import type { Response } from "express";
 import type SftpClient from "ssh2-sftp-client";
 import { connectToSftp } from "./sftpConnection";
 import { streamZipEntry } from "./archiveService";
-
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
+import { logger } from "../logging";
 import { config } from "../config/config";
 
+const log = logger.child("SFTP");
 const uploadsDir = path.resolve(config.storage.uploadsDirectory);
 
 // ---------------------------------------------------------------------------
@@ -146,6 +143,7 @@ async function withSftp<T>(
 
     return await fn(sftp);
   } catch (error) {
+    log.error("Operation failed", { error });
     const { code, message } = getErrorInfo(error);
 
     throw new SftpError("SFTP operation failed", code, message);
@@ -391,7 +389,7 @@ export async function uploadFile(
         try {
           await sftp.end();
         } catch (error) {
-          console.error("Error closing SFTP connection:", error);
+          log.error("Error closing SFTP connection:", { error });
         }
       },
     };
@@ -636,6 +634,3 @@ export async function archiveFolder(
   });
 }
 
-// Re-exported for existing consumers that obtain connectToSftp through
-// sftpService rather than importing sftpConnection directly.
-export { connectToSftp };

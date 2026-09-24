@@ -9,6 +9,9 @@
  * See: docs/transfer-persistence.md
  */
 
+import { logger } from "../logging";
+const log = logger.child("TRANSFER");
+
 export type TransferPersistenceEvent =
   | {
       type: "file_started";
@@ -80,27 +83,24 @@ export class TransferPersistenceQueue {
     }
 
     if (!this.processing && !this.scheduled && this.queue.length === 0) {
-      console.log("[TransferPersistence] flush immediate");
+      log.info("[TransferPersistence] flush immediate");
       return Promise.resolve();
     }
 
     const flushStartedAt = performance.now();
-
-    console.log(
-      `[TransferPersistence] flush waiting` +
-        ` queued=${this.queue.length}` +
-        ` processing=${this.processing}` +
-        ` scheduled=${this.scheduled}`,
-    );
-
+    log.info("Persistence flush waiting", {
+      queued: this.queue.length,
+      processing: this.processing,
+      scheduled: this.scheduled,
+    })
+   
     return new Promise<void>((resolve, reject) => {
       this.flushWaiters.push({
         resolve: () => {
-          console.log(
-            `[TransferPersistence] flush complete` +
-              ` duration=${(performance.now() - flushStartedAt).toFixed(2)}ms`,
-          );
-
+          log.info("Persistence flush complete", {
+            duration: (performance.now() - flushStartedAt).toFixed(2)
+          })
+          
           resolve();
         },
         reject,
@@ -146,23 +146,21 @@ export class TransferPersistenceQueue {
         const batchStartedAt = performance.now();
         const startedAt = new Date();
 
-        console.log(
-          `[TransferPersistence] batch start` +
-            ` events=${batch.length}` +
-            ` queued=${this.queue.length}` +
-            ` time=${startedAt.toISOString()}`,
-        );
-
+        log.info("Persistence batch start", {
+          events: batch.length,
+          queued: this.queue.length,
+          time: startedAt.toISOString()
+        })
+       
         await this.handler(batch);
 
         const durationMs = performance.now() - batchStartedAt;
 
-        console.log(
-          `[TransferPersistence] batch done` +
-            ` events=${batch.length}` +
-            ` duration=${durationMs.toFixed(2)}ms` +
-            ` queued=${this.queue.length}`,
-        );
+        log.info("Persistence batch done", {
+          events: batch.length,
+          duration: durationMs.toFixed(2),
+          queued: this.queue.length
+        })
       }
 
       this.resolveFlushWaiters();
