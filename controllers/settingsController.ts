@@ -6,14 +6,17 @@ import {
   updateSessionSettings as updateSessionSettingsService,
 } from "../services/settingsService";
 
+import { logger } from "../logging";
+
+const log = logger.child("SETTINGS");
+
 export async function getSettings(_req: Request, res: Response): Promise<void> {
   try {
     const settings = await getSettingsService();
 
     res.json(settings);
   } catch (error) {
-    console.error("Failed to get settings:", error);
-
+    log.error("Failed to get settings", { error });
     res.status(500).json({
       error: "Failed to get settings",
     });
@@ -49,8 +52,7 @@ export async function updateSessionSettings(
 
     res.json(settings);
   } catch (error) {
-    console.error("Failed to update session settings:", error);
-
+    log.error("Failed to update settings", { error });
     res.status(400).json({
       error:
         error instanceof Error

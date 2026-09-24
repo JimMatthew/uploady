@@ -5,12 +5,15 @@ import type { NextFunction, Request, Response } from "express";
 import { users } from "../db";
 import { getSettings } from "../services/settingsService";
 import { config } from "../config/config";
+
+import { logger } from "../logging";
+
+const log = logger.child("SETUP");
+
 interface Credentials {
   username: string;
   password: string;
 }
-
-
 
 function parseCredentials(body: unknown): Credentials {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -134,8 +137,7 @@ export async function setup_post(req: Request, res: Response): Promise<void> {
 
     res.status(201).json({ token });
   } catch (error) {
-    console.error("Setup error:", error);
-
+    log.error("Setup error", { error });
     res.status(500).json({
       error: "Setup failed",
     });
@@ -188,8 +190,7 @@ export async function login_post(req: Request, res: Response): Promise<void> {
 
     res.json({ token });
   } catch (error) {
-    console.error("Login error:", error);
-
+    log.error("Login error", { error });
     res.status(500).json({
       error: "Login failed",
     });

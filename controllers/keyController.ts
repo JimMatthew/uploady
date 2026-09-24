@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-
+import { logger } from "../logging";
 import {
   getSharedKeys as getSharedKeysService,
   generateSharedKey,
@@ -10,6 +10,7 @@ import {
 } from "../services/keyService";
 import { propIfPresent } from "../shared/utils/PropHelper";
 
+const log = logger.child("KEYS");
 /**
  * Returns all shared SSH keys available for reuse.
  *
@@ -24,8 +25,7 @@ export async function getSharedKeys(
 
     res.json(keys);
   } catch (error) {
-    console.error("Failed to get SSH keys:", error);
-
+    log.error("Failed to retrieve SSH keys", { error });
     res.status(500).json({
       error: "Failed to get SSH keys",
     });
@@ -95,8 +95,7 @@ export async function generateKey(req: Request, res: Response): Promise<void> {
 
     res.status(201).json(key);
   } catch (error) {
-    console.error("Failed to generate SSH key:", error);
-
+    log.error("Failure generating SSH key", { error });
     res.status(400).json({
       error:
         error instanceof Error ? error.message : "Failed to generate SSH key",
@@ -118,8 +117,7 @@ export async function importKey(req: Request, res: Response): Promise<void> {
 
     res.status(201).json(key);
   } catch (error) {
-    console.error("Failed to import SSH key:", error);
-
+    log.error("Error importing SSH key", { error });
     res.status(400).json({
       error:
         error instanceof Error ? error.message : "Failed to import SSH key",
@@ -148,7 +146,7 @@ export async function deleteKey(req: Request, res: Response): Promise<void> {
 
     res.status(204).end();
   } catch (error) {
-    console.error("Failed to delete SSH key:", error);
+    log.error("Failed to delete SSH key", { error });
 
     res.status(500).json({
       error:

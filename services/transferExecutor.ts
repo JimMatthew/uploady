@@ -6,13 +6,14 @@ import { JobStatus, ItemStatus } from "../controllers/jobs/jobConstants";
 
 import { expandJobItems } from "./transferExpansionService";
 import { executeTransferJob } from "./transferExecutionService";
-
+import { logger } from "../logging";
 import type {
   InMemoryTransferItem,
   InMemoryTransferJob,
   TransferRoot,
 } from "../types/transferTypes";
 
+const log = logger.child("TRANSFER");
 // ---------------------------------------------------------------------------
 // Transfer Executor
 // ---------------------------------------------------------------------------
@@ -80,7 +81,7 @@ class TransferExecutor extends EventEmitter {
       }
 
       void this.runJob(jobId).catch((err: unknown) => {
-        console.error(`Executor: unhandled error in job ${jobId}:`, err);
+        log.error("unhandled error executor", { jobId, err })
       });
     }
   }
@@ -124,8 +125,7 @@ class TransferExecutor extends EventEmitter {
     ]);
 
     if (!jobDoc) {
-      console.error(`Executor: job ${jobId} not found after expansion`);
-
+      log.error("Job not found after expansion", { jobId })
       this.processQueue();
       return;
     }
@@ -267,8 +267,7 @@ class TransferExecutor extends EventEmitter {
     } catch (err) {
       const message = getErrorMessage(err);
 
-      console.error(`Executor: job ${jobId} failed:`, err);
-
+      log.error("Job failed", { jobId, err })
       await transferJobs.markFailed(jobId, message);
 
       this.emit(`jobDone:${jobId}`, {

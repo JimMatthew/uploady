@@ -2,8 +2,9 @@ import { Client } from "ssh2";
 import type { WebSocket, RawData } from "ws";
 
 import { getServerOptions } from "../services/serverService";
-
+import { logger } from "../logging";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+const log = logger.child("SSH");
 
 type ServerEvent =
   | "connected"
@@ -102,8 +103,7 @@ function parseMessage(raw: RawData): ClientMessage | null {
 
     return null;
   } catch {
-    console.error("ssh_session: malformed WebSocket message");
-
+    log.error("Recieved malformed WebSocket message");
     return null;
   }
 }
@@ -204,17 +204,14 @@ export default function ssh_session(socket: WebSocket): void {
           );
         })
         .on("error", (error: Error) => {
-          console.error("SSH connection error:", error.message);
-
+          log.error("Connection error", { error })
+          
           sendJson(socket, "connectionError", error.message);
         })
         .connect(connectConfig);
     } catch (error) {
-      const message = getErrorMessage(error);
-
-      console.error("ssh_session: failed to get server options:", message);
-
-      sendJson(socket, "connectionError", message);
+      log.error("Failed to get server options", { error });
+      sendJson(socket, "connectionError", getErrorMessage(error));
     }
   };
 

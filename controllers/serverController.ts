@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { Request, Response } from "express";
 import { servers } from "../db";
 
@@ -14,7 +13,7 @@ import {
   getStringParam,
   handleError,
 } from "./helpers/requestHelpers";
-import { KeyMode, SaveServerOptions } from "../types/server";
+import { KeyMode } from "../types/server";
 import { propIfPresent } from "../shared/utils/PropHelper";
 import {
   DeleteServerRequest,
@@ -26,6 +25,10 @@ import {
   ServerPublicKeyResponse,
   ServerStatusResponse,
 } from "../shared/api/server";
+
+import { logger } from "../logging";
+
+const log = logger.child("SERVER");
 
 export async function sftp_get_servers_get(
   _req: Request,
@@ -40,8 +43,7 @@ export async function sftp_get_servers_get(
 
     res.json(response);
   } catch (error) {
-    console.error("Get servers error:", error);
-
+    log.error("Failed to retrieve servers", { error });
     res.json({
       status: "offline",
     });
@@ -68,8 +70,6 @@ export async function sftp_server_status_get(
 
     res.json(response);
   } catch (error) {
-    console.error("Server status error:", error);
-
     res.json({
       status: "offline",
     });
@@ -202,8 +202,7 @@ export async function sftp_save_server_post(
 
     res.status(201).json(response);
   } catch (error) {
-    console.error("Save server error:", error);
-
+    log.error("Failed to save server", { error });
     handleError(res, getErrorMessage(error) || "Cannot save server", 400);
   }
 }
@@ -240,8 +239,7 @@ export async function sftp_delete_server_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete server error:", error);
-
+    log.error("Failed to delete server", { error });
     handleError(res, "Error deleting server");
   }
 }
@@ -266,8 +264,7 @@ export async function sftp_get_server_public_key(
 
     res.json(response);
   } catch (error) {
-    console.error("Failed to get server public key:", error);
-
+    log.error("Failed to retrieve public key", { error });
     res.status(500).json({
       error: "Failed to get server public key",
     });

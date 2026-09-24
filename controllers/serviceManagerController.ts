@@ -6,7 +6,9 @@ import {
   stopService,
   restartService,
 } from "../services/serviceManagerService";
+import { logger } from "../logging";
 
+const log = logger.child("SERVICES");
 /**
  * GET /api/servers/:serverId/services
  *
@@ -30,11 +32,11 @@ export async function getServerServices(
 
     res.json(result);
   } catch (error) {
-    console.error(
-      `Service fetch failed for server ${serverId}:`,
-      error instanceof Error ? error.message : error,
-    );
-
+    log.error("Failed to fetch services", {
+      server: serverId,
+      error
+    })
+    
     res.status(500).json({
       error: "Failed to retrieve server services",
     });
@@ -67,11 +69,12 @@ export async function startServerService(
 
     res.json(result);
   } catch (error) {
-    console.error(
-      `Failed to start service ${serviceName} on server ${serverId}:`,
-      error instanceof Error ? error.message : error,
-    );
-
+    log.error("Failed to start service",{
+      service: serviceName,
+      serverId,
+      error
+    })
+    
     res.status(500).json({
       error: "Failed to start service",
     });
@@ -104,11 +107,12 @@ export async function stopServerService(
 
     res.json(result);
   } catch (error) {
-    console.error(
-      `Failed to stop service ${serviceName} on server ${serverId}:`,
-      error instanceof Error ? error.message : error,
-    );
-
+    log.error("Failed to stop service", {
+      service: serviceName,
+      serverId,
+      error
+    })
+    
     res.status(500).json({
       error: "Failed to stop service",
     });
@@ -141,10 +145,11 @@ export async function restartServerService(
 
     res.json(result);
   } catch (error) {
-    console.error(
-      `Failed to restart service ${serviceName} on server ${serverId}:`,
-      error instanceof Error ? error.message : error,
-    );
+    log.error("Failed to restart service", {
+      service: serviceName,
+      serverId,
+      error
+    })
 
     res.status(500).json({
       error: "Failed to restart service",
