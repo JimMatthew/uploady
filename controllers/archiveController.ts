@@ -2,6 +2,9 @@ import type { Request, Response } from "express";
 
 import { listZip, readZipEntry } from "../services/archiveService";
 import { resolveLocalPath } from "../services/localFileService";
+import { logger } from "../logging";
+
+const log = logger.child("ARCHIVE");
 
 export async function listLocalArchive(
   req: Request,
@@ -25,7 +28,7 @@ export async function listLocalArchive(
       entries,
     });
   } catch (error) {
-    console.error("Failed to open archive:", error);
+    log.error("Failed to open archive:", { error });
 
     res.status(500).json({
       error: "Failed to open archive",
@@ -61,7 +64,7 @@ export async function getLocalArchiveEntry(
     res.type("application/octet-stream");
     res.send(data);
   } catch (error) {
-    console.error("Failed to read archive entry:", error);
+    log.error("Failed to read archive entry:", { error });
 
     res.status(500).json({
       error: "Failed to read archive entry",

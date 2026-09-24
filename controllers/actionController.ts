@@ -9,6 +9,9 @@ import {
   execute as executeAction,
 } from "../services/actionService";
 import { CreateActionData } from "../db/stores/actionStore";
+import { logger } from "../logging";
+
+const log = logger.child("ACTIONS");
 
 function getIdParam(req: Request, res: Response): string | null {
   const { id } = req.params;
@@ -30,7 +33,7 @@ export async function getAll(_req: Request, res: Response): Promise<void> {
 
     res.json(actions);
   } catch (error) {
-    console.error("Failed to get actions:", error);
+    log.error("Failed to retrieve actions", { error });
 
     res.status(500).json({
       error: "Failed to get actions",
@@ -58,7 +61,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
 
     res.json(action);
   } catch (error) {
-    console.error("Failed to get action:", error);
+    log.error("Failed to retrieve action", { error });
 
     res.status(500).json({
       error: "Failed to get action",
@@ -113,7 +116,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 
     res.status(201).json(action);
   } catch (error) {
-    console.error("Failed to create action:", error);
+    log.error("Failed to create action", { error });
 
     res.status(400).json({
       error: error instanceof Error ? error.message : "Failed to create action",
@@ -141,7 +144,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 
     res.json(action);
   } catch (error) {
-    console.error("Failed to update action:", error);
+    log.error("Failed to update action:", { error });
 
     res.status(400).json({
       error: error instanceof Error ? error.message : "Failed to update action",
@@ -161,7 +164,7 @@ export async function deleteAction(req: Request, res: Response): Promise<void> {
 
     res.status(204).end();
   } catch (error) {
-    console.error("Failed to delete action:", error);
+    log.error("Failed to delete action:", { error });
 
     res.status(500).json({
       error: "Failed to delete action",
@@ -181,7 +184,7 @@ export async function run(req: Request, res: Response): Promise<void> {
 
     res.json(result);
   } catch (error) {
-    console.error("Failed to execute action:", error);
+    log.error("Failed to execute action:", { error });
 
     res.status(400).json({
       error:

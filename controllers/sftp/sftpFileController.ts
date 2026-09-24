@@ -33,6 +33,9 @@ import type {
   SftpCreateFolderResponse,
 } from "../../shared/api/sftpFiles";
 
+import { logger } from "../../logging";
+
+const log = logger.child("SFTP");
 // ─── Directory Listing ────────────────────────────────────────────────────────
 
 export async function sftp_list_directory_get(
@@ -70,8 +73,7 @@ export async function sftp_list_directory_get(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("List directory error:", error);
-
+    log.error("Failed to list directory", { error });
     handleError(res, "Error listing directory");
   }
 }
@@ -179,8 +181,7 @@ export async function sftp_delete_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete file error:", error);
-
+    log.error("Failed to delete file", { error });
     handleError(res, "Error deleting file");
   }
 }
@@ -236,8 +237,7 @@ export async function sftp_delete_files_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete files error:", error);
-
+    log.error("Failed to delete files", { error });
     handleError(res, "Error deleting files");
   }
 }
@@ -288,8 +288,7 @@ export async function sftp_delete_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete folder error:", error);
-
+    log.error("Failed to delete folder", { error });
     handleError(res, "Error deleting folder");
   }
 }
@@ -339,6 +338,7 @@ export async function sftp_create_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
+    log.error("Failed to create folder", { error });
     handleError(res, `Error creating folder: ${getErrorMessage(error)}`);
   }
 }

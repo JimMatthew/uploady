@@ -6,6 +6,10 @@ import {
   uploadFile,
 } from "../../services/sftpService";
 
+import { logger } from "../../logging";
+
+const log = logger.child("UPLOAD");
+
 export function sftp_upload_post(req: Request, res: Response): void {
   const busboy = Busboy({
     headers: req.headers,
@@ -48,7 +52,7 @@ export function sftp_upload_post(req: Request, res: Response): void {
         });
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      log.error("Failed to upload file", { error })
 
       if (!res.headersSent) {
         res.status(500).send("Error uploading file");
@@ -57,7 +61,7 @@ export function sftp_upload_post(req: Request, res: Response): void {
   });
 
   busboy.on("error", (error: Error) => {
-    console.error("Busboy error:", error);
+    log.error("Busboy error", { error });
 
     if (!res.headersSent) {
       res.status(500).send("Error processing upload");

@@ -16,6 +16,14 @@ function getLogLevel(): LogLevel {
   }
 }
 
+/*
+ * Shared application logger.
+ *
+ * Components should normally create a child logger so log records identify
+ * the subsystem that produced them:
+ *
+ *   const log = logger.child("SERVICES");
+ */
 export const logger = new AppLogger(getLogLevel());
 
 export type { Logger, LogContext, LogLevel, LogRecord } from "./types";

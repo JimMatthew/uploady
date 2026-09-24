@@ -15,8 +15,11 @@ import type {
 } from "../../shared/api/transfers";
 
 import { config } from "../../config/config";
+import { logger } from "../../logging";
 
 const uploadsDir = path.resolve(config.storage.uploadsDirectory);
+
+const log = logger.child("TRANSFER");
 
 function parseSftpCopyRequest(body: unknown): SftpCopyRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -108,8 +111,7 @@ export async function sftp_copy_files_post(
 
     res.status(201).json(response);
   } catch (error) {
-    console.error("Failed to create transfer job:", error);
-
+    log.error("Failed to create transfer job", { error });
     res.status(500).send("Failed to create transfer job");
   }
 }

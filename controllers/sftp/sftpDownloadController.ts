@@ -12,6 +12,10 @@ import {
   handleError,
 } from "../helpers/requestHelpers";
 
+import { logger } from "../../logging";
+
+const log = logger.child("DOWNLOAD");
+
 export async function sftp_download_get(
   req: Request,
   res: Response,
@@ -37,7 +41,7 @@ export async function sftp_download_get(
 
     await pipeStreamToResponse(stream, res, cleanup);
   } catch (error) {
-    console.error("Download error:", error);
+    log.error("Failed to download file", { error });
 
     if (!res.headersSent) {
       handleError(res, "Error downloading file");
@@ -66,7 +70,7 @@ export async function sftp_archive_folder_get(
 
     await archiveFolder(serverId, remotePath, res);
   } catch (error) {
-    console.error("Archive folder error:", error);
+    log.error("Archive folder error", { error });
 
     if (!res.headersSent) {
       handleError(res, "Failed to download folder");
@@ -91,7 +95,7 @@ async function pipeStreamToResponse(
     try {
       await cleanup();
     } catch (error) {
-      console.error("Stream cleanup error:", error);
+      log.error("Stream cleanup error", { error });
     }
   };
 

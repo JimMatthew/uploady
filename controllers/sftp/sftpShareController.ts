@@ -8,6 +8,10 @@ import type {
   SftpShareFileResponse,
 } from "../../shared/api/sftpFiles";
 
+import { logger } from "../../logging";
+
+const log = logger.child("SHARE");
+
 export async function sftp_share_file_post(
   req: Request,
   res: Response,
@@ -56,8 +60,7 @@ export async function sftp_share_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Share file error:", error);
-
+    log.error("Failed to create share link", { error });
     handleError(res, "Error creating share link");
   }
 }

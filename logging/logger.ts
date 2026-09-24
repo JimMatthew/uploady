@@ -15,6 +15,14 @@ const LEVEL_VALUES: Record<LogLevel, number> = {
   fatal: 50,
 };
 
+/**
+ * Lightweight application logger with severity filtering and component
+ * tagging.
+ *
+ * AppLogger is responsible for creating structured log records and deciding
+ * where console output is written. Record presentation is delegated to the
+ * formatter.
+ */
 export class AppLogger implements Logger {
   constructor(
     private readonly minimumLevel: LogLevel,
@@ -41,6 +49,10 @@ export class AppLogger implements Logger {
       this.log("fatal", message, context);
   }
 
+    /**
+   * Creates a logger that shares the current minimum level while attaching
+   * a component name to every record it produces.
+   */
   child(component: string): Logger {
     return new AppLogger(this.minimumLevel, component);
   }
