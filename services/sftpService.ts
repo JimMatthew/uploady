@@ -80,14 +80,17 @@ export interface DeleteFileResult {
  * Preserves the original ssh2 error code and message for debugging.
  */
 export class SftpError extends Error {
-  code: string;
-  details?: string;
+  readonly code: string;
 
-  constructor(message: string, code?: string, details?: string) {
-    super(message);
+  constructor(
+    message: string,
+    code?: string,
+    cause?: unknown,
+  ) {
+    super(message, { cause });
+
     this.name = "SftpError";
     this.code = code ?? "SFTP_ERROR";
-    this.details = details;
   }
 }
 
@@ -143,10 +146,10 @@ async function withSftp<T>(
 
     return await fn(sftp);
   } catch (error) {
-    log.error("Operation failed", { error });
-    const { code, message } = getErrorInfo(error);
+   // log.error("Operation failed", { error });
+    const { code } = getErrorInfo(error);
 
-    throw new SftpError("SFTP operation failed", code, message);
+    throw new SftpError("SFTP operation failed", code, error);
   } finally {
     if (sftp) {
       try {
@@ -360,7 +363,7 @@ export async function downloadFile(
   } catch (error) {
     await cleanup();
     const { code, message } = getErrorInfo(error);
-    throw new SftpError("Error downloading file", code, message);
+    throw new SftpError("Error downloading file", code, error);
   }
 }
 
@@ -402,7 +405,7 @@ export async function uploadFile(
 
     const { code, message } = getErrorInfo(error);
 
-    throw new SftpError("Error uploading file", code, message);
+    throw new SftpError("Error uploading file", code, error);
   }
 }
 

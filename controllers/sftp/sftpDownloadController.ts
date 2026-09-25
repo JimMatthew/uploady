@@ -1,5 +1,5 @@
 import type { Readable } from "node:stream";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import {
   archiveFolder,
@@ -9,7 +9,7 @@ import {
 import {
   getStringParam,
   getWildcardPath,
-  handleError,
+ nextError
 } from "../helpers/requestHelpers";
 
 import { logger } from "../../logging";
@@ -19,11 +19,12 @@ const log = logger.child("DOWNLOAD");
 export async function sftp_download_get(
   req: Request,
   res: Response,
+  next: NextFunction
 ): Promise<void> {
   const serverId = getStringParam(req, "serverId");
 
   if (!serverId) {
-    handleError(res, "Missing serverId", 400);
+    nextError(next, "Missing serverId", 400);
     return;
   }
 
@@ -44,7 +45,7 @@ export async function sftp_download_get(
     log.error("Failed to download file", { error });
 
     if (!res.headersSent) {
-      handleError(res, "Error downloading file");
+      nextError(next, "Error downloading file", 500);
     }
   }
 }
@@ -52,11 +53,12 @@ export async function sftp_download_get(
 export async function sftp_archive_folder_get(
   req: Request,
   res: Response,
+  next: NextFunction
 ): Promise<void> {
   const serverId = getStringParam(req, "serverId");
 
   if (!serverId) {
-    handleError(res, "Missing serverId", 400);
+    nextError(next, "Missing serverId", 400);
     return;
   }
 
@@ -73,7 +75,7 @@ export async function sftp_archive_folder_get(
     log.error("Archive folder error", { error });
 
     if (!res.headersSent) {
-      handleError(res, "Failed to download folder");
+      nextError(next, "Failed to download folder", 500);
     }
   }
 }

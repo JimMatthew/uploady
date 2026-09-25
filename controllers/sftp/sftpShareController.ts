@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { share_file } from "../../services/serverService";
 import { handleError } from "../helpers/requestHelpers";
@@ -8,13 +8,10 @@ import type {
   SftpShareFileResponse,
 } from "../../shared/api/sftpFiles";
 
-import { logger } from "../../logging";
-
-const log = logger.child("SHARE");
-
 export async function sftp_share_file_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
@@ -40,14 +37,14 @@ export async function sftp_share_file_post(
     remotePath,
   };
 
+  const fileName = request.remotePath.split("/").pop();
+
+  if (!fileName) {
+    handleError(res, "Invalid remote path", 400);
+    return;
+  }
+
   try {
-    const fileName = request.remotePath.split("/").pop();
-
-    if (!fileName) {
-      handleError(res, "Invalid remote path", 400);
-      return;
-    }
-
     const { link } = await share_file(
       fileName,
       request.remotePath,
@@ -60,7 +57,6 @@ export async function sftp_share_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to create share link", { error });
-    handleError(res, "Error creating share link");
+    next(error);
   }
 }

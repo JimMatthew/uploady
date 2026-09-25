@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
+
 import { shares } from "../../db";
 import { deleteFiles, listLocalDir } from "../../services/localFileService";
 import { getWildcardPath, nextError } from "../helpers/requestHelpers";
-import {
+
+import type {
   CreateFolderRequest,
   CreateFolderResponse,
   DeleteFilesRequest,
@@ -14,11 +16,11 @@ import {
   RenameFileRequest,
   RenameFileResponse,
 } from "../../shared/api/files";
+
 import { config } from "../../config/config";
-import { logger } from "../../logging";
 
 const uploadsDir = path.resolve(config.storage.uploadsDirectory);
-const log = logger.child("FILES");
+
 // ─── Directory ────────────────────────────────────────────────────────────────
 
 /**
@@ -37,8 +39,8 @@ export function list_directory_get(
       ...data,
       user: "admin",
     });
-  } catch {
-    nextError(next, "Failed to list directory", 500);
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -134,8 +136,7 @@ export async function create_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to create folder",{ error })
-    nextError(next, "Error creating folder", 500);
+    next(error);
   }
 }
 
@@ -190,8 +191,7 @@ export async function delete_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete Folder", { error });
-    nextError(next, "Error deleting folder", 400);
+    next(error);
   }
 }
 
@@ -211,7 +211,9 @@ export async function delete_file_post(
 
   try {
     const absoluteFilePath = path.join(uploadsDir, relativeFilePath);
+
     await fs.promises.unlink(absoluteFilePath);
+
     await shares.deleteByPath(
       relativeFilePath,
       path.basename(relativeFilePath),
@@ -221,8 +223,7 @@ export async function delete_file_post(
       message: "File deleted",
     });
   } catch (error) {
-    log.error("Failed to delete file", { error })
-    nextError(next, "Error deleting file", 400);
+    next(error);
   }
 }
 
@@ -281,8 +282,7 @@ export async function delete_files_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete files", { error });
-    nextError(next, "Error deleting files", 400);
+    next(error);
   }
 }
 
@@ -350,8 +350,7 @@ export async function rename_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to rename file", { error });
-    nextError(next, "Error renaming file", 500);
+    next(error);
   }
 }
 
@@ -383,7 +382,9 @@ export async function cut_file_post(
 
   try {
     const srcPath = path.join(uploadsDir, currentPath, filename);
+
     const destPath = path.join(uploadsDir, newPath, filename);
+
     await fs.promises.copyFile(srcPath, destPath);
 
     const [srcStat, destStat] = await Promise.all([
@@ -403,7 +404,6 @@ export async function cut_file_post(
       message: "File moved",
     });
   } catch (error) {
-    log.error("Failed to move file", { error });
-    nextError(next, "Error moving file", 500);
+    next(error);
   }
 }

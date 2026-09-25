@@ -1,26 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
 
-/**
- * Sends an HTTP error response to the client.
- *
- * Logs the message to the server console and returns a JSON response
- * containing the error message.
- *
- * @param res - Express response object.
- * @param message - Error message to log and send to the client.
- * @param status - HTTP status code. Defaults to 500.
- */
-export function handleError(
-  res: Response,
-  message: string,
-  status = 500,
-): void {
-  console.error(message);
-
-  res.status(status).json({
-    error: message,
-  });
-}
 
 /**
  * Converts an unknown thrown value into a readable error message.
@@ -80,7 +59,7 @@ interface RequestError {
   message: string;
   status: number;
 }
-
+import { AppError } from "../../errors/AppError";
 /**
  * Passes an HTTP-style error to the next Express error handler.
  *
@@ -96,10 +75,5 @@ export function nextError(
   message: string,
   status: number,
 ): void {
-  const error: RequestError = {
-    message,
-    status,
-  };
-
-  next(error);
+  next(new AppError(message, status));
 }

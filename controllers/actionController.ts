@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import {
   getAll as getAllActions,
@@ -8,64 +8,53 @@ import {
   delete as deleteActionService,
   execute as executeAction,
 } from "../services/actionService";
-import { CreateActionData } from "../db/stores/actionStore";
-import { logger } from "../logging";
 
-const log = logger.child("ACTIONS");
+import type { CreateActionData } from "../db/stores/actionStore";
 
-function getIdParam(req: Request, res: Response): string | null {
-  const { id } = req.params;
+import {
+  getStringParam,
+  getErrorMessage,
+  nextError,
+} from "./helpers/requestHelpers";
+import { propIfPresent } from "../shared/utils/PropHelper";
 
-  if (typeof id !== "string") {
-    res.status(400).json({
-      error: "Invalid action ID",
-    });
-
-    return null;
-  }
-
-  return id;
-}
-
-export async function getAll(_req: Request, res: Response): Promise<void> {
+export async function getAll(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const actions = await getAllActions();
 
     res.json(actions);
   } catch (error) {
-    log.error("Failed to retrieve actions", { error });
-
-    res.status(500).json({
-      error: "Failed to get actions",
-    });
+    next(error);
   }
 }
 
-export async function getById(req: Request, res: Response): Promise<void> {
+export async function getById(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const id = getStringParam(req, "id");
+
+  if (!id) {
+    nextError(next, "Invalid action ID", 400);
+    return;
+  }
+
   try {
-    const id = getIdParam(req, res);
-
-    if (!id) {
-      return;
-    }
-
     const action = await getActionById(id);
 
     if (!action) {
-      res.status(404).json({
-        error: "Action not found",
-      });
-
+      nextError(next, "Action not found", 404);
       return;
     }
 
     res.json(action);
   } catch (error) {
-    log.error("Failed to retrieve action", { error });
-
-    res.status(500).json({
-      error: "Failed to get action",
-    });
+    next(error);
   }
 }
 
@@ -101,94 +90,100 @@ function parseCreateActionData(body: unknown): CreateActionData {
 
   return {
     name,
-    ...(description !== undefined && { description }),
+    ...propIfPresent("description", description),
     serverId,
     command,
     ...(mode !== undefined && { mode }),
   };
 }
 
-export async function create(req: Request, res: Response): Promise<void> {
-  try {
-    const data = parseCreateActionData(req.body);
+export async function create(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  let data: CreateActionData;
 
+  try {
+    data = parseCreateActionData(req.body);
+  } catch (error) {
+    nextError(next, getErrorMessage(error) || "Invalid request body", 400);
+    return;
+  }
+
+  try {
     const action = await createAction(data);
 
     res.status(201).json(action);
   } catch (error) {
-    log.error("Failed to create action", { error });
-
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Failed to create action",
-    });
+    next(error);
   }
 }
 
-export async function update(req: Request, res: Response): Promise<void> {
+export async function update(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const id = getStringParam(req, "id");
+
+  if (!id) {
+    nextError(next, "Invalid action ID", 400);
+    return;
+  }
+
   try {
-    const id = getIdParam(req, res);
-
-    if (!id) {
-      return;
-    }
-
     const action = await updateAction(id, req.body);
 
     if (!action) {
-      res.status(404).json({
-        error: "Action not found",
-      });
-
+      nextError(next, "Action not found", 404);
       return;
     }
 
     res.json(action);
   } catch (error) {
-    log.error("Failed to update action:", { error });
-
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Failed to update action",
-    });
+    next(error);
   }
 }
 
-export async function deleteAction(req: Request, res: Response): Promise<void> {
+export async function deleteAction(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const id = getStringParam(req, "id");
+
+  if (!id) {
+    nextError(next, "Invalid action ID", 400);
+    return;
+  }
+
   try {
-    const id = getIdParam(req, res);
-
-    if (!id) {
-      return;
-    }
-
     await deleteActionService(id);
 
     res.status(204).end();
   } catch (error) {
-    log.error("Failed to delete action:", { error });
-
-    res.status(500).json({
-      error: "Failed to delete action",
-    });
+    next(error);
   }
 }
 
-export async function run(req: Request, res: Response): Promise<void> {
+export async function run(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const id = getStringParam(req, "id");
+
+  if (!id) {
+    nextError(next, "Invalid action ID", 400);
+    return;
+  }
+
   try {
-    const id = getIdParam(req, res);
-
-    if (!id) {
-      return;
-    }
-
     const result = await executeAction(id);
 
     res.json(result);
   } catch (error) {
-    log.error("Failed to execute action:", { error });
-
-    res.status(400).json({
-      error:
-        error instanceof Error ? error.message : "Failed to execute action",
-    });
+    next(error);
   }
 }

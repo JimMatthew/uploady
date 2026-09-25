@@ -61,5 +61,15 @@ function formatValue(value: unknown): string {
 }
 
 function formatError(error: Error): string {
-  return `${error.name}: ${error.message}`;
+  const message = `${error.name}: ${error.message}`;
+
+  if (error.cause instanceof Error) {
+    return `${message}; cause=${formatError(error.cause)}`;
+  }
+
+  if (error.cause !== undefined) {
+    return `${message}; cause=${String(error.cause)}`;
+  }
+
+  return message;
 }

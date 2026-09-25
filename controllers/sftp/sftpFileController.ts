@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { servers } from "../../db";
 
@@ -16,7 +16,7 @@ import {
   getErrorMessage,
   getStringParam,
   getWildcardPath,
-  handleError,
+  nextError,
 } from "../helpers/requestHelpers";
 
 import type {
@@ -41,11 +41,12 @@ const log = logger.child("SFTP");
 export async function sftp_list_directory_get(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const serverId = getStringParam(req, "serverId");
 
   if (!serverId) {
-    handleError(res, "Missing serverId", 400);
+    nextError(next, "Missing serverId", 400);
     return;
   }
 
@@ -57,7 +58,7 @@ export async function sftp_list_directory_get(
     const server = await servers.findById(serverId);
 
     if (!server) {
-      handleError(res, "Server not found", 404);
+      nextError(next, "Server not found", 404);
       return;
     }
 
@@ -73,8 +74,7 @@ export async function sftp_list_directory_get(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to list directory", { error });
-    handleError(res, "Error listing directory");
+    next(error);
   }
 }
 
@@ -83,11 +83,12 @@ export async function sftp_list_directory_get(
 export async function sftp_rename_file_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -106,7 +107,7 @@ export async function sftp_rename_file_post(
     typeof serverId !== "string" ||
     !serverId
   ) {
-    handleError(res, "Missing required fields", 400);
+    nextError(next, "Missing required fields", 400);
     return;
   }
 
@@ -131,18 +132,19 @@ export async function sftp_rename_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    handleError(res, `Error renaming file: ${getErrorMessage(error)}`);
+    next(error);
   }
 }
 
 export async function sftp_delete_file_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -159,7 +161,7 @@ export async function sftp_delete_file_post(
     typeof fileName !== "string" ||
     !fileName
   ) {
-    handleError(res, "Missing required fields", 400);
+    nextError(next, "Missing required fields", 400);
     return;
   }
 
@@ -181,19 +183,19 @@ export async function sftp_delete_file_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete file", { error });
-    handleError(res, "Error deleting file");
+    next(error)
   }
 }
 
 export async function sftp_delete_files_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -214,7 +216,7 @@ export async function sftp_delete_files_post(
         typeof fileName === "string" && fileName.length > 0,
     )
   ) {
-    handleError(res, "Missing or invalid required fields", 400);
+    nextError(next, "Missing or invalid required fields", 400);
     return;
   }
 
@@ -237,19 +239,19 @@ export async function sftp_delete_files_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete files", { error });
-    handleError(res, "Error deleting files");
+    next(error)
   }
 }
 
 export async function sftp_delete_folder_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -266,7 +268,7 @@ export async function sftp_delete_folder_post(
     typeof deleteDir !== "string" ||
     !deleteDir
   ) {
-    handleError(res, "Missing required fields", 400);
+    nextError(next, "Missing required fields", 400);
     return;
   }
 
@@ -288,19 +290,19 @@ export async function sftp_delete_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete folder", { error });
-    handleError(res, "Error deleting folder");
+    next(error)
   }
 }
 
 export async function sftp_create_folder_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -314,7 +316,7 @@ export async function sftp_create_folder_post(
     typeof serverId !== "string" ||
     !serverId
   ) {
-    handleError(res, "Missing required fields", 400);
+    nextError(next, "Missing required fields", 400);
     return;
   }
 
@@ -338,7 +340,6 @@ export async function sftp_create_folder_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to create folder", { error });
-    handleError(res, `Error creating folder: ${getErrorMessage(error)}`);
+    next(error)
   }
 }

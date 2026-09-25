@@ -1,21 +1,17 @@
-import type { Request, Response } from "express";
-
+import type { NextFunction, Request, Response } from "express";
 import { listZip, readZipEntry } from "../services/archiveService";
 import { resolveLocalPath } from "../services/localFileService";
-import { logger } from "../logging";
-
-const log = logger.child("ARCHIVE");
+import { nextError } from "./helpers/requestHelpers";
 
 export async function listLocalArchive(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const { path } = req.query;
 
   if (typeof path !== "string" || !path) {
-    res.status(400).json({
-      error: "Archive path is required",
-    });
+    nextError(next, "Archive path is required", 400);
     return;
   }
 
@@ -28,31 +24,24 @@ export async function listLocalArchive(
       entries,
     });
   } catch (error) {
-    log.error("Failed to open archive:", { error });
-
-    res.status(500).json({
-      error: "Failed to open archive",
-    });
+    next(error);
   }
 }
 
 export async function getLocalArchiveEntry(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const { path, entry } = req.query;
 
   if (typeof path !== "string" || !path) {
-    res.status(400).json({
-      error: "Archive path is required",
-    });
+    nextError(next, "Archive path is required", 400);
     return;
   }
 
   if (typeof entry !== "string" || !entry) {
-    res.status(400).json({
-      error: "Archive entry is required",
-    });
+    nextError(next, "Archive entry is required", 400);
     return;
   }
 
@@ -64,10 +53,6 @@ export async function getLocalArchiveEntry(
     res.type("application/octet-stream");
     res.send(data);
   } catch (error) {
-    log.error("Failed to read archive entry:", { error });
-
-    res.status(500).json({
-      error: "Failed to read archive entry",
-    });
+    next(error);
   }
 }

@@ -2,13 +2,11 @@ import crypto from "node:crypto";
 import path from "node:path";
 import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
+
 import { users } from "../db";
 import { getSettings } from "../services/settingsService";
 import { config } from "../config/config";
-
-import { logger } from "../logging";
-
-const log = logger.child("SETUP");
+import { getErrorMessage, nextError } from "./helpers/requestHelpers";
 
 interface Credentials {
   username: string;
@@ -67,52 +65,57 @@ export function verifyPassword(
 /**
  * GET /setup
  */
-export async function setup_get(_req: Request, res: Response): Promise<void> {
-  const exists = await users.exists();
+export async function setup_get(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const exists = await users.exists();
 
-  if (exists) {
-    res.redirect("/");
-    return;
+    if (exists) {
+      res.redirect("/");
+      return;
+    }
+
+    res.sendFile(path.resolve("client/dist/index.html"));
+  } catch (error) {
+    next(error);
   }
-
-  res.sendFile(path.resolve("client/dist/index.html"));
 }
 
 /**
  * POST /setup
  * Creates the initial admin user.
  */
-export async function setup_post(req: Request, res: Response): Promise<void> {
+export async function setup_post(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  let credentials: Credentials;
+
+  try {
+    credentials = parseCredentials(req.body);
+  } catch (error) {
+    nextError(next, getErrorMessage(error) || "Invalid credentials", 400);
+    return;
+  }
+
+  if (credentials.password.length < 8) {
+    nextError(next, "Password must be at least 8 characters", 400);
+    return;
+  }
+
   try {
     const exists = await users.exists();
 
     if (exists) {
-      res.status(403).json({
-        error: "Setup already complete",
-      });
-      return;
-    }
-
-    let credentials: Credentials;
-
-    try {
-      credentials = parseCredentials(req.body);
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Invalid credentials",
-      });
+      nextError(next, "Setup already complete", 403);
       return;
     }
 
     const { username, password } = credentials;
-
-    if (password.length < 8) {
-      res.status(400).json({
-        error: "Password must be at least 8 characters",
-      });
-      return;
-    }
-
     const { salt, hash } = hashPassword(password);
 
     const user = await users.create({
@@ -137,10 +140,7 @@ export async function setup_post(req: Request, res: Response): Promise<void> {
 
     res.status(201).json({ token });
   } catch (error) {
-    log.error("Setup error", { error });
-    res.status(500).json({
-      error: "Setup failed",
-    });
+    next(error);
   }
 }
 
@@ -148,19 +148,21 @@ export async function setup_post(req: Request, res: Response): Promise<void> {
  * POST /apilogin
  * Authenticates against the DB user.
  */
-export async function login_post(req: Request, res: Response): Promise<void> {
+export async function login_post(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  let credentials: Credentials;
+
   try {
-    let credentials: Credentials;
+    credentials = parseCredentials(req.body);
+  } catch {
+    nextError(next, "Invalid username or password", 401);
+    return;
+  }
 
-    try {
-      credentials = parseCredentials(req.body);
-    } catch {
-      res.status(401).json({
-        message: "Invalid username or password",
-      });
-      return;
-    }
-
+  try {
     const { username, password } = credentials;
 
     const user = await users.findByUsername(username);
@@ -169,9 +171,7 @@ export async function login_post(req: Request, res: Response): Promise<void> {
       !user ||
       !verifyPassword(password, user.passwordSalt, user.passwordHash)
     ) {
-      res.status(401).json({
-        message: "Invalid username or password",
-      });
+      nextError(next, "Invalid username or password", 401);
       return;
     }
 
@@ -190,10 +190,7 @@ export async function login_post(req: Request, res: Response): Promise<void> {
 
     res.json({ token });
   } catch (error) {
-    log.error("Login error", { error });
-    res.status(500).json({
-      error: "Login failed",
-    });
+    next(error);
   }
 }
 
@@ -217,19 +214,21 @@ export async function requireSetupComplete(
     return;
   }
 
-  const exists = await users.exists();
+  try {
+    const exists = await users.exists();
 
-  if (!exists) {
-    if (req.accepts("html")) {
-      res.redirect("/setup");
+    if (!exists) {
+      if (req.accepts("html")) {
+        res.redirect("/setup");
+        return;
+      }
+
+      nextError(next, "Setup required", 428);
       return;
     }
 
-    res.status(428).json({
-      error: "Setup required",
-    });
-    return;
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  next();
 }

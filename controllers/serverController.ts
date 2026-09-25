@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { servers } from "../db";
 
 import {
@@ -11,7 +11,7 @@ import { ServerAuthType } from "../db/stores/serverStore";
 import {
   getErrorMessage,
   getStringParam,
-  handleError,
+  nextError
 } from "./helpers/requestHelpers";
 import { KeyMode } from "../types/server";
 import { propIfPresent } from "../shared/utils/PropHelper";
@@ -53,11 +53,12 @@ export async function sftp_get_servers_get(
 export async function sftp_server_status_get(
   req: Request,
   res: Response,
+  next: NextFunction
 ): Promise<void> {
   const serverId = getStringParam(req, "serverId");
 
   if (!serverId) {
-    handleError(res, "Missing serverId", 400);
+    nextError(next, "Missing serverId", 400);
     return;
   }
 
@@ -180,10 +181,22 @@ function parseSaveServerRequest(body: unknown): SaveServerRequest {
 export async function sftp_save_server_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  try {
-    const request = parseSaveServerRequest(req.body);
+  let request: SaveServerRequest;
 
+  try {
+    request = parseSaveServerRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      getErrorMessage(error) || "Invalid request body",
+      400,
+    );
+    return;
+  }
+
+  try {
     const server = await save_server(request);
 
     const savedServer: SavedServerResponse = {
@@ -202,10 +215,10 @@ export async function sftp_save_server_post(
 
     res.status(201).json(response);
   } catch (error) {
-    log.error("Failed to save server", { error });
-    handleError(res, getErrorMessage(error) || "Cannot save server", 400);
+    next(error);
   }
 }
+
 function parseDeleteServerRequest(body: unknown): DeleteServerRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new Error("Invalid request body");
@@ -225,13 +238,23 @@ function parseDeleteServerRequest(body: unknown): DeleteServerRequest {
 export async function sftp_delete_server_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  const body: unknown = req.body;
+  let request: DeleteServerRequest;
 
   try {
-    const { serverId } = parseDeleteServerRequest(req.body);
+    request = parseDeleteServerRequest(req.body);
+  } catch (error) {
+    nextError(
+      next,
+      getErrorMessage(error) || "Invalid request body",
+      400,
+    );
+    return;
+  }
 
-    await servers.deleteById(serverId);
+  try {
+    await servers.deleteById(request.serverId);
 
     const response: DeleteServerResponse = {
       message: "Server deleted",
@@ -239,19 +262,19 @@ export async function sftp_delete_server_post(
 
     res.status(200).json(response);
   } catch (error) {
-    log.error("Failed to delete server", { error });
-    handleError(res, "Error deleting server");
+    next(error);
   }
 }
 
 export async function sftp_get_server_public_key(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   const serverId = getStringParam(req, "serverId");
 
   if (!serverId) {
-    handleError(res, "Missing serverId", 400);
+    nextError(next, "Missing serverId", 400);
     return;
   }
 
@@ -259,14 +282,11 @@ export async function sftp_get_server_public_key(
     const publicKey = await getServerPublicKey(serverId);
 
     const response: ServerPublicKeyResponse = {
-      publicKey: publicKey ? publicKey : "",
+      publicKey: publicKey ?? "",
     };
 
     res.json(response);
   } catch (error) {
-    log.error("Failed to retrieve public key", { error });
-    res.status(500).json({
-      error: "Failed to get server public key",
-    });
+    next(error);
   }
 }

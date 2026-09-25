@@ -1,11 +1,11 @@
 import path from "node:path";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { transferJobs, transferItems } from "../../db";
 import { transferExecutor } from "../../services/transferExecutor";
 import { ItemKind } from "../../controllers/jobs/jobConstants";
 
-import { getErrorMessage, handleError } from "../helpers/requestHelpers";
+import { getErrorMessage, nextError } from "../helpers/requestHelpers";
 
 import { parseTransferRequestFile } from "../transferRequest";
 
@@ -50,13 +50,14 @@ function parseSftpCopyRequest(body: unknown): SftpCopyRequest {
 export async function sftp_copy_files_post(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   let request: SftpCopyRequest;
 
   try {
     request = parseSftpCopyRequest(req.body);
   } catch (error) {
-    handleError(res, getErrorMessage(error), 400);
+    nextError(next, getErrorMessage(error), 400);
     return;
   }
 
@@ -111,7 +112,6 @@ export async function sftp_copy_files_post(
 
     res.status(201).json(response);
   } catch (error) {
-    log.error("Failed to create transfer job", { error });
-    res.status(500).send("Failed to create transfer job");
+    next(error);
   }
 }

@@ -1,16 +1,21 @@
-import type { Request, Response } from "express";
-import { logger } from "../logging";
+import type { NextFunction, Request, Response } from "express";
+
 import {
   getSharedKeys as getSharedKeysService,
   generateSharedKey,
   importSharedKey,
   deleteSharedKey,
-  GenerateSharedKeyOptions,
-  ImportSharedKeyOptions,
+  type GenerateSharedKeyOptions,
+  type ImportSharedKeyOptions,
 } from "../services/keyService";
-import { propIfPresent } from "../shared/utils/PropHelper";
 
-const log = logger.child("KEYS");
+import { propIfPresent } from "../shared/utils/PropHelper";
+import {
+  getErrorMessage,
+  getStringParam,
+  nextError,
+} from "./helpers/requestHelpers";
+
 /**
  * Returns all shared SSH keys available for reuse.
  *
@@ -19,16 +24,14 @@ const log = logger.child("KEYS");
 export async function getSharedKeys(
   _req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
   try {
     const keys = await getSharedKeysService();
 
     res.json(keys);
   } catch (error) {
-    log.error("Failed to retrieve SSH keys", { error });
-    res.status(500).json({
-      error: "Failed to get SSH keys",
-    });
+    next(error);
   }
 }
 
@@ -83,74 +86,76 @@ function parseImportSharedKeyOptions(body: unknown): ImportSharedKeyOptions {
 
 /**
  * Generates and saves a new shared SSH key pair.
- *
- * Expects a user-defined key name in the request body and returns
- * the public representation of the newly created key.
  */
-export async function generateKey(req: Request, res: Response): Promise<void> {
-  try {
-    const options = parseGenerateSharedKeyOptions(req.body);
+export async function generateKey(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  let options: GenerateSharedKeyOptions;
 
+  try {
+    options = parseGenerateSharedKeyOptions(req.body);
+  } catch (error) {
+    nextError(next, getErrorMessage(error) || "Invalid request body", 400);
+    return;
+  }
+
+  try {
     const key = await generateSharedKey(options);
 
     res.status(201).json(key);
   } catch (error) {
-    log.error("Failure generating SSH key", { error });
-    res.status(400).json({
-      error:
-        error instanceof Error ? error.message : "Failed to generate SSH key",
-    });
+    next(error);
   }
 }
 
 /**
  * Imports an existing private key as a shared SSH key.
- *
- * The request body must contain a name and private key. A public
- * key and private-key passphrase may optionally be supplied.
  */
-export async function importKey(req: Request, res: Response): Promise<void> {
-  try {
-    const options = parseImportSharedKeyOptions(req.body);
+export async function importKey(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  let options: ImportSharedKeyOptions;
 
+  try {
+    options = parseImportSharedKeyOptions(req.body);
+  } catch (error) {
+    nextError(next, getErrorMessage(error) || "Invalid request body", 400);
+    return;
+  }
+
+  try {
     const key = await importSharedKey(options);
 
     res.status(201).json(key);
   } catch (error) {
-    log.error("Error importing SSH key", { error });
-    res.status(400).json({
-      error:
-        error instanceof Error ? error.message : "Failed to import SSH key",
-    });
+    next(error);
   }
 }
 
 /**
  * Deletes a shared SSH key by ID.
- *
- * The key service verifies that the requested key has shared scope
- * before allowing it to be deleted.
  */
-export async function deleteKey(req: Request, res: Response): Promise<void> {
+export async function deleteKey(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const id = getStringParam(req, "id");
+
+  if (!id) {
+    nextError(next, "Invalid SSH key ID", 400);
+    return;
+  }
+
   try {
-    const { id } = req.params;
-
-    if (typeof id !== "string") {
-      res.status(400).json({
-        error: "Invalid SSH key ID",
-      });
-      return;
-    }
-
     await deleteSharedKey(id);
 
     res.status(204).end();
   } catch (error) {
-    log.error("Failed to delete SSH key", { error });
-
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : "Failed to delete SSH key",
-    });
+    next(error);
   }
 }

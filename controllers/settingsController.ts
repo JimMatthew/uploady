@@ -4,7 +4,7 @@ import {
   getSettings as getSettingsService,
   UpdateSessionSettingsOptions,
   updateSessionSettings as updateSessionSettingsService,
-  getCertificateInfo
+  getCertificateInfo,
 } from "../services/settingsService";
 
 import { logger } from "../logging";

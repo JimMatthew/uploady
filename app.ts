@@ -9,10 +9,7 @@ import { WebSocketServer } from "ws";
 
 import { logger } from "./logging";
 import { init } from "./db";
-import {
-  config,
-  type AppConfig,
-} from "./config/config";
+import { config, type AppConfig } from "./config/config";
 
 import sshSessionHandler from "./controllers/ssh_session";
 import setupRoutes from "./routes/route";
@@ -113,25 +110,23 @@ app.get("*", (_req, res) => {
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
-interface AppError extends Error {
-  status?: number;
-}
+import { AppError } from "./errors/AppError";
 
-const errorHandler: ErrorRequestHandler = (
-  error: AppError,
-  req,
-  res,
-  _next,
-) => {
+const errorHandler: ErrorRequestHandler = (error: unknown, req, res, _next) => {
+  const status = error instanceof AppError ? error.status : 500;
+
+  const message =
+    error instanceof AppError ? error.message : "Internal server error";
+
   log.error("Request failed", {
     method: req.method,
     path: req.path,
-    status: error.status ?? 500,
+    status,
     error,
   });
 
-  res.status(error.status ?? 500).json({
-    error: error.message,
+  res.status(status).json({
+    error: message,
   });
 };
 
@@ -157,7 +152,6 @@ function createServer(config: AppConfig): http.Server | https.Server {
 
 async function start(): Promise<void> {
   try {
-    
     await init();
 
     const server = createServer(config);
