@@ -1,9 +1,10 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import {
   getSettings as getSettingsService,
   UpdateSessionSettingsOptions,
   updateSessionSettings as updateSessionSettingsService,
+  getCertificateInfo
 } from "../services/settingsService";
 
 import { logger } from "../logging";
@@ -59,5 +60,19 @@ export async function updateSessionSettings(
           ? error.message
           : "Failed to update session settings",
     });
+  }
+}
+
+export async function certificate_info_get(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const certificate = getCertificateInfo();
+
+    res.status(200).json(certificate);
+  } catch (error) {
+    next(error);
   }
 }

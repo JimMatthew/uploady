@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 import { getServerOptions } from "./serverService";
 import { sshExec } from "../infrastructure/ssh/sshExec";
-
+import { logger } from "../logging";
+const log = logger.child("STATS");
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -167,7 +168,7 @@ async function getServerStats(serverId: string): Promise<ServerStats> {
 
           resolve(output.stdout);
         } catch (err) {
-          console.error(err);
+          log.error("Error retrieving stats", { err });
           resolve(null);
         }
       }, 500);
@@ -215,10 +216,11 @@ export async function getServerStatsHandler(
 
     res.json(stats);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-
-    console.error(`Stats fetch failed for server ${serverId}:`, message);
-
+    log.error("Failed to fetch stats", {
+      serverId,
+      err
+    })
+    
     res.status(500).json({
       error: "Failed to retrieve server stats",
     });

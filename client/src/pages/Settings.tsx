@@ -19,6 +19,7 @@ import {
   FiFileText,
   FiKey,
   FiPlus,
+  FiShield,
   FiTrash2,
 } from "react-icons/fi";
 
@@ -91,6 +92,13 @@ interface LoadingStateProps {
   label: string;
 }
 
+interface CertificateInfo {
+  subject: string;
+  issuer: string;
+  validFrom: string;
+  validTo: string;
+  fingerprint: string;
+}
 // -----------------------------------------------------------------------------
 // Styles
 // -----------------------------------------------------------------------------
@@ -152,7 +160,9 @@ const Settings = ({ toast }: SettingsProps) => {
   const [sessionTimeout, setSessionTimeout] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSession, setSavingSession] = useState(false);
+  const [certificate, setCertificate] = useState<CertificateInfo | null>(null);
 
+  const [loadingCertificate, setLoadingCertificate] = useState(true);
   // ---------------------------------------------------------------------------
   // SSH keys
   // ---------------------------------------------------------------------------
@@ -270,6 +280,28 @@ const Settings = ({ toast }: SettingsProps) => {
   // Application settings
   // ---------------------------------------------------------------------------
 
+  const loadCertificate = useCallback(async (): Promise<void> => {
+    setLoadingCertificate(true);
+
+    try {
+      const data = await apiClient.get<CertificateInfo>(
+        "/api/settings/certificate",
+      );
+
+      setCertificate(data);
+    } catch (error: unknown) {
+      console.error("Failed to load certificate information:", error);
+
+      toast({
+        title: "Failed to load certificate information",
+        ...propIfPresent("description", getErrorMessage(error)),
+        status: "error",
+      });
+    } finally {
+      setLoadingCertificate(false);
+    }
+  }, [toast]);
+
   const loadSettings = useCallback(async (): Promise<void> => {
     setLoadingSettings(true);
 
@@ -331,7 +363,37 @@ const Settings = ({ toast }: SettingsProps) => {
       setSavingSession(false);
     }
   };
+  interface CertificateValueProps {
+    children: ReactNode;
+    mono?: boolean;
+  }
 
+  const formatCertificateDate = (value: string): string =>
+    new Date(value).toLocaleString();
+
+  const CertificateValue = ({
+    children,
+    mono = false,
+  }: CertificateValueProps) => (
+    <Text
+      fontSize="11px"
+      color="whiteAlpha.500"
+      {...(mono && {
+        fontFamily: "'JetBrains Mono', monospace",
+      })}
+      maxW={{
+        base: "100%",
+        sm: "500px",
+      }}
+      textAlign={{
+        base: "left",
+        sm: "right",
+      }}
+      overflowWrap="anywhere"
+    >
+      {children}
+    </Text>
+  );
   // ---------------------------------------------------------------------------
   // Load data
   // ---------------------------------------------------------------------------
@@ -339,7 +401,8 @@ const Settings = ({ toast }: SettingsProps) => {
   useEffect(() => {
     void loadKeys();
     void loadSettings();
-  }, [loadKeys, loadSettings]);
+    void loadCertificate();
+  }, [loadKeys, loadSettings, loadCertificate]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -424,6 +487,56 @@ const Settings = ({ toast }: SettingsProps) => {
           )}
         </SettingsSection>
 
+        <SettingsSection
+          icon={FiShield}
+          title="HTTPS Certificate"
+          description="Certificate used by Uploady's HTTPS server."
+        >
+          {loadingCertificate ? (
+            <LoadingState label="Loading certificate information..." />
+          ) : certificate ? (
+            <>
+              <SettingRow title="Subject">
+                <CertificateValue>{certificate.subject}</CertificateValue>
+              </SettingRow>
+
+              <SettingDivider />
+
+              <SettingRow title="Issuer">
+                <CertificateValue>{certificate.issuer}</CertificateValue>
+              </SettingRow>
+
+              <SettingDivider />
+
+              <SettingRow title="Valid from">
+                <CertificateValue>
+                  {formatCertificateDate(certificate.validFrom)}
+                </CertificateValue>
+              </SettingRow>
+
+              <SettingDivider />
+
+              <SettingRow title="Expires">
+                <CertificateValue>
+                  {formatCertificateDate(certificate.validTo)}
+                </CertificateValue>
+              </SettingRow>
+
+              <SettingDivider />
+
+              <SettingRow
+                title="SHA-256 fingerprint"
+                description="Unique fingerprint for the current certificate."
+              >
+                <CertificateValue mono>
+                  {certificate.fingerprint}
+                </CertificateValue>
+              </SettingRow>
+            </>
+          ) : (
+            <SettingStatus>Certificate information unavailable</SettingStatus>
+          )}
+        </SettingsSection>
         <SettingsSection
           icon={FiFileText}
           title="Logging"
