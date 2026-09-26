@@ -6,7 +6,6 @@ import { transferExecutor } from "../../services/transferExecutor";
 import { ItemKind } from "../../controllers/jobs/jobConstants";
 
 import { getErrorMessage, nextError } from "../helpers/requestHelpers";
-
 import { parseTransferRequestFile } from "../transferRequest";
 
 import type {
@@ -15,11 +14,8 @@ import type {
 } from "../../shared/api/transfers";
 
 import { config } from "../../config/config";
-import { logger } from "../../logging";
 
 const uploadsDir = path.resolve(config.storage.uploadsDirectory);
-
-const log = logger.child("TRANSFER");
 
 function parseSftpCopyRequest(body: unknown): SftpCopyRequest {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {

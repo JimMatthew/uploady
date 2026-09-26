@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import {
   listServices,
@@ -6,9 +6,9 @@ import {
   stopService,
   restartService,
 } from "../services/serviceManagerService";
-import { logger } from "../logging";
 
-const log = logger.child("SERVICES");
+import { getStringParam, nextError } from "./helpers/requestHelpers";
+
 /**
  * GET /api/servers/:serverId/services
  *
@@ -17,13 +17,12 @@ const log = logger.child("SERVICES");
 export async function getServerServices(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  const { serverId } = req.params;
+  const serverId = getStringParam(req, "serverId");
 
-  if (typeof serverId !== "string" || !serverId) {
-    res.status(400).json({
-      error: "Missing or invalid serverId",
-    });
+  if (!serverId) {
+    nextError(next, "Missing or invalid serverId", 400);
     return;
   }
 
@@ -32,14 +31,7 @@ export async function getServerServices(
 
     res.json(result);
   } catch (error) {
-    log.error("Failed to fetch services", {
-      server: serverId,
-      error
-    })
-    
-    res.status(500).json({
-      error: "Failed to retrieve server services",
-    });
+    next(error);
   }
 }
 
@@ -49,18 +41,13 @@ export async function getServerServices(
 export async function startServerService(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  const { serverId, serviceName } = req.params;
+  const serverId = getStringParam(req, "serverId");
+  const serviceName = getStringParam(req, "serviceName");
 
-  if (
-    typeof serverId !== "string" ||
-    typeof serviceName !== "string" ||
-    !serverId ||
-    !serviceName
-  ) {
-    res.status(400).json({
-      error: "Missing or invalid serverId or serviceName",
-    });
+  if (!serverId || !serviceName) {
+    nextError(next, "Missing or invalid serverId or serviceName", 400);
     return;
   }
 
@@ -69,15 +56,7 @@ export async function startServerService(
 
     res.json(result);
   } catch (error) {
-    log.error("Failed to start service",{
-      service: serviceName,
-      serverId,
-      error
-    })
-    
-    res.status(500).json({
-      error: "Failed to start service",
-    });
+    next(error);
   }
 }
 
@@ -87,18 +66,13 @@ export async function startServerService(
 export async function stopServerService(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  const { serverId, serviceName } = req.params;
+  const serverId = getStringParam(req, "serverId");
+  const serviceName = getStringParam(req, "serviceName");
 
-  if (
-    typeof serverId !== "string" ||
-    typeof serviceName !== "string" ||
-    !serverId ||
-    !serviceName
-  ) {
-    res.status(400).json({
-      error: "Missing or invalid serverId or serviceName",
-    });
+  if (!serverId || !serviceName) {
+    nextError(next, "Missing or invalid serverId or serviceName", 400);
     return;
   }
 
@@ -107,15 +81,7 @@ export async function stopServerService(
 
     res.json(result);
   } catch (error) {
-    log.error("Failed to stop service", {
-      service: serviceName,
-      serverId,
-      error
-    })
-    
-    res.status(500).json({
-      error: "Failed to stop service",
-    });
+    next(error);
   }
 }
 
@@ -125,18 +91,13 @@ export async function stopServerService(
 export async function restartServerService(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
-  const { serverId, serviceName } = req.params;
+  const serverId = getStringParam(req, "serverId");
+  const serviceName = getStringParam(req, "serviceName");
 
-  if (
-    typeof serverId !== "string" ||
-    typeof serviceName !== "string" ||
-    !serverId ||
-    !serviceName
-  ) {
-    res.status(400).json({
-      error: "Missing or invalid serverId or serviceName",
-    });
+  if (!serverId || !serviceName) {
+    nextError(next, "Missing or invalid serverId or serviceName", 400);
     return;
   }
 
@@ -145,14 +106,6 @@ export async function restartServerService(
 
     res.json(result);
   } catch (error) {
-    log.error("Failed to restart service", {
-      service: serviceName,
-      serverId,
-      error
-    })
-
-    res.status(500).json({
-      error: "Failed to restart service",
-    });
+    next(error);
   }
 }

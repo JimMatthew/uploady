@@ -1,7 +1,11 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { zipClipboardFiles } from "../services/sftpService";
 import type { ClipboardFile } from "../services/sftpService";
+import { getErrorMessage, nextError } from "./helpers/requestHelpers";
+import { logger } from "../logging";
+
+const log = logger.child("ZIP");
 
 function parseClipboardFiles(body: unknown): ClipboardFile[] {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -72,15 +76,17 @@ function parseClipboardFiles(body: unknown): ClipboardFile[] {
   });
 }
 
-export async function zipDownload(req: Request, res: Response): Promise<void> {
+export async function zipDownload(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   let files: ClipboardFile[];
 
   try {
     files = parseClipboardFiles(req.body);
   } catch (error) {
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Invalid request",
-    });
+    nextError(next, getErrorMessage(error) || "Invalid request", 400);
     return;
   }
 
@@ -95,12 +101,15 @@ export async function zipDownload(req: Request, res: Response): Promise<void> {
   try {
     await zipClipboardFiles(files, res);
   } catch (error) {
-    console.error("Zip clipboard error:", error);
-
     if (!res.headersSent) {
-      res.status(500).json({
-        error: "Failed to create zip",
-      });
+      next(error);
+      return;
     }
+
+    log.error("ZIP stream failed after response started", {
+      error,
+    });
+
+    res.destroy();
   }
 }

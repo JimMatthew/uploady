@@ -107,8 +107,6 @@ export async function paste_files_post(
 
     res.status(201).json(response);
   } catch (error) {
-    console.error("Failed to create paste job:", error);
-
-    nextError(next, "Error pasting files", 500);
+    nextError(next, "Failed to create paste job", 500);
   }
 }

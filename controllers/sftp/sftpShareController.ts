@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { share_file } from "../../services/serverService";
-import { handleError } from "../helpers/requestHelpers";
+import { nextError } from "../helpers/requestHelpers";
 
 import type {
   SftpShareFileRequest,
@@ -16,7 +16,7 @@ export async function sftp_share_file_post(
   const body: unknown = req.body;
 
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    handleError(res, "Invalid request body", 400);
+    nextError(next, "Invalid request body", 400);
     return;
   }
 
@@ -28,7 +28,7 @@ export async function sftp_share_file_post(
     typeof remotePath !== "string" ||
     !remotePath
   ) {
-    handleError(res, "Missing required fields", 400);
+    nextError(next, "Missing required fields", 400);
     return;
   }
 
@@ -40,7 +40,7 @@ export async function sftp_share_file_post(
   const fileName = request.remotePath.split("/").pop();
 
   if (!fileName) {
-    handleError(res, "Invalid remote path", 400);
+    nextError(next, "Invalid remote path", 400);
     return;
   }
 

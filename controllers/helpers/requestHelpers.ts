@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from "express";
-
+import type { Request, NextFunction } from "express";
+import { AppError } from "../../errors/AppError";
 
 /**
  * Converts an unknown thrown value into a readable error message.
@@ -49,17 +49,6 @@ export function getStringParam(req: Request, name: string): string | null {
   return typeof value === "string" && value ? value : null;
 }
 
-/**
- * Error shape passed to Express error-handling middleware.
- *
- * Keeps both the human-readable error message and the HTTP status
- * that should eventually be returned to the client.
- */
-interface RequestError {
-  message: string;
-  status: number;
-}
-import { AppError } from "../../errors/AppError";
 /**
  * Passes an HTTP-style error to the next Express error handler.
  *

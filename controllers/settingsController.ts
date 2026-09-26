@@ -2,25 +2,24 @@ import type { NextFunction, Request, Response } from "express";
 
 import {
   getSettings as getSettingsService,
-  UpdateSessionSettingsOptions,
+  type UpdateSessionSettingsOptions,
   updateSessionSettings as updateSessionSettingsService,
   getCertificateInfo,
 } from "../services/settingsService";
 
-import { logger } from "../logging";
+import { getErrorMessage, nextError } from "./helpers/requestHelpers";
 
-const log = logger.child("SETTINGS");
-
-export async function getSettings(_req: Request, res: Response): Promise<void> {
+export async function getSettings(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const settings = await getSettingsService();
 
     res.json(settings);
   } catch (error) {
-    log.error("Failed to get settings", { error });
-    res.status(500).json({
-      error: "Failed to get settings",
-    });
+    next(error);
   }
 }
 
@@ -46,20 +45,23 @@ function parseUpdateSessionSettingsOptions(
 export async function updateSessionSettings(
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> {
+  let options: UpdateSessionSettingsOptions;
+
   try {
-    const options = parseUpdateSessionSettingsOptions(req.body);
+    options = parseUpdateSessionSettingsOptions(req.body);
+  } catch (error) {
+    nextError(next, getErrorMessage(error) || "Invalid request body", 400);
+    return;
+  }
+
+  try {
     const settings = await updateSessionSettingsService(options);
 
     res.json(settings);
   } catch (error) {
-    log.error("Failed to update settings", { error });
-    res.status(400).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update session settings",
-    });
+    next(error);
   }
 }
 

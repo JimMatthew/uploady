@@ -110,8 +110,6 @@ export async function notes_get(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Get notes error:", error);
-
     nextError(next, "Error getting notes", 500);
   }
 }
@@ -142,8 +140,6 @@ export async function note_get(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Get note error:", error);
-
     nextError(next, "Error getting note", 500);
   }
 }
@@ -175,8 +171,6 @@ export async function note_create_post(
 
     res.status(201).json(response);
   } catch (error) {
-    console.error("Create note error:", error);
-
     nextError(next, "Error creating note", 500);
   }
 }
@@ -220,8 +214,6 @@ export async function note_update_post(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Update note error:", error);
-
     nextError(next, "Error updating note", 500);
   }
 }
@@ -252,8 +244,6 @@ export async function note_delete(
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Delete note error:", error);
-
     nextError(next, "Error deleting note", 500);
   }
 }
